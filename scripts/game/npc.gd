@@ -9,6 +9,9 @@ func interact() -> void:
 	var dialogue_data: Dictionary = _load_dialogue()
 	if dialogue_data.is_empty():
 		return
+	var quest_event: String = str(dialogue_data.get("quest_event", ""))
+	if not quest_event.is_empty():
+		GameState.report_quest_event(quest_event)
 	get_tree().call_group("dialogue_ui", "start_dialogue", dialogue_data)
 	get_tree().call_group("game_world", "set_interaction_hint", false)
 
