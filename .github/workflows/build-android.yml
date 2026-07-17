@@ -38,6 +38,25 @@ jobs:
             "cmake;3.10.2.4988404" \
             "ndk;28.1.13356709"
 
+      - name: Download Godot and export templates
+        shell: bash
+        run: |
+          curl --location --fail --retry 3 \
+            --output godot.zip \
+            "https://github.com/godotengine/godot/releases/download/4.7.1-stable/Godot_v4.7.1-stable_linux.x86_64.zip"
+          unzip -q godot.zip
+          chmod +x Godot_v4.7.1-stable_linux.x86_64
+
+          curl --location --fail --retry 3 \
+            --output export_templates.tpz \
+            "https://github.com/godotengine/godot/releases/download/4.7.1-stable/Godot_v4.7.1-stable_export_templates.tpz"
+          rm -rf /tmp/godot-export-templates
+          mkdir -p /tmp/godot-export-templates
+          unzip -q export_templates.tpz -d /tmp/godot-export-templates
+          mkdir -p "$HOME/.local/share/godot/export_templates/4.7.1.stable"
+          cp -a /tmp/godot-export-templates/templates/. \
+            "$HOME/.local/share/godot/export_templates/4.7.1.stable/"
+
       - name: Create debug keystore
         shell: bash
         run: |
@@ -66,27 +85,47 @@ jobs:
           export/android/debug_keystore_pass = "android"
           EOF
 
+      - name: Import project resources
+        shell: bash
+        run: |
+          ./Godot_v4.7.1-stable_linux.x86_64 \
+            --headless \
+            --editor \
+            --path "$GITHUB_WORKSPACE" \
+            --quit
+
       - name: Export Android APK
         id: export
-        uses: firebelley/godot-export@v8.0.0
+        continue-on-error: true
+        shell: bash
         env:
           GODOT_ANDROID_KEYSTORE_DEBUG_PATH: ${{ github.workspace }}/debug.keystore
           GODOT_ANDROID_KEYSTORE_DEBUG_USER: androiddebugkey
           GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD: android
-        with:
-          godot_executable_download_url: https://github.com/godotengine/godot/releases/download/4.7.1-stable/Godot_v4.7.1-stable_linux.x86_64.zip
-          godot_export_templates_download_url: https://github.com/godotengine/godot/releases/download/4.7.1-stable/Godot_v4.7.1-stable_export_templates.tpz
-          relative_project_path: ./
-          presets_to_export: Android
-          export_debug: true
-          use_preset_export_path: true
-          cache: true
-          verbose: true
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/build/android"
+          set +e
+          ./Godot_v4.7.1-stable_linux.x86_64 \
+            --headless \
+            --verbose \
+            --path "$GITHUB_WORKSPACE" \
+            --export-debug "Android" \
+            "$GITHUB_WORKSPACE/build/android/rpg-project-debug.apk" \
+            2>&1 | tee "$GITHUB_WORKSPACE/build/android/export.log"
+          export_status=${PIPESTATUS[0]}
+          echo "$export_status" > "$GITHUB_WORKSPACE/build/android/export-status.txt"
+          exit "$export_status"
 
-      - name: Upload APK artifact
+      - name: Upload Android build and diagnostics
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: rpg-project-android-debug
-          path: build/android/*.apk
+          path: build/android/
           if-no-files-found: error
           retention-days: 14
+
+      - name: Fail workflow when export failed
+        if: steps.export.outcome != 'success'
+        shell: bash
+        run: exit 1
