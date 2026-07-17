@@ -1,8 +1,11 @@
 class_name InventoryPanel
 extends Control
 
+var _class_data: ClassDataSystem = ClassDataSystem.new()
 var _item_list: VBoxContainer
 var _details_label: Label
+var _equip_button: Button
+var _selected_entry: Dictionary = {}
 
 
 func _ready() -> void:
@@ -30,72 +33,69 @@ func _unhandled_input(event: InputEvent) -> void:
 func _build_layout() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
-
 	var dimmer := ColorRect.new()
 	dimmer.color = Color(0.0, 0.0, 0.0, 0.72)
 	dimmer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	dimmer.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(dimmer)
-
 	var center := CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(center)
-
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = Vector2(980.0, 580.0)
 	center.add_child(panel)
-
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 30)
 	margin.add_theme_constant_override("margin_top", 24)
 	margin.add_theme_constant_override("margin_right", 30)
 	margin.add_theme_constant_override("margin_bottom", 24)
 	panel.add_child(margin)
-
 	var root_column := VBoxContainer.new()
 	root_column.add_theme_constant_override("separation", 16)
 	margin.add_child(root_column)
-
 	var header := HBoxContainer.new()
 	root_column.add_child(header)
-
 	var title := Label.new()
 	title.text = "ИНВЕНТАРЬ"
 	title.add_theme_font_size_override("font_size", 27)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(title)
-
 	var close_button := Button.new()
 	close_button.text = "Закрыть"
 	close_button.custom_minimum_size = Vector2(140.0, 48.0)
 	close_button.pressed.connect(close_inventory)
 	header.add_child(close_button)
-
 	root_column.add_child(HSeparator.new())
-
 	var body := HSplitContainer.new()
 	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	body.split_offset = 350
 	root_column.add_child(body)
-
 	var scroll := ScrollContainer.new()
 	scroll.custom_minimum_size = Vector2(330.0, 0.0)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	body.add_child(scroll)
-
 	_item_list = VBoxContainer.new()
 	_item_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_item_list.add_theme_constant_override("separation", 8)
 	scroll.add_child(_item_list)
-
+	var detail_column := VBoxContainer.new()
+	detail_column.custom_minimum_size = Vector2(520.0, 0.0)
+	detail_column.add_theme_constant_override("separation", 12)
+	body.add_child(detail_column)
 	_details_label = Label.new()
-	_details_label.custom_minimum_size = Vector2(520.0, 0.0)
 	_details_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_details_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_details_label.add_theme_font_size_override("font_size", 20)
 	_details_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_details_label.text = "Выберите предмет слева."
-	body.add_child(_details_label)
+	detail_column.add_child(_details_label)
+	_equip_button = Button.new()
+	_equip_button.text = "ЭКИПИРОВАТЬ"
+	_equip_button.custom_minimum_size = Vector2(0.0, 58.0)
+	_equip_button.add_theme_font_size_override("font_size", 19)
+	_equip_button.pressed.connect(_equip_selected)
+	_equip_button.hide()
+	detail_column.add_child(_equip_button)
 
 
 func _refresh() -> void:
@@ -107,42 +107,65 @@ func _refresh() -> void:
 		empty_label.add_theme_font_size_override("font_size", 20)
 		_item_list.add_child(empty_label)
 		_details_label.text = "Предметы появятся здесь после получения наград, находок или добычи."
+		_equip_button.hide()
 		return
-
+	entries.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return str(a.get("type", "")) < str(b.get("type", "")))
 	for entry_value: Variant in entries:
 		if not entry_value is Dictionary:
 			continue
 		var entry := entry_value as Dictionary
+		var equipped: bool = _class_data.is_equipped(GameState.player_character, str(entry.get("id", "")))
 		var button := Button.new()
-		button.text = "%s ×%d" % [str(entry.get("name", "Предмет")), int(entry.get("quantity", 0))]
+		button.text = "%s%s ×%d" % ["★ " if equipped else "", str(entry.get("name", "Предмет")), int(entry.get("quantity", 0))]
 		button.custom_minimum_size = Vector2(0.0, 58.0)
 		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		button.pressed.connect(_show_details.bind(entry))
 		_item_list.add_child(button)
-
 	var first_entry: Variant = entries[0]
 	if first_entry is Dictionary:
 		_show_details(first_entry as Dictionary)
 
 
 func _show_details(entry: Dictionary) -> void:
+	_selected_entry = entry.duplicate(true)
 	var type_id: String = str(entry.get("type", "misc"))
 	var type_name: String = {
-		"quest": "Квестовый предмет",
-		"material": "Материал",
-		"consumable": "Расходуемый предмет",
-		"weapon": "Оружие",
-		"armor": "Броня",
-		"misc": "Прочее"
+		"quest":"Квестовый предмет", "material":"Материал", "consumable":"Расходуемый предмет",
+		"weapon":"Оружие", "armor":"Броня", "shield":"Щит", "ammunition":"Боеприпасы",
+		"currency":"Валюта", "focus":"Магический фокус", "tool":"Инструмент",
+		"book":"Книга", "gear":"Снаряжение", "misc":"Прочее"
 	}.get(type_id, "Прочее")
-	var stack_text: String = "Складывается" if bool(entry.get("stackable", true)) else "Уникальный предмет"
-	_details_label.text = "%s\n\nТип: %s\nКоличество: %d\n%s\n\n%s" % [
-		str(entry.get("name", "Предмет")),
-		type_name,
-		int(entry.get("quantity", 0)),
-		stack_text,
-		str(entry.get("description", "Описание отсутствует."))
+	var item_id: String = str(entry.get("id", ""))
+	var equipped: bool = _class_data.is_equipped(GameState.player_character, item_id)
+	var equipment_text: String = "\nСостояние: ЭКИПИРОВАНО" if equipped else ""
+	var stats_text: String = _equipment_stats(entry)
+	_details_label.text = "%s\n\nТип: %s\nКоличество: %d%s%s\n\n%s" % [
+		str(entry.get("name", "Предмет")), type_name, int(entry.get("quantity", 0)),
+		equipment_text, stats_text, str(entry.get("description", "Описание отсутствует."))
 	]
+	_equip_button.visible = type_id in ["weapon", "armor", "shield"]
+	_equip_button.disabled = equipped
+	_equip_button.text = "ЭКИПИРОВАНО" if equipped else "ЭКИПИРОВАТЬ"
+
+
+func _equipment_stats(entry: Dictionary) -> String:
+	var type_id: String = str(entry.get("type", ""))
+	if type_id == "weapon":
+		var dice: Array = entry.get("damage_dice", [1, 1]) as Array
+		return "\nУрон: %dd%d %s" % [int(dice[0]), int(dice[1]), str(entry.get("damage_type", "физический"))]
+	if type_id == "armor":
+		return "\nБазовый КД: %d" % int(entry.get("base_ac", 10))
+	if type_id == "shield":
+		return "\nБонус КД: +%d" % int(entry.get("ac_bonus", 2))
+	return ""
+
+
+func _equip_selected() -> void:
+	var item_id: String = str(_selected_entry.get("id", ""))
+	if item_id.is_empty():
+		return
+	if _class_data.equip_item(GameState.player_character, item_id):
+		_refresh()
 
 
 func _clear_container(container: Container) -> void:
