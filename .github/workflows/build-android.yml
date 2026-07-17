@@ -2,8 +2,6 @@ name: Build Android APK
 
 on:
   pull_request:
-    branches:
-      - main
   workflow_dispatch:
 
 permissions:
@@ -74,7 +72,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p "$HOME/.config/godot"
-          cat > "$HOME/.config/godot/editor_settings-4.7.tres" <<EOF
+          cat > "$HOME/.config/godot/editor_settings-4.7.tres" <<EOF_SETTINGS
           [gd_resource type="EditorSettings" format=3]
 
           [resource]
@@ -83,7 +81,7 @@ jobs:
           export/android/debug_keystore = "$GITHUB_WORKSPACE/debug.keystore"
           export/android/debug_keystore_user = "androiddebugkey"
           export/android/debug_keystore_pass = "android"
-          EOF
+          EOF_SETTINGS
 
       - name: Import project resources
         shell: bash
@@ -110,7 +108,7 @@ jobs:
             --verbose \
             --path "$GITHUB_WORKSPACE" \
             --export-debug "Android" \
-            "$GITHUB_WORKSPACE/build/android/rpg-project-debug.apk" \
+            "$GITHUB_WORKSPACE/build/android/rpg-project-0.2.0-debug.apk" \
             2>&1 | tee "$GITHUB_WORKSPACE/build/android/export.log"
           export_status=${PIPESTATUS[0]}
           echo "$export_status" > "$GITHUB_WORKSPACE/build/android/export-status.txt"
@@ -120,7 +118,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: rpg-project-android-debug
+          name: rpg-project-0.2.0-android-debug
           path: build/android/
           if-no-files-found: error
           retention-days: 14
