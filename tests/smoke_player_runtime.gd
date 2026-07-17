@@ -31,12 +31,14 @@ func _run_smoke_test() -> void:
 	assert(name_label.text == "Арден")
 	assert(body.color.is_equal_approx(Color.from_string("#9368D8", Color.WHITE)))
 
-	var start_x: float = player.global_position.x
 	player.call("set_mobile_vector", Vector2.RIGHT)
-	await physics_frame
-	await physics_frame
+	var mobile_direction: Vector2 = player.call("_get_mobile_direction") as Vector2
+	assert(mobile_direction.is_equal_approx(Vector2.RIGHT))
+	player.call("_physics_process", 1.0 / 60.0)
+	assert(player.velocity.x > 0.0)
+	assert(is_zero_approx(player.velocity.y))
 	player.call("clear_mobile_input")
-	assert(player.global_position.x > start_x)
+	assert((player.call("_get_mobile_direction") as Vector2).is_zero_approx())
 
 	print("Player runtime smoke test passed.")
 	game.queue_free()
