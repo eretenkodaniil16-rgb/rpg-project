@@ -61,6 +61,10 @@ jobs:
         shell: bash
         run: timeout 45s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_directional_targeting.gd
 
+      - name: Run turn based combat system tests
+        shell: bash
+        run: timeout 45s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_turn_based_combat.gd
+
       - name: Run rest tests
         shell: bash
         run: timeout 45s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_rests.gd
@@ -130,6 +134,10 @@ jobs:
       - name: Smoke test free aim combat
         shell: bash
         run: timeout 45s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_free_aim_combat.gd
+
+      - name: Smoke test turn based combat
+        shell: bash
+        run: timeout 60s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_turn_based_combat.gd
 
       - name: Run runtime checks with diagnostics
         shell: bash

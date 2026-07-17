@@ -14,8 +14,10 @@ var _class_data: ClassDataSystem = ClassDataSystem.new()
 var _ability_system: ClassAbilitySystem = ClassAbilitySystem.new()
 var _resetting: bool = false
 var _targeted: bool = false
+var _turn_active: bool = false
 var _combat_overlay_visible: bool = true
 var _target_marker: Label
+var _turn_marker: Label
 
 
 func _ready() -> void:
@@ -28,6 +30,12 @@ func _ready() -> void:
 	_target_marker.add_theme_color_override("font_color", Color(1.0, 0.35, 0.3, 1.0))
 	_target_marker.add_theme_font_size_override("font_size", 16)
 	add_child(_target_marker)
+	_turn_marker = Label.new()
+	_turn_marker.text = "◆ ХОД"
+	_turn_marker.position = Vector2(-34, -139)
+	_turn_marker.add_theme_color_override("font_color", Color(0.5, 1.0, 0.55, 1.0))
+	_turn_marker.add_theme_font_size_override("font_size", 15)
+	add_child(_turn_marker)
 	_reset_target_passives()
 	_update_health_label()
 
@@ -56,12 +64,41 @@ func get_armor_class() -> int:
 	return armor_class
 
 
+func get_initiative_modifier() -> int:
+	return 0
+
+
+func get_combat_speed_feet() -> int:
+	return 0
+
+
+func can_take_combat_turn() -> bool:
+	return false
+
+
 func is_combat_active() -> bool:
 	return not _resetting
 
 
 func is_hostile() -> bool:
 	return false
+
+
+func enter_combat_hostile() -> void:
+	pass
+
+
+func perform_combat_turn_attack() -> void:
+	pass
+
+
+func perform_opportunity_attack() -> void:
+	pass
+
+
+func set_turn_active(value: bool) -> void:
+	_turn_active = value
+	_update_health_label()
 
 
 func set_combat_targeted(value: bool) -> void:
@@ -115,6 +152,7 @@ func receive_signature_ability(ability: Dictionary, show_interface: bool = true,
 
 func reset_combat_state(full_restore: bool = true) -> void:
 	_resetting = false
+	_turn_active = false
 	if full_restore:
 		current_health = maximum_health
 	visual.rotation_degrees = 0.0
@@ -156,6 +194,8 @@ func _update_health_label() -> void:
 	health_label.visible = _combat_overlay_visible
 	if _target_marker != null:
 		_target_marker.visible = _combat_overlay_visible and _targeted and not _resetting
+	if _turn_marker != null:
+		_turn_marker.visible = _combat_overlay_visible and _turn_active and not _resetting
 
 
 func _on_body_entered(body: Node2D) -> void:
