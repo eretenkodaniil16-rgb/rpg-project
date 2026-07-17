@@ -52,9 +52,14 @@ func _run() -> void:
 	if int(state.call("get_item_count", "arrow")) != arrows_before - 1:
 		_fail("Arrow count did not change.")
 		return
+	var projectile: Node = game.find_child("RangedProjectile", true, false)
+	if projectile == null:
+		_fail("Ranged attack did not create a projectile visual.")
+		return
+	await create_timer(0.9).timeout
 	var popup: Control = game.find_child("AttackResultPopup", true, false) as Control
 	if popup == null or not popup.visible:
-		_fail("Result popup missing.")
+		_fail("Result popup did not appear after projectile animation.")
 		return
 	popup.call("_on_continue_pressed")
 	await process_frame
