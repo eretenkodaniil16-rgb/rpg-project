@@ -15,7 +15,7 @@ var _mobile_vector: Vector2 = Vector2.ZERO
 
 
 func _ready() -> void:
-	_apply_character_appearance()
+	apply_character_appearance()
 
 
 func _physics_process(_delta: float) -> void:
@@ -87,16 +87,7 @@ func clear_interactable(target: Node) -> void:
 		interactable = null
 
 
-func _get_mobile_direction() -> Vector2:
-	var button_direction: Vector2 = Vector2(
-		float(_mobile_right) - float(_mobile_left),
-		float(_mobile_down) - float(_mobile_up)
-	)
-	var combined: Vector2 = button_direction + _mobile_vector
-	return combined.limit_length(1.0)
-
-
-func _apply_character_appearance() -> void:
+func apply_character_appearance() -> void:
 	var character: PlayerCharacter = GameState.player_character
 	var display_name: String = character.character_name.strip_edges()
 	name_label.text = display_name if not display_name.is_empty() else "Герой"
@@ -107,3 +98,12 @@ func _apply_character_appearance() -> void:
 		character.appearance_color_hex,
 		Color(0.3, 0.64, 0.91, 1.0)
 	)
+
+
+func _get_mobile_direction() -> Vector2:
+	var button_direction: Vector2 = Vector2(
+		float(_mobile_right) - float(_mobile_left),
+		float(_mobile_down) - float(_mobile_up)
+	)
+	var combined: Vector2 = button_direction + _mobile_vector
+	return combined.limit_length(1.0)
