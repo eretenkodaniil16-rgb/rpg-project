@@ -2,13 +2,13 @@ extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
 
-
 func _init() -> void:
 	call_deferred("_run_test")
 
-
 func _run_test() -> void:
-	GameState.begin_new_game(PlayerCharacter.create_legacy_default())
+	var game_state: Node = root.get_node_or_null("GameState")
+	assert(game_state != null)
+	game_state.call("begin_new_game", PlayerCharacter.create_legacy_default())
 
 	var packed_scene: PackedScene = load(GAME_SCENE) as PackedScene
 	assert(packed_scene != null)
