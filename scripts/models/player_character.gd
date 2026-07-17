@@ -20,6 +20,9 @@ var experience: int = 0
 var abilities: Dictionary = DEFAULT_ABILITIES.duplicate(true)
 var maximum_health: int = 1
 var current_health: int = 1
+var hit_die_size: int = 8
+var hit_dice_current: int = 0
+var hit_dice_maximum: int = 0
 
 var equipped_weapon_id: String = ""
 var equipped_armor_id: String = ""
@@ -74,6 +77,15 @@ func restore_class_resources() -> void:
 	active_effects.clear()
 
 
+func initialize_hit_dice(die_size: int) -> void:
+	hit_die_size = maxi(die_size, 2)
+	hit_dice_maximum = maxi(level, 1)
+	if hit_dice_current <= 0:
+		hit_dice_current = hit_dice_maximum
+	else:
+		hit_dice_current = clampi(hit_dice_current, 0, hit_dice_maximum)
+
+
 func to_dict() -> Dictionary:
 	return {
 		"name": character_name,
@@ -85,6 +97,9 @@ func to_dict() -> Dictionary:
 		"abilities": abilities.duplicate(true),
 		"maximum_health": maximum_health,
 		"current_health": current_health,
+		"hit_die_size": hit_die_size,
+		"hit_dice_current": hit_dice_current,
+		"hit_dice_maximum": hit_dice_maximum,
 		"equipped_weapon_id": equipped_weapon_id,
 		"equipped_armor_id": equipped_armor_id,
 		"equipped_shield_id": equipped_shield_id,
@@ -105,15 +120,16 @@ static func from_dict(data: Dictionary) -> PlayerCharacter:
 	character.appearance_color_hex = normalize_color_hex(str(data.get("appearance_color_hex", DEFAULT_APPEARANCE_COLOR_HEX)))
 	character.level = maxi(int(data.get("level", 1)), 1)
 	character.experience = maxi(int(data.get("experience", 0)), 0)
-
 	var loaded_abilities: Variant = data.get("abilities", {})
 	if loaded_abilities is Dictionary:
 		for ability_id_value: Variant in DEFAULT_ABILITIES.keys():
 			var ability_id: String = str(ability_id_value)
 			character.abilities[ability_id] = clampi(int(loaded_abilities.get(ability_id, 10)), 1, 30)
-
 	character.maximum_health = maxi(int(data.get("maximum_health", 1)), 1)
 	character.current_health = clampi(int(data.get("current_health", character.maximum_health)), 0, character.maximum_health)
+	character.hit_die_size = maxi(int(data.get("hit_die_size", 8)), 2)
+	character.hit_dice_maximum = maxi(int(data.get("hit_dice_maximum", character.level)), 1)
+	character.hit_dice_current = clampi(int(data.get("hit_dice_current", character.hit_dice_maximum)), 0, character.hit_dice_maximum)
 	character.equipped_weapon_id = str(data.get("equipped_weapon_id", ""))
 	character.equipped_armor_id = str(data.get("equipped_armor_id", ""))
 	character.equipped_shield_id = str(data.get("equipped_shield_id", ""))
@@ -140,6 +156,9 @@ static func create_legacy_default() -> PlayerCharacter:
 	character.appearance_color_hex = DEFAULT_APPEARANCE_COLOR_HEX
 	character.maximum_health = 10
 	character.current_health = 10
+	character.hit_die_size = 10
+	character.hit_dice_maximum = 1
+	character.hit_dice_current = 1
 	return character
 
 

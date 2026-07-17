@@ -9,20 +9,42 @@ func perform_basic_attack(
 	target_armor_class: int,
 	weapon: Dictionary = {},
 	natural_roll_override: int = -1,
-	damage_rolls_override: Array[int] = []
+	damage_rolls_override: Array[int] = [],
+	attack_context: Dictionary = {}
 ) -> AttackResult:
 	var result: AttackResult = AttackResult.new()
 	var is_unarmed: bool = weapon.is_empty()
 	result.attack_name = "Безоружный удар" if is_unarmed else str(weapon.get("name", "Атака оружием"))
+	result.target_name = str(attack_context.get("target_name", "Цель"))
 	result.damage_type = "дробящий" if is_unarmed else str(weapon.get("damage_type", "физический"))
 	result.target_armor_class = maxi(target_armor_class, 0)
+	result.distance_feet = maxi(int(attack_context.get("distance_feet", 0)), 0)
+	if is_unarmed:
+		result.range_state = "melee" if result.distance_feet <= DistanceSystem.MELEE_REACH_FEET else "out_of_range"
+	else:
+		result.range_state = DistanceSystem.weapon_range_state(weapon, result.distance_feet)
+	result.out_of_range = result.range_state == "out_of_range"
+	result.no_ammunition = bool(attack_context.get("no_ammunition", false))
+	if result.out_of_range:
+		result.note = "Цель находится вне дистанции оружия."
+		return result
+	if result.no_ammunition:
+		result.note = "Нет подходящих боеприпасов."
+		return result
 
-	var ability_id: String = _attack_ability(character, weapon, is_unarmed)
+	var ability_id: String = _attack_ability(character, weapon, is_unarmed, result.range_state)
 	result.ability_name = _ability_name(ability_id)
 	result.ability_modifier = character.get_ability_modifier(ability_id)
 	result.proficiency_bonus = proficiency_bonus_for_level(character.level)
 	result.attack_bonus = result.ability_modifier + result.proficiency_bonus
-	result.natural_roll = clampi(natural_roll_override, 1, 20) if natural_roll_override >= 1 else _dice_roller.roll_die(20)
+	result.disadvantage = result.range_state == "long" or (result.range_state != "melee" and bool(attack_context.get("disadvantage", false)))
+	result.first_roll = clampi(natural_roll_override, 1, 20) if natural_roll_override >= 1 else _dice_roller.roll_die(20)
+	if result.disadvantage:
+		var second_override: int = int(attack_context.get("second_roll_override", -1))
+		result.second_roll = clampi(second_override, 1, 20) if second_override >= 1 else _dice_roller.roll_die(20)
+		result.natural_roll = mini(result.first_roll, result.second_roll)
+	else:
+		result.natural_roll = result.first_roll
 	var inspiration_bonus: int = _consume_bardic_inspiration(character)
 	result.total = result.natural_roll + result.attack_bonus + inspiration_bonus
 	result.automatic_miss = result.natural_roll == 1
@@ -47,7 +69,6 @@ func perform_basic_attack(
 		if int(character.active_effects["rage_attacks"]) <= 0:
 			character.active_effects.erase("rage_attacks")
 		result.note = "Ярость: +2 урона."
-
 	if int(character.active_effects.get("hunters_mark_hits", 0)) > 0:
 		var mark_damage: int = _roll_damage(2 if result.critical else 1, 6, [])
 		result.bonus_damage += mark_damage
@@ -55,31 +76,27 @@ func perform_basic_attack(
 		if int(character.active_effects["hunters_mark_hits"]) <= 0:
 			character.active_effects.erase("hunters_mark_hits")
 		result.note = _append_note(result.note, "Метка охотника: +%d." % mark_damage)
-
 	if character.character_class_id == "rogue" and bool(character.active_effects.get("sneak_attack_ready", false)):
 		var sneak_damage: int = _roll_damage(2 if result.critical else 1, 6, [])
 		result.bonus_damage += sneak_damage
 		character.active_effects["sneak_attack_ready"] = false
 		result.note = _append_note(result.note, "Скрытая атака: +%d." % sneak_damage)
-
 	result.damage += result.bonus_damage
 	return result
 
 
-func perform_unarmed_strike(
-	character: PlayerCharacter,
-	target_armor_class: int,
-	natural_roll_override: int = -1
-) -> AttackResult:
+func perform_unarmed_strike(character: PlayerCharacter, target_armor_class: int, natural_roll_override: int = -1) -> AttackResult:
 	return perform_basic_attack(character, target_armor_class, {}, natural_roll_override)
 
 
-func _attack_ability(character: PlayerCharacter, weapon: Dictionary, is_unarmed: bool) -> String:
-	if character.character_class_id == "monk":
-		var properties_value: Variant = weapon.get("properties", [])
-		var properties: Array = properties_value as Array if properties_value is Array else []
-		if is_unarmed or not properties.has("ranged"):
-			return "dexterity"
+func _attack_ability(character: PlayerCharacter, weapon: Dictionary, is_unarmed: bool, range_state: String) -> String:
+	if is_unarmed and character.character_class_id == "monk":
+		return "dexterity"
+	var properties: Array = weapon.get("properties", []) as Array
+	if range_state != "melee" and "ranged" in properties:
+		return "dexterity"
+	if character.character_class_id == "monk" and range_state == "melee" and not "ranged" in properties:
+		return "dexterity"
 	var rule: String = str(weapon.get("ability", "strength"))
 	if rule == "finesse":
 		return "dexterity" if character.get_ability_modifier("dexterity") > character.get_ability_modifier("strength") else "strength"
