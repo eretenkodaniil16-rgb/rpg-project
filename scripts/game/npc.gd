@@ -8,6 +8,8 @@ extends Area2D
 @export var attack_bonus: int = 3
 @export var damage_die: int = 6
 @export var damage_bonus: int = 1
+@export var initiative_modifier: int = 1
+@export var combat_speed_feet: int = 30
 
 @onready var body_visual: Polygon2D = $Body
 @onready var name_label: Label = $NameLabel
@@ -17,9 +19,11 @@ var current_health: int = 14
 var hostile: bool = false
 var defeated: bool = false
 var _targeted: bool = false
+var _turn_active: bool = false
 var _combat_overlay_visible: bool = true
 var _attack_cooldown: float = 0.0
 var _target_marker: Label
+var _turn_marker: Label
 var _health_label: Label
 var _dice: DiceRoller = DiceRoller.new()
 var _class_data: ClassDataSystem = ClassDataSystem.new()
@@ -36,6 +40,8 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	if _is_turn_based_combat_active():
+		return
 	if not hostile or defeated or GameState.input_locked:
 		return
 	_attack_cooldown = maxf(_attack_cooldown - delta, 0.0)
@@ -76,12 +82,46 @@ func get_current_health() -> int:
 	return current_health
 
 
+func get_initiative_modifier() -> int:
+	return initiative_modifier
+
+
+func get_combat_speed_feet() -> int:
+	return maxi(combat_speed_feet, 0)
+
+
+func can_take_combat_turn() -> bool:
+	return hostile and not defeated
+
+
 func is_combat_active() -> bool:
 	return not defeated
 
 
 func is_hostile() -> bool:
 	return hostile and not defeated
+
+
+func enter_combat_hostile() -> void:
+	if not defeated:
+		hostile = true
+		_update_combat_visuals()
+
+
+func set_turn_active(value: bool) -> void:
+	_turn_active = value
+	_update_combat_visuals()
+
+
+func perform_combat_turn_attack() -> void:
+	if can_take_combat_turn():
+		_perform_retaliation()
+
+
+func perform_opportunity_attack() -> void:
+	if can_take_combat_turn():
+		get_tree().call_group("game_world", "show_combat_message", "%s проводит атаку по возможности." % combat_name, false)
+		_perform_retaliation()
 
 
 func set_combat_targeted(value: bool) -> void:
@@ -137,6 +177,7 @@ func receive_signature_ability(ability: Dictionary, show_interface: bool = true,
 func reset_combat_state(full_restore: bool = true) -> void:
 	hostile = false
 	defeated = false
+	_turn_active = false
 	_attack_cooldown = 0.0
 	if full_restore:
 		current_health = maximum_health
@@ -145,7 +186,13 @@ func reset_combat_state(full_restore: bool = true) -> void:
 
 
 func _perform_retaliation() -> void:
-	var natural: int = _dice.roll_die(20)
+	var natural_first: int = _dice.roll_die(20)
+	var natural: int = natural_first
+	var game: Node = get_tree().get_first_node_in_group("game_world")
+	var player_dodging: bool = game != null and game.has_method("player_is_dodging") and bool(game.call("player_is_dodging"))
+	if player_dodging:
+		var natural_second: int = _dice.roll_die(20)
+		natural = mini(natural_first, natural_second)
 	var target_ac: int = _class_data.get_armor_class(GameState.player_character)
 	var total: int = natural + attack_bonus
 	if natural == 1 or (natural != 20 and total < target_ac):
@@ -166,6 +213,12 @@ func _build_combat_labels() -> void:
 	_target_marker.add_theme_color_override("font_color", Color(1.0, 0.35, 0.3, 1.0))
 	_target_marker.add_theme_font_size_override("font_size", 16)
 	add_child(_target_marker)
+	_turn_marker = Label.new()
+	_turn_marker.text = "◆ ХОД"
+	_turn_marker.position = Vector2(-34, -116)
+	_turn_marker.add_theme_color_override("font_color", Color(0.5, 1.0, 0.55, 1.0))
+	_turn_marker.add_theme_font_size_override("font_size", 15)
+	add_child(_turn_marker)
 	_health_label = Label.new()
 	_health_label.position = Vector2(-70, 42)
 	_health_label.size = Vector2(140, 24)
@@ -177,9 +230,11 @@ func _build_combat_labels() -> void:
 func _update_combat_visuals() -> void:
 	if _target_marker != null:
 		_target_marker.visible = _combat_overlay_visible and _targeted and not defeated
+	if _turn_marker != null:
+		_turn_marker.visible = _combat_overlay_visible and _turn_active and not defeated
 	if _health_label != null:
 		_health_label.text = "%s · КД %d · %d/%d" % ["без сознания" if defeated else ("враждебен" if hostile else "нейтрален"), armor_class, current_health, maximum_health]
-		_health_label.visible = _combat_overlay_visible and (_targeted or hostile or current_health < maximum_health)
+		_health_label.visible = _combat_overlay_visible and (_targeted or _turn_active or hostile or current_health < maximum_health)
 	body_visual.modulate = Color(0.45, 0.45, 0.45, 0.75) if defeated else Color.WHITE
 
 
@@ -215,6 +270,11 @@ func _on_body_exited(body: Node2D) -> void:
 		body.call("clear_interactable", self)
 	player_in_range = null
 	get_tree().call_group("game_world", "set_interaction_hint", false)
+
+
+func _is_turn_based_combat_active() -> bool:
+	var game: Node = get_tree().get_first_node_in_group("game_world")
+	return game != null and game.has_method("is_turn_based_combat_active") and bool(game.call("is_turn_based_combat_active"))
 
 
 func _append_note(current: String, addition: String) -> String:
