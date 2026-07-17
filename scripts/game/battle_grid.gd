@@ -30,6 +30,7 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	if not is_instance_valid(_player):
 		_player = get_tree().get_first_node_in_group("player") as Node2D
+	_keep_world_actors_above_grid()
 	_selected_target = _get_selected_target()
 	var player_position: Vector2 = _player.global_position if is_instance_valid(_player) else Vector2.INF
 	var target_position: Vector2 = _selected_target.global_position if is_instance_valid(_selected_target) else Vector2.INF
@@ -136,6 +137,15 @@ func _get_selected_target() -> Node2D:
 		return null
 	var candidate: Variant = game.get("_selected_target")
 	return candidate as Node2D if candidate is Node2D and is_instance_valid(candidate) else null
+
+
+func _keep_world_actors_above_grid() -> void:
+	if is_instance_valid(_player):
+		_player.z_index = maxi(_player.z_index, 10)
+	for target: Node in get_tree().get_nodes_in_group("combat_targets"):
+		if target is CanvasItem:
+			var canvas_target := target as CanvasItem
+			canvas_target.z_index = maxi(canvas_target.z_index, 10)
 
 
 func _draw_cell_highlight(global_point: Vector2, color: Color) -> void:
