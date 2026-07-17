@@ -2,16 +2,24 @@ class_name AttackResult
 extends RefCounted
 
 var attack_name: String = "Безоружный удар"
+var target_name: String = "Цель"
 var ability_name: String = "Сила"
 var damage_type: String = "дробящий"
 var is_spell: bool = false
 var automatic_hit: bool = false
 var natural_roll: int = 1
+var first_roll: int = 1
+var second_roll: int = 0
+var disadvantage: bool = false
 var ability_modifier: int = 0
 var proficiency_bonus: int = 0
 var attack_bonus: int = 0
 var total: int = 1
 var target_armor_class: int = 10
+var distance_feet: int = 0
+var range_state: String = "melee"
+var out_of_range: bool = false
+var no_ammunition: bool = false
 var hit: bool = false
 var critical: bool = false
 var automatic_miss: bool = false
@@ -25,16 +33,24 @@ var note: String = ""
 func to_dict() -> Dictionary:
 	return {
 		"attack_name": attack_name,
+		"target_name": target_name,
 		"ability_name": ability_name,
 		"damage_type": damage_type,
 		"is_spell": is_spell,
 		"automatic_hit": automatic_hit,
 		"natural_roll": natural_roll,
+		"first_roll": first_roll,
+		"second_roll": second_roll,
+		"disadvantage": disadvantage,
 		"ability_modifier": ability_modifier,
 		"proficiency_bonus": proficiency_bonus,
 		"attack_bonus": attack_bonus,
 		"total": total,
 		"target_armor_class": target_armor_class,
+		"distance_feet": distance_feet,
+		"range_state": range_state,
+		"out_of_range": out_of_range,
+		"no_ammunition": no_ammunition,
 		"hit": hit,
 		"critical": critical,
 		"automatic_miss": automatic_miss,
