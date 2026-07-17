@@ -1,7 +1,11 @@
 extends "res://scripts/game/player.gd"
 
+const GRID_MOVE_REPEAT_SECONDS: float = 0.18
+
 var _facing_direction: Vector2 = Vector2.RIGHT
 var _facing_indicator: Polygon2D = null
+var _turn_based_mode: bool = false
+var _grid_move_cooldown: float = 0.0
 
 
 func _ready() -> void:
@@ -11,9 +15,44 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	super._physics_process(delta)
-	if velocity.length_squared() > 1.0:
-		set_facing_direction(velocity)
+	if not _turn_based_mode:
+		super._physics_process(delta)
+		if velocity.length_squared() > 1.0:
+			set_facing_direction(velocity)
+		return
+
+	velocity = Vector2.ZERO
+	_grid_move_cooldown = maxf(_grid_move_cooldown - delta, 0.0)
+	if GameState.input_locked:
+		return
+	var keyboard_direction: Vector2 = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
+	var direction: Vector2 = keyboard_direction + get_mobile_direction()
+	if direction.length_squared() <= 0.04:
+		_grid_move_cooldown = 0.0
+		return
+	if _grid_move_cooldown > 0.0:
+		return
+	var step := Vector2i(
+		int(signf(direction.x)) if absf(direction.x) >= 0.25 else 0,
+		int(signf(direction.y)) if absf(direction.y) >= 0.25 else 0
+	)
+	if step == Vector2i.ZERO:
+		return
+	set_facing_direction(Vector2(step))
+	get_tree().call_group("game_world", "request_combat_move", step)
+	_grid_move_cooldown = GRID_MOVE_REPEAT_SECONDS
+
+
+func set_turn_based_mode(value: bool) -> void:
+	_turn_based_mode = value
+	_grid_move_cooldown = 0.0
+	velocity = Vector2.ZERO
+	if value:
+		clear_mobile_input()
+
+
+func is_turn_based_mode() -> bool:
+	return _turn_based_mode
 
 
 func get_facing_direction() -> Vector2:
