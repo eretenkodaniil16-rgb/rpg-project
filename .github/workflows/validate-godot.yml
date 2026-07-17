@@ -12,7 +12,7 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 18
+    timeout-minutes: 20
 
     steps:
       - name: Checkout repository
@@ -40,6 +40,14 @@ jobs:
       - name: Run combat system tests
         shell: bash
         run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_combat_system.gd
+
+      - name: Run distance and ranged combat tests
+        shell: bash
+        run: timeout 45s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_distance_and_ranged_combat.gd
+
+      - name: Run rest tests
+        shell: bash
+        run: timeout 45s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_rests.gd
 
       - name: Run quest and inventory tests
         shell: bash
@@ -80,6 +88,10 @@ jobs:
       - name: Smoke test class ability panel
         shell: bash
         run: timeout 35s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_ability_panel.gd
+
+      - name: Smoke test target controls
+        shell: bash
+        run: timeout 45s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_target_controls.gd
 
       - name: Run runtime checks with diagnostics
         shell: bash
