@@ -35,7 +35,19 @@ jobs:
           set +e
           ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/check_game_script_load.gd 2>&1 | tee build/game-script-diagnostics/game-script.log
           status=${PIPESTATUS[0]}
-          echo "$status" > build/game-script-diagnostics/status.txt
+          echo "$status" > build/game-script-diagnostics/game-script-status.txt
+          exit "$status"
+
+      - name: Instantiate game scene
+        id: game_scene
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          timeout 45s ./Godot_v4.7.1-stable_linux.x86_64 --headless --verbose --path "$GITHUB_WORKSPACE" --script res://tests/smoke_training_dummy.gd 2>&1 | tee build/game-script-diagnostics/game-scene.log
+          status=${PIPESTATUS[0]}
+          echo "$status" > build/game-script-diagnostics/game-scene-status.txt
+          cp build/test/training-dummy-status.txt build/game-script-diagnostics/training-dummy-status.txt 2>/dev/null || true
           exit "$status"
 
       - name: Upload diagnostics
@@ -47,7 +59,7 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-      - name: Fail when script cannot load
-        if: steps.game_script.outcome != 'success'
+      - name: Fail when diagnostics failed
+        if: steps.game_script.outcome != 'success' || steps.game_scene.outcome != 'success'
         shell: bash
         run: exit 1
