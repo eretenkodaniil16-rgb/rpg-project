@@ -4,6 +4,10 @@ const JOYSTICK_SCRIPT: Script = preload("res://scripts/ui/virtual_joystick.gd")
 
 
 func _init() -> void:
+	call_deferred("_run_tests")
+
+
+func _run_tests() -> void:
 	var inside_dead_zone: Vector2 = JOYSTICK_SCRIPT.calculate_output_vector(Vector2(0.1, 0.0), 0.16)
 	assert(inside_dead_zone.is_zero_approx())
 
