@@ -38,7 +38,7 @@ func _run() -> void:
 	if near not in cube or far in cube:
 		_fail("Cube target selection is incorrect: %s" % cube)
 		return
-	var line: Array[Node] = AreaEffectSystem.targets_in_line(origin, Vector2.RIGHT, 20, 5, candidates)
+	var line: Array[Node] = AreaEffectSystem.targets_in_line(origin, Vector2.RIGHT, 20, 10, candidates)
 	if near not in line or diagonal not in line or side in line or far in line:
 		_fail("Line target selection is incorrect: %s" % line)
 		return
