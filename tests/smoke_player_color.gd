@@ -6,9 +6,13 @@ func _init() -> void:
 	call_deferred("_run_test")
 
 func _run_test() -> void:
+	var game_state: Node = root.get_node_or_null("GameState")
+	assert(game_state != null)
+
 	var character: PlayerCharacter = PlayerCharacter.create_legacy_default()
 	character.appearance_color_hex = "#9368D8"
-	GameState.begin_new_game(character)
+	game_state.call("begin_new_game", character)
+
 	var game: Node = (load(GAME_SCENE) as PackedScene).instantiate()
 	root.add_child(game)
 	await process_frame
