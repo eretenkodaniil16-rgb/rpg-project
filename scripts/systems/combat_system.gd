@@ -2,6 +2,7 @@ class_name CombatSystem
 extends RefCounted
 
 var _dice_roller: DiceRoller = DiceRoller.new()
+var _srd_rules: SrdCombatRules = SrdCombatRules.new()
 
 
 func perform_basic_attack(
@@ -16,8 +17,9 @@ func perform_basic_attack(
 	var is_unarmed: bool = weapon.is_empty()
 	result.attack_name = "Безоружный удар" if is_unarmed else str(weapon.get("name", "Атака оружием"))
 	result.target_name = str(attack_context.get("target_name", "Цель"))
-	result.damage_type = "дробящий" if is_unarmed else str(weapon.get("damage_type", "физический"))
-	result.target_armor_class = maxi(target_armor_class, 0)
+	result.damage_type = "bludgeoning" if is_unarmed else _srd_rules.normalize_damage_type(str(weapon.get("damage_type", "bludgeoning")))
+	result.cover_bonus = maxi(int(attack_context.get("cover_bonus", 0)), 0)
+	result.target_armor_class = maxi(target_armor_class + result.cover_bonus, 0)
 	result.distance_feet = maxi(int(attack_context.get("distance_feet", 0)), 0)
 	if is_unarmed:
 		result.range_state = "melee" if result.distance_feet <= DistanceSystem.MELEE_REACH_FEET else "out_of_range"
@@ -31,25 +33,55 @@ func perform_basic_attack(
 	if result.no_ammunition:
 		result.note = "Нет подходящих боеприпасов."
 		return result
+	if bool(attack_context.get("total_cover", false)):
+		result.automatic_miss = true
+		result.note = "Цель находится за полным укрытием и не может быть атакована напрямую."
+		return result
 
 	var ability_id: String = _attack_ability(character, weapon, is_unarmed, result.range_state)
 	result.ability_name = _ability_name(ability_id)
 	result.ability_modifier = character.get_ability_modifier(ability_id)
 	result.proficiency_bonus = proficiency_bonus_for_level(character.level)
 	result.attack_bonus = result.ability_modifier + result.proficiency_bonus
-	result.disadvantage = result.range_state == "long" or (result.range_state != "melee" and bool(attack_context.get("disadvantage", false)))
+
+	var attacker_state: CombatantState = attack_context.get("attacker_state") as CombatantState
+	var defender_state: CombatantState = attack_context.get("defender_state") as CombatantState
+	var adjustments: Dictionary = _srd_rules.attack_roll_adjustments(
+		attacker_state,
+		defender_state,
+		result.distance_feet,
+		bool(attack_context.get("attacker_can_see_defender", true)),
+		bool(attack_context.get("defender_can_see_attacker", true))
+	)
+	if bool(adjustments.get("blocked", false)):
+		result.automatic_miss = true
+		result.note = "Текущее состояние не позволяет совершить атаку."
+		return result
+
+	var contextual_advantage: bool = bool(attack_context.get("advantage", false))
+	var contextual_disadvantage: bool = bool(attack_context.get("disadvantage", false))
+	result.advantage = contextual_advantage or bool(adjustments.get("advantage", false))
+	result.disadvantage = contextual_disadvantage or bool(adjustments.get("disadvantage", false))
+	if result.range_state == "long" or (result.range_state != "melee" and bool(attack_context.get("ranged_threat", false))):
+		result.disadvantage = true
+	if result.advantage and result.disadvantage:
+		result.advantage = false
+		result.disadvantage = false
+
 	result.first_roll = clampi(natural_roll_override, 1, 20) if natural_roll_override >= 1 else _dice_roller.roll_die(20)
-	if result.disadvantage:
+	if result.advantage or result.disadvantage:
 		var second_override: int = int(attack_context.get("second_roll_override", -1))
 		result.second_roll = clampi(second_override, 1, 20) if second_override >= 1 else _dice_roller.roll_die(20)
-		result.natural_roll = mini(result.first_roll, result.second_roll)
+		result.natural_roll = maxi(result.first_roll, result.second_roll) if result.advantage else mini(result.first_roll, result.second_roll)
 	else:
 		result.natural_roll = result.first_roll
 	var inspiration_bonus: int = _consume_bardic_inspiration(character)
 	result.total = result.natural_roll + result.attack_bonus + inspiration_bonus
 	result.automatic_miss = result.natural_roll == 1
-	result.critical = result.natural_roll == 20
+	result.critical = result.natural_roll == 20 or bool(adjustments.get("automatic_critical", false))
 	result.hit = not result.automatic_miss and (result.critical or result.total >= result.target_armor_class)
+	if result.cover_bonus > 0:
+		result.note = "Укрытие цели повышает КД на +%d." % result.cover_bonus
 	if not result.hit:
 		return result
 
@@ -68,7 +100,7 @@ func perform_basic_attack(
 		character.active_effects["rage_attacks"] = int(character.active_effects["rage_attacks"]) - 1
 		if int(character.active_effects["rage_attacks"]) <= 0:
 			character.active_effects.erase("rage_attacks")
-		result.note = "Ярость: +2 урона."
+		result.note = _append_note(result.note, "Ярость: +2 урона.")
 	if int(character.active_effects.get("hunters_mark_hits", 0)) > 0:
 		var mark_damage: int = _roll_damage(2 if result.critical else 1, 6, [])
 		result.bonus_damage += mark_damage
@@ -82,11 +114,15 @@ func perform_basic_attack(
 		character.active_effects["sneak_attack_ready"] = false
 		result.note = _append_note(result.note, "Скрытая атака: +%d." % sneak_damage)
 	result.damage += result.bonus_damage
+	result.damage_before_mitigation = result.damage
+	if attacker_state != null:
+		attacker_state.helped_attack = false
+		attacker_state.hidden = false
 	return result
 
 
-func perform_unarmed_strike(character: PlayerCharacter, target_armor_class: int, natural_roll_override: int = -1) -> AttackResult:
-	return perform_basic_attack(character, target_armor_class, {}, natural_roll_override)
+func perform_unarmed_strike(character: PlayerCharacter, target_armor_class: int, natural_roll_override: int = -1, attack_context: Dictionary = {}) -> AttackResult:
+	return perform_basic_attack(character, target_armor_class, {}, natural_roll_override, [], attack_context)
 
 
 func _attack_ability(character: PlayerCharacter, weapon: Dictionary, is_unarmed: bool, range_state: String) -> String:
