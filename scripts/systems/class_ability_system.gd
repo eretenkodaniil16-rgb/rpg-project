@@ -9,7 +9,6 @@ func use_self_ability(character: PlayerCharacter, ability: Dictionary) -> Dictio
 	var resource_key: String = str(ability.get("resource_key", "unlimited"))
 	if effect in ["rage", "bardic_inspiration"] and not _consume(character, resource_key, 1):
 		return _failure("Заряды способности закончились.")
-
 	match effect:
 		"rage":
 			character.active_effects["rage_attacks"] = 3
@@ -17,14 +16,10 @@ func use_self_ability(character: PlayerCharacter, ability: Dictionary) -> Dictio
 		"bardic_inspiration":
 			character.active_effects["bardic_inspiration_die"] = 6
 			return _success("Вдохновение добавит 1d6 к следующему броску d20.")
-		"heal_2d8_wisdom":
-			return _heal_with_dice(character, ability, 2, 8, character.get_ability_modifier("wisdom"))
-		"heal_1d10_level":
-			return _heal_with_dice(character, ability, 1, 10, character.level)
-		"lay_on_hands":
-			return _use_lay_on_hands(character, ability)
-		_:
-			return _failure("Эта особенность действует пассивно и не требует активации.")
+		"heal_2d8_wisdom": return _heal_with_dice(character, ability, 2, 8, character.get_ability_modifier("wisdom"))
+		"heal_1d10_level": return _heal_with_dice(character, ability, 1, 10, character.level)
+		"lay_on_hands": return _use_lay_on_hands(character, ability)
+		_: return _failure("Эта особенность действует пассивно и не требует активации.")
 
 
 func apply_target_ability(character: PlayerCharacter, ability: Dictionary) -> Dictionary:
@@ -43,25 +38,32 @@ func perform_offensive_ability(
 	ability: Dictionary,
 	target_armor_class: int,
 	natural_roll_override: int = -1,
-	damage_rolls_override: Array[int] = []
+	damage_rolls_override: Array[int] = [],
+	attack_context: Dictionary = {}
 ) -> AttackResult:
 	var result: AttackResult = AttackResult.new()
 	result.attack_name = str(ability.get("name", "Магическая атака"))
+	result.target_name = str(attack_context.get("target_name", "Цель"))
 	result.damage_type = str(ability.get("damage_type", "магический"))
 	result.is_spell = true
 	result.target_armor_class = maxi(target_armor_class, 0)
+	result.distance_feet = maxi(int(attack_context.get("distance_feet", 0)), 0)
+	var maximum_range: int = int(ability.get("range_ft", 5))
+	result.range_state = "normal" if result.distance_feet <= maximum_range else "out_of_range"
+	result.out_of_range = result.range_state == "out_of_range"
+	if result.out_of_range:
+		result.note = "Цель находится дальше %d футов." % maximum_range
+		return result
 
 	var resource_key: String = str(ability.get("resource_key", "unlimited"))
 	if not _consume(character, resource_key, 1):
 		result.note = "Не осталось доступных применений способности."
 		return result
-
 	var dice_value: Variant = ability.get("damage_dice", [1, 6])
 	var damage_dice: Array = dice_value as Array if dice_value is Array else [1, 6]
 	var dice_count: int = maxi(int(damage_dice[0]) if damage_dice.size() > 0 else 1, 1)
 	var die_sides: int = maxi(int(damage_dice[1]) if damage_dice.size() > 1 else 6, 2)
 	var effect: String = str(ability.get("effect", "spell_attack"))
-
 	if effect == "auto_hit_spell":
 		result.automatic_hit = true
 		result.hit = true
@@ -75,7 +77,14 @@ func perform_offensive_ability(
 	result.ability_modifier = character.get_ability_modifier(ability_id)
 	result.proficiency_bonus = CombatSystem.proficiency_bonus_for_level(character.level)
 	result.attack_bonus = result.ability_modifier + result.proficiency_bonus + int(ability.get("attack_bonus", 0))
-	result.natural_roll = clampi(natural_roll_override, 1, 20) if natural_roll_override >= 1 else _dice.roll_die(20)
+	result.disadvantage = bool(attack_context.get("disadvantage", false))
+	result.first_roll = clampi(natural_roll_override, 1, 20) if natural_roll_override >= 1 else _dice.roll_die(20)
+	if result.disadvantage:
+		var second_override: int = int(attack_context.get("second_roll_override", -1))
+		result.second_roll = clampi(second_override, 1, 20) if second_override >= 1 else _dice.roll_die(20)
+		result.natural_roll = mini(result.first_roll, result.second_roll)
+	else:
+		result.natural_roll = result.first_roll
 	result.total = result.natural_roll + result.attack_bonus + consume_bardic_inspiration(character)
 	result.automatic_miss = result.natural_roll == 1
 	result.critical = result.natural_roll == 20
@@ -127,10 +136,7 @@ func _consume(character: PlayerCharacter, resource_key: String, amount: int) -> 
 func _roll_damage(count: int, sides: int, overrides: Array[int]) -> int:
 	var total: int = 0
 	for index: int in range(count):
-		if index < overrides.size():
-			total += clampi(int(overrides[index]), 1, sides)
-		else:
-			total += _dice.roll_die(sides)
+		total += clampi(int(overrides[index]), 1, sides) if index < overrides.size() else _dice.roll_die(sides)
 	return total
 
 
@@ -143,7 +149,4 @@ func _failure(message: String) -> Dictionary:
 
 
 func _ability_name(ability_id: String) -> String:
-	return {
-		"strength": "Сила", "dexterity": "Ловкость", "wisdom": "Мудрость",
-		"intelligence": "Интеллект", "charisma": "Харизма"
-	}.get(ability_id, ability_id)
+	return {"strength":"Сила", "dexterity":"Ловкость", "wisdom":"Мудрость", "intelligence":"Интеллект", "charisma":"Харизма"}.get(ability_id, ability_id)
