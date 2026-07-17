@@ -40,19 +40,26 @@ func _on_dialogue_closed() -> void:
 
 func _configure_platform_prompts() -> void:
 	if _uses_touch_controls():
-		help_label.text = "Движение: экранный крестовик · Разговор: ДЕЙСТВИЕ · Выход: МЕНЮ"
+		help_label.text = "Движение: экранное управление · Разговор: ДЕЙСТВИЕ · Выход: МЕНЮ"
 		interaction_label.text = "Нажмите ДЕЙСТВИЕ для разговора"
 
 
 func _update_status() -> void:
+	var identity: String = "%s · %s · ур. %d" % [
+		GameState.player_character.character_name,
+		GameState.player_character.character_class_name,
+		GameState.player_character.level
+	]
+	var objective: String
 	if bool(GameState.get_flag("met_caretaker", false)):
-		status_label.text = "Сюжетный флаг: вы поговорили со Смотрителем."
+		objective = "Сюжетный флаг: вы поговорили со Смотрителем."
 	elif bool(GameState.get_flag("accepted_exploration", false)):
-		status_label.text = "Задача: осмотреть тестовую комнату."
+		objective = "Задача: осмотреть тестовую комнату."
 	elif _uses_touch_controls():
-		status_label.text = "Подойдите к Смотрителю и нажмите ДЕЙСТВИЕ."
+		objective = "Подойдите к Смотрителю и нажмите ДЕЙСТВИЕ."
 	else:
-		status_label.text = "Подойдите к Смотрителю и нажмите Enter или Пробел."
+		objective = "Подойдите к Смотрителю и нажмите Enter или Пробел."
+	status_label.text = "%s\n%s" % [identity, objective]
 
 
 func _uses_touch_controls() -> bool:
