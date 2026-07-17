@@ -122,7 +122,7 @@ func _build_ui() -> void:
 	rest_row.add_theme_constant_override("separation", 12)
 	content.add_child(rest_row)
 	_short_rest_button = Button.new()
-	_short_rest_button.text = "КОРОТКИЙ ОТДЫХ · 1 КОСТЬ ХИТОВ"
+	_short_rest_button.text = "КОРОТКИЙ ОТДЫХ · ДО 1 КОСТИ ХИТОВ"
 	_short_rest_button.custom_minimum_size = Vector2(390, 54)
 	_short_rest_button.pressed.connect(_on_short_rest_pressed)
 	rest_row.add_child(_short_rest_button)
@@ -172,7 +172,7 @@ func _refresh() -> void:
 		_character.current_health, _character.maximum_health, _class_data.get_armor_class(_character),
 		_character.hit_dice_current, _character.hit_dice_maximum, _character.hit_die_size, _character.experience
 	]
-	_short_rest_button.disabled = _character.current_health >= _character.maximum_health or _character.hit_dice_current <= 0
+	_short_rest_button.disabled = _character.current_health <= 0
 	_long_rest_button.disabled = _character.current_health <= 0
 	_swatch.color = Color.from_string(_character.appearance_color_hex, Color(0.3, 0.64, 0.91, 1))
 	for child: Node in _grid.get_children():
@@ -184,9 +184,7 @@ func _refresh() -> void:
 	var weapon: Dictionary = GameState.get_item_definition(_character.equipped_weapon_id)
 	var armor: Dictionary = GameState.get_item_definition(_character.equipped_armor_id)
 	var shield: Dictionary = GameState.get_item_definition(_character.equipped_shield_id)
-	_equipment_label.text = "Оружие: %s
-Доспех: %s
-Щит: %s" % [
+	_equipment_label.text = "Оружие: %s\nДоспех: %s\nЩит: %s" % [
 		str(weapon.get("name", "Без оружия")), str(armor.get("name", "Нет")), str(shield.get("name", "Нет"))
 	]
 	for child: Node in _features_box.get_children():
