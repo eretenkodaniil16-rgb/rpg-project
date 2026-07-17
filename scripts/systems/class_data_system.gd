@@ -107,7 +107,8 @@ func get_armor_class(character: PlayerCharacter) -> int:
 			armor_class = 10 + dexterity
 	else:
 		var dexterity_cap: int = int(armor.get("dex_cap", 99))
-		armor_class = int(armor.get("base_ac", 10)) + mini(dexterity, dexterity_cap)
+		var dexterity_bonus: int = 0 if dexterity_cap == 0 else mini(dexterity, dexterity_cap)
+		armor_class = int(armor.get("base_ac", 10)) + dexterity_bonus
 		if character.character_class_id == "fighter":
 			armor_class += 1
 	if not shield.is_empty():
