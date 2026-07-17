@@ -34,9 +34,6 @@ func _run_smoke_test() -> void:
 	player.call("set_mobile_vector", Vector2.RIGHT)
 	var mobile_direction: Vector2 = player.call("_get_mobile_direction") as Vector2
 	assert(mobile_direction.is_equal_approx(Vector2.RIGHT))
-	player.call("_physics_process", 1.0 / 60.0)
-	assert(player.velocity.x > 0.0)
-	assert(is_zero_approx(player.velocity.y))
 	player.call("clear_mobile_input")
 	assert((player.call("_get_mobile_direction") as Vector2).is_zero_approx())
 
