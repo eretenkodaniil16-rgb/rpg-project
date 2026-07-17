@@ -107,6 +107,10 @@ jobs:
         shell: bash
         run: timeout 45s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_ranged_projectile.gd
 
+      - name: Smoke test battle grid
+        shell: bash
+        run: timeout 45s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_battle_grid.gd
+
       - name: Run runtime checks with diagnostics
         shell: bash
         run: |
