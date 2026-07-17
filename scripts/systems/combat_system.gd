@@ -75,8 +75,11 @@ func perform_unarmed_strike(
 
 
 func _attack_ability(character: PlayerCharacter, weapon: Dictionary, is_unarmed: bool) -> String:
-	if is_unarmed and character.character_class_id == "monk":
-		return "dexterity"
+	if character.character_class_id == "monk":
+		var properties_value: Variant = weapon.get("properties", [])
+		var properties: Array = properties_value as Array if properties_value is Array else []
+		if is_unarmed or not properties.has("ranged"):
+			return "dexterity"
 	var rule: String = str(weapon.get("ability", "strength"))
 	if rule == "finesse":
 		return "dexterity" if character.get_ability_modifier("dexterity") > character.get_ability_modifier("strength") else "strength"
