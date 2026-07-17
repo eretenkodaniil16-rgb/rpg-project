@@ -59,7 +59,8 @@ func perform_basic_attack(
 		return result
 
 	var contextual_advantage: bool = bool(attack_context.get("advantage", false))
-	var contextual_disadvantage: bool = bool(attack_context.get("disadvantage", false))
+	var legacy_ranged_disadvantage: bool = result.range_state != "melee" and bool(attack_context.get("disadvantage", false))
+	var contextual_disadvantage: bool = bool(attack_context.get("forced_disadvantage", false)) or legacy_ranged_disadvantage
 	result.advantage = contextual_advantage or bool(adjustments.get("advantage", false))
 	result.disadvantage = contextual_disadvantage or bool(adjustments.get("disadvantage", false))
 	if result.range_state == "long" or (result.range_state != "melee" and bool(attack_context.get("ranged_threat", false))):
