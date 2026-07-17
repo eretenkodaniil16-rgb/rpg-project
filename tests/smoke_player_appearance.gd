@@ -1,6 +1,6 @@
 extends SceneTree
 
-const PLAYER_SCRIPT: Script = preload("res://scripts/game/player.gd")
+const GAME_SCENE: String = "res://scenes/game/game.tscn"
 
 
 func _init() -> void:
@@ -13,22 +13,22 @@ func _run_test() -> void:
 	character.character_class_id = "fighter"
 	character.character_class_name = "Воин"
 	character.appearance_color_hex = "#9368D8"
+	character.maximum_health = 10
+	character.current_health = 10
 	GameState.begin_new_game(character)
 
-	var player: CharacterBody2D = CharacterBody2D.new()
-	player.name = "Player"
-	var body: Polygon2D = Polygon2D.new()
-	body.name = "Body"
-	player.add_child(body)
-	var name_label: Label = Label.new()
-	name_label.name = "NameLabel"
-	player.add_child(name_label)
-	player.set_script(PLAYER_SCRIPT)
-	root.add_child(player)
+	var packed_scene: PackedScene = load(GAME_SCENE) as PackedScene
+	assert(packed_scene != null)
+	var game: Node = packed_scene.instantiate()
+	assert(game != null)
+	root.add_child(game)
 	await process_frame
 
+	var player: CharacterBody2D = game.get_node("Player") as CharacterBody2D
+	var body: Polygon2D = player.get_node("Body") as Polygon2D
+	var name_label: Label = player.get_node("NameLabel") as Label
 	assert(name_label.text == "Арден")
 	assert(body.color.is_equal_approx(Color.from_string("#9368D8", Color.WHITE)))
 	print("Player appearance smoke test passed.")
-	player.queue_free()
+	game.queue_free()
 	quit(0)
