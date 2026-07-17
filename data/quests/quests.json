@@ -1,0 +1,30 @@
+{
+  "first_steps": {
+    "id": "first_steps",
+    "title": "Первые шаги",
+    "description": "Смотритель хочет убедиться, что вы способны ориентироваться в мире и защищать себя.",
+    "stages": [
+      {
+        "id": "talk_to_caretaker",
+        "text": "Поговорить со Смотрителем",
+        "event": "talked_to_caretaker"
+      },
+      {
+        "id": "hit_training_dummy",
+        "text": "Попасть по тренировочному чучелу",
+        "event": "hit_training_dummy"
+      },
+      {
+        "id": "return_to_caretaker",
+        "text": "Вернуться к Смотрителю",
+        "event": "talked_to_caretaker"
+      }
+    ],
+    "rewards": [
+      {
+        "item_id": "apprentice_token",
+        "quantity": 1
+      }
+    ]
+  }
+}
