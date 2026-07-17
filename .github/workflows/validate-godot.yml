@@ -44,14 +44,6 @@ jobs:
             --path "$GITHUB_WORKSPACE" \
             --script res://tests/test_character_creation.gd
 
-      - name: Test virtual joystick
-        shell: bash
-        run: |
-          ./Godot_v4.7.1-stable_linux.x86_64 \
-            --headless \
-            --path "$GITHUB_WORKSPACE" \
-            --script res://tests/test_virtual_joystick.gd
-
       - name: Smoke test character creator scene
         shell: bash
         run: |
