@@ -14,6 +14,7 @@ var _class_data: ClassDataSystem = ClassDataSystem.new()
 var _ability_system: ClassAbilitySystem = ClassAbilitySystem.new()
 var _resetting: bool = false
 var _targeted: bool = false
+var _combat_overlay_visible: bool = true
 var _target_marker: Label
 
 
@@ -65,16 +66,18 @@ func is_hostile() -> bool:
 
 func set_combat_targeted(value: bool) -> void:
 	_targeted = value
-	if _target_marker != null:
-		_target_marker.visible = value and not _resetting
+	_update_health_label()
+
+
+func set_combat_overlay_visible(value: bool) -> void:
+	_combat_overlay_visible = value
+	_update_health_label()
 
 
 func receive_player_attack(result: AttackResult, show_interface: bool = true) -> void:
 	if _resetting:
 		result.note = "Чучело восстанавливается."
 		return
-	if is_instance_valid(_player_in_range) and _player_in_range.has_method("play_attack_animation"):
-		_player_in_range.call("play_attack_animation", global_position)
 	if result.hit:
 		current_health = maxi(0, current_health - result.damage)
 		GameState.report_quest_event("hit_training_dummy")
@@ -150,8 +153,9 @@ func _update_health_label() -> void:
 		health_label.text = "Сломано · восстановление..."
 	else:
 		health_label.text = "КД %d · прочность %d/%d" % [armor_class, current_health, maximum_health]
+	health_label.visible = _combat_overlay_visible
 	if _target_marker != null:
-		_target_marker.visible = _targeted and not _resetting
+		_target_marker.visible = _combat_overlay_visible and _targeted and not _resetting
 
 
 func _on_body_entered(body: Node2D) -> void:
