@@ -49,6 +49,7 @@ func _perform_attack(natural_roll_override: int, show_interface: bool) -> Attack
 
 	if result.hit:
 		current_health = maxi(0, current_health - result.damage)
+		GameState.report_quest_event("hit_training_dummy")
 		_animate_hit()
 	else:
 		_animate_miss()
@@ -62,6 +63,7 @@ func _perform_attack(natural_roll_override: int, show_interface: bool) -> Attack
 
 	if current_health <= 0 and not _resetting:
 		_resetting = true
+		GameState.add_item("straw_scrap", 1)
 		_schedule_reset.call_deferred()
 	return result
 
