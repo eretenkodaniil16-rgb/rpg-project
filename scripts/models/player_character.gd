@@ -83,7 +83,7 @@ static func normalize_color_hex(value: String) -> String:
 		return DEFAULT_APPEARANCE_COLOR_HEX
 	for index: int in range(1, normalized.length()):
 		var character: String = normalized.substr(index, 1)
-		if not character in "0123456789ABCDEF":
+		if "0123456789ABCDEF".find(character) < 0:
 			return DEFAULT_APPEARANCE_COLOR_HEX
 	return normalized
 
