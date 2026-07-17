@@ -45,13 +45,17 @@ jobs:
         shell: bash
         run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_quest_inventory.gd
 
-      - name: Run class loadout tests
+      - name: Run class system tests with diagnostics
         shell: bash
-        run: timeout 45s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_class_loadouts.gd
-
-      - name: Run class ability tests
-        shell: bash
-        run: timeout 45s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_class_abilities.gd
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/build/test"
+          set +e
+          timeout 45s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_class_loadouts.gd 2>&1 | tee "$GITHUB_WORKSPACE/build/test/class-loadouts.log"
+          loadout_status=${PIPESTATUS[0]}
+          timeout 45s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_class_abilities.gd 2>&1 | tee "$GITHUB_WORKSPACE/build/test/class-abilities.log"
+          ability_status=${PIPESTATUS[0]}
+          printf 'loadouts=%s\nabilities=%s\n' "$loadout_status" "$ability_status" > "$GITHUB_WORKSPACE/build/test/class-status.txt"
+          exit 0
 
       - name: Smoke test character creator scene
         shell: bash
@@ -102,9 +106,11 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-      - name: Verify runtime test status
+      - name: Verify test status
         shell: bash
         run: |
+          grep -q '^loadouts=0$' build/test/class-status.txt
+          grep -q '^abilities=0$' build/test/class-status.txt
           grep -q '^name=0$' build/test/runtime-status.txt
           grep -q '^color=0$' build/test/runtime-status.txt
           grep -q '^input=0$' build/test/runtime-status.txt
