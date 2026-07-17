@@ -32,14 +32,11 @@ func _run_smoke_test() -> void:
 	assert(body.color.is_equal_approx(Color.from_string("#9368D8", Color.WHITE)))
 
 	player.call("set_mobile_vector", Vector2.RIGHT)
-	var direction_value: Variant = player.call("get_mobile_direction")
-	assert(direction_value is Vector2)
-	var mobile_direction: Vector2 = direction_value
+	var mobile_direction: Vector2 = player.call("get_mobile_direction")
 	assert(mobile_direction.is_equal_approx(Vector2.RIGHT))
 	player.call("clear_mobile_input")
-	var cleared_value: Variant = player.call("get_mobile_direction")
-	assert(cleared_value is Vector2)
-	assert((cleared_value as Vector2).is_zero_approx())
+	var cleared_direction: Vector2 = player.call("get_mobile_direction")
+	assert(cleared_direction.is_zero_approx())
 
 	print("Player runtime smoke test passed.")
 	game.queue_free()
