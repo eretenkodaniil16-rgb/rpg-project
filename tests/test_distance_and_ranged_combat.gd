@@ -44,6 +44,15 @@ func _run() -> void:
 		_fail("Long-range attack must use the lower d20 roll.")
 		return
 
+	var close_enemy_shot: AttackResult = combat.perform_basic_attack(
+		character, 10, shortbow, 18, [4], {
+			"distance_feet":40, "disadvantage":true, "second_roll_override":6
+		}
+	)
+	if not close_enemy_shot.disadvantage or close_enemy_shot.natural_roll != 6:
+		_fail("A ranged attack near a hostile target must have disadvantage.")
+		return
+
 	var beyond: AttackResult = combat.perform_basic_attack(
 		character, 10, shortbow, 20, [6], {"distance_feet":325}
 	)
@@ -55,6 +64,14 @@ func _run() -> void:
 		"name":"Двуручный меч", "damage_dice":[2,6], "damage_type":"рубящий",
 		"ability":"strength", "properties":["heavy", "two_handed"], "reach_ft":5
 	}
+	var melee_close: AttackResult = combat.perform_basic_attack(
+		character, 10, greatsword, 12, [4,4], {
+			"distance_feet":5, "disadvantage":true, "second_roll_override":2
+		}
+	)
+	if melee_close.disadvantage or melee_close.natural_roll != 12:
+		_fail("Close hostile targets must not penalize a melee attack.")
+		return
 	var melee_far: AttackResult = combat.perform_basic_attack(
 		character, 10, greatsword, 20, [6,6], {"distance_feet":10}
 	)
