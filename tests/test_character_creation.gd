@@ -6,6 +6,7 @@ const CLASSES_PATH: String = "res://data/classes/classes.json"
 func _init() -> void:
 	_test_modifiers()
 	_test_ability_rolls()
+	_test_character_appearance()
 	_test_classes_file()
 	print("Character creation tests passed.")
 	quit(0)
@@ -28,6 +29,18 @@ func _test_ability_rolls() -> void:
 		assert(int(result.get("discarded_index", -1)) < 4)
 		assert(int(result.get("total", 0)) >= 3)
 		assert(int(result.get("total", 0)) <= 18)
+
+
+func _test_character_appearance() -> void:
+	var character: PlayerCharacter = PlayerCharacter.new()
+	character.character_name = "Тест"
+	character.character_class_id = "fighter"
+	character.character_class_name = "Воин"
+	character.appearance_color_hex = "#D95555"
+	var restored: PlayerCharacter = PlayerCharacter.from_dict(character.to_dict())
+	assert(restored.appearance_color_hex == "#D95555")
+	assert(PlayerCharacter.normalize_color_hex("4fb878") == "#4FB878")
+	assert(PlayerCharacter.normalize_color_hex("invalid") == PlayerCharacter.DEFAULT_APPEARANCE_COLOR_HEX)
 
 
 func _test_classes_file() -> void:
