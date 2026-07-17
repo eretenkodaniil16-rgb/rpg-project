@@ -12,6 +12,7 @@ var _mobile_down: bool = false
 var _mobile_left: bool = false
 var _mobile_right: bool = false
 var _mobile_vector: Vector2 = Vector2.ZERO
+var _attack_tween: Tween = null
 
 
 func _ready() -> void:
@@ -85,6 +86,18 @@ func set_interactable(target: Node) -> void:
 func clear_interactable(target: Node) -> void:
 	if interactable == target:
 		interactable = null
+
+
+func play_attack_animation(target_global_position: Vector2) -> void:
+	var direction: Vector2 = (target_global_position - global_position).normalized()
+	if direction == Vector2.ZERO:
+		direction = Vector2.RIGHT
+	if _attack_tween != null:
+		_attack_tween.kill()
+	body_visual.position = Vector2.ZERO
+	_attack_tween = create_tween()
+	_attack_tween.tween_property(body_visual, "position", direction * 15.0, 0.07)
+	_attack_tween.tween_property(body_visual, "position", Vector2.ZERO, 0.11)
 
 
 func apply_character_appearance() -> void:

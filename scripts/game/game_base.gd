@@ -6,6 +6,7 @@ const MAIN_MENU_SCENE: String = "res://scenes/menus/main_menu.tscn"
 @onready var help_label: Label = $Interface/HelpLabel
 @onready var interaction_label: Label = $Interface/InteractionLabel
 @onready var status_label: Label = $Interface/StatusLabel
+@onready var mobile_action_button: Button = $Interface/MobileControls/InteractButton
 
 
 func _ready() -> void:
@@ -33,7 +34,21 @@ func return_to_menu() -> void:
 
 
 func set_interaction_hint(is_visible: bool) -> void:
+	set_interaction_action(is_visible, "поговорить со Смотрителем", "РАЗГОВОР")
+
+
+func set_interaction_action(
+	is_visible: bool,
+	action_description: String,
+	mobile_button_text: String = "ДЕЙСТВИЕ"
+) -> void:
 	interaction_label.visible = is_visible and not GameState.input_locked
+	if is_visible:
+		if _uses_touch_controls():
+			interaction_label.text = "Нажмите %s, чтобы %s" % [mobile_button_text, action_description]
+		else:
+			interaction_label.text = "Нажмите Enter или Пробел, чтобы %s" % action_description
+	mobile_action_button.text = mobile_button_text if is_visible else "ДЕЙСТВИЕ"
 
 
 func _on_dialogue_closed() -> void:
@@ -42,8 +57,9 @@ func _on_dialogue_closed() -> void:
 
 func _configure_platform_prompts() -> void:
 	if _uses_touch_controls():
-		help_label.text = "Движение: экранное управление · Разговор: ДЕЙСТВИЕ · Выход: МЕНЮ"
-		interaction_label.text = "Нажмите ДЕЙСТВИЕ для разговора"
+		help_label.text = "Движение: джойстик · Действие/атака: правая кнопка · Выход: МЕНЮ"
+	else:
+		help_label.text = "Движение: стрелки · Действие/атака: Enter или Пробел · Выход: Esc"
 
 
 func _update_status() -> void:
@@ -54,13 +70,13 @@ func _update_status() -> void:
 	]
 	var objective: String
 	if bool(GameState.get_flag("met_caretaker", false)):
-		objective = "Сюжетный флаг: вы поговорили со Смотрителем."
+		objective = "Поговорите со Смотрителем или испытайте удар на тренировочном чучеле."
 	elif bool(GameState.get_flag("accepted_exploration", false)):
-		objective = "Задача: осмотреть тестовую комнату."
+		objective = "Осмотрите комнату и найдите тренировочное чучело."
 	elif _uses_touch_controls():
-		objective = "Подойдите к Смотрителю и нажмите ДЕЙСТВИЕ."
+		objective = "Подойдите к Смотрителю или чучелу и используйте правую кнопку."
 	else:
-		objective = "Подойдите к Смотрителю и нажмите Enter или Пробел."
+		objective = "Подойдите к Смотрителю или чучелу и нажмите Enter или Пробел."
 	status_label.text = "%s\n%s" % [identity, objective]
 
 

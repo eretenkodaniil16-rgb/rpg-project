@@ -1,14 +1,19 @@
 extends "res://scripts/game/game_base.gd"
 
 const CHARACTER_SHEET_SCENE: PackedScene = preload("res://scenes/ui/character_sheet.tscn")
+const ATTACK_RESULT_SCENE: PackedScene = preload("res://scenes/ui/attack_result_popup.tscn")
+const TRAINING_DUMMY_SCENE: PackedScene = preload("res://scenes/game/training_dummy.tscn")
 
 var _character_button: Button
 var _character_sheet: CharacterSheet
+var _attack_popup: AttackResultPopup
+var _training_dummy: TrainingDummy
 
 
 func _ready() -> void:
 	super._ready()
 	_build_character_ui()
+	_build_combat_training()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -40,6 +45,18 @@ func _build_character_ui() -> void:
 	_character_sheet = CHARACTER_SHEET_SCENE.instantiate() as CharacterSheet
 	_character_sheet.name = "CharacterSheet"
 	interface.add_child(_character_sheet)
+
+
+func _build_combat_training() -> void:
+	var interface: CanvasLayer = $Interface
+	_attack_popup = ATTACK_RESULT_SCENE.instantiate() as AttackResultPopup
+	_attack_popup.name = "AttackResultPopup"
+	interface.add_child(_attack_popup)
+
+	_training_dummy = TRAINING_DUMMY_SCENE.instantiate() as TrainingDummy
+	_training_dummy.name = "TrainingDummy"
+	_training_dummy.position = Vector2(1080.0, 470.0)
+	add_child(_training_dummy)
 
 
 func _open_character_sheet() -> void:
