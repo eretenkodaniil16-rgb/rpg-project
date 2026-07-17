@@ -33,7 +33,7 @@ func _build_test_lobby_layout() -> void:
 			"blocks_line_of_sight": false
 		},
 		{
-			"rect": Rect2(813.0, 237.0, 64.0, 128.0),
+			"rect": Rect2(813.0, 493.0, 64.0, 128.0),
 			"cover_bonus": 0,
 			"blocks_movement": true,
 			"blocks_line_of_sight": true
