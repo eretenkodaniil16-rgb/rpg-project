@@ -6,6 +6,7 @@ const INVENTORY_PANEL_SCENE: PackedScene = preload("res://scenes/ui/inventory_pa
 const ATTACK_RESULT_SCENE: PackedScene = preload("res://scenes/ui/attack_result_popup.tscn")
 const TRAINING_DUMMY_SCENE: PackedScene = preload("res://scenes/game/training_dummy.tscn")
 const ABILITY_PANEL_SCENE: PackedScene = preload("res://scenes/ui/ability_panel.tscn")
+const RANGED_PROJECTILE_SCRIPT: Script = preload("res://scripts/game/ranged_projectile.gd")
 
 var _character_button: Button
 var _quest_button: Button
@@ -24,6 +25,10 @@ var _selected_target: Node = null
 var _class_data: ClassDataSystem = ClassDataSystem.new()
 var _ability_system: ClassAbilitySystem = ClassAbilitySystem.new()
 var _combat_system: CombatSystem = CombatSystem.new()
+var _attack_in_progress: bool = false
+var _hud_overlay_active: bool = false
+var _exploration_hud_nodes: Array[CanvasItem] = []
+var _hud_saved_visibility: Dictionary = {}
 
 
 func _ready() -> void:
@@ -33,17 +38,20 @@ func _ready() -> void:
 	_build_combat_training()
 	_build_ability_ui()
 	_build_combat_controls()
+	_register_exploration_hud()
 	_connect_progress_signals()
 	_update_status()
+	_sync_exploration_hud_visibility()
 	call_deferred("_select_nearest_target")
 
 
 func _process(_delta: float) -> void:
 	_update_target_label()
+	_sync_exploration_hud_visibility()
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if _any_overlay_visible():
+	if _any_overlay_visible() or _attack_in_progress:
 		return
 	if event is InputEventKey:
 		var key_event := event as InputEventKey
@@ -172,6 +180,48 @@ func _build_combat_controls() -> void:
 	interface.add_child(_combat_message)
 
 
+func _register_exploration_hud() -> void:
+	_exploration_hud_nodes.clear()
+	_add_exploration_hud_node(help_label)
+	_add_exploration_hud_node(status_label)
+	_add_exploration_hud_node(interaction_label)
+	_add_exploration_hud_node($Interface/MobileControls as CanvasItem)
+	_add_exploration_hud_node(_character_button)
+	_add_exploration_hud_node(_quest_button)
+	_add_exploration_hud_node(_inventory_button)
+	_add_exploration_hud_node(_target_label)
+	_add_exploration_hud_node(_target_button)
+	_add_exploration_hud_node(_attack_button)
+	_add_exploration_hud_node(_combat_message)
+	_add_exploration_hud_node(_ability_panel)
+
+
+func _add_exploration_hud_node(node: CanvasItem) -> void:
+	if node != null and not _exploration_hud_nodes.has(node):
+		_exploration_hud_nodes.append(node)
+
+
+func _sync_exploration_hud_visibility() -> void:
+	var overlay_visible: bool = _any_overlay_visible()
+	if overlay_visible == _hud_overlay_active:
+		return
+	_hud_overlay_active = overlay_visible
+	if overlay_visible:
+		_hud_saved_visibility.clear()
+		for item: CanvasItem in _exploration_hud_nodes:
+			if is_instance_valid(item):
+				_hud_saved_visibility[item.get_instance_id()] = item.visible
+				item.hide()
+	else:
+		for item: CanvasItem in _exploration_hud_nodes:
+			if is_instance_valid(item):
+				item.visible = bool(_hud_saved_visibility.get(item.get_instance_id(), false))
+		_hud_saved_visibility.clear()
+	for target: Node in get_tree().get_nodes_in_group("combat_targets"):
+		if target.has_method("set_combat_overlay_visible"):
+			target.call("set_combat_overlay_visible", not overlay_visible)
+
+
 func _connect_progress_signals() -> void:
 	if not GameState.quest_updated.is_connected(_on_quest_updated):
 		GameState.quest_updated.connect(_on_quest_updated)
@@ -183,49 +233,56 @@ func _open_character_sheet() -> void:
 	if GameState.input_locked or _character_sheet == null:
 		return
 	_character_sheet.open_sheet(GameState.player_character)
+	_sync_exploration_hud_visibility()
 
 
 func _open_quest_journal() -> void:
 	if GameState.input_locked or _quest_journal == null:
 		return
 	_quest_journal.open_journal()
+	_sync_exploration_hud_visibility()
 
 
 func _open_inventory() -> void:
 	if GameState.input_locked or _inventory_panel == null:
 		return
 	_inventory_panel.open_inventory()
+	_sync_exploration_hud_visibility()
 
 
 func _any_overlay_visible() -> bool:
+	var dialogue_ui: CanvasItem = get_node_or_null("Interface/DialogueUI") as CanvasItem
 	return (
 		(_character_sheet != null and _character_sheet.visible)
 		or (_quest_journal != null and _quest_journal.visible)
 		or (_inventory_panel != null and _inventory_panel.visible)
 		or (_attack_popup != null and _attack_popup.visible)
+		or (dialogue_ui != null and dialogue_ui.visible)
 	)
 
 
 func _request_attack() -> void:
-	if GameState.input_locked or _any_overlay_visible():
+	if GameState.input_locked or _any_overlay_visible() or _attack_in_progress:
 		return
 	if not _target_is_valid(_selected_target):
 		_select_nearest_target()
 	if not _target_is_valid(_selected_target):
 		show_combat_message("В комнате нет доступной цели.", false)
 		return
+	var target: Node = _selected_target
 	var weapon: Dictionary = _class_data.get_equipped_weapon(GameState.player_character)
-	var distance: int = DistanceSystem.distance_feet(player.global_position, (_selected_target as Node2D).global_position)
+	var target_position: Vector2 = (target as Node2D).global_position
+	var distance: int = DistanceSystem.distance_feet(player.global_position, target_position)
 	var ammo_id: String = str(weapon.get("ammunition_id", ""))
 	var context: Dictionary = {
-		"target_name": _target_name(_selected_target),
+		"target_name": _target_name(target),
 		"distance_feet": distance,
 		"disadvantage": _has_hostile_within_five_feet(),
 		"no_ammunition": not ammo_id.is_empty() and not GameState.has_item(ammo_id)
 	}
 	var result: AttackResult = _combat_system.perform_basic_attack(
 		GameState.player_character,
-		int(_selected_target.call("get_armor_class")),
+		int(target.call("get_armor_class")),
 		weapon,
 		-1,
 		[],
@@ -233,17 +290,63 @@ func _request_attack() -> void:
 	)
 	if result.out_of_range or result.no_ammunition:
 		_attack_popup.show_result(result)
+		_sync_exploration_hud_visibility()
 		return
+	_set_combat_busy(true)
 	if not ammo_id.is_empty():
 		GameState.remove_item(ammo_id, 1, false)
-	player.play_attack_animation((_selected_target as Node2D).global_position)
-	_selected_target.call("receive_player_attack", result, true)
+	if DistanceSystem.is_ranged_weapon(weapon):
+		await _play_weapon_projectile(weapon, target_position, result.hit)
+	else:
+		player.play_attack_animation(target_position)
+	if _target_is_valid(target):
+		target.call("receive_player_attack", result, true)
 	GameState.save_game()
 	_update_status()
+	_set_combat_busy(false)
+	_sync_exploration_hud_visibility()
+
+
+func _set_combat_busy(value: bool) -> void:
+	_attack_in_progress = value
+	if _attack_button != null:
+		_attack_button.disabled = value
+	if _target_button != null:
+		_target_button.disabled = value
+
+
+func _play_weapon_projectile(weapon: Dictionary, target_position: Vector2, hit: bool) -> void:
+	var style: String = "arrow" if not str(weapon.get("ammunition_id", "")).is_empty() else "thrown"
+	var accent: Color = Color(0.95, 0.72, 0.28, 1.0) if style == "arrow" else Color(0.75, 0.82, 0.9, 1.0)
+	await _play_projectile(player.global_position, target_position, style, accent, hit)
+
+
+func _play_magic_projectiles(ability: Dictionary, target_position: Vector2) -> void:
+	var effect: String = str(ability.get("effect", "spell_attack"))
+	var projectile_count: int = 3 if effect == "auto_hit_spell" else 1
+	var accent: Color = _magic_projectile_color(str(ability.get("damage_type", "магический")))
+	for index: int in range(projectile_count):
+		var offset := Vector2(0.0, float(index - 1) * 14.0) if projectile_count > 1 else Vector2.ZERO
+		await _play_projectile(player.global_position + offset * 0.25, target_position + offset, "magic", accent, true)
+
+
+func _play_projectile(start_position: Vector2, target_position: Vector2, style: String, accent: Color, hit: bool) -> void:
+	var projectile: RangedProjectile = RANGED_PROJECTILE_SCRIPT.new() as RangedProjectile
+	add_child(projectile)
+	projectile.configure(style, accent)
+	await projectile.fly(start_position, target_position, hit)
+
+
+func _magic_projectile_color(damage_type: String) -> Color:
+	match damage_type:
+		"огненный": return Color(1.0, 0.38, 0.12, 1.0)
+		"силовой": return Color(0.58, 0.42, 1.0, 1.0)
+		"стихийный": return Color(0.2, 0.85, 1.0, 1.0)
+		_: return Color(0.55, 0.78, 1.0, 1.0)
 
 
 func _cycle_target() -> void:
-	if GameState.input_locked:
+	if GameState.input_locked or _attack_in_progress:
 		return
 	var targets: Array[Node] = _available_targets()
 	if targets.is_empty():
@@ -315,7 +418,7 @@ func _has_hostile_within_five_feet() -> bool:
 
 
 func _on_ability_requested(ability_id: String) -> void:
-	if GameState.input_locked:
+	if GameState.input_locked or _attack_in_progress:
 		return
 	var ability: Dictionary = _class_data.get_ability_definition(ability_id)
 	if ability.is_empty():
@@ -331,20 +434,32 @@ func _on_ability_requested(ability_id: String) -> void:
 		if not _target_is_valid(_selected_target) or not _selected_target.has_method("receive_signature_ability"):
 			_ability_panel.set_message("Сначала выберите боевую цель.", false)
 			return
-		var distance: int = DistanceSystem.distance_feet(player.global_position, (_selected_target as Node2D).global_position)
+		var target: Node = _selected_target
+		var target_position: Vector2 = (target as Node2D).global_position
+		var distance: int = DistanceSystem.distance_feet(player.global_position, target_position)
 		var maximum_range: int = int(ability.get("range_ft", 5))
 		if distance > maximum_range:
 			_ability_panel.set_message("Цель дальше %d футов." % maximum_range, false)
 			return
+		var resource_key: String = str(ability.get("resource_key", "unlimited"))
+		if resource_key != "unlimited" and not resource_key.is_empty() and GameState.player_character.get_resource(resource_key) <= 0:
+			_ability_panel.set_message("Не осталось доступных применений способности.", false)
+			return
 		var context: Dictionary = {
-			"target_name": _target_name(_selected_target),
+			"target_name": _target_name(target),
 			"distance_feet": distance,
 			"disadvantage": _has_hostile_within_five_feet()
 		}
-		response = _selected_target.call("receive_signature_ability", ability, true, context) as Dictionary
+		var effect: String = str(ability.get("effect", ""))
+		if effect in ["spell_attack", "auto_hit_spell"]:
+			_set_combat_busy(true)
+			await _play_magic_projectiles(ability, target_position)
+		response = target.call("receive_signature_ability", ability, true, context) as Dictionary
+		_set_combat_busy(false)
 	_ability_panel.set_message(str(response.get("message", "Способность применена.")), bool(response.get("success", false)))
 	GameState.save_game()
 	_update_status()
+	_sync_exploration_hud_visibility()
 
 
 func _on_rest_completed(rest_type: String) -> void:
