@@ -17,6 +17,12 @@ func _run() -> void:
 	if DistanceSystem.distance_feet(Vector2.ZERO, Vector2(65, 0)) != 10:
 		_fail("Distance must round up to the next 5-foot band.")
 		return
+	if DistanceSystem.distance_feet(Vector2.ZERO, Vector2(64, 64)) != 5:
+		_fail("One diagonal grid step must equal 5 feet.")
+		return
+	if DistanceSystem.grid_steps(Vector2.ZERO, Vector2(128, 64)) != 2:
+		_fail("Grid distance must use the longest axis in 5-foot squares.")
+		return
 
 	var character := PlayerCharacter.new()
 	character.level = 1
