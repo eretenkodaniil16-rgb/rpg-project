@@ -1,6 +1,7 @@
 extends Control
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
+const CHARACTER_CREATOR_SCENE: String = "res://scenes/character_creation/character_creator.tscn"
 
 @onready var continue_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/ContinueButton
 @onready var status_label: Label = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/StatusLabel
@@ -12,9 +13,7 @@ func _ready() -> void:
 
 
 func _on_new_game_pressed() -> void:
-	GameState.new_game()
-	GameState.save_game()
-	get_tree().change_scene_to_file(GAME_SCENE)
+	get_tree().change_scene_to_file(CHARACTER_CREATOR_SCENE)
 
 
 func _on_continue_pressed() -> void:
