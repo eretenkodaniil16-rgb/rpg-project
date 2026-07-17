@@ -31,5 +31,10 @@ static func is_ranged_attack(weapon: Dictionary, distance: int) -> bool:
 	return weapon_range_state(weapon, distance) in ["normal", "long"]
 
 
+static func is_ranged_weapon(weapon: Dictionary) -> bool:
+	var properties: Array = weapon.get("properties", []) as Array
+	return "ranged" in properties or "thrown" in properties
+
+
 static func format_distance(distance: int) -> String:
 	return "%d футов" % maxi(distance, 0)
