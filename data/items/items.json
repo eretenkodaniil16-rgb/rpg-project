@@ -1,18 +1,47 @@
 {
-  "apprentice_token": {
-    "id": "apprentice_token",
-    "name": "Жетон ученика",
-    "type": "quest",
-    "description": "Небольшой металлический жетон, подтверждающий завершение первой тренировки у Смотрителя.",
-    "stackable": false,
-    "max_stack": 1
-  },
-  "straw_scrap": {
-    "id": "straw_scrap",
-    "name": "Тренировочная солома",
-    "type": "material",
-    "description": "Пучок соломы, выпавший из тренировочного чучела. Позже может пригодиться для ремесла или обмена.",
-    "stackable": true,
-    "max_stack": 99
-  }
+  "apprentice_token": {"id":"apprentice_token","name":"Жетон ученика","type":"quest","description":"Подтверждает завершение первой тренировки у Смотрителя.","stackable":false,"max_stack":1},
+  "straw_scrap": {"id":"straw_scrap","name":"Тренировочная солома","type":"material","description":"Материал из тренировочного чучела.","stackable":true,"max_stack":99},
+  "gold_coin": {"id":"gold_coin","name":"Золотая монета","type":"currency","description":"Основная денежная единица.","stackable":true,"max_stack":9999},
+
+  "greataxe": {"id":"greataxe","name":"Секира","type":"weapon","description":"Тяжёлая двуручная секира.","stackable":false,"max_stack":1,"damage_dice":[1,12],"damage_type":"рубящий","ability":"strength","properties":["heavy","two_handed"]},
+  "handaxe": {"id":"handaxe","name":"Ручной топор","type":"weapon","description":"Лёгкий метательный топор.","stackable":true,"max_stack":20,"damage_dice":[1,6],"damage_type":"рубящий","ability":"strength","properties":["light","thrown"]},
+  "dagger": {"id":"dagger","name":"Кинжал","type":"weapon","description":"Лёгкое оружие с фехтовальным свойством.","stackable":true,"max_stack":20,"damage_dice":[1,4],"damage_type":"колющий","ability":"finesse","properties":["finesse","light","thrown"]},
+  "mace": {"id":"mace","name":"Булава","type":"weapon","description":"Простое дробящее оружие.","stackable":false,"max_stack":1,"damage_dice":[1,6],"damage_type":"дробящий","ability":"strength","properties":[]},
+  "sickle": {"id":"sickle","name":"Серп","type":"weapon","description":"Лёгкое рубящее оружие.","stackable":false,"max_stack":1,"damage_dice":[1,4],"damage_type":"рубящий","ability":"strength","properties":["light"]},
+  "quarterstaff_focus": {"id":"quarterstaff_focus","name":"Посох-фокус","type":"weapon","description":"Боевой посох, одновременно служащий магическим фокусом.","stackable":false,"max_stack":1,"damage_dice":[1,6],"damage_type":"дробящий","ability":"strength","properties":["versatile","focus"]},
+  "greatsword": {"id":"greatsword","name":"Двуручный меч","type":"weapon","description":"Тяжёлый двуручный клинок.","stackable":false,"max_stack":1,"damage_dice":[2,6],"damage_type":"рубящий","ability":"strength","properties":["heavy","two_handed"]},
+  "flail": {"id":"flail","name":"Кистень","type":"weapon","description":"Воинское дробящее оружие.","stackable":false,"max_stack":1,"damage_dice":[1,8],"damage_type":"дробящий","ability":"strength","properties":[]},
+  "javelin": {"id":"javelin","name":"Дротик","type":"weapon","description":"Метательное копьё.","stackable":true,"max_stack":20,"damage_dice":[1,6],"damage_type":"колющий","ability":"strength","properties":["thrown"]},
+  "spear": {"id":"spear","name":"Копьё","type":"weapon","description":"Универсальное колющее оружие.","stackable":false,"max_stack":1,"damage_dice":[1,6],"damage_type":"колющий","ability":"strength","properties":["thrown","versatile"]},
+  "longsword": {"id":"longsword","name":"Длинный меч","type":"weapon","description":"Надёжный одноручный клинок.","stackable":false,"max_stack":1,"damage_dice":[1,8],"damage_type":"рубящий","ability":"strength","properties":["versatile"]},
+  "scimitar": {"id":"scimitar","name":"Скимитар","type":"weapon","description":"Лёгкий фехтовальный клинок.","stackable":false,"max_stack":1,"damage_dice":[1,6],"damage_type":"рубящий","ability":"finesse","properties":["finesse","light"]},
+  "shortsword": {"id":"shortsword","name":"Короткий меч","type":"weapon","description":"Лёгкий фехтовальный клинок.","stackable":false,"max_stack":1,"damage_dice":[1,6],"damage_type":"колющий","ability":"finesse","properties":["finesse","light"]},
+  "longbow": {"id":"longbow","name":"Длинный лук","type":"weapon","description":"Дальнобойное двуручное оружие.","stackable":false,"max_stack":1,"damage_dice":[1,8],"damage_type":"колющий","ability":"dexterity","properties":["ammunition","heavy","two_handed","ranged"]},
+  "shortbow": {"id":"shortbow","name":"Короткий лук","type":"weapon","description":"Простое дальнобойное оружие.","stackable":false,"max_stack":1,"damage_dice":[1,6],"damage_type":"колющий","ability":"dexterity","properties":["ammunition","two_handed","ranged"]},
+  "arrow": {"id":"arrow","name":"Стела","type":"ammunition","description":"Боеприпас для лука.","stackable":true,"max_stack":99},
+
+  "leather_armor": {"id":"leather_armor","name":"Кожаный доспех","type":"armor","description":"Лёгкий доспех.","stackable":false,"max_stack":1,"base_ac":11,"dex_cap":99,"armor_category":"light"},
+  "studded_leather": {"id":"studded_leather","name":"Клёпаный кожаный доспех","type":"armor","description":"Усиленный лёгкий доспех.","stackable":false,"max_stack":1,"base_ac":12,"dex_cap":99,"armor_category":"light"},
+  "chain_shirt": {"id":"chain_shirt","name":"Кольчужная рубаха","type":"armor","description":"Средний доспех.","stackable":false,"max_stack":1,"base_ac":13,"dex_cap":2,"armor_category":"medium"},
+  "chain_mail": {"id":"chain_mail","name":"Кольчуга","type":"armor","description":"Тяжёлый доспех.","stackable":false,"max_stack":1,"base_ac":16,"dex_cap":0,"armor_category":"heavy"},
+  "robe": {"id":"robe","name":"Мантия","type":"armor","description":"Обычная одежда без защиты.","stackable":false,"max_stack":1,"base_ac":10,"dex_cap":99,"armor_category":"clothing"},
+  "shield": {"id":"shield","name":"Щит","type":"shield","description":"Даёт +2 к КД при экипировке.","stackable":false,"max_stack":1,"ac_bonus":2},
+
+  "lute": {"id":"lute","name":"Лютня","type":"tool","description":"Музыкальный инструмент барда.","stackable":false,"max_stack":1},
+  "holy_symbol": {"id":"holy_symbol","name":"Священный символ","type":"focus","description":"Фокус божественной магии.","stackable":false,"max_stack":1},
+  "druidic_focus": {"id":"druidic_focus","name":"Ветка омелы","type":"focus","description":"Друидический фокус.","stackable":false,"max_stack":1},
+  "arcane_focus_crystal": {"id":"arcane_focus_crystal","name":"Магический кристалл","type":"focus","description":"Фокус чародея.","stackable":false,"max_stack":1},
+  "arcane_focus_orb": {"id":"arcane_focus_orb","name":"Магическая сфера","type":"focus","description":"Фокус колдуна.","stackable":false,"max_stack":1},
+  "spellbook": {"id":"spellbook","name":"Книга заклинаний","type":"book","description":"Записи и формулы волшебника.","stackable":false,"max_stack":1},
+  "occult_book": {"id":"occult_book","name":"Книга тайных знаний","type":"book","description":"Трактат о запретных договорах.","stackable":false,"max_stack":1},
+  "herbalism_kit": {"id":"herbalism_kit","name":"Набор травника","type":"tool","description":"Инструменты для работы с растениями.","stackable":false,"max_stack":1},
+  "artisan_tools": {"id":"artisan_tools","name":"Ремесленные инструменты","type":"tool","description":"Набор выбранного ремесла.","stackable":false,"max_stack":1},
+  "thieves_tools": {"id":"thieves_tools","name":"Воровские инструменты","type":"tool","description":"Отмычки и тонкие инструменты.","stackable":false,"max_stack":1},
+  "quiver": {"id":"quiver","name":"Колчан","type":"gear","description":"Футляр для стрел.","stackable":false,"max_stack":1},
+  "explorer_pack": {"id":"explorer_pack","name":"Набор путешественника","type":"gear","description":"Базовые припасы для путешествия.","stackable":false,"max_stack":1},
+  "entertainer_pack": {"id":"entertainer_pack","name":"Набор артиста","type":"gear","description":"Реквизит и дорожные принадлежности артиста.","stackable":false,"max_stack":1},
+  "priest_pack": {"id":"priest_pack","name":"Набор священника","type":"gear","description":"Принадлежности для служения и дороги.","stackable":false,"max_stack":1},
+  "dungeoneer_pack": {"id":"dungeoneer_pack","name":"Набор исследователя подземелий","type":"gear","description":"Снаряжение для опасных руин.","stackable":false,"max_stack":1},
+  "burglar_pack": {"id":"burglar_pack","name":"Набор взломщика","type":"gear","description":"Верёвка, фонарь и инструменты проникновения.","stackable":false,"max_stack":1},
+  "scholar_pack": {"id":"scholar_pack","name":"Набор учёного","type":"gear","description":"Письменные принадлежности и дорожные книги.","stackable":false,"max_stack":1}
 }
