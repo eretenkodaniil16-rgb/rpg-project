@@ -6,6 +6,7 @@ const ABILITIES_PATH: String = "res://data/abilities/abilities.json"
 
 var _classes: Dictionary = {}
 var _abilities: Dictionary = {}
+var _dice: DiceRoller = DiceRoller.new()
 
 
 func _init() -> void:
@@ -13,13 +14,14 @@ func _init() -> void:
 
 
 func ensure_starting_loadout(character: PlayerCharacter) -> bool:
-	if character.starter_loadout_granted:
-		return false
 	var state: Node = _get_game_state()
 	if state == null:
 		return false
 	var class_data: Dictionary = get_class_definition(character.character_class_id)
 	if class_data.is_empty():
+		return false
+	character.initialize_hit_dice(int(class_data.get("hit_die", 8)))
+	if character.starter_loadout_granted:
 		return false
 	var items_value: Variant = class_data.get("starting_items", {})
 	if items_value is Dictionary:
@@ -74,14 +76,10 @@ func equip_item(character: PlayerCharacter, item_id: String) -> bool:
 		return false
 	var item: Dictionary = state.call("get_item_definition", item_id) as Dictionary
 	match str(item.get("type", "")):
-		"weapon":
-			character.equipped_weapon_id = item_id
-		"armor":
-			character.equipped_armor_id = item_id
-		"shield":
-			character.equipped_shield_id = item_id
-		_:
-			return false
+		"weapon": character.equipped_weapon_id = item_id
+		"armor": character.equipped_armor_id = item_id
+		"shield": character.equipped_shield_id = item_id
+		_: return false
 	state.call("save_game")
 	return true
 
@@ -123,14 +121,40 @@ func get_armor_class(character: PlayerCharacter) -> int:
 	return maxi(armor_class, 0)
 
 
-func long_rest(character: PlayerCharacter) -> void:
+func short_rest(character: PlayerCharacter, roll_override: int = -1) -> Dictionary:
+	if character.current_health <= 0:
+		return {"success": false, "message": "Нельзя отдыхать без сознания.", "healing": 0}
+	if character.current_health >= character.maximum_health:
+		return {"success": false, "message": "Здоровье уже полностью восстановлено.", "healing": 0}
+	if character.hit_dice_current <= 0:
+		return {"success": false, "message": "Не осталось Костей Хитов до долгого отдыха.", "healing": 0}
+	var roll: int = clampi(roll_override, 1, character.hit_die_size) if roll_override >= 1 else _dice.roll_die(character.hit_die_size)
+	var healing: int = maxi(1, roll + character.get_ability_modifier("constitution"))
+	var before: int = character.current_health
+	character.current_health = mini(character.maximum_health, character.current_health + healing)
+	character.hit_dice_current -= 1
+	_recharge_short_rest_features(character)
+	_save_state()
+	return {
+		"success": true,
+		"message": "Короткий отдых: d%d выпало %d, восстановлено %d здоровья." % [character.hit_die_size, roll, character.current_health - before],
+		"healing": character.current_health - before,
+		"roll": roll
+	}
+
+
+func long_rest(character: PlayerCharacter) -> Dictionary:
+	if character.current_health <= 0:
+		return {"success": false, "message": "Для долгого отдыха нужно хотя бы 1 здоровье.", "healing": 0}
+	var before: int = character.current_health
 	character.current_health = character.maximum_health
+	character.hit_dice_maximum = maxi(character.level, 1)
+	character.hit_dice_current = character.hit_dice_maximum
 	character.restore_class_resources()
 	if character.character_class_id == "rogue":
 		character.active_effects["sneak_attack_ready"] = true
-	var state: Node = _get_game_state()
-	if state != null:
-		state.call("save_game")
+	_save_state()
+	return {"success": true, "message": "Долгий отдых восстановил здоровье, Кости Хитов и ресурсы.", "healing": character.current_health - before}
 
 
 func get_resource_text(character: PlayerCharacter, ability: Dictionary) -> String:
@@ -138,6 +162,15 @@ func get_resource_text(character: PlayerCharacter, ability: Dictionary) -> Strin
 	if resource_key == "unlimited" or resource_key.is_empty():
 		return "Без ограничений"
 	return "%d / %d" % [character.get_resource(resource_key), character.get_resource_maximum(resource_key)]
+
+
+func _recharge_short_rest_features(character: PlayerCharacter) -> void:
+	if character.character_class_id == "fighter" and character.get_resource_maximum("second_wind") > 0:
+		character.set_resource("second_wind", mini(character.get_resource("second_wind") + 1, character.get_resource_maximum("second_wind")))
+	if character.character_class_id == "wizard" and not bool(character.active_effects.get("arcane_recovery_used", false)):
+		if character.get_resource("spell_slots_1") < character.get_resource_maximum("spell_slots_1"):
+			character.set_resource("spell_slots_1", character.get_resource("spell_slots_1") + 1)
+			character.active_effects["arcane_recovery_used"] = true
 
 
 func _initialize_signature_resource(character: PlayerCharacter) -> void:
@@ -152,6 +185,12 @@ func _initialize_signature_resource(character: PlayerCharacter) -> void:
 	elif formula == "wisdom_modifier_min_1":
 		maximum = maxi(character.get_ability_modifier("wisdom"), 1)
 	character.set_resource(resource_key, maximum, maximum)
+
+
+func _save_state() -> void:
+	var state: Node = _get_game_state()
+	if state != null:
+		state.call("save_game")
 
 
 func _get_game_state() -> Node:
