@@ -2,6 +2,7 @@ class_name CharacterSheet
 extends Control
 
 signal closed
+signal rest_completed(rest_type: String)
 
 const ABILITY_ORDER: Array[String] = ["strength", "dexterity", "constitution", "intelligence", "wisdom", "charisma"]
 const ABILITY_NAMES: Dictionary = {
@@ -17,6 +18,9 @@ var _swatch: ColorRect
 var _grid: GridContainer
 var _equipment_label: Label
 var _features_box: VBoxContainer
+var _rest_result: Label
+var _short_rest_button: Button
+var _long_rest_button: Button
 var _close_button: Button
 
 
@@ -27,6 +31,7 @@ func _ready() -> void:
 
 func open_sheet(character: PlayerCharacter) -> void:
 	_character = character
+	_rest_result.text = "Короткий отдых длится 1 час; долгий — 8 часов."
 	_refresh()
 	GameState.input_locked = true
 	show()
@@ -108,6 +113,30 @@ func _build_ui() -> void:
 	_swatch.name = "ColorSwatch"
 	_swatch.custom_minimum_size = Vector2(54, 36)
 	summary_row.add_child(_swatch)
+
+	var rest_title := Label.new()
+	rest_title.text = "ОТДЫХ"
+	rest_title.add_theme_font_size_override("font_size", 23)
+	content.add_child(rest_title)
+	var rest_row := HBoxContainer.new()
+	rest_row.add_theme_constant_override("separation", 12)
+	content.add_child(rest_row)
+	_short_rest_button = Button.new()
+	_short_rest_button.text = "КОРОТКИЙ ОТДЫХ · 1 КОСТЬ ХИТОВ"
+	_short_rest_button.custom_minimum_size = Vector2(390, 54)
+	_short_rest_button.pressed.connect(_on_short_rest_pressed)
+	rest_row.add_child(_short_rest_button)
+	_long_rest_button = Button.new()
+	_long_rest_button.text = "ДОЛГИЙ ОТДЫХ · 8 ЧАСОВ"
+	_long_rest_button.custom_minimum_size = Vector2(330, 54)
+	_long_rest_button.pressed.connect(_on_long_rest_pressed)
+	rest_row.add_child(_long_rest_button)
+	_rest_result = Label.new()
+	_rest_result.name = "RestResultLabel"
+	_rest_result.add_theme_font_size_override("font_size", 18)
+	_rest_result.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	content.add_child(_rest_result)
+
 	var abilities_title := Label.new()
 	abilities_title.text = "ХАРАКТЕРИСТИКИ"
 	abilities_title.add_theme_font_size_override("font_size", 23)
@@ -136,10 +165,15 @@ func _build_ui() -> void:
 
 
 func _refresh() -> void:
+	if _character == null:
+		return
 	_identity.text = "%s — %s, уровень %d" % [_character.character_name, _character.character_class_name, _character.level]
-	_summary.text = "Здоровье: %d / %d     КД: %d     Опыт: %d" % [
-		_character.current_health, _character.maximum_health, _class_data.get_armor_class(_character), _character.experience
+	_summary.text = "Здоровье: %d / %d     КД: %d     Кости Хитов: %d / %d (d%d)     Опыт: %d" % [
+		_character.current_health, _character.maximum_health, _class_data.get_armor_class(_character),
+		_character.hit_dice_current, _character.hit_dice_maximum, _character.hit_die_size, _character.experience
 	]
+	_short_rest_button.disabled = _character.current_health >= _character.maximum_health or _character.hit_dice_current <= 0
+	_long_rest_button.disabled = _character.current_health <= 0
 	_swatch.color = Color.from_string(_character.appearance_color_hex, Color(0.3, 0.64, 0.91, 1))
 	for child: Node in _grid.get_children():
 		child.queue_free()
@@ -150,7 +184,9 @@ func _refresh() -> void:
 	var weapon: Dictionary = GameState.get_item_definition(_character.equipped_weapon_id)
 	var armor: Dictionary = GameState.get_item_definition(_character.equipped_armor_id)
 	var shield: Dictionary = GameState.get_item_definition(_character.equipped_shield_id)
-	_equipment_label.text = "Оружие: %s\nДоспех: %s\nЩит: %s" % [
+	_equipment_label.text = "Оружие: %s
+Доспех: %s
+Щит: %s" % [
 		str(weapon.get("name", "Без оружия")), str(armor.get("name", "Нет")), str(shield.get("name", "Нет"))
 	]
 	for child: Node in _features_box.get_children():
@@ -167,6 +203,24 @@ func _refresh() -> void:
 		label.add_theme_font_size_override("font_size", 18)
 		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_features_box.add_child(label)
+
+
+func _on_short_rest_pressed() -> void:
+	var result: Dictionary = _class_data.short_rest(_character)
+	_rest_result.text = str(result.get("message", "Короткий отдых завершён."))
+	_rest_result.add_theme_color_override("font_color", Color(0.64, 0.94, 0.68, 1.0) if bool(result.get("success", false)) else Color(1.0, 0.55, 0.48, 1.0))
+	_refresh()
+	if bool(result.get("success", false)):
+		rest_completed.emit("short")
+
+
+func _on_long_rest_pressed() -> void:
+	var result: Dictionary = _class_data.long_rest(_character)
+	_rest_result.text = str(result.get("message", "Долгий отдых завершён."))
+	_rest_result.add_theme_color_override("font_color", Color(0.64, 0.94, 0.68, 1.0) if bool(result.get("success", false)) else Color(1.0, 0.55, 0.48, 1.0))
+	_refresh()
+	if bool(result.get("success", false)):
+		rest_completed.emit("long")
 
 
 func _add_cell(text_value: String, alignment: HorizontalAlignment) -> void:
