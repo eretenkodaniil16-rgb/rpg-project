@@ -28,6 +28,8 @@ func show_result(result: AttackResult) -> void:
 	else:
 		if result.automatic_hit:
 			lines.append("Автоматическое попадание")
+		elif result.advantage:
+			lines.append("Преимущество: %d и %d, используется %d" % [result.first_roll, result.second_roll, result.natural_roll])
 		elif result.disadvantage:
 			lines.append("Помеха: %d и %d, используется %d" % [result.first_roll, result.second_roll, result.natural_roll])
 		else:
@@ -36,8 +38,11 @@ func show_result(result: AttackResult) -> void:
 			lines.append("%s: %s" % [result.ability_name, _format_modifier(result.ability_modifier)])
 			lines.append("Бонус мастерства: %s" % _format_modifier(result.proficiency_bonus))
 			lines.append("Итого: %d" % result.total)
-			lines.append("КД цели: %d" % result.target_armor_class)
-		lines.append("Урон: %d %s" % [result.damage, result.damage_type])
+			lines.append("КД цели: %d%s" % [result.target_armor_class, " (включая укрытие +%d)" % result.cover_bonus if result.cover_bonus > 0 else ""])
+		if result.damage_before_mitigation > result.damage:
+			lines.append("Урон: %d → %d %s" % [result.damage_before_mitigation, result.damage, result.damage_type])
+		else:
+			lines.append("Урон: %d %s" % [result.damage, result.damage_type])
 		if result.target_max_health > 0:
 			lines.append("Здоровье цели: %d / %d" % [result.target_health_after, result.target_max_health])
 		if not result.note.is_empty():
@@ -49,7 +54,7 @@ func show_result(result: AttackResult) -> void:
 	elif result.no_ammunition:
 		_set_outcome("НЕТ БОЕПРИПАСОВ", Color(1.0, 0.55, 0.42, 1.0))
 	elif result.automatic_miss:
-		_set_outcome("АВТОМАТИЧЕСКИЙ ПРОМАХ", Color(1.0, 0.48, 0.42, 1.0))
+		_set_outcome("АТАКА НЕВОЗМОЖНА" if not result.note.is_empty() else "АВТОМАТИЧЕСКИЙ ПРОМАХ", Color(1.0, 0.48, 0.42, 1.0))
 	elif result.critical:
 		_set_outcome("КРИТИЧЕСКОЕ ПОПАДАНИЕ", Color(1.0, 0.82, 0.32, 1.0))
 	elif result.hit:
