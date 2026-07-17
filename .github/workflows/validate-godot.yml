@@ -21,17 +21,13 @@ jobs:
       - name: Download Godot 4.7.1 Standard
         shell: bash
         run: |
-          curl --location --fail --retry 3 \
-            --output godot.zip \
-            "https://downloads.godotengine.org/?flavor=stable&platform=linux.64&slug=linux.x86_64.zip&version=4.7.1"
+          curl --location --fail --retry 3 --output godot.zip "https://downloads.godotengine.org/?flavor=stable&platform=linux.64&slug=linux.x86_64.zip&version=4.7.1"
           unzip -q godot.zip
           chmod +x Godot_v4.7.1-stable_linux.x86_64
 
       - name: Import and validate project
         shell: bash
-        run: |
-          ./Godot_v4.7.1-stable_linux.x86_64 \
-            --headless --editor --path "$GITHUB_WORKSPACE" --quit
+        run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --editor --path "$GITHUB_WORKSPACE" --quit
 
       - name: Run character creation tests
         shell: bash
@@ -51,11 +47,11 @@ jobs:
 
       - name: Run class loadout tests
         shell: bash
-        run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_class_loadouts.gd
+        run: timeout 45s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_class_loadouts.gd
 
       - name: Run class ability tests
         shell: bash
-        run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_class_abilities.gd
+        run: timeout 45s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_class_abilities.gd
 
       - name: Smoke test character creator scene
         shell: bash
@@ -86,34 +82,15 @@ jobs:
         run: |
           mkdir -p "$GITHUB_WORKSPACE/build/test"
           set +e
-
-          ./Godot_v4.7.1-stable_linux.x86_64 \
-            --headless --path "$GITHUB_WORKSPACE" \
-            --script res://tests/smoke_player_name.gd \
-            2>&1 | tee "$GITHUB_WORKSPACE/build/test/player-name-command.log"
+          ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_player_name.gd 2>&1 | tee "$GITHUB_WORKSPACE/build/test/player-name-command.log"
           name_status=${PIPESTATUS[0]}
-
-          ./Godot_v4.7.1-stable_linux.x86_64 \
-            --headless --path "$GITHUB_WORKSPACE" \
-            --script res://tests/smoke_player_color.gd \
-            2>&1 | tee "$GITHUB_WORKSPACE/build/test/player-color-command.log"
+          ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_player_color.gd 2>&1 | tee "$GITHUB_WORKSPACE/build/test/player-color-command.log"
           color_status=${PIPESTATUS[0]}
-
-          ./Godot_v4.7.1-stable_linux.x86_64 \
-            --headless --path "$GITHUB_WORKSPACE" \
-            --script res://tests/test_player_mobile_input.gd \
-            2>&1 | tee "$GITHUB_WORKSPACE/build/test/mobile-input-command.log"
+          ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_player_mobile_input.gd 2>&1 | tee "$GITHUB_WORKSPACE/build/test/mobile-input-command.log"
           input_status=${PIPESTATUS[0]}
-
-          ./Godot_v4.7.1-stable_linux.x86_64 \
-            --headless --path "$GITHUB_WORKSPACE" \
-            --script res://tests/smoke_mobile_controls.gd \
-            2>&1 | tee "$GITHUB_WORKSPACE/build/test/mobile-controls-command.log"
+          ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_mobile_controls.gd 2>&1 | tee "$GITHUB_WORKSPACE/build/test/mobile-controls-command.log"
           controls_status=${PIPESTATUS[0]}
-
-          printf 'name=%s\ncolor=%s\ninput=%s\ncontrols=%s\n' \
-            "$name_status" "$color_status" "$input_status" "$controls_status" \
-            > "$GITHUB_WORKSPACE/build/test/runtime-status.txt"
+          printf 'name=%s\ncolor=%s\ninput=%s\ncontrols=%s\n' "$name_status" "$color_status" "$input_status" "$controls_status" > "$GITHUB_WORKSPACE/build/test/runtime-status.txt"
           exit 0
 
       - name: Upload runtime diagnostics
