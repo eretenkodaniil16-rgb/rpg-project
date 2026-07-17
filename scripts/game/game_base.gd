@@ -57,9 +57,9 @@ func _on_dialogue_closed() -> void:
 
 func _configure_platform_prompts() -> void:
 	if _uses_touch_controls():
-		help_label.text = "Движение: джойстик · Цель/атака: отдельные кнопки · 1 клетка: 5 футов"
+		help_label.text = "Движение задаёт направление · ЦЕЛЬ: выбор/сброс · Без цели ВЫСТРЕЛ летит вперёд"
 	else:
-		help_label.text = "Движение: стрелки · Tab: цель · F: атака · 1 клетка: 5 футов · Esc: меню"
+		help_label.text = "Стрелки: движение/направление · Tab: цель/сброс · F: атака или свободный выстрел"
 
 
 func _update_status() -> void:
