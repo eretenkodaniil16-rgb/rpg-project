@@ -1,0 +1,18 @@
+{
+  "apprentice_token": {
+    "id": "apprentice_token",
+    "name": "Жетон ученика",
+    "type": "quest",
+    "description": "Небольшой металлический жетон, подтверждающий завершение первой тренировки у Смотрителя.",
+    "stackable": false,
+    "max_stack": 1
+  },
+  "straw_scrap": {
+    "id": "straw_scrap",
+    "name": "Тренировочная солома",
+    "type": "material",
+    "description": "Пучок соломы, выпавший из тренировочного чучела. Позже может пригодиться для ремесла или обмена.",
+    "stackable": true,
+    "max_stack": 99
+  }
+}
