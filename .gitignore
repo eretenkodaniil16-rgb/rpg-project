@@ -1,0 +1,26 @@
+# Godot-generated files
+.godot/
+
+# Exported builds
+builds/
+exports/
+*.apk
+*.aab
+*.exe
+*.pck
+
+# Android build cache and signing material
+android/build/
+*.keystore
+*.jks
+
+# IDE and operating-system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
