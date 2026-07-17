@@ -10,6 +10,8 @@ const MAIN_MENU_SCENE: String = "res://scenes/menus/main_menu.tscn"
 
 func _ready() -> void:
 	player.global_position = GameState.player_position
+	if player.has_method("apply_character_appearance"):
+		player.call("apply_character_appearance")
 	var dialogue_ui: Node = get_tree().get_first_node_in_group("dialogue_ui")
 	if dialogue_ui != null and dialogue_ui.has_signal("dialogue_closed"):
 		dialogue_ui.connect("dialogue_closed", Callable(self, "_on_dialogue_closed"))
@@ -63,4 +65,4 @@ func _update_status() -> void:
 
 
 func _uses_touch_controls() -> bool:
-	return OS.has_feature("mobile") or DisplayServer.is_touchscreen_available()
+	return OS.get_name() == "Android" or OS.get_name() == "iOS" or OS.has_feature("mobile") or DisplayServer.is_touchscreen_available()
