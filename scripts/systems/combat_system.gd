@@ -37,7 +37,7 @@ func perform_basic_attack(
 	result.ability_modifier = character.get_ability_modifier(ability_id)
 	result.proficiency_bonus = proficiency_bonus_for_level(character.level)
 	result.attack_bonus = result.ability_modifier + result.proficiency_bonus
-	result.disadvantage = result.range_state == "long" or bool(attack_context.get("disadvantage", false))
+	result.disadvantage = result.range_state == "long" or (result.range_state != "melee" and bool(attack_context.get("disadvantage", false)))
 	result.first_roll = clampi(natural_roll_override, 1, 20) if natural_roll_override >= 1 else _dice_roller.roll_die(20)
 	if result.disadvantage:
 		var second_override: int = int(attack_context.get("second_roll_override", -1))
