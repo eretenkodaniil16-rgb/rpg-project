@@ -52,13 +52,21 @@ jobs:
             --path "$GITHUB_WORKSPACE" \
             --script res://tests/smoke_character_creator.gd
 
-      - name: Smoke test player appearance
+      - name: Smoke test player name
         shell: bash
         run: |
           ./Godot_v4.7.1-stable_linux.x86_64 \
             --headless \
             --path "$GITHUB_WORKSPACE" \
-            --script res://tests/smoke_player_appearance.gd
+            --script res://tests/smoke_player_name.gd
+
+      - name: Smoke test player color
+        shell: bash
+        run: |
+          ./Godot_v4.7.1-stable_linux.x86_64 \
+            --headless \
+            --path "$GITHUB_WORKSPACE" \
+            --script res://tests/smoke_player_color.gd
 
       - name: Test player mobile input
         shell: bash
