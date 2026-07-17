@@ -52,8 +52,12 @@ func _run() -> void:
 	if int(state.call("get_item_count", "arrow")) != arrows_before - 1:
 		_fail("Arrow count did not change.")
 		return
-	var projectile: Node = game.find_child("RangedProjectile", true, false)
-	if projectile == null:
+	var projectile_found: bool = false
+	for child: Node in game.get_children():
+		if child is RangedProjectile:
+			projectile_found = true
+			break
+	if not projectile_found:
 		_fail("Ranged attack did not create a projectile visual.")
 		return
 	await create_timer(0.9).timeout
