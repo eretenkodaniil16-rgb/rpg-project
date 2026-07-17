@@ -1,6 +1,6 @@
 extends SceneTree
 
-const PLAYER_SCRIPT: Script = preload("res://scripts/game/player.gd")
+const GAME_SCENE: String = "res://scenes/game/game.tscn"
 
 
 func _init() -> void:
@@ -10,18 +10,15 @@ func _init() -> void:
 func _run_test() -> void:
 	GameState.begin_new_game(PlayerCharacter.create_legacy_default())
 
-	var player: CharacterBody2D = CharacterBody2D.new()
-	player.name = "Player"
-	var body: Polygon2D = Polygon2D.new()
-	body.name = "Body"
-	player.add_child(body)
-	var name_label: Label = Label.new()
-	name_label.name = "NameLabel"
-	player.add_child(name_label)
-	player.set_script(PLAYER_SCRIPT)
-	root.add_child(player)
+	var packed_scene: PackedScene = load(GAME_SCENE) as PackedScene
+	assert(packed_scene != null)
+	var game: Node = packed_scene.instantiate()
+	assert(game != null)
+	root.add_child(game)
 	await process_frame
 
+	var player: CharacterBody2D = game.get_node("Player") as CharacterBody2D
+	assert(player != null)
 	player.call("set_mobile_vector", Vector2.RIGHT)
 	var right_direction: Vector2 = player.call("get_mobile_direction")
 	assert(right_direction.is_equal_approx(Vector2.RIGHT))
@@ -36,5 +33,5 @@ func _run_test() -> void:
 	var cleared_direction: Vector2 = player.call("get_mobile_direction")
 	assert(cleared_direction.is_zero_approx())
 	print("Player mobile input test passed.")
-	player.queue_free()
+	game.queue_free()
 	quit(0)
