@@ -8,8 +8,12 @@ extends Area2D
 @export var attack_bonus: int = 3
 @export var damage_die: int = 6
 @export var damage_bonus: int = 1
+@export var damage_type: String = "slashing"
 @export var initiative_modifier: int = 1
 @export var combat_speed_feet: int = 30
+@export var strength_save_modifier: int = 1
+@export var dexterity_save_modifier: int = 1
+@export var constitution_save_modifier: int = 1
 
 @onready var body_visual: Polygon2D = $Body
 @onready var name_label: Label = $NameLabel
@@ -90,6 +94,14 @@ func get_combat_speed_feet() -> int:
 	return maxi(combat_speed_feet, 0)
 
 
+func get_saving_throw_modifier(ability_id: String) -> int:
+	match ability_id:
+		"strength": return strength_save_modifier
+		"dexterity": return dexterity_save_modifier
+		"constitution": return constitution_save_modifier
+		_: return 0
+
+
 func can_take_combat_turn() -> bool:
 	return hostile and not defeated
 
@@ -163,7 +175,7 @@ func receive_signature_ability(ability: Dictionary, show_interface: bool = true,
 		var setup: Dictionary = _ability_system.apply_target_ability(GameState.player_character, ability)
 		GameState.save_game()
 		return setup
-	if effect not in ["spell_attack", "auto_hit_spell"]:
+	if effect not in ["spell_attack", "auto_hit_spell", "saving_throw_spell"]:
 		return {"success": false, "message": "Эта способность не действует на выбранную цель."}
 	var result: AttackResult = _ability_system.perform_offensive_ability(GameState.player_character, ability, armor_class, -1, [], attack_context)
 	if result.out_of_range or (not result.note.is_empty() and not result.hit):
@@ -186,9 +198,12 @@ func reset_combat_state(full_restore: bool = true) -> void:
 
 
 func _perform_retaliation() -> void:
+	var game: Node = get_tree().get_first_node_in_group("game_world")
+	if game != null and game.has_method("resolve_npc_attack"):
+		game.call("resolve_npc_attack", self, attack_bonus, damage_die, damage_bonus, damage_type)
+		return
 	var natural_first: int = _dice.roll_die(20)
 	var natural: int = natural_first
-	var game: Node = get_tree().get_first_node_in_group("game_world")
 	var player_dodging: bool = game != null and game.has_method("player_is_dodging") and bool(game.call("player_is_dodging"))
 	if player_dodging:
 		var natural_second: int = _dice.roll_die(20)
