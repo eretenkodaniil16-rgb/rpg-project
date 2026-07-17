@@ -49,7 +49,11 @@ func _run() -> void:
 
 	var dummy: Node = game.get_node_or_null("TrainingDummy")
 	if dummy == null:
-		_fail("Training dummy was not created in the game scene.")
+		var child_names: Array[String] = []
+		for child: Node in game.get_children():
+			child_names.append(child.name)
+		var script_path: String = str((game.get_script() as Script).resource_path) if game.get_script() is Script else "no script"
+		_fail("Training dummy was not created. script=%s children=%s" % [script_path, ",".join(child_names)])
 		return
 	if int(dummy.call("get_armor_class")) != 10 or int(dummy.call("get_current_health")) != 12:
 		_fail("Training dummy has incorrect initial combat stats.")
