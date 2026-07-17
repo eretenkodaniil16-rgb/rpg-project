@@ -1,7 +1,7 @@
 extends Node
 
 const SAVE_PATH: String = "user://savegame.json"
-const SAVE_VERSION: int = 2
+const SAVE_VERSION: int = 3
 const DEFAULT_PLAYER_POSITION: Vector2 = Vector2(320.0, 360.0)
 
 var story_flags: Dictionary = {}
@@ -72,7 +72,11 @@ func load_game() -> bool:
 	var version: int = int(save_data.get("version", 0))
 	if version == 1:
 		save_data = _migrate_version_1_to_2(save_data)
-	elif version != SAVE_VERSION:
+		version = 2
+	if version == 2:
+		save_data = _migrate_version_2_to_3(save_data)
+		version = 3
+	if version != SAVE_VERSION:
 		push_error("Неподдерживаемая версия сохранения: %d" % version)
 		return false
 
@@ -95,4 +99,15 @@ func _migrate_version_1_to_2(old_data: Dictionary) -> Dictionary:
 	var migrated_data: Dictionary = old_data.duplicate(true)
 	migrated_data["version"] = 2
 	migrated_data["player_character"] = PlayerCharacter.create_legacy_default().to_dict()
+	return migrated_data
+
+
+func _migrate_version_2_to_3(old_data: Dictionary) -> Dictionary:
+	var migrated_data: Dictionary = old_data.duplicate(true)
+	migrated_data["version"] = 3
+	var character_value: Variant = migrated_data.get("player_character", {})
+	var character_data: Dictionary = character_value as Dictionary if character_value is Dictionary else PlayerCharacter.create_legacy_default().to_dict()
+	if not character_data.has("appearance_color_hex"):
+		character_data["appearance_color_hex"] = PlayerCharacter.DEFAULT_APPEARANCE_COLOR_HEX
+	migrated_data["player_character"] = character_data
 	return migrated_data
