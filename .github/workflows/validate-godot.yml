@@ -35,3 +35,76 @@ jobs:
             --editor \
             --path "$GITHUB_WORKSPACE" \
             --quit
+
+      - name: Run character creation tests
+        shell: bash
+        run: |
+          ./Godot_v4.7.1-stable_linux.x86_64 \
+            --headless \
+            --path "$GITHUB_WORKSPACE" \
+            --script res://tests/test_character_creation.gd
+
+      - name: Smoke test character creator scene
+        shell: bash
+        run: |
+          ./Godot_v4.7.1-stable_linux.x86_64 \
+            --headless \
+            --path "$GITHUB_WORKSPACE" \
+            --script res://tests/smoke_character_creator.gd
+
+      - name: Run runtime checks with diagnostics
+        shell: bash
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/build/test"
+          set +e
+
+          ./Godot_v4.7.1-stable_linux.x86_64 \
+            --headless \
+            --path "$GITHUB_WORKSPACE" \
+            --script res://tests/smoke_player_name.gd \
+            2>&1 | tee "$GITHUB_WORKSPACE/build/test/player-name-command.log"
+          name_status=${PIPESTATUS[0]}
+
+          ./Godot_v4.7.1-stable_linux.x86_64 \
+            --headless \
+            --path "$GITHUB_WORKSPACE" \
+            --script res://tests/smoke_player_color.gd \
+            2>&1 | tee "$GITHUB_WORKSPACE/build/test/player-color-command.log"
+          color_status=${PIPESTATUS[0]}
+
+          ./Godot_v4.7.1-stable_linux.x86_64 \
+            --headless \
+            --path "$GITHUB_WORKSPACE" \
+            --script res://tests/test_player_mobile_input.gd \
+            2>&1 | tee "$GITHUB_WORKSPACE/build/test/mobile-input-command.log"
+          input_status=${PIPESTATUS[0]}
+
+          ./Godot_v4.7.1-stable_linux.x86_64 \
+            --headless \
+            --path "$GITHUB_WORKSPACE" \
+            --script res://tests/smoke_mobile_controls.gd \
+            2>&1 | tee "$GITHUB_WORKSPACE/build/test/mobile-controls-command.log"
+          controls_status=${PIPESTATUS[0]}
+
+          printf 'name=%s\ncolor=%s\ninput=%s\ncontrols=%s\n' \
+            "$name_status" "$color_status" "$input_status" "$controls_status" \
+            > "$GITHUB_WORKSPACE/build/test/runtime-status.txt"
+
+          exit 0
+
+      - name: Upload runtime diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-test-diagnostics
+          path: build/test/
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Verify runtime test status
+        shell: bash
+        run: |
+          grep -q '^name=0$' build/test/runtime-status.txt
+          grep -q '^color=0$' build/test/runtime-status.txt
+          grep -q '^input=0$' build/test/runtime-status.txt
+          grep -q '^controls=0$' build/test/runtime-status.txt
