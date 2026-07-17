@@ -66,6 +66,10 @@ func set_mobile_vector(direction: Vector2) -> void:
 	_mobile_vector = direction.limit_length(1.0)
 
 
+func get_mobile_direction() -> Vector2:
+	return _get_mobile_direction()
+
+
 func clear_mobile_input() -> void:
 	_mobile_up = false
 	_mobile_down = false
