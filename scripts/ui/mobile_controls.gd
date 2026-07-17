@@ -122,12 +122,14 @@ func _configure_layout() -> void:
 	interact_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	menu_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 
+	# Legacy directional buttons remain in the scene for compatibility but are hidden.
 	for child: Node in move_pad.get_children():
 		if child is CanvasItem:
 			(child as CanvasItem).visible = false
 
 
 func _build_joystick_visuals() -> void:
+	# Use real Panel nodes instead of custom _draw(), so Android always renders them.
 	_joystick_base = Panel.new()
 	_joystick_base.name = "JoystickBase"
 	_joystick_base.position = Vector2(
