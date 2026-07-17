@@ -17,6 +17,14 @@ static func distance_feet(from_position: Vector2, to_position: Vector2) -> int:
 	return grid_steps(from_position, to_position) * 5
 
 
+static func feet_to_pixels(feet: int) -> float:
+	return float(maxi(feet, 0)) / 5.0 * PIXELS_PER_5_FEET
+
+
+static func pixels_to_feet(pixels: float) -> int:
+	return ceili(maxf(pixels, 0.0) / PIXELS_PER_5_FEET) * 5
+
+
 static func weapon_range_state(weapon: Dictionary, distance: int) -> String:
 	var properties: Array = weapon.get("properties", []) as Array
 	var normal_range: int = int(weapon.get("range_normal_ft", 0))
