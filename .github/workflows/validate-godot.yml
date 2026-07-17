@@ -53,8 +53,6 @@ jobs:
             --script res://tests/smoke_character_creator.gd
 
       - name: Smoke test player name
-        id: player_name
-        continue-on-error: true
         shell: bash
         run: |
           ./Godot_v4.7.1-stable_linux.x86_64 \
@@ -63,8 +61,6 @@ jobs:
             --script res://tests/smoke_player_name.gd
 
       - name: Smoke test player color
-        id: player_color
-        continue-on-error: true
         shell: bash
         run: |
           ./Godot_v4.7.1-stable_linux.x86_64 \
@@ -73,8 +69,6 @@ jobs:
             --script res://tests/smoke_player_color.gd
 
       - name: Test player mobile input
-        id: mobile_input
-        continue-on-error: true
         shell: bash
         run: |
           ./Godot_v4.7.1-stable_linux.x86_64 \
@@ -90,8 +84,3 @@ jobs:
           path: build/test/
           if-no-files-found: warn
           retention-days: 7
-
-      - name: Fail when runtime checks failed
-        if: steps.player_name.outcome != 'success' || steps.player_color.outcome != 'success' || steps.mobile_input.outcome != 'success'
-        shell: bash
-        run: exit 1
