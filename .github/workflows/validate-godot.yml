@@ -12,7 +12,7 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 14
+    timeout-minutes: 16
 
     steps:
       - name: Checkout repository
@@ -54,6 +54,13 @@ jobs:
             --headless --path "$GITHUB_WORKSPACE" \
             --script res://tests/test_combat_system.gd
 
+      - name: Run quest and inventory tests
+        shell: bash
+        run: |
+          ./Godot_v4.7.1-stable_linux.x86_64 \
+            --headless --path "$GITHUB_WORKSPACE" \
+            --script res://tests/test_quest_inventory.gd
+
       - name: Smoke test character creator scene
         shell: bash
         run: |
@@ -81,6 +88,13 @@ jobs:
           timeout 35s ./Godot_v4.7.1-stable_linux.x86_64 \
             --headless --path "$GITHUB_WORKSPACE" \
             --script res://tests/smoke_training_dummy.gd
+
+      - name: Smoke test quest journal and inventory
+        shell: bash
+        run: |
+          timeout 35s ./Godot_v4.7.1-stable_linux.x86_64 \
+            --headless --path "$GITHUB_WORKSPACE" \
+            --script res://tests/smoke_quest_inventory_ui.gd
 
       - name: Run runtime checks with diagnostics
         shell: bash
