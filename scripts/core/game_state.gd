@@ -1,18 +1,29 @@
 extends Node
 
 const SAVE_PATH: String = "user://savegame.json"
-const SAVE_VERSION: int = 1
+const SAVE_VERSION: int = 2
 const DEFAULT_PLAYER_POSITION: Vector2 = Vector2(320.0, 360.0)
 
 var story_flags: Dictionary = {}
 var player_position: Vector2 = DEFAULT_PLAYER_POSITION
+var player_character: PlayerCharacter = PlayerCharacter.new()
 var input_locked: bool = false
 
 
 func new_game() -> void:
 	story_flags.clear()
 	player_position = DEFAULT_PLAYER_POSITION
+	player_character = PlayerCharacter.new()
 	input_locked = false
+
+
+func begin_new_game(character: PlayerCharacter) -> void:
+	new_game()
+	player_character = character
+
+
+func has_character() -> bool:
+	return not player_character.character_name.is_empty() and not player_character.character_class_id.is_empty()
 
 
 func set_flag(flag_name: String, value: Variant = true) -> void:
@@ -36,7 +47,8 @@ func save_game() -> bool:
 	var save_data: Dictionary = {
 		"version": SAVE_VERSION,
 		"story_flags": story_flags,
-		"player_position": [player_position.x, player_position.y]
+		"player_position": [player_position.x, player_position.y],
+		"player_character": player_character.to_dict()
 	}
 	file.store_string(JSON.stringify(save_data, "\t"))
 	return true
@@ -58,7 +70,9 @@ func load_game() -> bool:
 
 	var save_data: Dictionary = parsed_data as Dictionary
 	var version: int = int(save_data.get("version", 0))
-	if version != SAVE_VERSION:
+	if version == 1:
+		save_data = _migrate_version_1_to_2(save_data)
+	elif version != SAVE_VERSION:
 		push_error("Неподдерживаемая версия сохранения: %d" % version)
 		return false
 
@@ -71,5 +85,14 @@ func load_game() -> bool:
 	else:
 		player_position = DEFAULT_PLAYER_POSITION
 
+	var loaded_character: Variant = save_data.get("player_character", {})
+	player_character = PlayerCharacter.from_dict(loaded_character as Dictionary) if loaded_character is Dictionary else PlayerCharacter.create_legacy_default()
 	input_locked = false
 	return true
+
+
+func _migrate_version_1_to_2(old_data: Dictionary) -> Dictionary:
+	var migrated_data: Dictionary = old_data.duplicate(true)
+	migrated_data["version"] = 2
+	migrated_data["player_character"] = PlayerCharacter.create_legacy_default().to_dict()
+	return migrated_data
