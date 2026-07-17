@@ -19,7 +19,10 @@ func perform_basic_attack(
 	result.damage_type = "дробящий" if is_unarmed else str(weapon.get("damage_type", "физический"))
 	result.target_armor_class = maxi(target_armor_class, 0)
 	result.distance_feet = maxi(int(attack_context.get("distance_feet", 0)), 0)
-	result.range_state = "melee" if is_unarmed else DistanceSystem.weapon_range_state(weapon, result.distance_feet)
+	if is_unarmed:
+		result.range_state = "melee" if result.distance_feet <= DistanceSystem.MELEE_REACH_FEET else "out_of_range"
+	else:
+		result.range_state = DistanceSystem.weapon_range_state(weapon, result.distance_feet)
 	result.out_of_range = result.range_state == "out_of_range"
 	result.no_ammunition = bool(attack_context.get("no_ammunition", false))
 	if result.out_of_range:
