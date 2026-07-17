@@ -6,6 +6,7 @@ const MAJOR_COLOR: Color = Color(0.72, 0.86, 0.9, 0.34)
 const BORDER_COLOR: Color = Color(0.82, 0.92, 0.94, 0.48)
 const PLAYER_CELL_COLOR: Color = Color(0.22, 0.62, 1.0, 0.14)
 const TARGET_CELL_COLOR: Color = Color(1.0, 0.34, 0.24, 0.16)
+const ACTIVE_CELL_COLOR: Color = Color(0.42, 1.0, 0.46, 0.18)
 const MEASURE_COLOR: Color = Color(1.0, 0.72, 0.28, 0.92)
 
 @export var field_rect: Rect2 = Rect2(45.0, 45.0, 1190.0, 630.0)
@@ -15,10 +16,12 @@ const MEASURE_COLOR: Color = Color(1.0, 0.72, 0.28, 0.92)
 var _grid_enabled: bool = true
 var _player: Node2D = null
 var _selected_target: Node2D = null
+var _active_actor: Node2D = null
 var _distance_line: Line2D
 var _distance_label: Label
 var _last_player_position: Vector2 = Vector2.INF
 var _last_target_position: Vector2 = Vector2.INF
+var _last_active_position: Vector2 = Vector2.INF
 
 
 func _ready() -> void:
@@ -34,9 +37,11 @@ func _process(_delta: float) -> void:
 	_selected_target = _get_selected_target()
 	var player_position: Vector2 = _player.global_position if is_instance_valid(_player) else Vector2.INF
 	var target_position: Vector2 = _selected_target.global_position if is_instance_valid(_selected_target) else Vector2.INF
-	if player_position != _last_player_position or target_position != _last_target_position:
+	var active_position: Vector2 = _active_actor.global_position if is_instance_valid(_active_actor) else Vector2.INF
+	if player_position != _last_player_position or target_position != _last_target_position or active_position != _last_active_position:
 		_last_player_position = player_position
 		_last_target_position = target_position
+		_last_active_position = active_position
 		_update_measurement_overlay()
 		queue_redraw()
 
@@ -55,6 +60,68 @@ func is_grid_enabled() -> bool:
 
 func get_cell_size() -> float:
 	return cell_size
+
+
+func get_field_rect() -> Rect2:
+	return field_rect
+
+
+func set_active_actor(actor: Node) -> void:
+	_active_actor = actor as Node2D if actor is Node2D and is_instance_valid(actor) else null
+	queue_redraw()
+
+
+func world_to_cell(world_position: Vector2) -> Vector2i:
+	var local_position: Vector2 = to_local(world_position)
+	return Vector2i(
+		floori((local_position.x - field_rect.position.x) / cell_size),
+		floori((local_position.y - field_rect.position.y) / cell_size)
+	)
+
+
+func cell_to_world_center(cell: Vector2i) -> Vector2:
+	var local_center: Vector2 = field_rect.position + Vector2(float(cell.x) + 0.5, float(cell.y) + 0.5) * cell_size
+	return to_global(local_center)
+
+
+func is_cell_valid(cell: Vector2i) -> bool:
+	var columns: int = floori(field_rect.size.x / cell_size)
+	var rows: int = floori(field_rect.size.y / cell_size)
+	return cell.x >= 0 and cell.y >= 0 and cell.x < columns and cell.y < rows
+
+
+func nearest_free_cell(world_position: Vector2, occupied: Dictionary = {}) -> Vector2i:
+	var columns: int = maxi(floori(field_rect.size.x / cell_size), 1)
+	var rows: int = maxi(floori(field_rect.size.y / cell_size), 1)
+	var origin: Vector2i = world_to_cell(world_position)
+	origin.x = clampi(origin.x, 0, columns - 1)
+	origin.y = clampi(origin.y, 0, rows - 1)
+	if not occupied.has(origin):
+		return origin
+	var best_cell: Vector2i = origin
+	var best_distance: float = INF
+	var maximum_radius: int = maxi(columns, rows)
+	for radius: int in range(1, maximum_radius + 1):
+		for x_offset: int in range(-radius, radius + 1):
+			for y_offset: int in range(-radius, radius + 1):
+				if maxi(absi(x_offset), absi(y_offset)) != radius:
+					continue
+				var candidate := origin + Vector2i(x_offset, y_offset)
+				if not is_cell_valid(candidate) or occupied.has(candidate):
+					continue
+				var distance: float = cell_to_world_center(candidate).distance_squared_to(world_position)
+				if distance < best_distance:
+					best_distance = distance
+					best_cell = candidate
+		if best_distance < INF:
+			return best_cell
+	return best_cell
+
+
+func snap_actor_to_free_cell(actor: Node2D, occupied: Dictionary = {}) -> Vector2i:
+	var cell: Vector2i = nearest_free_cell(actor.global_position, occupied)
+	actor.global_position = cell_to_world_center(cell)
+	return cell
 
 
 func _draw() -> void:
@@ -83,6 +150,8 @@ func _draw() -> void:
 			true
 		)
 	draw_rect(field_rect, BORDER_COLOR, false, 2.0)
+	if is_instance_valid(_active_actor):
+		_draw_cell_highlight(_active_actor.global_position, ACTIVE_CELL_COLOR)
 	if is_instance_valid(_player):
 		_draw_cell_highlight(_player.global_position, PLAYER_CELL_COLOR)
 	if is_instance_valid(_selected_target):
