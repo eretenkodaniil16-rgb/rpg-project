@@ -2,6 +2,7 @@ class_name ClassAbilitySystem
 extends RefCounted
 
 var _dice: DiceRoller = DiceRoller.new()
+var _srd_rules: SrdCombatRules = SrdCombatRules.new()
 
 
 func use_self_ability(character: PlayerCharacter, ability: Dictionary) -> Dictionary:
@@ -44,15 +45,20 @@ func perform_offensive_ability(
 	var result: AttackResult = AttackResult.new()
 	result.attack_name = str(ability.get("name", "Магическая атака"))
 	result.target_name = str(attack_context.get("target_name", "Цель"))
-	result.damage_type = str(ability.get("damage_type", "магический"))
+	result.damage_type = _srd_rules.normalize_damage_type(str(ability.get("damage_type", "force")))
 	result.is_spell = true
-	result.target_armor_class = maxi(target_armor_class, 0)
+	result.cover_bonus = maxi(int(attack_context.get("cover_bonus", 0)), 0)
+	result.target_armor_class = maxi(target_armor_class + result.cover_bonus, 0)
 	result.distance_feet = maxi(int(attack_context.get("distance_feet", 0)), 0)
 	var maximum_range: int = int(ability.get("range_ft", 5))
 	result.range_state = "normal" if result.distance_feet <= maximum_range else "out_of_range"
 	result.out_of_range = result.range_state == "out_of_range"
 	if result.out_of_range:
 		result.note = "Цель находится дальше %d футов." % maximum_range
+		return result
+	if bool(attack_context.get("total_cover", false)):
+		result.automatic_miss = true
+		result.note = "Цель находится за полным укрытием."
 		return result
 
 	var resource_key: String = str(ability.get("resource_key", "unlimited"))
@@ -70,6 +76,23 @@ func perform_offensive_ability(
 		result.natural_roll = 0
 		result.total = 0
 		result.damage = _roll_damage(dice_count, die_sides, damage_rolls_override) + int(ability.get("damage_bonus", 0))
+		result.damage_before_mitigation = result.damage
+		return result
+	if effect == "saving_throw_spell":
+		var ability_id_for_spell: String = str(ability.get("ability", "charisma"))
+		var save_ability: String = str(ability.get("save_ability", "dexterity"))
+		var spell_dc: int = int(ability.get("save_dc", 8 + CombatSystem.proficiency_bonus_for_level(character.level) + character.get_ability_modifier(ability_id_for_spell)))
+		var defender_state: CombatantState = attack_context.get("defender_state") as CombatantState
+		var save_modifier: int = int(attack_context.get("target_save_modifier", 0))
+		var save_result: Dictionary = _srd_rules.resolve_saving_throw(save_ability, save_modifier, spell_dc, defender_state)
+		var rolled_damage: int = _roll_damage(dice_count, die_sides, damage_rolls_override) + int(ability.get("damage_bonus", 0))
+		result.automatic_hit = true
+		result.hit = not bool(save_result.get("success", false)) or bool(ability.get("save_for_half", false))
+		result.natural_roll = int(save_result.get("natural", 0))
+		result.total = int(save_result.get("total", 0))
+		result.damage = floori(float(rolled_damage) / 2.0) if bool(save_result.get("success", false)) and bool(ability.get("save_for_half", false)) else (0 if bool(save_result.get("success", false)) else rolled_damage)
+		result.damage_before_mitigation = result.damage
+		result.note = "%s спасбросок: %d против Сл %d — %s." % [save_ability, result.total, spell_dc, "успех" if bool(save_result.get("success", false)) else "провал"]
 		return result
 
 	var ability_id: String = str(ability.get("ability", "charisma"))
@@ -77,20 +100,42 @@ func perform_offensive_ability(
 	result.ability_modifier = character.get_ability_modifier(ability_id)
 	result.proficiency_bonus = CombatSystem.proficiency_bonus_for_level(character.level)
 	result.attack_bonus = result.ability_modifier + result.proficiency_bonus + int(ability.get("attack_bonus", 0))
-	result.disadvantage = bool(attack_context.get("disadvantage", false))
+	var attacker_state: CombatantState = attack_context.get("attacker_state") as CombatantState
+	var defender_state: CombatantState = attack_context.get("defender_state") as CombatantState
+	var adjustments: Dictionary = _srd_rules.attack_roll_adjustments(
+		attacker_state,
+		defender_state,
+		result.distance_feet,
+		bool(attack_context.get("attacker_can_see_defender", true)),
+		bool(attack_context.get("defender_can_see_attacker", true))
+	)
+	if bool(adjustments.get("blocked", false)):
+		result.automatic_miss = true
+		result.note = "Текущее состояние не позволяет сотворить атакующее заклинание."
+		return result
+	result.advantage = bool(attack_context.get("advantage", false)) or bool(adjustments.get("advantage", false))
+	result.disadvantage = bool(attack_context.get("disadvantage", false)) or bool(adjustments.get("disadvantage", false))
+	if result.advantage and result.disadvantage:
+		result.advantage = false
+		result.disadvantage = false
 	result.first_roll = clampi(natural_roll_override, 1, 20) if natural_roll_override >= 1 else _dice.roll_die(20)
-	if result.disadvantage:
+	if result.advantage or result.disadvantage:
 		var second_override: int = int(attack_context.get("second_roll_override", -1))
 		result.second_roll = clampi(second_override, 1, 20) if second_override >= 1 else _dice.roll_die(20)
-		result.natural_roll = mini(result.first_roll, result.second_roll)
+		result.natural_roll = maxi(result.first_roll, result.second_roll) if result.advantage else mini(result.first_roll, result.second_roll)
 	else:
 		result.natural_roll = result.first_roll
 	result.total = result.natural_roll + result.attack_bonus + consume_bardic_inspiration(character)
 	result.automatic_miss = result.natural_roll == 1
-	result.critical = result.natural_roll == 20
+	result.critical = result.natural_roll == 20 or bool(adjustments.get("automatic_critical", false))
 	result.hit = not result.automatic_miss and (result.critical or result.total >= result.target_armor_class)
+	if result.cover_bonus > 0:
+		result.note = "Укрытие цели повышает КД на +%d." % result.cover_bonus
 	if result.hit:
 		result.damage = _roll_damage(dice_count * (2 if result.critical else 1), die_sides, damage_rolls_override)
+		result.damage_before_mitigation = result.damage
+	if attacker_state != null:
+		attacker_state.hidden = false
 	return result
 
 
