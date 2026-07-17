@@ -3,11 +3,19 @@ extends CharacterBody2D
 @export var movement_speed: float = 220.0
 @export var movement_bounds: Rect2 = Rect2(28.0, 28.0, 1224.0, 664.0)
 
+@onready var body_visual: Polygon2D = $Body
+@onready var name_label: Label = $NameLabel
+
 var interactable: Node = null
 var _mobile_up: bool = false
 var _mobile_down: bool = false
 var _mobile_left: bool = false
 var _mobile_right: bool = false
+var _mobile_vector: Vector2 = Vector2.ZERO
+
+
+func _ready() -> void:
+	apply_character_appearance()
 
 
 func _physics_process(_delta: float) -> void:
@@ -54,11 +62,20 @@ func set_mobile_direction(direction: StringName, is_pressed: bool) -> void:
 			_mobile_right = is_pressed
 
 
+func set_mobile_vector(direction: Vector2) -> void:
+	_mobile_vector = direction.limit_length(1.0)
+
+
+func get_mobile_direction() -> Vector2:
+	return _get_mobile_direction()
+
+
 func clear_mobile_input() -> void:
 	_mobile_up = false
 	_mobile_down = false
 	_mobile_left = false
 	_mobile_right = false
+	_mobile_vector = Vector2.ZERO
 
 
 func set_interactable(target: Node) -> void:
@@ -70,8 +87,23 @@ func clear_interactable(target: Node) -> void:
 		interactable = null
 
 
+func apply_character_appearance() -> void:
+	var character: PlayerCharacter = GameState.player_character
+	var display_name: String = character.character_name.strip_edges()
+	name_label.text = display_name if not display_name.is_empty() else "Герой"
+	name_label.offset_left = -120.0
+	name_label.offset_right = 120.0
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	body_visual.color = Color.from_string(
+		character.appearance_color_hex,
+		Color(0.3, 0.64, 0.91, 1.0)
+	)
+
+
 func _get_mobile_direction() -> Vector2:
-	return Vector2(
+	var button_direction: Vector2 = Vector2(
 		float(_mobile_right) - float(_mobile_left),
 		float(_mobile_down) - float(_mobile_up)
 	)
+	var combined: Vector2 = button_direction + _mobile_vector
+	return combined.limit_length(1.0)

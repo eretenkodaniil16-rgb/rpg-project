@@ -1,0 +1,113 @@
+{
+  "ruleset": "SRD 5.2.1 inspired",
+  "classes": [
+    {
+      "id": "barbarian",
+      "name": "Варвар",
+      "role": "Стойкий боец ближнего боя",
+      "description": "Опирается на силу, выносливость и ярость. Лучше всего чувствует себя в ближнем бою и выдерживает большой урон.",
+      "hit_die": 12,
+      "primary_abilities": ["strength"],
+      "saving_throws": ["strength", "constitution"]
+    },
+    {
+      "id": "bard",
+      "name": "Бард",
+      "role": "Поддержка, переговоры и магия",
+      "description": "Универсальный герой, который влияет на людей, поддерживает союзников и использует магию через талант и харизму.",
+      "hit_die": 8,
+      "primary_abilities": ["charisma"],
+      "saving_throws": ["dexterity", "charisma"]
+    },
+    {
+      "id": "cleric",
+      "name": "Жрец",
+      "role": "Защита, исцеление и божественная магия",
+      "description": "Использует мудрость и духовную силу, чтобы лечить, защищать и поражать противников божественными эффектами.",
+      "hit_die": 8,
+      "primary_abilities": ["wisdom"],
+      "saving_throws": ["wisdom", "charisma"]
+    },
+    {
+      "id": "druid",
+      "name": "Друид",
+      "role": "Природная магия и контроль",
+      "description": "Связан с природой, управляет стихиями, поддерживает союзников и позднее сможет принимать звериные формы.",
+      "hit_die": 8,
+      "primary_abilities": ["wisdom"],
+      "saving_throws": ["intelligence", "wisdom"]
+    },
+    {
+      "id": "fighter",
+      "name": "Воин",
+      "role": "Мастер оружия и тактики",
+      "description": "Надёжный боевой класс с высокой стойкостью. Может развиваться через силу или ловкость и использовать разные виды оружия.",
+      "hit_die": 10,
+      "primary_abilities": ["strength", "dexterity"],
+      "saving_throws": ["strength", "constitution"]
+    },
+    {
+      "id": "monk",
+      "name": "Монах",
+      "role": "Мобильный боец и мастер контроля",
+      "description": "Сражается скоростью, дисциплиной и точностью. Особенно зависит от ловкости и мудрости.",
+      "hit_die": 8,
+      "primary_abilities": ["dexterity", "wisdom"],
+      "saving_throws": ["strength", "dexterity"]
+    },
+    {
+      "id": "paladin",
+      "name": "Паладин",
+      "role": "Бронированный защитник и лидер",
+      "description": "Сочетает тяжёлый ближний бой, защиту союзников и силу убеждений. Особенно ценит силу и харизму.",
+      "hit_die": 10,
+      "primary_abilities": ["strength", "charisma"],
+      "saving_throws": ["wisdom", "charisma"]
+    },
+    {
+      "id": "ranger",
+      "name": "Следопыт",
+      "role": "Разведчик, охотник и стрелок",
+      "description": "Хорош в исследовании, выслеживании и точных атаках. Основные качества — ловкость и мудрость.",
+      "hit_die": 10,
+      "primary_abilities": ["dexterity", "wisdom"],
+      "saving_throws": ["strength", "dexterity"]
+    },
+    {
+      "id": "rogue",
+      "name": "Плут",
+      "role": "Скрытность, ловушки и точечный урон",
+      "description": "Полагается на ловкость, хитрость и удачный момент. Полезен в исследовании и социальных ситуациях.",
+      "hit_die": 8,
+      "primary_abilities": ["dexterity"],
+      "saving_throws": ["dexterity", "intelligence"]
+    },
+    {
+      "id": "sorcerer",
+      "name": "Чародей",
+      "role": "Врождённая атакующая магия",
+      "description": "Использует внутренний магический дар. Сила заклинаний зависит от харизмы, а запас здоровья остаётся небольшим.",
+      "hit_die": 6,
+      "primary_abilities": ["charisma"],
+      "saving_throws": ["constitution", "charisma"]
+    },
+    {
+      "id": "warlock",
+      "name": "Колдун",
+      "role": "Магия договора и устойчивые способности",
+      "description": "Получает необычные силы через мистический договор. Харизма определяет эффективность большинства способностей.",
+      "hit_die": 8,
+      "primary_abilities": ["charisma"],
+      "saving_throws": ["wisdom", "charisma"]
+    },
+    {
+      "id": "wizard",
+      "name": "Волшебник",
+      "role": "Широкий выбор изученной магии",
+      "description": "Изучает заклинания и решает задачи знаниями. Сильно зависит от интеллекта и требует осторожности в бою.",
+      "hit_die": 6,
+      "primary_abilities": ["intelligence"],
+      "saving_throws": ["intelligence", "wisdom"]
+    }
+  ]
+}
