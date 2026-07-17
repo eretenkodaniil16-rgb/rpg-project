@@ -108,7 +108,7 @@ jobs:
             --verbose \
             --path "$GITHUB_WORKSPACE" \
             --export-debug "Android" \
-            "$GITHUB_WORKSPACE/build/android/rpg-project-0.2.0-debug.apk" \
+            "$GITHUB_WORKSPACE/build/android/rpg-project-0.3.0-debug.apk" \
             2>&1 | tee "$GITHUB_WORKSPACE/build/android/export.log"
           export_status=${PIPESTATUS[0]}
           echo "$export_status" > "$GITHUB_WORKSPACE/build/android/export-status.txt"
@@ -118,7 +118,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: rpg-project-0.2.0-android-debug
+          name: rpg-project-0.3.0-android-debug
           path: build/android/
           if-no-files-found: error
           retention-days: 14
