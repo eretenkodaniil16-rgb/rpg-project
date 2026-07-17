@@ -47,9 +47,15 @@ jobs:
         shell: bash
         run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_combat_system.gd
 
-      - name: Run distance and ranged combat tests
+      - name: Run distance and ranged combat tests with diagnostics
         shell: bash
-        run: timeout 45s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_distance_and_ranged_combat.gd
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/build/test"
+          set +e
+          timeout 45s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_distance_and_ranged_combat.gd 2>&1 | tee "$GITHUB_WORKSPACE/build/test/distance-and-ranged.log"
+          distance_status=${PIPESTATUS[0]}
+          echo "distance=$distance_status" > "$GITHUB_WORKSPACE/build/test/distance-status.txt"
+          exit 0
 
       - name: Run rest tests
         shell: bash
@@ -107,9 +113,15 @@ jobs:
         shell: bash
         run: timeout 45s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_ranged_projectile.gd
 
-      - name: Smoke test battle grid
+      - name: Smoke test battle grid with diagnostics
         shell: bash
-        run: timeout 45s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_battle_grid.gd
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/build/test"
+          set +e
+          timeout 45s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_battle_grid.gd 2>&1 | tee "$GITHUB_WORKSPACE/build/test/battle-grid.log"
+          grid_status=${PIPESTATUS[0]}
+          echo "grid=$grid_status" > "$GITHUB_WORKSPACE/build/test/grid-status.txt"
+          exit 0
 
       - name: Run runtime checks with diagnostics
         shell: bash
@@ -140,6 +152,8 @@ jobs:
         shell: bash
         run: |
           grep -q '^import=0$' build/test/import-status.txt
+          grep -q '^distance=0$' build/test/distance-status.txt
+          grep -q '^grid=0$' build/test/grid-status.txt
           grep -q '^loadouts=0$' build/test/class-status.txt
           grep -q '^abilities=0$' build/test/class-status.txt
           grep -q '^name=0$' build/test/runtime-status.txt
