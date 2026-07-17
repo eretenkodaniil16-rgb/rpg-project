@@ -27,7 +27,13 @@ jobs:
 
       - name: Import and validate project
         shell: bash
-        run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --editor --path "$GITHUB_WORKSPACE" --quit
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/build/test"
+          set +e
+          ./Godot_v4.7.1-stable_linux.x86_64 --headless --editor --path "$GITHUB_WORKSPACE" --quit 2>&1 | tee "$GITHUB_WORKSPACE/build/test/import.log"
+          import_status=${PIPESTATUS[0]}
+          echo "import=$import_status" > "$GITHUB_WORKSPACE/build/test/import-status.txt"
+          exit "$import_status"
 
       - name: Run character creation tests
         shell: bash
@@ -129,6 +135,7 @@ jobs:
       - name: Verify test status
         shell: bash
         run: |
+          grep -q '^import=0$' build/test/import-status.txt
           grep -q '^loadouts=0$' build/test/class-status.txt
           grep -q '^abilities=0$' build/test/class-status.txt
           grep -q '^name=0$' build/test/runtime-status.txt
