@@ -1,6 +1,7 @@
 extends Node2D
 
 const MAIN_MENU_SCENE: String = "res://scenes/menus/main_menu.tscn"
+const BATTLE_GRID_SCRIPT: Script = preload("res://scripts/game/battle_grid.gd")
 
 @onready var player: CharacterBody2D = $Player
 @onready var help_label: Label = $Interface/HelpLabel
@@ -8,8 +9,11 @@ const MAIN_MENU_SCENE: String = "res://scenes/menus/main_menu.tscn"
 @onready var status_label: Label = $Interface/StatusLabel
 @onready var mobile_action_button: Button = $Interface/MobileControls/InteractButton
 
+var _battle_grid: Node2D
+
 
 func _ready() -> void:
+	_build_battle_grid()
 	player.global_position = GameState.player_position
 	if player.has_method("apply_character_appearance"):
 		player.call("apply_character_appearance")
@@ -53,9 +57,9 @@ func _on_dialogue_closed() -> void:
 
 func _configure_platform_prompts() -> void:
 	if _uses_touch_controls():
-		help_label.text = "Движение: джойстик · Цель/атака: отдельные кнопки · Действие: правая кнопка"
+		help_label.text = "Движение: джойстик · Цель/атака: отдельные кнопки · 1 клетка: 5 футов"
 	else:
-		help_label.text = "Движение: стрелки · Tab: цель · F: атака · Enter/Пробел: действие · Esc: меню"
+		help_label.text = "Движение: стрелки · Tab: цель · F: атака · 1 клетка: 5 футов · Esc: меню"
 
 
 func _update_status() -> void:
@@ -69,3 +73,11 @@ func _update_status() -> void:
 
 func _uses_touch_controls() -> bool:
 	return OS.get_name() == "Android" or OS.get_name() == "iOS" or OS.has_feature("mobile") or DisplayServer.is_touchscreen_available()
+
+
+func _build_battle_grid() -> void:
+	_battle_grid = BATTLE_GRID_SCRIPT.new() as Node2D
+	_battle_grid.name = "BattleGrid"
+	_battle_grid.z_index = 1
+	add_child(_battle_grid)
+	player.z_index = 10
