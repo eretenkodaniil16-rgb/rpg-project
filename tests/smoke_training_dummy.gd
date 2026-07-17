@@ -54,11 +54,15 @@ func _run() -> void:
 	if result == null:
 		_fail("Training attack returned no result.")
 		return
-	if not bool(result.get("hit")) or int(result.get("total")) != 15 or int(result.get("damage")) != 4:
-		_fail("Training attack result is incorrect.")
+	var damage: int = int(result.get("damage"))
+	if not bool(result.get("hit")) or int(result.get("total")) != 15:
+		_fail("Training weapon attack roll is incorrect.")
 		return
-	if int(dummy.call("get_current_health")) != 8:
-		_fail("Training dummy did not receive damage.")
+	if str(result.get("attack_name")) != "Двуручный меч" or damage < 5 or damage > 15:
+		_fail("Fighter did not use the equipped greatsword correctly.")
+		return
+	if int(dummy.call("get_current_health")) != maxi(0, 12 - damage):
+		_fail("Training dummy did not receive weapon damage.")
 		return
 
 	game.queue_free()

@@ -10,12 +10,15 @@ extends Node2D
 var current_health: int = 12
 var _player_in_range: Node = null
 var _combat_system: CombatSystem = CombatSystem.new()
+var _class_data: ClassDataSystem = ClassDataSystem.new()
+var _ability_system: ClassAbilitySystem = ClassAbilitySystem.new()
 var _resetting: bool = false
 
 
 func _ready() -> void:
 	maximum_health = maxi(maximum_health, 1)
 	current_health = maximum_health
+	_reset_target_passives()
 	_update_health_label()
 
 
@@ -29,6 +32,24 @@ func attack_for_testing(natural_roll: int) -> AttackResult:
 	return _perform_attack(natural_roll, false)
 
 
+func receive_signature_ability(ability: Dictionary, show_interface: bool = true) -> Dictionary:
+	if _resetting:
+		return {"success": false, "message": "Чучело восстанавливается."}
+	var effect: String = str(ability.get("effect", ""))
+	if effect == "hunters_mark":
+		var setup: Dictionary = _ability_system.apply_target_ability(GameState.player_character, ability)
+		GameState.save_game()
+		return setup
+	if effect not in ["spell_attack", "auto_hit_spell"]:
+		return {"success": false, "message": "Эта способность не действует на тренировочную цель."}
+	var result: AttackResult = _ability_system.perform_offensive_ability(GameState.player_character, ability, armor_class)
+	if not result.note.is_empty() and not result.hit:
+		return {"success": false, "message": result.note}
+	_apply_attack_result(result, show_interface)
+	GameState.save_game()
+	return {"success": true, "message": "%s применена." % result.attack_name}
+
+
 func get_current_health() -> int:
 	return current_health
 
@@ -38,34 +59,36 @@ func get_armor_class() -> int:
 
 
 func _perform_attack(natural_roll_override: int, show_interface: bool) -> AttackResult:
-	var result: AttackResult = _combat_system.perform_unarmed_strike(
+	var weapon: Dictionary = _class_data.get_equipped_weapon(GameState.player_character)
+	var result: AttackResult = _combat_system.perform_basic_attack(
 		GameState.player_character,
 		armor_class,
+		weapon,
 		natural_roll_override
 	)
+	_apply_attack_result(result, show_interface)
+	GameState.save_game()
+	return result
 
+
+func _apply_attack_result(result: AttackResult, show_interface: bool) -> void:
 	if is_instance_valid(_player_in_range) and _player_in_range.has_method("play_attack_animation"):
 		_player_in_range.call("play_attack_animation", global_position)
-
 	if result.hit:
 		current_health = maxi(0, current_health - result.damage)
 		GameState.report_quest_event("hit_training_dummy")
 		_animate_hit()
 	else:
 		_animate_miss()
-
 	result.target_health_after = current_health
 	result.target_max_health = maximum_health
 	_update_health_label()
-
 	if show_interface:
 		get_tree().call_group("combat_ui", "show_result", result)
-
 	if current_health <= 0 and not _resetting:
 		_resetting = true
 		GameState.add_item("straw_scrap", 1)
 		_schedule_reset.call_deferred()
-	return result
 
 
 func _schedule_reset() -> void:
@@ -74,7 +97,13 @@ func _schedule_reset() -> void:
 	_resetting = false
 	visual.rotation_degrees = 0.0
 	visual.modulate = Color.WHITE
+	_reset_target_passives()
 	_update_health_label()
+
+
+func _reset_target_passives() -> void:
+	if GameState.player_character.character_class_id == "rogue":
+		GameState.player_character.active_effects["sneak_attack_ready"] = true
 
 
 func _animate_hit() -> void:
@@ -105,13 +134,7 @@ func _on_body_entered(body: Node2D) -> void:
 	_player_in_range = body
 	if body.has_method("set_interactable"):
 		body.call("set_interactable", self)
-	get_tree().call_group(
-		"game_world",
-		"set_interaction_action",
-		true,
-		"атаковать тренировочное чучело",
-		"АТАКА"
-	)
+	get_tree().call_group("game_world", "set_interaction_action", true, "атаковать тренировочное чучело", "АТАКА")
 
 
 func _on_body_exited(body: Node2D) -> void:

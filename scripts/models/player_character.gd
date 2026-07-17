@@ -21,6 +21,16 @@ var abilities: Dictionary = DEFAULT_ABILITIES.duplicate(true)
 var maximum_health: int = 1
 var current_health: int = 1
 
+var equipped_weapon_id: String = ""
+var equipped_armor_id: String = ""
+var equipped_shield_id: String = ""
+var known_features: Array[String] = []
+var signature_ability_id: String = ""
+var class_resources: Dictionary = {}
+var class_resource_maximums: Dictionary = {}
+var active_effects: Dictionary = {}
+var starter_loadout_granted: bool = false
+
 
 func get_ability_score(ability_id: String) -> int:
 	return int(abilities.get(ability_id, 10))
@@ -28,6 +38,40 @@ func get_ability_score(ability_id: String) -> int:
 
 func get_ability_modifier(ability_id: String) -> int:
 	return modifier_for_score(get_ability_score(ability_id))
+
+
+func get_resource(resource_key: String) -> int:
+	return int(class_resources.get(resource_key, 0))
+
+
+func get_resource_maximum(resource_key: String) -> int:
+	return int(class_resource_maximums.get(resource_key, 0))
+
+
+func set_resource(resource_key: String, current: int, maximum: int = -1) -> void:
+	if resource_key.is_empty() or resource_key == "unlimited":
+		return
+	if maximum >= 0:
+		class_resource_maximums[resource_key] = maximum
+	var safe_maximum: int = maxi(get_resource_maximum(resource_key), 0)
+	class_resources[resource_key] = clampi(current, 0, safe_maximum)
+
+
+func consume_resource(resource_key: String, amount: int = 1) -> bool:
+	if resource_key.is_empty() or resource_key == "unlimited":
+		return true
+	var safe_amount: int = maxi(amount, 1)
+	if get_resource(resource_key) < safe_amount:
+		return false
+	class_resources[resource_key] = get_resource(resource_key) - safe_amount
+	return true
+
+
+func restore_class_resources() -> void:
+	for key_value: Variant in class_resource_maximums.keys():
+		var key: String = str(key_value)
+		class_resources[key] = maxi(int(class_resource_maximums[key]), 0)
+	active_effects.clear()
 
 
 func to_dict() -> Dictionary:
@@ -40,7 +84,16 @@ func to_dict() -> Dictionary:
 		"experience": experience,
 		"abilities": abilities.duplicate(true),
 		"maximum_health": maximum_health,
-		"current_health": current_health
+		"current_health": current_health,
+		"equipped_weapon_id": equipped_weapon_id,
+		"equipped_armor_id": equipped_armor_id,
+		"equipped_shield_id": equipped_shield_id,
+		"known_features": known_features.duplicate(),
+		"signature_ability_id": signature_ability_id,
+		"class_resources": class_resources.duplicate(true),
+		"class_resource_maximums": class_resource_maximums.duplicate(true),
+		"active_effects": active_effects.duplicate(true),
+		"starter_loadout_granted": starter_loadout_granted
 	}
 
 
@@ -61,6 +114,21 @@ static func from_dict(data: Dictionary) -> PlayerCharacter:
 
 	character.maximum_health = maxi(int(data.get("maximum_health", 1)), 1)
 	character.current_health = clampi(int(data.get("current_health", character.maximum_health)), 0, character.maximum_health)
+	character.equipped_weapon_id = str(data.get("equipped_weapon_id", ""))
+	character.equipped_armor_id = str(data.get("equipped_armor_id", ""))
+	character.equipped_shield_id = str(data.get("equipped_shield_id", ""))
+	var features_value: Variant = data.get("known_features", [])
+	if features_value is Array:
+		for feature_value: Variant in features_value:
+			character.known_features.append(str(feature_value))
+	character.signature_ability_id = str(data.get("signature_ability_id", ""))
+	var resources_value: Variant = data.get("class_resources", {})
+	character.class_resources = (resources_value as Dictionary).duplicate(true) if resources_value is Dictionary else {}
+	var maximums_value: Variant = data.get("class_resource_maximums", {})
+	character.class_resource_maximums = (maximums_value as Dictionary).duplicate(true) if maximums_value is Dictionary else {}
+	var effects_value: Variant = data.get("active_effects", {})
+	character.active_effects = (effects_value as Dictionary).duplicate(true) if effects_value is Dictionary else {}
+	character.starter_loadout_granted = bool(data.get("starter_loadout_granted", false))
 	return character
 
 
