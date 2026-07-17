@@ -51,3 +51,11 @@ jobs:
             --headless \
             --path "$GITHUB_WORKSPACE" \
             --script res://tests/smoke_character_creator.gd
+
+      - name: Smoke test player appearance and movement
+        shell: bash
+        run: |
+          ./Godot_v4.7.1-stable_linux.x86_64 \
+            --headless \
+            --path "$GITHUB_WORKSPACE" \
+            --script res://tests/smoke_player_runtime.gd
