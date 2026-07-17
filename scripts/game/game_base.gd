@@ -37,11 +37,7 @@ func set_interaction_hint(is_visible: bool) -> void:
 	set_interaction_action(is_visible, "поговорить со Смотрителем", "РАЗГОВОР")
 
 
-func set_interaction_action(
-	is_visible: bool,
-	action_description: String,
-	mobile_button_text: String = "ДЕЙСТВИЕ"
-) -> void:
+func set_interaction_action(is_visible: bool, action_description: String, mobile_button_text: String = "ДЕЙСТВИЕ") -> void:
 	interaction_label.visible = is_visible and not GameState.input_locked
 	if is_visible:
 		if _uses_touch_controls():
@@ -57,9 +53,9 @@ func _on_dialogue_closed() -> void:
 
 func _configure_platform_prompts() -> void:
 	if _uses_touch_controls():
-		help_label.text = "Движение: джойстик · Действие/атака: правая кнопка · Выход: МЕНЮ"
+		help_label.text = "Движение: джойстик · Цель/атака: отдельные кнопки · Действие: правая кнопка"
 	else:
-		help_label.text = "Движение: стрелки · Действие/атака: Enter или Пробел · Выход: Esc"
+		help_label.text = "Движение: стрелки · Tab: цель · F: атака · Enter/Пробел: действие · Esc: меню"
 
 
 func _update_status() -> void:
@@ -68,16 +64,7 @@ func _update_status() -> void:
 		GameState.player_character.character_class_name,
 		GameState.player_character.level
 	]
-	var objective: String
-	if bool(GameState.get_flag("met_caretaker", false)):
-		objective = "Поговорите со Смотрителем или испытайте удар на тренировочном чучеле."
-	elif bool(GameState.get_flag("accepted_exploration", false)):
-		objective = "Осмотрите комнату и найдите тренировочное чучело."
-	elif _uses_touch_controls():
-		objective = "Подойдите к Смотрителю или чучелу и используйте правую кнопку."
-	else:
-		objective = "Подойдите к Смотрителю или чучелу и нажмите Enter или Пробел."
-	status_label.text = "%s\n%s" % [identity, objective]
+	status_label.text = "%s\n%s" % [identity, GameState.get_current_objective_text()]
 
 
 func _uses_touch_controls() -> bool:
