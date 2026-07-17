@@ -44,7 +44,6 @@ jobs:
             "https://github.com/godotengine/godot/releases/download/4.7.1-stable/Godot_v4.7.1-stable_linux.x86_64.zip"
           unzip -q godot.zip
           chmod +x Godot_v4.7.1-stable_linux.x86_64
-
           curl --location --fail --retry 3 \
             --output export_templates.tpz \
             "https://github.com/godotengine/godot/releases/download/4.7.1-stable/Godot_v4.7.1-stable_export_templates.tpz"
@@ -87,10 +86,7 @@ jobs:
         shell: bash
         run: |
           ./Godot_v4.7.1-stable_linux.x86_64 \
-            --headless \
-            --editor \
-            --path "$GITHUB_WORKSPACE" \
-            --quit
+            --headless --editor --path "$GITHUB_WORKSPACE" --quit
 
       - name: Export Android APK
         id: export
@@ -104,11 +100,9 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/build/android"
           set +e
           ./Godot_v4.7.1-stable_linux.x86_64 \
-            --headless \
-            --verbose \
-            --path "$GITHUB_WORKSPACE" \
+            --headless --verbose --path "$GITHUB_WORKSPACE" \
             --export-debug "Android" \
-            "$GITHUB_WORKSPACE/build/android/rpg-project-0.3.0-debug.apk" \
+            "$GITHUB_WORKSPACE/build/android/rpg-project-0.4.0-debug.apk" \
             2>&1 | tee "$GITHUB_WORKSPACE/build/android/export.log"
           export_status=${PIPESTATUS[0]}
           echo "$export_status" > "$GITHUB_WORKSPACE/build/android/export-status.txt"
@@ -118,7 +112,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: rpg-project-0.3.0-android-debug
+          name: rpg-project-0.4.0-android-debug
           path: build/android/
           if-no-files-found: error
           retention-days: 14

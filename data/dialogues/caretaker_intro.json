@@ -1,21 +1,48 @@
 {
   "id": "caretaker_intro",
   "speaker": "Смотритель",
-  "text": "Ты очнулся раньше, чем я ожидал. Эта комната безопасна, но за её дверями всё будет сложнее.",
+  "text": "Ты очнулся раньше, чем я ожидал. Смотритель явно знает больше, чем говорит.",
   "choices": [
     {
-      "text": "Кто вы и где я нахожусь?",
-      "response": "Меня называют Смотрителем. Пока достаточно знать, что ты находишься в месте, которое помнит больше, чем должно.",
-      "set_flags": {
-        "met_caretaker": true
+      "text": "[Харизма] Убедить его рассказать правду.",
+      "check": {"ability": "charisma", "difficulty": 12},
+      "success": {
+        "response": "Твои слова заставляют Смотрителя смягчиться. Он признаёт, что за дверью находится древнее хранилище воспоминаний.",
+        "set_flags": {"met_caretaker": true, "caretaker_convinced": true}
+      },
+      "failure": {
+        "response": "Смотритель не поддаётся. Он согласится помочь только после небольшой услуги.",
+        "set_flags": {"met_caretaker": true, "caretaker_favor_required": true}
+      }
+    },
+    {
+      "text": "[Мудрость] Попытаться понять, что он скрывает.",
+      "check": {"ability": "wisdom", "difficulty": 12},
+      "success": {
+        "response": "Ты замечаешь, как он избегает смотреть на северную дверь. Опасность связана именно с ней.",
+        "set_flags": {"met_caretaker": true, "caretaker_secret_noticed": true}
+      },
+      "failure": {
+        "response": "Ты принимаешь его тревогу за обычную усталость и не замечаешь ничего полезного.",
+        "set_flags": {"met_caretaker": true, "caretaker_misread": true}
+      }
+    },
+    {
+      "text": "[Интеллект] Опознать символ на его одежде.",
+      "check": {"ability": "intelligence", "difficulty": 14},
+      "success": {
+        "response": "Ты вспоминаешь знак хранителей памяти — ордена, исчезнувшего несколько поколений назад.",
+        "set_flags": {"met_caretaker": true, "keeper_symbol_known": true}
+      },
+      "failure": {
+        "response": "Символ кажется знакомым, но его значение ускользает.",
+        "set_flags": {"met_caretaker": true, "keeper_symbol_unknown": true}
       }
     },
     {
       "text": "Я сначала осмотрюсь.",
       "response": "Разумно. Осмотрись и возвращайся, когда появятся вопросы.",
-      "set_flags": {
-        "accepted_exploration": true
-      }
+      "set_flags": {"accepted_exploration": true}
     }
   ]
 }
