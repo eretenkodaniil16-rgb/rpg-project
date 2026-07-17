@@ -17,6 +17,7 @@ var current_health: int = 14
 var hostile: bool = false
 var defeated: bool = false
 var _targeted: bool = false
+var _combat_overlay_visible: bool = true
 var _attack_cooldown: float = 0.0
 var _target_marker: Label
 var _health_label: Label
@@ -85,6 +86,11 @@ func is_hostile() -> bool:
 
 func set_combat_targeted(value: bool) -> void:
 	_targeted = value
+	_update_combat_visuals()
+
+
+func set_combat_overlay_visible(value: bool) -> void:
+	_combat_overlay_visible = value
 	_update_combat_visuals()
 
 
@@ -170,10 +176,10 @@ func _build_combat_labels() -> void:
 
 func _update_combat_visuals() -> void:
 	if _target_marker != null:
-		_target_marker.visible = _targeted and not defeated
+		_target_marker.visible = _combat_overlay_visible and _targeted and not defeated
 	if _health_label != null:
 		_health_label.text = "%s · КД %d · %d/%d" % ["без сознания" if defeated else ("враждебен" if hostile else "нейтрален"), armor_class, current_health, maximum_health]
-		_health_label.visible = _targeted or hostile or current_health < maximum_health
+		_health_label.visible = _combat_overlay_visible and (_targeted or hostile or current_health < maximum_health)
 	body_visual.modulate = Color(0.45, 0.45, 0.45, 0.75) if defeated else Color.WHITE
 
 
