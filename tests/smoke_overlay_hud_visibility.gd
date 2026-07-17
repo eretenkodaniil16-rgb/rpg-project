@@ -40,15 +40,25 @@ func _run() -> void:
 	var attack_button: Button = game.find_child("AttackButton", true, false) as Button
 	var target_label: Label = game.find_child("TargetLabel", true, false) as Label
 	var ability_panel: Control = game.find_child("AbilityPanel", true, false) as Control
-	if inventory == null or mobile_controls == null or character_button == null or target_button == null or attack_button == null or target_label == null or ability_panel == null:
-		_fail("Required HUD or inventory nodes are missing.")
+	var caretaker: Node = game.get_node_or_null("Caretaker")
+	if inventory == null or mobile_controls == null or character_button == null or target_button == null or attack_button == null or target_label == null or ability_panel == null or caretaker == null:
+		_fail("Required HUD, target, or inventory nodes are missing.")
+		return
+	if target_label.visible:
+		_fail("Target distance must be hidden before manual target selection.")
+		return
+
+	game.call("_set_selected_target", caretaker)
+	await process_frame
+	await process_frame
+	if not target_label.visible:
+		_fail("Target distance did not appear after manual target selection.")
 		return
 
 	mobile_controls.show()
 	character_button.show()
 	target_button.show()
 	attack_button.show()
-	target_label.show()
 	ability_panel.show()
 	game.call("_open_inventory")
 	await process_frame

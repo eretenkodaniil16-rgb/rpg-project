@@ -1,7 +1,7 @@
 [gd_scene load_steps=9 format=3]
 
-[ext_resource type="Script" path="res://scripts/game/game.gd" id="1_game"]
-[ext_resource type="Script" path="res://scripts/game/player.gd" id="2_player"]
+[ext_resource type="Script" path="res://scripts/game/game_combat.gd" id="1_game"]
+[ext_resource type="Script" path="res://scripts/game/player_combat.gd" id="2_player"]
 [ext_resource type="Script" path="res://scripts/game/npc.gd" id="3_npc"]
 [ext_resource type="Script" path="res://scripts/ui/dialogue_ui.gd" id="4_dialogue"]
 [ext_resource type="Script" path="res://scripts/ui/mobile_controls.gd" id="5_mobile"]
