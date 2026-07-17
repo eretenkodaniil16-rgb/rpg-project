@@ -82,7 +82,7 @@ func consume_reaction(actor: Node) -> bool:
 	if entry_index < 0 or not bool(entries[entry_index].get("reaction", false)):
 		return false
 	entries[entry_index]["reaction"] = false
-	if entry_index == current_index:
+	if entry_index == current_index and bool(entries[entry_index].get("is_player", false)):
 		reaction_available = false
 	return true
 
@@ -195,12 +195,20 @@ func _begin_current_turn() -> void:
 	if current_index < 0 or current_index >= entries.size():
 		return
 	entries[current_index]["reaction"] = true
-	reaction_available = true
-	action_available = true
-	bonus_action_available = true
-	movement_remaining_feet = BASE_MOVEMENT_FEET
-	disengaged = false
-	dodging = false
+	var player_turn: bool = bool(entries[current_index].get("is_player", false))
+	if player_turn:
+		action_available = true
+		bonus_action_available = true
+		reaction_available = true
+		movement_remaining_feet = BASE_MOVEMENT_FEET
+		disengaged = false
+		dodging = false
+	else:
+		action_available = false
+		bonus_action_available = false
+		reaction_available = false
+		movement_remaining_feet = 0
+		disengaged = false
 
 
 func _first_active_index() -> int:
