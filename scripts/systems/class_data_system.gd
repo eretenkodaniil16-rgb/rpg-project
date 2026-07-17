@@ -124,23 +124,31 @@ func get_armor_class(character: PlayerCharacter) -> int:
 func short_rest(character: PlayerCharacter, roll_override: int = -1) -> Dictionary:
 	if character.current_health <= 0:
 		return {"success": false, "message": "Нельзя отдыхать без сознания.", "healing": 0}
-	if character.current_health >= character.maximum_health:
-		return {"success": false, "message": "Здоровье уже полностью восстановлено.", "healing": 0}
-	if character.hit_dice_current <= 0:
-		return {"success": false, "message": "Не осталось Костей Хитов до долгого отдыха.", "healing": 0}
-	var roll: int = clampi(roll_override, 1, character.hit_die_size) if roll_override >= 1 else _dice.roll_die(character.hit_die_size)
-	var healing: int = maxi(1, roll + character.get_ability_modifier("constitution"))
 	var before: int = character.current_health
-	character.current_health = mini(character.maximum_health, character.current_health + healing)
-	character.hit_dice_current -= 1
+	var roll: int = 0
+	var spent_hit_die: bool = false
+	if character.current_health < character.maximum_health and character.hit_dice_current > 0:
+		roll = clampi(roll_override, 1, character.hit_die_size) if roll_override >= 1 else _dice.roll_die(character.hit_die_size)
+		var healing: int = maxi(1, roll + character.get_ability_modifier("constitution"))
+		character.current_health = mini(character.maximum_health, character.current_health + healing)
+		character.hit_dice_current -= 1
+		spent_hit_die = true
 	_recharge_short_rest_features(character)
 	_save_state()
-	return {
-		"success": true,
-		"message": "Короткий отдых: d%d выпало %d, восстановлено %d здоровья." % [character.hit_die_size, roll, character.current_health - before],
-		"healing": character.current_health - before,
-		"roll": roll
-	}
+	if spent_hit_die:
+		return {
+			"success": true,
+			"message": "Короткий отдых: d%d выпало %d, восстановлено %d здоровья." % [character.hit_die_size, roll, character.current_health - before],
+			"healing": character.current_health - before,
+			"roll": roll,
+			"spent_hit_die": true
+		}
+	var message: String = "Короткий отдых завершён без траты Кости Хитов."
+	if character.current_health < character.maximum_health:
+		message += " Свободных Костей Хитов не осталось."
+	else:
+		message += " Здоровье уже было полным."
+	return {"success": true, "message": message, "healing": 0, "roll": 0, "spent_hit_die": false}
 
 
 func long_rest(character: PlayerCharacter) -> Dictionary:
