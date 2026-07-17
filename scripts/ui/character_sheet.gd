@@ -21,6 +21,7 @@ var _features_box: VBoxContainer
 var _rest_result: Label
 var _short_rest_button: Button
 var _long_rest_button: Button
+var _grid_toggle_button: Button
 var _close_button: Button
 
 
@@ -33,6 +34,7 @@ func open_sheet(character: PlayerCharacter) -> void:
 	_character = character
 	_rest_result.text = "Короткий отдых длится 1 час; долгий — 8 часов."
 	_refresh()
+	_sync_grid_toggle()
 	GameState.input_locked = true
 	show()
 	_close_button.grab_focus()
@@ -137,6 +139,17 @@ func _build_ui() -> void:
 	_rest_result.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	content.add_child(_rest_result)
 
+	var field_title := Label.new()
+	field_title.text = "ПОЛЕ БОЯ"
+	field_title.add_theme_font_size_override("font_size", 23)
+	content.add_child(field_title)
+	_grid_toggle_button = Button.new()
+	_grid_toggle_button.name = "GridToggleButton"
+	_grid_toggle_button.custom_minimum_size = Vector2(430, 54)
+	_grid_toggle_button.add_theme_font_size_override("font_size", 18)
+	_grid_toggle_button.pressed.connect(_on_grid_toggle_pressed)
+	content.add_child(_grid_toggle_button)
+
 	var abilities_title := Label.new()
 	abilities_title.text = "ХАРАКТЕРИСТИКИ"
 	abilities_title.add_theme_font_size_override("font_size", 23)
@@ -201,6 +214,7 @@ func _refresh() -> void:
 		label.add_theme_font_size_override("font_size", 18)
 		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_features_box.add_child(label)
+	_sync_grid_toggle()
 
 
 func _on_short_rest_pressed() -> void:
@@ -219,6 +233,29 @@ func _on_long_rest_pressed() -> void:
 	_refresh()
 	if bool(result.get("success", false)):
 		rest_completed.emit("long")
+
+
+func _on_grid_toggle_pressed() -> void:
+	var battle_grid: Node = get_tree().get_first_node_in_group("battle_grid")
+	if battle_grid == null or not battle_grid.has_method("set_grid_enabled") or not battle_grid.has_method("is_grid_enabled"):
+		_sync_grid_toggle()
+		return
+	var next_value: bool = not bool(battle_grid.call("is_grid_enabled"))
+	battle_grid.call("set_grid_enabled", next_value)
+	_sync_grid_toggle()
+
+
+func _sync_grid_toggle() -> void:
+	if _grid_toggle_button == null:
+		return
+	var battle_grid: Node = get_tree().get_first_node_in_group("battle_grid")
+	var available: bool = battle_grid != null and battle_grid.has_method("is_grid_enabled")
+	_grid_toggle_button.disabled = not available
+	if not available:
+		_grid_toggle_button.text = "СЕТКА НЕДОСТУПНА"
+		return
+	var enabled: bool = bool(battle_grid.call("is_grid_enabled"))
+	_grid_toggle_button.text = "СЕТКА: %s · 1 КЛЕТКА = 5 ФУТОВ" % ("ВКЛ" if enabled else "ВЫКЛ")
 
 
 func _add_cell(text_value: String, alignment: HorizontalAlignment) -> void:
