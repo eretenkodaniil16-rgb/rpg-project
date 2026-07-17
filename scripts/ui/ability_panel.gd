@@ -2,13 +2,11 @@ class_name AbilityPanel
 extends Control
 
 signal ability_requested(ability_id: String)
-signal rest_requested
 
 var _class_data: ClassDataSystem = ClassDataSystem.new()
 var _ability_button: Button
 var _resource_label: Label
 var _message_label: Label
-var _rest_button: Button
 var _character: PlayerCharacter
 
 
@@ -48,10 +46,10 @@ func _build_ui() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var panel := PanelContainer.new()
 	panel.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	panel.offset_left = -365.0
-	panel.offset_top = -255.0
-	panel.offset_right = -20.0
-	panel.offset_bottom = -145.0
+	panel.offset_left = -620.0
+	panel.offset_top = -142.0
+	panel.offset_right = -250.0
+	panel.offset_bottom = -20.0
 	panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	panel.modulate = Color(1.0, 1.0, 1.0, 0.92)
 	add_child(panel)
@@ -64,20 +62,11 @@ func _build_ui() -> void:
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 6)
 	margin.add_child(column)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
-	column.add_child(row)
 	_ability_button = Button.new()
-	_ability_button.custom_minimum_size = Vector2(210.0, 52.0)
+	_ability_button.custom_minimum_size = Vector2(330.0, 52.0)
 	_ability_button.add_theme_font_size_override("font_size", 17)
 	_ability_button.pressed.connect(_on_ability_pressed)
-	row.add_child(_ability_button)
-	_rest_button = Button.new()
-	_rest_button.text = "ОТДЫХ"
-	_rest_button.custom_minimum_size = Vector2(90.0, 52.0)
-	_rest_button.add_theme_font_size_override("font_size", 15)
-	_rest_button.pressed.connect(_on_rest_pressed)
-	row.add_child(_rest_button)
+	column.add_child(_ability_button)
 	_resource_label = Label.new()
 	_resource_label.add_theme_font_size_override("font_size", 15)
 	_resource_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -94,9 +83,3 @@ func _on_ability_pressed() -> void:
 	if _character == null or GameState.input_locked:
 		return
 	ability_requested.emit(_character.signature_ability_id)
-
-
-func _on_rest_pressed() -> void:
-	if GameState.input_locked:
-		return
-	rest_requested.emit()
