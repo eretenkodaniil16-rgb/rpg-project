@@ -104,10 +104,14 @@ func add_movement(feet: int) -> void:
 	movement_remaining_feet += maxi(feet, 0)
 
 
-func use_dash() -> bool:
+func set_player_movement(feet: int) -> void:
+	movement_remaining_feet = maxi(feet, 0)
+
+
+func use_dash(feet: int = BASE_MOVEMENT_FEET) -> bool:
 	if not consume_action():
 		return false
-	add_movement(BASE_MOVEMENT_FEET)
+	add_movement(feet)
 	return true
 
 
