@@ -1,10 +1,12 @@
 extends "res://scripts/ui/dialogue_ui_base.gd"
 
 const CHECK_POPUP_SCENE: PackedScene = preload("res://scenes/ui/skill_check_popup.tscn")
+const VISUAL_CONTROLLER_SCRIPT: Script = preload("res://scripts/ui/dialogue_visual_controller.gd")
 
 var _check_system: SkillCheckSystem = SkillCheckSystem.new()
 var _check_popup: SkillCheckPopup
 var _pending_checked_choice: Dictionary = {}
+var _visual_controller: DialogueVisualController
 
 
 func _ready() -> void:
@@ -12,6 +14,10 @@ func _ready() -> void:
 	_check_popup.name = "SkillCheckPopup"
 	_check_popup.dismissed.connect(_on_check_dismissed)
 	add_child(_check_popup)
+	_visual_controller = VISUAL_CONTROLLER_SCRIPT.new() as DialogueVisualController
+	_visual_controller.name = "DialogueVisualController"
+	add_child(_visual_controller)
+	_visual_controller.setup(self)
 
 
 func start_dialogue(dialogue_data: Dictionary, dialogue_target: Node = null) -> void:
@@ -63,3 +69,7 @@ func _close_dialogue() -> void:
 	if _check_popup != null:
 		_check_popup.hide()
 	super._close_dialogue()
+
+
+func get_visual_controller_for_testing() -> DialogueVisualController:
+	return _visual_controller
