@@ -58,21 +58,30 @@ func _run_smoke_test() -> void:
 		_fail("Race showcase is not visible or contains no cards.")
 		return
 
-	creator.set("_scores", [18, 16, 14, 12, 10, 8])
-	creator.set("_assignments", {
-		"strength": 0,
-		"dexterity": 1,
-		"constitution": 2,
-		"intelligence": 3,
-		"wisdom": 4,
-		"charisma": 5
-	})
+	var scores: Array = creator.get("_scores") as Array
+	scores.clear()
+	for score: int in [18, 16, 14, 12, 10, 8]:
+		scores.append(score)
+	var assignments: Dictionary = creator.get("_assignments") as Dictionary
+	assignments.clear()
+	assignments["strength"] = 0
+	assignments["dexterity"] = 1
+	assignments["constitution"] = 2
+	assignments["intelligence"] = 3
+	assignments["wisdom"] = 4
+	assignments["charisma"] = 5
 	creator.set("_selected_race_id", "elf")
-	if int(creator.call("_final_score_for_ability", "dexterity")) != 18:
-		_fail("Elf Dexterity racial bonus was not applied to the assigned score.")
+	var base_dexterity: int = int(creator.call("_score_for_ability", "dexterity"))
+	var final_dexterity: int = int(creator.call("_final_score_for_ability", "dexterity"))
+	if base_dexterity != 16:
+		_fail("Assigned Dexterity score was not retained; got %d." % base_dexterity)
 		return
-	if int(creator.call("_final_score_for_ability", "wisdom")) != 11:
-		_fail("Elf Wisdom racial bonus was not applied to the assigned score.")
+	if final_dexterity != 18:
+		_fail("Elf Dexterity racial bonus was not applied; got %d." % final_dexterity)
+		return
+	var final_wisdom: int = int(creator.call("_final_score_for_ability", "wisdom"))
+	if final_wisdom != 11:
+		_fail("Elf Wisdom racial bonus was not applied; got %d." % final_wisdom)
 		return
 
 	creator.call("_show_step", 4)
