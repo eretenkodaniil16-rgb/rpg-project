@@ -44,7 +44,9 @@ func sync_state() -> void:
 		if damage_type not in state.damage_resistances:
 			state.damage_resistances.append(damage_type)
 	state.saving_throw_advantage_conditions = character.racial_condition_save_advantage.duplicate()
+	state.saving_throw_advantage_abilities = character.racial_save_advantage_abilities.duplicate()
 	state.magical_save_advantage_abilities = character.racial_magical_save_advantage_abilities.duplicate()
+	state.reroll_natural_one = character.reroll_natural_one
 
 
 func sync_speed() -> void:
@@ -83,9 +85,6 @@ func inject_ability() -> void:
 	var category: String = "bonus" if str(ability.get("action_kind", "action")) == "bonus" else "action"
 	var values: Array = entries.get(category, []) as Array
 	var entry_id: String = "ability:%s" % str(ability.get("id", character.racial_ability_id))
-	for value: Variant in values:
-		if value is Dictionary and str((value as Dictionary).get("id", "")) == entry_id:
-			return
 	var turn_system: TurnBasedCombatSystem = game.get("_turn_system") as TurnBasedCombatSystem
 	var player: Node = game.get_node_or_null("Player")
 	var resource_key: String = str(ability.get("resource_key", "unlimited"))
@@ -96,13 +95,22 @@ func inject_ability() -> void:
 		enabled = enabled and turn_system.bonus_action_available
 	else:
 		enabled = enabled and turn_system.action_available
-	values.append({
+	var replacement: Dictionary = {
 		"id": entry_id,
 		"label": str(ability.get("name", "Расовая способность")),
 		"enabled": enabled,
 		"description": "%s Ресурс: %s." % [str(ability.get("description", "")), class_data.get_resource_text(character, ability)],
 		"group": "attack" if str(ability.get("target", "self")) == "enemy" else "tactic"
-	})
+	}
+	var replaced: bool = false
+	for index: int in range(values.size()):
+		var value: Variant = values[index]
+		if value is Dictionary and str((value as Dictionary).get("id", "")) == entry_id:
+			values[index] = replacement
+			replaced = true
+			break
+	if not replaced:
+		values.append(replacement)
 	entries[category] = values
 	action_ui.set("_entries", entries)
 
