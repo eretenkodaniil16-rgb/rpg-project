@@ -12,6 +12,8 @@ var condition_immunities: Array[String] = []
 var damage_resistances: Array[String] = []
 var damage_immunities: Array[String] = []
 var damage_vulnerabilities: Array[String] = []
+var saving_throw_advantage_conditions: Array[String] = []
+var magical_save_advantage_abilities: Array[String] = []
 var temporary_hit_points: int = 0
 var death_save_successes: int = 0
 var death_save_failures: int = 0
@@ -148,6 +150,8 @@ func to_dict() -> Dictionary:
 		"damage_resistances": damage_resistances.duplicate(),
 		"damage_immunities": damage_immunities.duplicate(),
 		"damage_vulnerabilities": damage_vulnerabilities.duplicate(),
+		"saving_throw_advantage_conditions": saving_throw_advantage_conditions.duplicate(),
+		"magical_save_advantage_abilities": magical_save_advantage_abilities.duplicate(),
 		"temporary_hit_points": temporary_hit_points,
 		"death_save_successes": death_save_successes,
 		"death_save_failures": death_save_failures,
@@ -166,6 +170,8 @@ static func from_dict(data: Dictionary) -> CombatantState:
 	state.damage_resistances = _string_array(data.get("damage_resistances", []))
 	state.damage_immunities = _string_array(data.get("damage_immunities", []))
 	state.damage_vulnerabilities = _string_array(data.get("damage_vulnerabilities", []))
+	state.saving_throw_advantage_conditions = _string_array(data.get("saving_throw_advantage_conditions", []))
+	state.magical_save_advantage_abilities = _string_array(data.get("magical_save_advantage_abilities", []))
 	state.temporary_hit_points = maxi(int(data.get("temporary_hit_points", 0)), 0)
 	state.death_save_successes = clampi(int(data.get("death_save_successes", 0)), 0, 3)
 	state.death_save_failures = clampi(int(data.get("death_save_failures", 0)), 0, 3)
