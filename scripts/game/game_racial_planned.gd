@@ -145,3 +145,97 @@ func apply_damage_to_player(amount: int, damage_type: String, critical_hit: bool
 	GameState.save_game()
 	_update_status()
 	return {"hit": true, "applied": applied, "critical": critical_hit, "dead": _player_combat_state.dead, "relentless": relentless, "stone_reduction": stone_reduction}
+
+
+func _occupied_cells(excluded_actor: Node = null) -> Dictionary:
+	var occupied: Dictionary = super._occupied_cells(excluded_actor)
+	if excluded_actor != player or not GameState.player_character.can_move_through_larger_creatures:
+		return occupied
+	var player_rank: int = RaceDataSystem.size_rank(GameState.player_character.size_category)
+	for cell_value: Variant in occupied.keys():
+		var actor: Node = occupied[cell_value] as Node
+		if _actor_size_rank(actor) > player_rank:
+			occupied.erase(cell_value)
+	return occupied
+
+
+func _plan_to_cell(destination_cell: Vector2i) -> void:
+	var real_occupied: Dictionary = super._occupied_cells(player)
+	if real_occupied.has(destination_cell):
+		show_combat_message("Через более крупное существо можно пройти, но нельзя закончить перемещение в его клетке.", false)
+		return
+	super._plan_to_cell(destination_cell)
+
+
+func _apply_candidate_path(candidate: Array[Vector2i]) -> void:
+	if not candidate.is_empty() and super._occupied_cells(player).has(candidate[candidate.size() - 1]):
+		show_combat_message("Нельзя закончить маршрут в клетке другого существа.", false)
+		return
+	super._apply_candidate_path(candidate)
+
+
+func _on_escape_grapple_requested() -> void:
+	if not _player_turn_available() or not _player_combat_state.has_condition("grappled"):
+		return
+	if not _turn_system.consume_action():
+		show_combat_message("Для освобождения требуется действие.", false)
+		return
+	var dc: int = _condition_save_dc(_player_combat_state, "grappled", 10)
+	var modifier: int = maxi(GameState.player_character.get_ability_modifier("strength"), GameState.player_character.get_ability_modifier("dexterity"))
+	var check: Dictionary = _srd_rules.resolve_d20_test(
+		modifier,
+		dc,
+		GameState.player_character.grapple_escape_advantage,
+		false,
+		[],
+		GameState.player_character.reroll_natural_one
+	)
+	if bool(check.get("success", false)):
+		_player_combat_state.remove_condition("grappled")
+		show_combat_message("Персонаж освобождается из захвата%s." % (" с преимуществом Могучего сложения" if GameState.player_character.grapple_escape_advantage else ""), true)
+	else:
+		show_combat_message("Не удалось вырваться: %d против Сл %d." % [int(check.get("total", 0)), dc], false)
+	_refresh_srd_interface()
+
+
+func _on_hide_requested() -> void:
+	if not _player_turn_available():
+		return
+	if not _turn_system.consume_action():
+		show_combat_message("Для попытки скрыться требуется действие.", false)
+		return
+	for entry: Dictionary in _turn_system.entries:
+		if bool(entry.get("is_player", false)):
+			continue
+		var actor: Node = entry.get("node") as Node
+		if not is_instance_valid(actor) or not (actor is Node2D) or not _target_is_valid(actor):
+			continue
+		if _combat_environment == null or not _combat_environment.has_line_of_sight((actor as Node2D).global_position, player.global_position):
+			continue
+		if GameState.player_character.naturally_stealthy and _has_larger_creature_cover(actor):
+			continue
+		show_combat_message("Нельзя скрыться: противник видит персонажа.", false)
+		return
+	_player_combat_state.hidden = true
+	show_combat_message("Персонаж скрыт. Следующая атака получает преимущество и раскрывает позицию.", true)
+
+
+func _has_larger_creature_cover(observer: Node) -> bool:
+	var player_rank: int = RaceDataSystem.size_rank(GameState.player_character.size_category)
+	for candidate: Node in _available_targets():
+		if candidate == observer or not is_instance_valid(candidate) or not (candidate is Node2D):
+			continue
+		if DistanceSystem.distance_feet(player.global_position, (candidate as Node2D).global_position) > 5:
+			continue
+		if _actor_size_rank(candidate) > player_rank:
+			return true
+	return false
+
+
+func _actor_size_rank(actor: Node) -> int:
+	if actor == null:
+		return RaceDataSystem.size_rank("medium")
+	if actor.has_method("get_size_category"):
+		return RaceDataSystem.size_rank(str(actor.call("get_size_category")))
+	var size_value: Variant = actor.get("size_category")
+	return RaceDataSystem.size_rank(str(size_value)) if size_value != null else RaceDataSystem.size_rank("medium")
