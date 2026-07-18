@@ -6,7 +6,8 @@
       "description": "Универсальный и находчивый герой, способный адаптироваться к любому пути.",
       "traits": [
         {"id": "resourceful", "name": "Находчивость", "description": "Один раз за долгий отдых получает преимущество на следующую атаку или проверку характеристики."},
-        {"id": "versatile", "name": "Универсальность", "description": "Человек не имеет ограничений по размеру, скорости или классу."}
+        {"id": "skillful", "name": "Обученность", "description": "Подготовлено для будущего выбора владения навыком в редакторе персонажа."},
+        {"id": "versatile", "name": "Универсальность", "description": "Подготовлено для будущей системы стартовых черт происхождения."}
       ],
       "active_ability_id": "human_inspiration", "resources": {"human_inspiration": 1}
     },
@@ -16,17 +17,19 @@
       "traits": [
         {"id": "darkvision", "name": "Тёмное зрение", "description": "Видит в темноте на 60 футов."},
         {"id": "fey_ancestry", "name": "Наследие фей", "description": "Преимущество на спасброски против очарования."},
-        {"id": "trance", "name": "Транс", "description": "Эльфу не требуется обычный сон; полное влияние появится с системой времени отдыха."}
+        {"id": "trance", "name": "Транс", "description": "Не нуждается во сне, не может быть магически усыплён и завершает долгий отдых за 4 часа."},
+        {"id": "keen_senses", "name": "Обострённые чувства", "description": "Выбор владения Внимательностью, Проницательностью или Выживанием будет доступен вместе с системой навыков."}
       ],
-      "condition_save_advantage": ["charmed"]
+      "condition_save_advantage": ["charmed"], "immune_to_magical_sleep": true, "long_rest_hours": 4
     },
     {
-      "id": "dwarf", "name": "Дворф", "color_hex": "#E0B84F", "size": "medium", "speed_ft": 30, "darkvision_ft": 60,
+      "id": "dwarf", "name": "Дворф", "color_hex": "#E0B84F", "size": "medium", "speed_ft": 30, "darkvision_ft": 120,
       "description": "Крепкий народ камня и кузниц, устойчивый к ядам и физическим нагрузкам.",
       "traits": [
         {"id": "dwarven_toughness", "name": "Дворфийская стойкость", "description": "+1 максимум HP за каждый уровень."},
         {"id": "poison_resilience", "name": "Стойкость к яду", "description": "Сопротивление урону ядом и преимущество против отравления."},
-        {"id": "darkvision", "name": "Тёмное зрение", "description": "Видит в темноте на 60 футов."}
+        {"id": "darkvision", "name": "Тёмное зрение", "description": "Видит в темноте на 120 футов."},
+        {"id": "stonecunning", "name": "Знание камня", "description": "Треморное чувство будет подключено после появления скрытых объектов и каменных поверхностей."}
       ],
       "hp_bonus_per_level": 1, "damage_resistances": ["poison"], "condition_save_advantage": ["poisoned"]
     },
@@ -34,57 +37,69 @@
       "id": "halfling", "name": "Полурослик", "color_hex": "#D97955", "size": "small", "speed_ft": 30, "darkvision_ft": 0,
       "description": "Небольшой, храбрый и невероятно удачливый путешественник.",
       "traits": [
-        {"id": "lucky", "name": "Везение", "description": "При натуральной 1 на атаке или проверке характеристики кубик перебрасывается один раз."},
+        {"id": "lucky", "name": "Везение", "description": "При натуральной 1 на любом броске d20 кубик перебрасывается один раз."},
         {"id": "brave", "name": "Храбрость", "description": "Преимущество на спасброски против испуга."},
-        {"id": "nimble", "name": "Проворство", "description": "Подготовлено для будущего прохода через клетки существ большего размера."}
+        {"id": "nimble", "name": "Проворство", "description": "Может проходить через клетки существ большего размера, но не может завершать там перемещение."},
+        {"id": "naturally_stealthy", "name": "Природная скрытность", "description": "Может попытаться скрыться за соседним существом большего размера."}
       ],
-      "reroll_natural_one": true, "condition_save_advantage": ["frightened"]
+      "reroll_natural_one": true, "condition_save_advantage": ["frightened"],
+      "can_move_through_larger_creatures": true, "naturally_stealthy": true
     },
     {
       "id": "dragonborn", "name": "Драконорождённый", "color_hex": "#C64E4E", "size": "medium", "speed_ft": 30, "darkvision_ft": 60,
-      "description": "Потомок драконьей крови с огненным дыханием и природной устойчивостью к пламени.",
+      "description": "Потомок огненной драконьей крови с разрушительным дыханием и природной устойчивостью к пламени.",
       "traits": [
-        {"id": "fire_breath", "name": "Огненное дыхание", "description": "Действием поражает выбранную цель в пределах 15 футов; спасбросок Ловкости уменьшает урон вдвое."},
+        {"id": "fire_ancestry", "name": "Огненная родословная", "description": "Для первой сюжетной версии используется огненное драконье наследие."},
+        {"id": "fire_breath", "name": "Огненное дыхание", "description": "Действием поражает выбранную цель в пределах 15 футов; спасбросок Ловкости уменьшает урон вдвое. Урон растёт на уровнях 5, 11 и 17."},
         {"id": "fire_resistance", "name": "Сопротивление огню", "description": "Получает половину урона огнём."},
         {"id": "darkvision", "name": "Тёмное зрение", "description": "Видит в темноте на 60 футов."}
       ],
-      "damage_resistances": ["fire"], "active_ability_id": "dragon_breath", "resources": {"dragon_breath": 1}
+      "damage_resistances": ["fire"], "active_ability_id": "dragon_breath",
+      "resources": {"dragon_breath": {"formula": "proficiency_bonus", "minimum": 1}}
     },
     {
       "id": "gnome", "name": "Гном", "color_hex": "#5B83C8", "size": "small", "speed_ft": 30, "darkvision_ft": 60,
-      "description": "Маленький изобретательный народ с врождённой защитой от магии.",
+      "description": "Маленький изобретательный народ с врождённой защитой разума.",
       "traits": [
-        {"id": "gnome_cunning", "name": "Гномья хитрость", "description": "Преимущество на спасброски Интеллекта, Мудрости и Харизмы против магии."},
-        {"id": "darkvision", "name": "Тёмное зрение", "description": "Видит в темноте на 60 футов."}
+        {"id": "gnome_cunning", "name": "Гномья хитрость", "description": "Преимущество на все спасброски Интеллекта, Мудрости и Харизмы."},
+        {"id": "darkvision", "name": "Тёмное зрение", "description": "Видит в темноте на 60 футов."},
+        {"id": "gnomish_lineage", "name": "Гномья родословная", "description": "Выбор лесной или скальной родословной будет добавлен вместе с системой заклинаний происхождения."}
       ],
-      "magical_save_advantage_abilities": ["intelligence", "wisdom", "charisma"]
+      "save_advantage_abilities": ["intelligence", "wisdom", "charisma"]
     },
     {
       "id": "goliath", "name": "Голиаф", "color_hex": "#8A939B", "size": "medium", "speed_ft": 35, "darkvision_ft": 0,
-      "description": "Высокий и могучий потомок великанов, способный выдержать сокрушительный удар.",
+      "description": "Высокий и могучий потомок каменных великанов, способный выдержать сокрушительный удар.",
       "traits": [
-        {"id": "stone_endurance", "name": "Каменная выносливость", "description": "Один раз за долгий отдых автоматически уменьшает первый полученный урон на 1d12 + Телосложение."},
-        {"id": "powerful_build", "name": "Могучее сложение", "description": "Полное влияние появится вместе с системой переносимого веса."},
+        {"id": "stone_endurance", "name": "Каменная выносливость", "description": "Реакцией уменьшает полученный урон на 1d12 + Телосложение; число применений равно бонусу мастерства."},
+        {"id": "powerful_build", "name": "Могучее сложение", "description": "Преимущество при освобождении из захвата и учёт как существа на один размер крупнее для переносимого веса."},
         {"id": "giant_stride", "name": "Шаг великана", "description": "Базовая скорость 35 футов."}
       ],
-      "resources": {"stone_endurance": 1}
+      "resources": {"stone_endurance": {"formula": "proficiency_bonus", "minimum": 1}},
+      "grapple_escape_advantage": true, "carrying_size_bonus": 1
     },
     {
       "id": "orc", "name": "Орк", "color_hex": "#6E8F4E", "size": "medium", "speed_ft": 30, "darkvision_ft": 120,
       "description": "Неутомимый воин с мощным рывком и способностью остаться на ногах после смертельного удара.",
       "traits": [
-        {"id": "adrenaline_rush", "name": "Прилив адреналина", "description": "Дополнительным действием получает 30 футов перемещения и временные HP."},
-        {"id": "relentless_endurance", "name": "Неукротимая стойкость", "description": "Один раз за долгий отдых падение до 0 HP заменяется на 1 HP."},
+        {"id": "adrenaline_rush", "name": "Прилив адреналина", "description": "Дополнительным действием совершает Рывок и получает временные HP, равные бонусу мастерства."},
+        {"id": "relentless_endurance", "name": "Неукротимая стойкость", "description": "Один раз за долгий отдых падение до 0 HP заменяется на 1 HP, если урон не убивает мгновенно."},
         {"id": "darkvision", "name": "Тёмное зрение", "description": "Видит в темноте на 120 футов."}
       ],
-      "active_ability_id": "adrenaline_rush", "resources": {"adrenaline_rush": 2, "relentless_endurance": 1}
+      "active_ability_id": "adrenaline_rush",
+      "resources": {
+        "adrenaline_rush": {"formula": "proficiency_bonus", "minimum": 1},
+        "relentless_endurance": 1
+      },
+      "short_rest_resources": ["adrenaline_rush"]
     },
     {
       "id": "tiefling", "name": "Тифлинг", "color_hex": "#9368D8", "size": "medium", "speed_ft": 30, "darkvision_ft": 60,
-      "description": "Наследник нижних планов с тёмным зрением, устойчивостью к огню и врождённой магией.",
+      "description": "Наследник инфернальных планов с тёмным зрением, устойчивостью к огню и врождённой магией.",
       "traits": [
+        {"id": "infernal_legacy", "name": "Инфернальное наследие", "description": "Для первой сюжетной версии используется инфернальная родословная с сопротивлением огню."},
         {"id": "fire_resistance", "name": "Сопротивление огню", "description": "Получает половину урона огнём."},
-        {"id": "thaumaturgy", "name": "Тауматургия", "description": "Мистические эффекты будут подключены к расширенным свободным действиям общения."},
+        {"id": "thaumaturgy", "name": "Тауматургия", "description": "Может усиливать голос и создавать малые мистические проявления в диалогах и свободных действиях."},
         {"id": "darkvision", "name": "Тёмное зрение", "description": "Видит в темноте на 60 футов."}
       ],
       "damage_resistances": ["fire"]
