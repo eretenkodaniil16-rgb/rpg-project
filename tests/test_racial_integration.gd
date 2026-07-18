@@ -28,12 +28,11 @@ func _init() -> void:
 	assert(character.get_resource("class_test_resource") == 1)
 
 	var social := CombatSocialActionSystem.new()
-	GameState.player_character = character
-	var human_actions: Array[Dictionary] = social.get_actions()
+	var human_actions: Array[Dictionary] = social.get_actions(character.race_id)
 	assert(not _contains_action(human_actions, "thaumaturgy_booming_voice"))
 
 	races.apply_race(character, "tiefling")
-	var tiefling_actions: Array[Dictionary] = social.get_actions()
+	var tiefling_actions: Array[Dictionary] = social.get_actions(character.race_id)
 	assert(_contains_action(tiefling_actions, "thaumaturgy_booming_voice"))
 
 	print("Racial integration tests passed.")
