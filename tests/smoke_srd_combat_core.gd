@@ -29,7 +29,7 @@ func _run() -> void:
 	var packed: PackedScene = load(GAME_SCENE) as PackedScene
 	var game: Node = packed.instantiate()
 	root.add_child(game)
-	for _frame: int in range(8):
+	for _frame: int in range(14):
 		await process_frame
 
 	var environment: CombatEnvironment = game.get_node_or_null("CombatEnvironment") as CombatEnvironment
@@ -38,15 +38,25 @@ func _run() -> void:
 	var caretaker: Node = game.get_node_or_null("Caretaker")
 	var player: Node2D = game.get_node_or_null("Player") as Node2D
 	var grid: BattleGrid = game.get_node_or_null("BattleGrid") as BattleGrid
-	if environment == null or old_panel == null or catalog == null or caretaker == null or player == null or grid == null:
-		_fail("SRD scene components are missing.")
+	var social_controller: CombatSocialTerrainController = game.get_node_or_null("CombatSocialTerrainController") as CombatSocialTerrainController
+	if environment == null or old_panel == null or catalog == null or caretaker == null or player == null or grid == null or social_controller == null:
+		_fail("SRD, terrain or combat social components are missing.")
 		return
-	if not environment.is_in_group("combat_environment"):
-		_fail("Environment group registration failed.")
+	if not environment.is_in_group("combat_environment") or not environment.is_difficult_position(Vector2(400.0, 350.0)):
+		_fail("Difficult terrain environment is missing.")
 		return
-	if not environment.is_difficult_position(Vector2(400.0, 350.0)):
-		_fail("Difficult terrain is missing.")
+
+	var fighter_speed: float = float(player.call("get_effective_movement_speed_at", Vector2(400.0, 350.0)))
+	if not is_equal_approx(fighter_speed, 110.0):
+		_fail("Ordinary class did not slow to half speed outside combat: %f" % fighter_speed)
 		return
+	character.character_class_id = "ranger"
+	character.character_class_name = "Следопыт"
+	var ranger_speed: float = float(player.call("get_effective_movement_speed_at", Vector2(400.0, 350.0)))
+	if not is_equal_approx(ranger_speed, 220.0):
+		_fail("Ranger terrain trait did not preserve exploration speed: %f" % ranger_speed)
+		return
+
 	var half_cover: Dictionary = environment.get_cover(Vector2(600.0, 220.0), Vector2(700.0, 220.0))
 	if int(half_cover.get("bonus", 0)) != 2:
 		_fail("Half cover calculation is incorrect.")
@@ -59,20 +69,49 @@ func _run() -> void:
 	game.call("_set_selected_target", caretaker)
 	game.call("_start_turn_based_combat", caretaker)
 	game.call("force_player_turn_for_testing")
-	await process_frame
-	await process_frame
+	for _frame: int in range(4):
+		await process_frame
 	if not bool(game.call("is_turn_based_combat_active")):
 		_fail("Turn-based mode did not start.")
 		return
 	if player.global_position != grid.cell_to_world_center(grid.world_to_cell(player.global_position)):
 		_fail("Player is not centered in a grid cell.")
 		return
-	if old_panel.visible:
-		_fail("Legacy SRD row should be hidden.")
+	if old_panel.visible or not catalog.catalog_button.visible:
+		_fail("Combat catalog visibility is incorrect.")
 		return
-	if not catalog.catalog_button.visible:
-		_fail("Action catalog is hidden.")
+	if catalog.category_row.get_node_or_null("FreeCategoryButton") == null:
+		_fail("Free-action communication tab is missing.")
 		return
+
+	var turn_system: TurnBasedCombatSystem = game.get("_turn_system") as TurnBasedCombatSystem
+	var action_before: bool = turn_system.action_available
+	var bonus_before: bool = turn_system.bonus_action_available
+	var movement_before: int = turn_system.movement_remaining_feet
+	catalog.action_requested.emit("social:say_stop")
+	await process_frame
+	await process_frame
+	if not social_controller.social_action_used_for_testing():
+		_fail("Combat speech was not registered as a free action.")
+		return
+	if turn_system.action_available != action_before or turn_system.bonus_action_available != bonus_before or turn_system.movement_remaining_feet != movement_before:
+		_fail("Free communication consumed a combat resource.")
+		return
+	var ui_entries: Dictionary = catalog.get("_entries") as Dictionary
+	if not ui_entries.has("free") or (ui_entries.get("free", []) as Array).size() < 4:
+		_fail("Speech and gesture choices were not loaded from structured data.")
+		return
+
+	var combat_state: CombatantState = game.call("get_player_combat_state") as CombatantState
+	if combat_state == null or not combat_state.ignores_nonmagical_difficult_terrain:
+		_fail("Ranger terrain trait was not synchronized into combat state.")
+		return
+	var terrain_planner: TerrainAwareMovementSystem = game.get("_movement_planner") as TerrainAwareMovementSystem
+	var difficult_cell: Vector2i = grid.world_to_cell(Vector2(400.0, 350.0))
+	if terrain_planner == null or terrain_planner.movement_cost_for_cell(grid, difficult_cell, environment, combat_state) != 5:
+		_fail("Ranger difficult-terrain cell did not cost five feet in combat.")
+		return
+
 	var entries: Dictionary = game.call("_build_catalog_entries") as Dictionary
 	var action_entries: Array = entries.get("action", []) as Array
 	var found_prone: bool = false
@@ -84,11 +123,9 @@ func _run() -> void:
 	if not found_prone:
 		_fail("Prone action is absent from Action > Movement.")
 		return
-
-	var combat_state: CombatantState = game.call("get_player_combat_state") as CombatantState
 	game.call("_on_prone_toggle_requested")
 	await process_frame
-	if combat_state == null or not combat_state.has_condition("prone"):
+	if not combat_state.has_condition("prone"):
 		_fail("Prone state was not applied.")
 		return
 	game.call("_on_prone_toggle_requested")
@@ -99,5 +136,5 @@ func _run() -> void:
 
 	game.queue_free()
 	await process_frame
-	print("SRD combat core smoke test passed.")
+	print("SRD combat, free communication and terrain trait smoke test passed.")
 	quit(0)
