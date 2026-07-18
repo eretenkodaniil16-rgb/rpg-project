@@ -143,6 +143,7 @@ func _set_choices_disabled(value: bool) -> void:
 
 func _clear_choices() -> void:
 	for child: Node in choices_container.get_children():
+		choices_container.remove_child(child)
 		child.queue_free()
 
 
