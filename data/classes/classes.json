@@ -1,103 +1,248 @@
 {
   "ruleset": "SRD 5.2.1 inspired",
+  "ability_bonus_rule": "Project adaptation: class grants one +2/+1 aptitude package; official D&D 2024 normally assigns ability score increases through background.",
   "classes": [
     {
-      "id": "barbarian", "name": "Варвар", "role": "Стойкий боец ближнего боя",
-      "description": "Опирается на силу, выносливость и ярость.", "hit_die": 12,
-      "primary_abilities": ["strength"], "saving_throws": ["strength", "constitution"],
+      "id": "barbarian",
+      "name": "Варвар",
+      "role": "Стойкий боец ближнего боя",
+      "description": "Опирается на силу, выносливость и ярость.",
+      "hit_die": 12,
+      "primary_abilities": ["strength"],
+      "saving_throws": ["strength", "constitution"],
       "starting_items": {"greataxe": 1, "handaxe": 4, "explorer_pack": 1, "gold_coin": 15},
       "equipment": {"weapon": "greataxe", "armor": "", "shield": ""},
-      "features": ["rage", "unarmored_defense", "weapon_mastery"], "signature_ability": "rage"
+      "features": ["rage", "unarmored_defense", "weapon_mastery"],
+      "signature_ability": "rage",
+      "selection_symbol": "ВР",
+      "class_color_hex": "#A84732",
+      "difficulty": 1,
+      "playstyle_tags": ["Ближний бой", "Выживаемость", "Ярость"],
+      "ability_bonus_options": [
+        {"id": "mighty", "name": "Могучий варвар", "bonuses": {"strength": 2, "constitution": 1}}
+      ]
     },
     {
-      "id": "bard", "name": "Бард", "role": "Поддержка, переговоры и магия",
-      "description": "Универсальный герой, влияющий на мир музыкой и харизмой.", "hit_die": 8,
-      "primary_abilities": ["charisma"], "saving_throws": ["dexterity", "charisma"],
+      "id": "bard",
+      "name": "Бард",
+      "role": "Поддержка, переговоры и магия",
+      "description": "Универсальный герой, влияющий на мир музыкой и харизмой.",
+      "hit_die": 8,
+      "primary_abilities": ["charisma"],
+      "saving_throws": ["dexterity", "charisma"],
       "starting_items": {"leather_armor": 1, "dagger": 2, "lute": 1, "entertainer_pack": 1, "gold_coin": 19},
       "equipment": {"weapon": "dagger", "armor": "leather_armor", "shield": ""},
-      "features": ["bardic_inspiration", "spellcasting_bard"], "signature_ability": "bardic_inspiration"
+      "features": ["bardic_inspiration", "spellcasting_bard"],
+      "signature_ability": "bardic_inspiration",
+      "selection_symbol": "БД",
+      "class_color_hex": "#9B4F9E",
+      "difficulty": 2,
+      "playstyle_tags": ["Поддержка", "Диалоги", "Магия"],
+      "ability_bonus_options": [
+        {"id": "captivating", "name": "Вдохновляющий бард", "bonuses": {"charisma": 2, "dexterity": 1}}
+      ]
     },
     {
-      "id": "cleric", "name": "Жрец", "role": "Защита, исцеление и божественная магия",
-      "description": "Лечит, защищает и поражает противников божественной силой.", "hit_die": 8,
-      "primary_abilities": ["wisdom"], "saving_throws": ["wisdom", "charisma"],
+      "id": "cleric",
+      "name": "Жрец",
+      "role": "Защита, исцеление и божественная магия",
+      "description": "Лечит, защищает и поражает противников божественной силой.",
+      "hit_die": 8,
+      "primary_abilities": ["wisdom"],
+      "saving_throws": ["wisdom", "charisma"],
       "starting_items": {"chain_shirt": 1, "shield": 1, "mace": 1, "holy_symbol": 1, "priest_pack": 1, "gold_coin": 7},
       "equipment": {"weapon": "mace", "armor": "chain_shirt", "shield": "shield"},
-      "features": ["spellcasting_cleric", "divine_order"], "signature_ability": "cure_wounds"
+      "features": ["spellcasting_cleric", "divine_order"],
+      "signature_ability": "cure_wounds",
+      "selection_symbol": "ЖР",
+      "class_color_hex": "#C79A3B",
+      "difficulty": 2,
+      "playstyle_tags": ["Исцеление", "Защита", "Святая магия"],
+      "ability_bonus_options": [
+        {"id": "devout", "name": "Мудрый жрец", "bonuses": {"wisdom": 2, "constitution": 1}}
+      ]
     },
     {
-      "id": "druid", "name": "Друид", "role": "Природная магия и контроль",
-      "description": "Связан с природой, стихиями и древними обрядами.", "hit_die": 8,
-      "primary_abilities": ["wisdom"], "saving_throws": ["intelligence", "wisdom"],
+      "id": "druid",
+      "name": "Друид",
+      "role": "Природная магия и контроль",
+      "description": "Связан с природой, стихиями и древними обрядами.",
+      "hit_die": 8,
+      "primary_abilities": ["wisdom"],
+      "saving_throws": ["intelligence", "wisdom"],
       "starting_items": {"leather_armor": 1, "shield": 1, "sickle": 1, "quarterstaff_focus": 1, "explorer_pack": 1, "herbalism_kit": 1, "gold_coin": 9},
       "equipment": {"weapon": "quarterstaff_focus", "armor": "leather_armor", "shield": "shield"},
-      "features": ["spellcasting_druid", "druidic", "primal_order"], "signature_ability": "produce_flame"
+      "features": ["spellcasting_druid", "druidic", "primal_order"],
+      "signature_ability": "produce_flame",
+      "selection_symbol": "ДР",
+      "class_color_hex": "#4F8C58",
+      "difficulty": 2,
+      "playstyle_tags": ["Контроль", "Природа", "Универсальность"],
+      "ability_bonus_options": [
+        {"id": "primal", "name": "Мудрый друид", "bonuses": {"wisdom": 2, "constitution": 1}}
+      ]
     },
     {
-      "id": "fighter", "name": "Воин", "role": "Мастер оружия и тактики",
-      "description": "Надёжный воитель с высокой стойкостью и широким выбором оружия.", "hit_die": 10,
-      "primary_abilities": ["strength", "dexterity"], "saving_throws": ["strength", "constitution"],
+      "id": "fighter",
+      "name": "Воин",
+      "role": "Мастер оружия и тактики",
+      "description": "Надёжный воитель с высокой стойкостью и широким выбором оружия.",
+      "hit_die": 10,
+      "primary_abilities": ["strength", "dexterity"],
+      "saving_throws": ["strength", "constitution"],
       "starting_items": {"chain_mail": 1, "greatsword": 1, "flail": 1, "javelin": 8, "dungeoneer_pack": 1, "gold_coin": 4},
       "equipment": {"weapon": "greatsword", "armor": "chain_mail", "shield": ""},
-      "features": ["fighting_style_defense", "second_wind", "weapon_mastery"], "signature_ability": "second_wind"
+      "features": ["fighting_style_defense", "second_wind", "weapon_mastery"],
+      "signature_ability": "second_wind",
+      "selection_symbol": "ВН",
+      "class_color_hex": "#66778B",
+      "difficulty": 1,
+      "playstyle_tags": ["Оружие", "Тактика", "Стойкость"],
+      "ability_bonus_options": [
+        {"id": "strength", "name": "Силовой воин", "bonuses": {"strength": 2, "constitution": 1}},
+        {"id": "dexterity", "name": "Ловкий воин", "bonuses": {"dexterity": 2, "constitution": 1}}
+      ]
     },
     {
-      "id": "monk", "name": "Монах", "role": "Мобильный боец и мастер контроля",
-      "description": "Сражается скоростью, дисциплиной и точностью.", "hit_die": 8,
-      "primary_abilities": ["dexterity", "wisdom"], "saving_throws": ["strength", "dexterity"],
+      "id": "monk",
+      "name": "Монах",
+      "role": "Мобильный боец и мастер контроля",
+      "description": "Сражается скоростью, дисциплиной и точностью.",
+      "hit_die": 8,
+      "primary_abilities": ["dexterity", "wisdom"],
+      "saving_throws": ["strength", "dexterity"],
       "starting_items": {"spear": 1, "dagger": 5, "artisan_tools": 1, "explorer_pack": 1, "gold_coin": 11},
       "equipment": {"weapon": "spear", "armor": "", "shield": ""},
-      "features": ["martial_arts", "unarmored_defense_monk"], "signature_ability": "martial_arts"
+      "features": ["martial_arts", "unarmored_defense_monk"],
+      "signature_ability": "martial_arts",
+      "selection_symbol": "МН",
+      "class_color_hex": "#3F8C8C",
+      "difficulty": 2,
+      "playstyle_tags": ["Мобильность", "Контроль", "Без доспеха"],
+      "ability_bonus_options": [
+        {"id": "disciplined", "name": "Дисциплинированный монах", "bonuses": {"dexterity": 2, "wisdom": 1}}
+      ]
     },
     {
-      "id": "paladin", "name": "Паладин", "role": "Бронированный защитник и лидер",
-      "description": "Сочетает тяжёлый бой, исцеление и силу клятвы.", "hit_die": 10,
-      "primary_abilities": ["strength", "charisma"], "saving_throws": ["wisdom", "charisma"],
+      "id": "paladin",
+      "name": "Паладин",
+      "role": "Бронированный защитник и лидер",
+      "description": "Сочетает тяжёлый бой, исцеление и силу клятвы.",
+      "hit_die": 10,
+      "primary_abilities": ["strength", "charisma"],
+      "saving_throws": ["wisdom", "charisma"],
       "starting_items": {"chain_mail": 1, "shield": 1, "longsword": 1, "javelin": 6, "holy_symbol": 1, "priest_pack": 1, "gold_coin": 9},
       "equipment": {"weapon": "longsword", "armor": "chain_mail", "shield": "shield"},
-      "features": ["lay_on_hands", "spellcasting_paladin", "weapon_mastery"], "signature_ability": "lay_on_hands"
+      "features": ["lay_on_hands", "spellcasting_paladin", "weapon_mastery"],
+      "signature_ability": "lay_on_hands",
+      "selection_symbol": "ПЛ",
+      "class_color_hex": "#D0B45C",
+      "difficulty": 2,
+      "playstyle_tags": ["Защита", "Лидерство", "Исцеление"],
+      "ability_bonus_options": [
+        {"id": "oathbound", "name": "Клятвенный паладин", "bonuses": {"strength": 2, "charisma": 1}}
+      ]
     },
     {
-      "id": "ranger", "name": "Следопыт", "role": "Разведчик, охотник и стрелок",
-      "description": "Хорош в исследовании, выслеживании и точных атаках.", "hit_die": 10,
-      "primary_abilities": ["dexterity", "wisdom"], "saving_throws": ["strength", "dexterity"],
+      "id": "ranger",
+      "name": "Следопыт",
+      "role": "Разведчик, охотник и стрелок",
+      "description": "Хорош в исследовании, выслеживании и точных атаках.",
+      "hit_die": 10,
+      "primary_abilities": ["dexterity", "wisdom"],
+      "saving_throws": ["strength", "dexterity"],
       "starting_items": {"studded_leather": 1, "scimitar": 1, "shortsword": 1, "longbow": 1, "arrow": 20, "quiver": 1, "druidic_focus": 1, "explorer_pack": 1, "gold_coin": 7},
       "equipment": {"weapon": "longbow", "armor": "studded_leather", "shield": ""},
       "features": ["favored_enemy", "spellcasting_ranger", "weapon_mastery"],
       "movement_traits": ["ignore_nonmagical_difficult_terrain"],
-      "signature_ability": "hunters_mark"
+      "signature_ability": "hunters_mark",
+      "selection_symbol": "СЛ",
+      "class_color_hex": "#4C7F47",
+      "difficulty": 2,
+      "playstyle_tags": ["Стрельба", "Разведка", "Природа"],
+      "ability_bonus_options": [
+        {"id": "hunter", "name": "Меткий следопыт", "bonuses": {"dexterity": 2, "wisdom": 1}}
+      ]
     },
     {
-      "id": "rogue", "name": "Плут", "role": "Скрытность, ловушки и точечный урон",
-      "description": "Полагается на ловкость, хитрость и удачный момент.", "hit_die": 8,
-      "primary_abilities": ["dexterity"], "saving_throws": ["dexterity", "intelligence"],
+      "id": "rogue",
+      "name": "Плут",
+      "role": "Скрытность, ловушки и точечный урон",
+      "description": "Полагается на ловкость, хитрость и удачный момент.",
+      "hit_die": 8,
+      "primary_abilities": ["dexterity"],
+      "saving_throws": ["dexterity", "intelligence"],
       "starting_items": {"leather_armor": 1, "dagger": 2, "shortsword": 1, "shortbow": 1, "arrow": 20, "quiver": 1, "thieves_tools": 1, "burglar_pack": 1, "gold_coin": 8},
       "equipment": {"weapon": "shortsword", "armor": "leather_armor", "shield": ""},
-      "features": ["expertise", "sneak_attack", "thieves_cant", "weapon_mastery"], "signature_ability": "sneak_attack"
+      "features": ["expertise", "sneak_attack", "thieves_cant", "weapon_mastery"],
+      "signature_ability": "sneak_attack",
+      "selection_symbol": "ПТ",
+      "class_color_hex": "#5D6675",
+      "difficulty": 2,
+      "playstyle_tags": ["Скрытность", "Взлом", "Точный урон"],
+      "ability_bonus_options": [
+        {"id": "cunning", "name": "Хитрый плут", "bonuses": {"dexterity": 2, "intelligence": 1}}
+      ]
     },
     {
-      "id": "sorcerer", "name": "Чародей", "role": "Врождённая атакующая магия",
-      "description": "Использует внутренний магический дар и харизму.", "hit_die": 6,
-      "primary_abilities": ["charisma"], "saving_throws": ["constitution", "charisma"],
+      "id": "sorcerer",
+      "name": "Чародей",
+      "role": "Врождённая атакующая магия",
+      "description": "Использует внутренний магический дар и харизму.",
+      "hit_die": 6,
+      "primary_abilities": ["charisma"],
+      "saving_throws": ["constitution", "charisma"],
       "starting_items": {"spear": 1, "dagger": 2, "arcane_focus_crystal": 1, "dungeoneer_pack": 1, "gold_coin": 28},
       "equipment": {"weapon": "spear", "armor": "", "shield": ""},
-      "features": ["spellcasting_sorcerer", "innate_sorcery"], "signature_ability": "sorcerous_burst"
+      "features": ["spellcasting_sorcerer", "innate_sorcery"],
+      "signature_ability": "sorcerous_burst",
+      "selection_symbol": "ЧД",
+      "class_color_hex": "#B44767",
+      "difficulty": 3,
+      "playstyle_tags": ["Атакующая магия", "Харизма", "Метамагия"],
+      "ability_bonus_options": [
+        {"id": "innate", "name": "Одарённый чародей", "bonuses": {"charisma": 2, "constitution": 1}}
+      ]
     },
     {
-      "id": "warlock", "name": "Колдун", "role": "Магия договора и устойчивые способности",
-      "description": "Получает необычные силы через мистический договор.", "hit_die": 8,
-      "primary_abilities": ["charisma"], "saving_throws": ["wisdom", "charisma"],
+      "id": "warlock",
+      "name": "Колдун",
+      "role": "Магия договора и устойчивые способности",
+      "description": "Получает необычные силы через мистический договор.",
+      "hit_die": 8,
+      "primary_abilities": ["charisma"],
+      "saving_throws": ["wisdom", "charisma"],
       "starting_items": {"leather_armor": 1, "sickle": 1, "dagger": 2, "arcane_focus_orb": 1, "occult_book": 1, "scholar_pack": 1, "gold_coin": 15},
       "equipment": {"weapon": "sickle", "armor": "leather_armor", "shield": ""},
-      "features": ["pact_magic", "eldritch_invocations"], "signature_ability": "eldritch_blast"
+      "features": ["pact_magic", "eldritch_invocations"],
+      "signature_ability": "eldritch_blast",
+      "selection_symbol": "КЛ",
+      "class_color_hex": "#7652A8",
+      "difficulty": 2,
+      "playstyle_tags": ["Договор", "Дальний бой", "Проклятия"],
+      "ability_bonus_options": [
+        {"id": "pactbound", "name": "Волевой колдун", "bonuses": {"charisma": 2, "wisdom": 1}}
+      ]
     },
     {
-      "id": "wizard", "name": "Волшебник", "role": "Широкий выбор изученной магии",
-      "description": "Изучает заклинания и решает задачи знаниями.", "hit_die": 6,
-      "primary_abilities": ["intelligence"], "saving_throws": ["intelligence", "wisdom"],
+      "id": "wizard",
+      "name": "Волшебник",
+      "role": "Широкий выбор изученной магии",
+      "description": "Изучает заклинания и решает задачи знаниями.",
+      "hit_die": 6,
+      "primary_abilities": ["intelligence"],
+      "saving_throws": ["intelligence", "wisdom"],
       "starting_items": {"dagger": 2, "quarterstaff_focus": 1, "robe": 1, "spellbook": 1, "scholar_pack": 1, "gold_coin": 5},
       "equipment": {"weapon": "quarterstaff_focus", "armor": "", "shield": ""},
-      "features": ["spellcasting_wizard", "ritual_adept", "arcane_recovery"], "signature_ability": "magic_missile"
+      "features": ["spellcasting_wizard", "ritual_adept", "arcane_recovery"],
+      "signature_ability": "magic_missile",
+      "selection_symbol": "ВЛ",
+      "class_color_hex": "#4B70B5",
+      "difficulty": 3,
+      "playstyle_tags": ["Заклинания", "Знания", "Подготовка"],
+      "ability_bonus_options": [
+        {"id": "scholar", "name": "Учёный волшебник", "bonuses": {"intelligence": 2, "constitution": 1}}
+      ]
     }
   ]
 }
