@@ -1,0 +1,145 @@
+{
+  "ruleset": "SRD 5.2.1 inspired",
+  "races": [
+    {
+      "id": "human",
+      "name": "Человек",
+      "color_hex": "#4DA3E8",
+      "size": "medium",
+      "speed_ft": 30,
+      "darkvision_ft": 0,
+      "description": "Универсальный и находчивый герой, способный адаптироваться к любому пути.",
+      "traits": [
+        {"id": "resourceful", "name": "Находчивость", "description": "Один раз за долгий отдых получает преимущество на следующий бросок d20."},
+        {"id": "versatile", "name": "Универсальность", "description": "Человек не имеет ограничений по размеру, скорости или классу."}
+      ],
+      "active_ability_id": "human_inspiration",
+      "resources": {"human_inspiration": 1}
+    },
+    {
+      "id": "elf",
+      "name": "Эльф",
+      "color_hex": "#4FB878",
+      "size": "medium",
+      "speed_ft": 30,
+      "darkvision_ft": 60,
+      "description": "Ловкий долгожитель с обострёнными чувствами и устойчивостью к магическому воздействию.",
+      "traits": [
+        {"id": "darkvision", "name": "Тёмное зрение", "description": "Видит в темноте на 60 футов."},
+        {"id": "fey_ancestry", "name": "Наследие фей", "description": "Преимущество на спасброски против очарования."},
+        {"id": "trance", "name": "Транс", "description": "Эльфу не требуется обычный сон; позднее это сократит безопасный отдых."}
+      ],
+      "condition_save_advantage": ["charmed"]
+    },
+    {
+      "id": "dwarf",
+      "name": "Дворф",
+      "color_hex": "#E0B84F",
+      "size": "medium",
+      "speed_ft": 30,
+      "darkvision_ft": 60,
+      "description": "Крепкий народ камня и кузниц, устойчивый к ядам и физическим нагрузкам.",
+      "traits": [
+        {"id": "dwarven_toughness", "name": "Дворфийская стойкость", "description": "+1 максимум HP за каждый уровень."},
+        {"id": "poison_resilience", "name": "Стойкость к яду", "description": "Сопротивление урону ядом и преимущество против отравления."},
+        {"id": "darkvision", "name": "Тёмное зрение", "description": "Видит в темноте на 60 футов."}
+      ],
+      "hp_bonus_per_level": 1,
+      "damage_resistances": ["poison"],
+      "condition_save_advantage": ["poisoned"]
+    },
+    {
+      "id": "halfling",
+      "name": "Полурослик",
+      "color_hex": "#D97955",
+      "size": "small",
+      "speed_ft": 30,
+      "darkvision_ft": 0,
+      "description": "Небольшой, храбрый и невероятно удачливый путешественник.",
+      "traits": [
+        {"id": "lucky", "name": "Везение", "description": "При натуральной 1 на броске d20 кубик перебрасывается один раз."},
+        {"id": "brave", "name": "Храбрость", "description": "Преимущество на спасброски против испуга."},
+        {"id": "nimble", "name": "Проворство", "description": "Подготовлено для прохода через клетки существ большего размера."}
+      ],
+      "reroll_natural_one": true,
+      "condition_save_advantage": ["frightened"]
+    },
+    {
+      "id": "dragonborn",
+      "name": "Драконорождённый",
+      "color_hex": "#C64E4E",
+      "size": "medium",
+      "speed_ft": 30,
+      "darkvision_ft": 60,
+      "description": "Потомок драконьей крови с огненным дыханием и природной устойчивостью к пламени.",
+      "traits": [
+        {"id": "fire_breath", "name": "Огненное дыхание", "description": "Действием поражает выбранную цель в пределах 15 футов; спасбросок Ловкости уменьшает урон вдвое."},
+        {"id": "fire_resistance", "name": "Сопротивление огню", "description": "Получает половину урона огнём."},
+        {"id": "darkvision", "name": "Тёмное зрение", "description": "Видит в темноте на 60 футов."}
+      ],
+      "damage_resistances": ["fire"],
+      "active_ability_id": "dragon_breath",
+      "resources": {"dragon_breath": 1}
+    },
+    {
+      "id": "gnome",
+      "name": "Гном",
+      "color_hex": "#5B83C8",
+      "size": "small",
+      "speed_ft": 30,
+      "darkvision_ft": 60,
+      "description": "Маленький изобретательный народ с врождённой защитой от магии.",
+      "traits": [
+        {"id": "gnome_cunning", "name": "Гномья хитрость", "description": "Преимущество на спасброски Интеллекта, Мудрости и Харизмы против магии."},
+        {"id": "darkvision", "name": "Тёмное зрение", "description": "Видит в темноте на 60 футов."}
+      ],
+      "magical_save_advantage_abilities": ["intelligence", "wisdom", "charisma"]
+    },
+    {
+      "id": "goliath",
+      "name": "Голиаф",
+      "color_hex": "#8A939B",
+      "size": "medium",
+      "speed_ft": 35,
+      "darkvision_ft": 0,
+      "description": "Высокий и могучий потомок великанов, способный выдержать сокрушительный удар.",
+      "traits": [
+        {"id": "stone_endurance", "name": "Каменная выносливость", "description": "Один раз за долгий отдых автоматически уменьшает первый полученный урон на 1d12 + Телосложение."},
+        {"id": "powerful_build", "name": "Могучее сложение", "description": "Считается крупнее при переносе тяжестей и силовых взаимодействиях."},
+        {"id": "giant_stride", "name": "Шаг великана", "description": "Базовая скорость 35 футов."}
+      ],
+      "resources": {"stone_endurance": 1}
+    },
+    {
+      "id": "orc",
+      "name": "Орк",
+      "color_hex": "#6E8F4E",
+      "size": "medium",
+      "speed_ft": 30,
+      "darkvision_ft": 120,
+      "description": "Неутомимый воин с мощным рывком и способностью остаться на ногах после смертельного удара.",
+      "traits": [
+        {"id": "adrenaline_rush", "name": "Прилив адреналина", "description": "Бонусным действием совершает рывок и получает временные HP."},
+        {"id": "relentless_endurance", "name": "Неукротимая стойкость", "description": "Один раз за долгий отдых падение до 0 HP заменяется на 1 HP."},
+        {"id": "darkvision", "name": "Тёмное зрение", "description": "Видит в темноте на 120 футов."}
+      ],
+      "active_ability_id": "adrenaline_rush",
+      "resources": {"adrenaline_rush": 2, "relentless_endurance": 1}
+    },
+    {
+      "id": "tiefling",
+      "name": "Тифлинг",
+      "color_hex": "#9368D8",
+      "size": "medium",
+      "speed_ft": 30,
+      "darkvision_ft": 60,
+      "description": "Наследник нижних планов с тёмным зрением, устойчивостью к огню и врождённой магией.",
+      "traits": [
+        {"id": "fire_resistance", "name": "Сопротивление огню", "description": "Получает половину урона огнём."},
+        {"id": "thaumaturgy", "name": "Тауматургия", "description": "Врожденные мистические эффекты будут подключаться к свободным действиям общения."},
+        {"id": "darkvision", "name": "Тёмное зрение", "description": "Видит в темноте на 60 футов."}
+      ],
+      "damage_resistances": ["fire"]
+    }
+  ]
+}
