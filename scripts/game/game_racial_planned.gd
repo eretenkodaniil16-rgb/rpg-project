@@ -76,7 +76,7 @@ func _on_ability_requested(ability_id: String) -> void:
 		_player_combat_state.temporary_hit_points = maxi(_player_combat_state.temporary_hit_points, temporary_hit_points)
 		if _turn_system.active:
 			_turn_system.add_movement(movement_bonus)
-		show_combat_message("Прилив адреналина: +%d футов перемещения и %d временных HP." % [movement_bonus, temporary_hit_points], true)
+		show_combat_message("Прилив адреналина: +%d футов перемещения и %d временного здоровья." % [movement_bonus, temporary_hit_points], true)
 		_invalidate_reachable_area()
 		_refresh_turn_interface()
 		_refresh_action_catalog()
@@ -87,7 +87,7 @@ func apply_damage_to_player(amount: int, damage_type: String, critical_hit: bool
 		return {"applied": 0, "dead": true}
 	if GameState.player_character.current_health <= 0:
 		var zero_result: Dictionary = _srd_rules.damage_at_zero_hit_points(_player_combat_state, critical_hit)
-		show_combat_message("Урон при 0 HP: получено %d провала спасброска смерти." % int(zero_result.get("failures_added", 0)), false)
+		show_combat_message("Урон при нулевом здоровье: получено %d провала спасброска смерти." % int(zero_result.get("failures_added", 0)), false)
 		if bool(zero_result.get("dead", false)):
 			_handle_srd_player_death(source)
 		return zero_result
@@ -117,7 +117,7 @@ func apply_damage_to_player(amount: int, damage_type: String, critical_hit: bool
 	else:
 		GameState.player_character.current_health = maxi(0, before - applied)
 	var concentration: Dictionary = _srd_rules.resolve_concentration_check(GameState.player_character.get_ability_modifier("constitution"), applied, _player_combat_state)
-	var message: String = "%s наносит %d урона %s. HP: %d/%d." % [
+	var message: String = "%s наносит %d урона %s. Здоровье: %d/%d." % [
 		_target_name(source) if source != null else "Источник",
 		applied,
 		_srd_rules.normalize_damage_type(damage_type),
@@ -127,11 +127,11 @@ func apply_damage_to_player(amount: int, damage_type: String, critical_hit: bool
 	if stone_reduction > 0:
 		message += " Каменная выносливость уменьшила удар на %d и израсходовала реакцию." % stone_reduction
 	if int(mitigation.get("absorbed", 0)) > 0:
-		message += " Временные HP поглотили %d." % int(mitigation.get("absorbed", 0))
+		message += " Временное здоровье поглотило %d урона." % int(mitigation.get("absorbed", 0))
 	if not str(mitigation.get("reason", "")).is_empty():
 		message += " Сработало: %s." % str(mitigation.get("reason", ""))
 	if relentless:
-		message += " Неукротимая стойкость оставила персонажу 1 HP."
+		message += " Неукротимая стойкость оставила персонажу 1 очко здоровья."
 	if bool(concentration.get("required", false)):
 		message += " Концентрация: %s." % ("сохранена" if bool(concentration.get("success", false)) else "потеряна")
 	show_combat_message(message, false)
@@ -239,3 +239,15 @@ func _actor_size_rank(actor: Node) -> int:
 		return RaceDataSystem.size_rank(str(actor.call("get_size_category")))
 	var size_value: Variant = actor.get("size_category")
 	return RaceDataSystem.size_rank(str(size_value)) if size_value != null else RaceDataSystem.size_rank("medium")
+
+
+func _predict_directional_target(weapon: Dictionary) -> Node:
+	if DistanceSystem.is_ranged_weapon(weapon):
+		return super._predict_directional_target(weapon)
+	return _find_directional_melee_target(weapon)
+
+
+func _weapon_attempt_is_valid(weapon: Dictionary, selected_target: Node, predicted_target: Node) -> bool:
+	if _target_is_valid(selected_target) or DistanceSystem.is_ranged_weapon(weapon):
+		return super._weapon_attempt_is_valid(weapon, selected_target, predicted_target)
+	return maxi(int(weapon.get("reach_ft", 5)), 0) > 0
