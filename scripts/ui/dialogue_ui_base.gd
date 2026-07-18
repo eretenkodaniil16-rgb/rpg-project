@@ -15,7 +15,7 @@ func start_dialogue(dialogue_data: Dictionary, dialogue_target: Node = null) -> 
 	if dialogue_data.is_empty():
 		return
 
-	_dialogue_target = dialogue_target
+	_dialogue_target = _resolve_dialogue_target(dialogue_data, dialogue_target)
 	GameState.input_locked = true
 	speaker_label.text = str(dialogue_data.get("speaker", "Неизвестный"))
 	text_label.text = str(dialogue_data.get("text", "..."))
@@ -114,6 +114,21 @@ func _on_attack_pressed() -> void:
 func _emit_attack_requested(target: Node) -> void:
 	if target != null and is_instance_valid(target):
 		attack_requested.emit(target)
+
+
+func _resolve_dialogue_target(dialogue_data: Dictionary, supplied_target: Node) -> Node:
+	if supplied_target != null and is_instance_valid(supplied_target):
+		return supplied_target
+	var speaker: String = str(dialogue_data.get("speaker", ""))
+	if speaker.is_empty():
+		return null
+	for candidate: Node in get_tree().get_nodes_in_group("combat_targets"):
+		if candidate == null or not is_instance_valid(candidate):
+			continue
+		var candidate_name: String = str(candidate.call("get_combat_name")) if candidate.has_method("get_combat_name") else str(candidate.name)
+		if candidate_name == speaker:
+			return candidate
+	return null
 
 
 func _has_attack_target() -> bool:
