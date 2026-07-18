@@ -45,7 +45,7 @@ func has_plan() -> bool:
 	return _path.size() > 1 and _reachable
 
 
-func get_path() -> Array[Vector2i]:
+func get_planned_path() -> Array[Vector2i]:
 	return _path.duplicate()
 
 
