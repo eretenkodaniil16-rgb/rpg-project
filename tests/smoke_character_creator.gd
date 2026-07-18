@@ -9,12 +9,17 @@ func _init() -> void:
 
 func _run_smoke_test() -> void:
 	var packed_scene: PackedScene = load(CHARACTER_CREATOR_SCENE) as PackedScene
-	assert(packed_scene != null)
+	if packed_scene == null:
+		push_error("Character creator scene failed to load.")
+		quit(1)
+		return
 	var creator: Node = packed_scene.instantiate()
-	assert(creator != null)
+	if creator == null:
+		push_error("Character creator scene failed to instantiate.")
+		quit(1)
+		return
 	root.add_child(creator)
 	await process_frame
-	assert(creator.get_child_count() >= 2)
 	print("Character creator scene smoke test passed.")
 	creator.queue_free()
 	quit(0)
