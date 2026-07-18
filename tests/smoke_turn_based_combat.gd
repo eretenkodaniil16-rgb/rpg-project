@@ -64,29 +64,36 @@ func _run() -> void:
 		_fail("Player and caretaker occupied the same combat cell.")
 		return
 
-	var turn_ui: Control = game.get_node_or_null("Interface/TurnCombatUI") as Control
-	var initiative_label: Label = game.find_child("InitiativeLabel", true, false) as Label
-	var resource_label: Label = game.find_child("TurnResourceLabel", true, false) as Label
-	if turn_ui == null or initiative_label == null or resource_label == null or not turn_ui.visible:
-		_fail("Turn combat interface is missing or hidden.")
+	var catalog: ActionCatalogUI = game.get_node_or_null("Interface/ActionCatalogUI") as ActionCatalogUI
+	if catalog == null or catalog.catalog_button == null or not catalog.catalog_button.visible:
+		_fail("Categorized action interface is missing or hidden.")
 		return
-	if "Раунд 1" not in initiative_label.text or "Перемещение: 30 футов" not in resource_label.text:
-		_fail("Turn interface does not show initiative and movement resources.")
+	if "Раунд 1" not in catalog.resource_label.text or "Перемещение: 30 футов" not in catalog.resource_label.text:
+		_fail("Action catalog does not show round and movement resources.")
 		return
 
 	var start_position: Vector2 = player.global_position
 	game.call("request_combat_move", Vector2i(0, -1))
 	await process_frame
-	if absf(player.global_position.y - (start_position.y - 64.0)) > 0.01:
-		_fail("Combat movement did not advance exactly one grid cell.")
+	if player.global_position.distance_to(start_position) > 0.01:
+		_fail("Planning a route moved the player before confirmation.")
 		return
-	if "Перемещение: 25 футов" not in resource_label.text:
-		_fail("Combat movement did not spend five feet.")
+	var planned_path: Array = game.get("_planned_path") as Array
+	if planned_path.size() != 2:
+		_fail("One-cell route was not planned.")
+		return
+	game.call("_confirm_planned_movement")
+	await create_timer(0.3).timeout
+	if absf(player.global_position.y - (start_position.y - 64.0)) > 0.01:
+		_fail("Confirmed movement did not advance exactly one grid cell.")
+		return
+	if "Перемещение: 25 футов" not in catalog.resource_label.text:
+		_fail("Confirmed movement did not spend five feet.")
 		return
 
 	game.call("_stop_turn_based_combat", "test")
 	await process_frame
-	if bool(game.call("is_turn_based_combat_active")) or turn_ui.visible:
+	if bool(game.call("is_turn_based_combat_active")) or catalog.catalog_button.visible:
 		_fail("Turn based combat did not stop cleanly.")
 		return
 	game.queue_free()
