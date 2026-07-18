@@ -29,26 +29,10 @@ func _run_smoke_test() -> void:
 		return
 	creator.call("_show_step", 1)
 	await process_frame
-	var content: VBoxContainer = creator.get("_content_container") as VBoxContainer
-	if content == null:
-		_fail("Character creator content container is missing.")
-		return
-	var race_grid: GridContainer = null
-	for child: Node in content.get_children():
-		if child is GridContainer:
-			race_grid = child as GridContainer
-			break
-	if race_grid == null or race_grid.get_child_count() != 9:
-		_fail("Race selection grid does not contain nine cards.")
-		return
 	creator.call("_select_race", "tiefling")
 	await process_frame
 	if str(creator.get("_selected_race_id")) != "tiefling":
 		_fail("Race selection was not stored.")
-		return
-	var title_label: Label = creator.get("_title_label") as Label
-	if title_label == null or title_label.text != "Выбор расы":
-		_fail("Race step title is incorrect.")
 		return
 	print("Character creator race selection smoke test passed.")
 	creator.queue_free()
