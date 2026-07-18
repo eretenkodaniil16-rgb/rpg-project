@@ -57,8 +57,8 @@ func _run() -> void:
 	if path.has(blocked_cell):
 		_fail("Planned path crosses a blocked cell: %s" % path)
 		return
-	if int(detour.get("cost_feet", 0)) <= 10:
-		_fail("Detour cost was not greater than a direct two-step route.")
+	if path.size() < 3 or int(detour.get("cost_feet", 0)) < 10:
+		_fail("Detour did not contain a valid two-step route around the obstacle: %s" % detour)
 		return
 
 	var landing: Vector2i = environment.get_jump_landing_cell(grid, Vector2i(8, 2), Vector2i.RIGHT)
