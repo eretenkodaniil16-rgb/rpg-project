@@ -21,7 +21,9 @@ func _sync_player_damage_traits() -> void:
 		if damage_type not in _player_combat_state.damage_resistances:
 			_player_combat_state.damage_resistances.append(damage_type)
 	_player_combat_state.saving_throw_advantage_conditions = GameState.player_character.racial_condition_save_advantage.duplicate()
+	_player_combat_state.saving_throw_advantage_abilities = GameState.player_character.racial_save_advantage_abilities.duplicate()
 	_player_combat_state.magical_save_advantage_abilities = GameState.player_character.racial_magical_save_advantage_abilities.duplicate()
+	_player_combat_state.reroll_natural_one = GameState.player_character.reroll_natural_one
 
 
 func _begin_current_turn() -> void:
@@ -70,10 +72,11 @@ func _on_ability_requested(ability_id: String) -> void:
 		return
 	if effect == "adrenaline_rush":
 		var temporary_hit_points: int = CombatSystem.proficiency_bonus_for_level(GameState.player_character.level)
+		var movement_bonus: int = maxi(GameState.player_character.base_speed_feet, 0)
 		_player_combat_state.temporary_hit_points = maxi(_player_combat_state.temporary_hit_points, temporary_hit_points)
 		if _turn_system.active:
-			_turn_system.add_movement(30)
-		show_combat_message("Прилив адреналина: +30 футов перемещения и %d временных HP." % temporary_hit_points, true)
+			_turn_system.add_movement(movement_bonus)
+		show_combat_message("Прилив адреналина: +%d футов перемещения и %d временных HP." % [movement_bonus, temporary_hit_points], true)
 		_invalidate_reachable_area()
 		_refresh_turn_interface()
 		_refresh_action_catalog()
@@ -91,23 +94,28 @@ func apply_damage_to_player(amount: int, damage_type: String, critical_hit: bool
 
 	var incoming_damage: int = maxi(amount, 0)
 	var stone_reduction: int = 0
-	if incoming_damage > 0 and GameState.player_character.get_resource("stone_endurance") > 0:
+	var stone_reaction_ready: bool = not _turn_system.active or _turn_system.has_reaction(player)
+	if incoming_damage > 0 and stone_reaction_ready and GameState.player_character.get_resource("stone_endurance") > 0:
 		GameState.player_character.consume_resource("stone_endurance", 1)
+		if _turn_system.active:
+			_turn_system.consume_reaction(player)
 		stone_reduction = maxi(1, _racial_dice.roll_die(12) + GameState.player_character.get_ability_modifier("constitution"))
 		incoming_damage = maxi(incoming_damage - stone_reduction, 0)
 
 	var mitigation: Dictionary = _srd_rules.resolve_damage(incoming_damage, damage_type, _player_combat_state)
 	var applied: int = int(mitigation.get("applied", 0))
 	var before: int = GameState.player_character.current_health
+	var remaining_damage: int = maxi(applied - before, 0)
+	var killed_outright: bool = remaining_damage >= GameState.player_character.maximum_health
 	var relentless: bool = false
-	if applied >= before and before > 0 and GameState.player_character.get_resource("relentless_endurance") > 0:
+	if applied >= before and before > 0 and not killed_outright and GameState.player_character.get_resource("relentless_endurance") > 0:
 		GameState.player_character.consume_resource("relentless_endurance", 1)
 		applied = maxi(before - 1, 0)
+		remaining_damage = 0
 		GameState.player_character.current_health = 1
 		relentless = true
 	else:
 		GameState.player_character.current_health = maxi(0, before - applied)
-	var remaining_damage: int = maxi(applied - before, 0)
 	var concentration: Dictionary = _srd_rules.resolve_concentration_check(GameState.player_character.get_ability_modifier("constitution"), applied, _player_combat_state)
 	var message: String = "%s наносит %d урона %s. HP: %d/%d." % [
 		_target_name(source) if source != null else "Источник",
@@ -117,7 +125,7 @@ func apply_damage_to_player(amount: int, damage_type: String, critical_hit: bool
 		GameState.player_character.maximum_health
 	]
 	if stone_reduction > 0:
-		message += " Каменная выносливость уменьшила удар на %d." % stone_reduction
+		message += " Каменная выносливость уменьшила удар на %d и израсходовала реакцию." % stone_reduction
 	if int(mitigation.get("absorbed", 0)) > 0:
 		message += " Временные HP поглотили %d." % int(mitigation.get("absorbed", 0))
 	if not str(mitigation.get("reason", "")).is_empty():
