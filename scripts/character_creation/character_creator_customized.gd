@@ -12,11 +12,24 @@ const CREATION_STEPS: Array[String] = [
 var _race_data: RaceDataSystem = RaceDataSystem.new()
 var _races: Array[Dictionary] = []
 var _selected_race_id: String = RaceDataSystem.DEFAULT_RACE_ID
+var _custom_creator_initialized: bool = false
 
 
 func _ready() -> void:
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	call_deferred("_initialize_custom_creator")
+
+
+func _initialize_custom_creator() -> void:
+	if _custom_creator_initialized:
+		return
+	_custom_creator_initialized = true
+	_build_layout()
+	_title_label.text = "Создание персонажа"
+	_progress_label.text = "Загрузка данных…"
+	_load_classes()
 	_races = _race_data.get_races()
-	super._ready()
+	_show_step(0)
 
 
 func _show_step(step_index: int) -> void:
@@ -40,6 +53,7 @@ func _build_name_step() -> void:
 	var name_label: Label = _make_label("Имя", 20)
 	_content_container.add_child(name_label)
 	var name_input: LineEdit = LineEdit.new()
+	name_input.name = "CharacterNameInput"
 	name_input.custom_minimum_size = Vector2(0.0, 58.0)
 	name_input.placeholder_text = "От 2 до 20 символов"
 	name_input.max_length = 20
@@ -47,7 +61,8 @@ func _build_name_step() -> void:
 	name_input.add_theme_font_size_override("font_size", 22)
 	name_input.text_changed.connect(_on_name_changed)
 	_content_container.add_child(name_input)
-	name_input.grab_focus()
+	if not OS.has_feature("mobile"):
+		name_input.call_deferred("grab_focus")
 	_add_paragraph("Имя будет отображаться в сохранении, интерфейсе и диалогах.", Color(0.68, 0.73, 0.82, 1.0))
 
 
