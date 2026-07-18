@@ -30,5 +30,27 @@ jobs:
         run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --editor --path "$GITHUB_WORKSPACE" --quit
 
       - name: Validate visible creator interface
+        id: creator
+        continue-on-error: true
         shell: bash
-        run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_character_creator.gd
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/build/creator"
+          set +e
+          ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_character_creator.gd 2>&1 | tee "$GITHUB_WORKSPACE/build/creator/creator.log"
+          creator_status=${PIPESTATUS[0]}
+          echo "$creator_status" > "$GITHUB_WORKSPACE/build/creator/status.txt"
+          exit "$creator_status"
+
+      - name: Upload creator diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: character-creator-diagnostics
+          path: build/creator/
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Fail when creator validation failed
+        if: steps.creator.outcome != 'success'
+        shell: bash
+        run: exit 1
