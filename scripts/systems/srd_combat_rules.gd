@@ -72,7 +72,8 @@ func resolve_saving_throw(
 	state: CombatantState,
 	advantage: bool = false,
 	disadvantage: bool = false,
-	overrides: Array[int] = []
+	overrides: Array[int] = [],
+	context: Dictionary = {}
 ) -> Dictionary:
 	var automatic_failure: bool = false
 	if state != null:
@@ -84,6 +85,11 @@ func resolve_saving_throw(
 			disadvantage = true
 		if ability_id == "dexterity" and state.has_condition("petrified"):
 			automatic_failure = true
+		var condition_id: String = str(context.get("condition_id", ""))
+		if not condition_id.is_empty() and condition_id in state.saving_throw_advantage_conditions:
+			advantage = true
+		if bool(context.get("magical", false)) and ability_id in state.magical_save_advantage_abilities:
+			advantage = true
 	if automatic_failure:
 		return {
 			"ability_id": ability_id,
@@ -277,8 +283,7 @@ func effective_speed_feet(base_speed_feet: int, state: CombatantState) -> int:
 
 func can_take_action(state: CombatantState) -> bool:
 	return state == null or not (
-		state.dead or state.has_condition("incapacitated") or state.has_condition("paralyzed") or
-		state.has_condition("petrified") or state.has_condition("stunned") or state.has_condition("unconscious")
+		state.dead or state.has_condition("incapacitated") or state.has_condition("paralyzed") or state.has_condition("petrified") or state.has_condition("stunned") or state.has_condition("unconscious")
 	)
 
 
@@ -288,33 +293,18 @@ func can_take_reaction(state: CombatantState) -> bool:
 
 func format_conditions(state: CombatantState) -> String:
 	if state == null or state.conditions.is_empty():
-		return "Нет состояний"
-	var labels: Array[String] = []
+		return "нет"
+	var names: Array[String] = []
 	for condition_id: String in state.get_condition_ids():
-		var label: String = str(CONDITION_NAMES.get(condition_id, condition_id))
-		if condition_id == "exhaustion":
-			label += " %d" % state.get_exhaustion_level()
-		labels.append(label)
-	return ", ".join(labels)
+		names.append(str(CONDITION_NAMES.get(condition_id, condition_id)))
+	return ", ".join(names)
 
 
 func normalize_damage_type(value: String) -> String:
 	var normalized: String = value.strip_edges().to_lower()
 	var aliases: Dictionary = {
-		"дробящий": "bludgeoning",
-		"колющий": "piercing",
-		"рубящий": "slashing",
-		"огонь": "fire",
-		"холод": "cold",
-		"электричество": "lightning",
-		"кислота": "acid",
-		"яд": "poison",
-		"силовой": "force",
-		"некротический": "necrotic",
-		"лучистый": "radiant",
-		"психический": "psychic",
-		"гром": "thunder",
-		"физический": "bludgeoning"
+		"кислотный": "acid", "дробящий": "bludgeoning", "холод": "cold", "огненный": "fire", "огонь": "fire",
+		"силовой": "force", "электрический": "lightning", "некротический": "necrotic", "колющий": "piercing",
+		"яд": "poison", "психический": "psychic", "излучение": "radiant", "рубящий": "slashing", "звук": "thunder"
 	}
-	normalized = str(aliases.get(normalized, normalized))
-	return normalized if normalized in DAMAGE_TYPES else "bludgeoning"
+	return str(aliases.get(normalized, normalized if normalized in DAMAGE_TYPES else "bludgeoning"))
