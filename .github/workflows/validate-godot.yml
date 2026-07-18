@@ -77,6 +77,16 @@ jobs:
           printf 'srd=%s\narea=%s\n' "$srd_status" "$area_status" > "$GITHUB_WORKSPACE/build/test/srd-status.txt"
           exit 0
 
+      - name: Run planned movement tests with diagnostics
+        shell: bash
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/build/test"
+          set +e
+          timeout 45s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_planned_movement.gd 2>&1 | tee "$GITHUB_WORKSPACE/build/test/planned-movement.log"
+          planned_status=${PIPESTATUS[0]}
+          echo "planned=$planned_status" > "$GITHUB_WORKSPACE/build/test/planned-status.txt"
+          exit 0
+
       - name: Run rest tests
         shell: bash
         run: timeout 45s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_rests.gd
@@ -167,6 +177,16 @@ jobs:
           echo "srd_smoke=$smoke_status" > "$GITHUB_WORKSPACE/build/test/srd-smoke-status.txt"
           exit 0
 
+      - name: Smoke test planned movement and action catalog with diagnostics
+        shell: bash
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/build/test"
+          set +e
+          timeout 60s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_planned_movement_actions.gd 2>&1 | tee "$GITHUB_WORKSPACE/build/test/planned-smoke.log"
+          planned_smoke_status=${PIPESTATUS[0]}
+          echo "planned_smoke=$planned_smoke_status" > "$GITHUB_WORKSPACE/build/test/planned-smoke-status.txt"
+          exit 0
+
       - name: Run runtime checks with diagnostics
         shell: bash
         run: |
@@ -201,7 +221,9 @@ jobs:
           grep -q '^grid=0$' build/test/grid-status.txt
           grep -q '^srd=0$' build/test/srd-status.txt
           grep -q '^area=0$' build/test/srd-status.txt
+          grep -q '^planned=0$' build/test/planned-status.txt
           grep -q '^srd_smoke=0$' build/test/srd-smoke-status.txt
+          grep -q '^planned_smoke=0$' build/test/planned-smoke-status.txt
           grep -q '^loadouts=0$' build/test/class-status.txt
           grep -q '^abilities=0$' build/test/class-status.txt
           grep -q '^name=0$' build/test/runtime-status.txt
