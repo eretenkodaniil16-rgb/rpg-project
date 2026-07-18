@@ -2,6 +2,7 @@ extends "res://scripts/game/player.gd"
 
 const GRID_MOVE_REPEAT_SECONDS: float = 0.18
 const SOCIAL_TERRAIN_CONTROLLER_SCRIPT: Script = preload("res://scripts/game/combat_social_terrain_controller.gd")
+const RACIAL_TRAIT_CONTROLLER_SCRIPT: Script = preload("res://scripts/game/racial_trait_controller.gd")
 
 var _facing_direction: Vector2 = Vector2.RIGHT
 var _facing_indicator: Polygon2D = null
@@ -14,7 +15,7 @@ func _ready() -> void:
 	super._ready()
 	_build_facing_indicator()
 	_update_facing_indicator()
-	call_deferred("_install_combat_social_terrain_controller")
+	call_deferred("_install_runtime_controllers")
 
 
 func _physics_process(delta: float) -> void:
@@ -63,12 +64,14 @@ func _process_exploration_movement(delta: float) -> void:
 
 
 func get_effective_movement_speed_at(world_position: Vector2) -> float:
+	var character: PlayerCharacter = GameState.player_character
+	var racial_multiplier: float = float(maxi(character.base_speed_feet, 0)) / 30.0
 	var environment: CombatEnvironment = get_tree().get_first_node_in_group("combat_environment") as CombatEnvironment
 	if environment == null:
-		return movement_speed
+		return movement_speed * racial_multiplier
 	var difficult: bool = environment.is_difficult_position(world_position) or environment.is_difficult_position(global_position)
-	var multiplier: float = _terrain_class_data.exploration_speed_multiplier(GameState.player_character, difficult, false)
-	return movement_speed * multiplier
+	var terrain_multiplier: float = _terrain_class_data.exploration_speed_multiplier(character, difficult, false)
+	return movement_speed * racial_multiplier * terrain_multiplier
 
 
 func ignores_nonmagical_difficult_terrain() -> bool:
@@ -118,10 +121,15 @@ func _update_facing_indicator() -> void:
 	_facing_indicator.rotation = _facing_direction.angle()
 
 
-func _install_combat_social_terrain_controller() -> void:
+func _install_runtime_controllers() -> void:
 	var game: Node = get_parent()
-	if game == null or game.get_node_or_null("CombatSocialTerrainController") != null:
+	if game == null:
 		return
-	var controller: Node = SOCIAL_TERRAIN_CONTROLLER_SCRIPT.new()
-	controller.name = "CombatSocialTerrainController"
-	game.add_child(controller)
+	if game.get_node_or_null("CombatSocialTerrainController") == null:
+		var social_controller: Node = SOCIAL_TERRAIN_CONTROLLER_SCRIPT.new()
+		social_controller.name = "CombatSocialTerrainController"
+		game.add_child(social_controller)
+	if game.get_node_or_null("RacialTraitController") == null:
+		var racial_controller: Node = RACIAL_TRAIT_CONTROLLER_SCRIPT.new()
+		racial_controller.name = "RacialTraitController"
+		game.add_child(racial_controller)
