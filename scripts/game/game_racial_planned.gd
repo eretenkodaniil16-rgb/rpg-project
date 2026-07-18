@@ -47,12 +47,13 @@ func _build_catalog_entries() -> Dictionary:
 	var player_turn: bool = _turn_system.active and _turn_system.is_player_turn(player) and not _enemy_turn_running
 	var resource_ready: bool = _ability_attempt_is_valid(ability)
 	var resource_available: bool = _turn_system.bonus_action_available if category == "bonus" else _turn_system.action_available
+	var group: String = "attack" if str(ability.get("target", "self")) == "enemy" else "tactic"
 	category_entries.append(_entry(
 		"ability:%s" % ability_id,
 		str(ability.get("name", "Расовая способность")),
 		player_turn and resource_ready and resource_available and _srd_rules.can_take_action(_player_combat_state),
 		"%s. Ресурс: %s." % [str(ability.get("description", "")), _class_data.get_resource_text(GameState.player_character, ability)],
-		_ability_catalog_group(ability)
+		group
 	))
 	entries[category] = category_entries
 	return entries
