@@ -1,6 +1,7 @@
 extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
+const FAILURE_PATH: String = "res://build/test/free-aim-failure.txt"
 
 
 func _init() -> void:
@@ -8,6 +9,11 @@ func _init() -> void:
 
 
 func _fail(message: String) -> void:
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("res://build/test"))
+	var failure_file: FileAccess = FileAccess.open(FAILURE_PATH, FileAccess.WRITE)
+	if failure_file != null:
+		failure_file.store_string(message)
+	print("FREE AIM FAILURE: %s" % message)
 	push_error(message)
 	quit(1)
 
@@ -86,7 +92,7 @@ func _run() -> void:
 		_fail("Target-free melee swing silently selected a target.")
 		return
 	if "никого не задел" not in combat_message.text:
-		_fail("Target-free melee swing did not complete into empty space.")
+		_fail("Target-free melee swing did not complete into empty space. Message: %s" % combat_message.text)
 		return
 
 	character.equipped_weapon_id = original_weapon if not original_weapon.is_empty() else "longbow"
@@ -119,7 +125,7 @@ func _run() -> void:
 		_fail("Manual target button did not select a target.")
 		return
 	if not target_label.visible or "футов" not in target_label.text or "здоровье" not in target_label.text or "HP" in target_label.text or not distance_line.visible:
-		_fail("Russian distance and health text must appear only after manual target selection.")
+		_fail("Russian distance and health text must appear only after manual target selection. Text: %s" % target_label.text)
 		return
 
 	var targets: Array = game.call("_available_targets") as Array
