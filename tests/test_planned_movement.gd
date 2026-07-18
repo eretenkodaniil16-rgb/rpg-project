@@ -100,6 +100,23 @@ func _run() -> void:
 		_fail("Jump landing is absent from reachable area: %s" % reachable)
 		return
 
+	var terrain_planner := TerrainAwareMovementSystem.new()
+	var difficult_cell: Vector2i = grid.world_to_cell(Vector2(400.0, 350.0))
+	if not environment.is_difficult_position(grid.cell_to_world_center(difficult_cell)):
+		_fail("Expected test cell is not inside difficult terrain: %s" % difficult_cell)
+		return
+	var normal_state := CombatantState.new()
+	var ranger_state := CombatantState.new()
+	ranger_state.ignores_nonmagical_difficult_terrain = true
+	var normal_cost: int = terrain_planner.movement_cost_for_cell(grid, difficult_cell, environment, normal_state)
+	var ranger_cost: int = terrain_planner.movement_cost_for_cell(grid, difficult_cell, environment, ranger_state)
+	if normal_cost != 10:
+		_fail("Normal difficult-terrain cell must cost ten feet, got %d." % normal_cost)
+		return
+	if ranger_cost != 5:
+		_fail("Terrain-aware ranger cell must cost five feet, got %d." % ranger_cost)
+		return
+
 	var landing: Vector2i = environment.get_jump_landing_cell(grid, Vector2i(8, 2), Vector2i.RIGHT)
 	if landing != Vector2i(10, 2):
 		_fail("Jump landing over the low barricade is incorrect: %s" % landing)
