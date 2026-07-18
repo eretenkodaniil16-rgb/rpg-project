@@ -14,11 +14,11 @@ func _ready() -> void:
 	add_child(_check_popup)
 
 
-func start_dialogue(dialogue_data: Dictionary) -> void:
+func start_dialogue(dialogue_data: Dictionary, dialogue_target: Node = null) -> void:
 	_pending_checked_choice.clear()
 	if _check_popup != null:
 		_check_popup.hide()
-	super.start_dialogue(dialogue_data)
+	super.start_dialogue(dialogue_data, dialogue_target)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -28,6 +28,10 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _on_choice_pressed(choice_data: Dictionary) -> void:
+	var runtime_action: String = str(choice_data.get("runtime_action", ""))
+	if not runtime_action.is_empty():
+		super._on_choice_pressed(choice_data)
+		return
 	var check_value: Variant = choice_data.get("check", {})
 	if check_value is Dictionary and not (check_value as Dictionary).is_empty():
 		var check_data := check_value as Dictionary
