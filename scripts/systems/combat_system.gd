@@ -58,7 +58,8 @@ func perform_basic_attack(
 		result.note = "Текущее состояние не позволяет совершить атаку."
 		return result
 
-	var contextual_advantage: bool = bool(attack_context.get("advantage", false))
+	var racial_advantage: bool = bool(character.active_effects.get("racial_advantage_next_d20", false))
+	var contextual_advantage: bool = bool(attack_context.get("advantage", false)) or racial_advantage
 	var legacy_ranged_disadvantage: bool = result.range_state != "melee" and bool(attack_context.get("disadvantage", false))
 	var contextual_disadvantage: bool = bool(attack_context.get("forced_disadvantage", false)) or legacy_ranged_disadvantage
 	result.advantage = contextual_advantage or bool(adjustments.get("advantage", false))
@@ -68,11 +69,13 @@ func perform_basic_attack(
 	if result.advantage and result.disadvantage:
 		result.advantage = false
 		result.disadvantage = false
+	if racial_advantage:
+		character.active_effects.erase("racial_advantage_next_d20")
 
-	result.first_roll = clampi(natural_roll_override, 1, 20) if natural_roll_override >= 1 else _dice_roller.roll_die(20)
+	result.first_roll = _racial_d20(character, natural_roll_override, int(attack_context.get("lucky_first_reroll_override", -1)))
 	if result.advantage or result.disadvantage:
 		var second_override: int = int(attack_context.get("second_roll_override", -1))
-		result.second_roll = clampi(second_override, 1, 20) if second_override >= 1 else _dice_roller.roll_die(20)
+		result.second_roll = _racial_d20(character, second_override, int(attack_context.get("lucky_second_reroll_override", -1)))
 		result.natural_roll = maxi(result.first_roll, result.second_roll) if result.advantage else mini(result.first_roll, result.second_roll)
 	else:
 		result.natural_roll = result.first_roll
@@ -146,6 +149,13 @@ func _consume_bardic_inspiration(character: PlayerCharacter) -> int:
 		return 0
 	character.active_effects.erase("bardic_inspiration_die")
 	return _dice_roller.roll_die(die_sides)
+
+
+func _racial_d20(character: PlayerCharacter, override: int, lucky_reroll_override: int = -1) -> int:
+	var natural: int = clampi(override, 1, 20) if override >= 1 else _dice_roller.roll_die(20)
+	if natural == 1 and character.reroll_natural_one:
+		natural = clampi(lucky_reroll_override, 1, 20) if lucky_reroll_override >= 1 else _dice_roller.roll_die(20)
+	return natural
 
 
 func _roll_damage(count: int, sides: int, overrides: Array[int]) -> int:
