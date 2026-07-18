@@ -38,11 +38,12 @@ func _run() -> void:
 	for _frame: int in range(7):
 		await process_frame
 
-	var player: Node = game.get_node_or_null("Player")
-	var caretaker: Node = game.get_node_or_null("Caretaker")
+	var player: Node2D = game.get_node_or_null("Player") as Node2D
+	var caretaker: Node2D = game.get_node_or_null("Caretaker") as Node2D
 	var target_label: Label = game.find_child("TargetLabel", true, false) as Label
+	var combat_message: Label = game.find_child("CombatMessageLabel", true, false) as Label
 	var grid: Node = game.get_node_or_null("BattleGrid")
-	if player == null or caretaker == null or target_label == null or grid == null:
+	if player == null or caretaker == null or target_label == null or combat_message == null or grid == null:
 		_fail("Free-aim scene dependencies are missing.")
 		return
 	if game.get("_selected_target") != null:
@@ -59,6 +60,37 @@ func _run() -> void:
 		_fail("Player facing indicator is missing.")
 		return
 
+	var character: PlayerCharacter = state.get("player_character") as PlayerCharacter
+	var original_weapon: String = character.equipped_weapon_id
+	var original_caretaker_position: Vector2 = caretaker.global_position
+	var melee_weapon: Dictionary = state.call("get_item_definition", "shortsword") as Dictionary
+	caretaker.global_position = player.global_position + Vector2(64.0, 0.0)
+	player.call("set_facing_direction", Vector2.RIGHT)
+	var predicted_melee: Node = game.call("_find_directional_melee_target", melee_weapon) as Node
+	if predicted_melee != caretaker:
+		_fail("Target-free melee direction did not detect a nearby character.")
+		return
+	if not bool(game.call("_weapon_attempt_is_valid", melee_weapon, null, predicted_melee)):
+		_fail("Target-free melee attack was rejected by turn-action validation.")
+		return
+	if not bool(game.call("_weapon_attempt_is_valid", melee_weapon, null, null)):
+		_fail("An empty melee swing must still be a valid attack attempt.")
+		return
+
+	caretaker.global_position = original_caretaker_position
+	character.equipped_weapon_id = "shortsword"
+	player.call("set_facing_direction", Vector2.LEFT)
+	game.call("_request_attack")
+	await create_timer(0.45).timeout
+	if game.get("_selected_target") != null:
+		_fail("Target-free melee swing silently selected a target.")
+		return
+	if "никого не задел" not in combat_message.text:
+		_fail("Target-free melee swing did not complete into empty space.")
+		return
+
+	character.equipped_weapon_id = original_weapon if not original_weapon.is_empty() else "longbow"
+	player.call("set_facing_direction", Vector2.RIGHT)
 	var arrows_before: int = int(state.call("get_item_count", "arrow"))
 	if arrows_before <= 0:
 		_fail("Ranger starter arrows are missing.")
@@ -86,8 +118,8 @@ func _run() -> void:
 	if game.get("_selected_target") == null:
 		_fail("Manual target button did not select a target.")
 		return
-	if not target_label.visible or "футов" not in target_label.text or not distance_line.visible:
-		_fail("Distance must appear only after manual target selection.")
+	if not target_label.visible or "футов" not in target_label.text or "здоровье" not in target_label.text or "HP" in target_label.text or not distance_line.visible:
+		_fail("Russian distance and health text must appear only after manual target selection.")
 		return
 
 	var targets: Array = game.call("_available_targets") as Array
@@ -103,5 +135,5 @@ func _run() -> void:
 
 	game.queue_free()
 	await process_frame
-	print("Free-aim combat smoke test passed.")
+	print("Target-free melee and ranged combat smoke test passed.")
 	quit(0)
