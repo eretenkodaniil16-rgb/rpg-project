@@ -22,8 +22,8 @@ func _run() -> void:
 	ranger.character_name = "Путник"
 	ranger.character_class_id = "ranger"
 	ranger.character_class_name = "Следопыт"
-	ranger.maximum_health = 18
-	ranger.current_health = 18
+	ranger.maximum_health = 40
+	ranger.current_health = 40
 	ranger.abilities["dexterity"] = 16
 	ranger.abilities["strength"] = 14
 	state.set("player_character", ranger)
@@ -86,6 +86,27 @@ func _run() -> void:
 		_fail("Action subcategories Attack, Movement, Spells and Tactics are missing.")
 		return
 
+	var turn_system: TurnBasedCombatSystem = game.get("_turn_system") as TurnBasedCombatSystem
+	if turn_system == null or not turn_system.action_available or not turn_system.bonus_action_available:
+		_fail("Action resources were not initialized independently.")
+		return
+	if not turn_system.has_reaction(caretaker):
+		_fail("Enemy reaction was not available at combat start.")
+		return
+	var inside_first: Vector2 = caretaker.global_position + Vector2(0.0, -64.0)
+	var inside_second: Vector2 = caretaker.global_position + Vector2(64.0, 0.0)
+	var outside_reach: Vector2 = caretaker.global_position + Vector2(0.0, -128.0)
+	game.call("_trigger_enemy_opportunity_attacks", inside_first, inside_second)
+	await process_frame
+	if not turn_system.has_reaction(caretaker):
+		_fail("Moving within enemy reach incorrectly provoked an opportunity attack.")
+		return
+	game.call("_trigger_enemy_opportunity_attacks", inside_first, outside_reach)
+	await process_frame
+	if turn_system.has_reaction(caretaker):
+		_fail("Leaving enemy reach did not consume the opportunity attack reaction.")
+		return
+
 	var entries: Dictionary = game.call("_build_catalog_entries") as Dictionary
 	for category_id: String in ["action", "bonus", "reaction"]:
 		if not entries.has(category_id):
@@ -106,7 +127,6 @@ func _run() -> void:
 		_fail("Reachable area did not exclude the obstacle and include its jump landing: %s" % reachable_costs)
 		return
 
-	# Simulate dragging a finger from the current cell across the obstacle to the landing cell.
 	game.set("_last_route_pointer_cell", Vector2i(8, 2))
 	game.call("_handle_route_drag", Vector2i(10, 2))
 	await process_frame
@@ -136,10 +156,6 @@ func _run() -> void:
 		_fail("Floating confirmation remained visible after movement completed.")
 		return
 
-	var turn_system: TurnBasedCombatSystem = game.get("_turn_system") as TurnBasedCombatSystem
-	if turn_system == null or not turn_system.action_available or not turn_system.bonus_action_available:
-		_fail("Action resources were not initialized independently.")
-		return
 	game.call("_on_dash_requested")
 	await process_frame
 	if turn_system.action_available:
