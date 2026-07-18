@@ -10,21 +10,30 @@ func _init() -> void:
 	_load_actions()
 
 
-func get_actions() -> Array[Dictionary]:
+func get_actions(race_id: String = "") -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
+	var effective_race_id: String = _resolve_race_id(race_id)
 	for action_id: Variant in _actions.keys():
 		var value: Variant = _actions[action_id]
-		if value is Dictionary:
-			result.append((value as Dictionary).duplicate(true))
+		if not value is Dictionary:
+			continue
+		var action: Dictionary = value as Dictionary
+		var required_race_id: String = str(action.get("required_race_id", ""))
+		if not required_race_id.is_empty() and required_race_id != effective_race_id:
+			continue
+		result.append(action.duplicate(true))
 	result.sort_custom(_sort_actions)
 	return result
 
 
-func resolve_action(action_id: String, speaker_name: String, target: Node) -> Dictionary:
+func resolve_action(action_id: String, speaker_name: String, target: Node, race_id: String = "") -> Dictionary:
 	var value: Variant = _actions.get(action_id, {})
 	if not value is Dictionary or target == null:
 		return {"success": false, "message": "Для общения нужно выбрать действительную цель.", "gesture": ""}
 	var action: Dictionary = (value as Dictionary).duplicate(true)
+	var required_race_id: String = str(action.get("required_race_id", ""))
+	if not required_race_id.is_empty() and required_race_id != _resolve_race_id(race_id):
+		return {"success": false, "message": "Эта свободная способность недоступна выбранной расе.", "gesture": ""}
 	var target_name: String = str(target.call("get_combat_name")) if target.has_method("get_combat_name") else str(target.name)
 	var condition_key: String = "healthy"
 	if target.has_method("get_current_health"):
@@ -71,6 +80,19 @@ func _get_response(action: Dictionary, target_name: String, condition_key: Strin
 		return ""
 	var target_responses: Dictionary = target_value as Dictionary
 	return str(target_responses.get(condition_key, target_responses.get("healthy", "")))
+
+
+func _resolve_race_id(explicit_race_id: String) -> String:
+	if not explicit_race_id.is_empty():
+		return explicit_race_id
+	var main_loop: MainLoop = Engine.get_main_loop()
+	if not main_loop is SceneTree:
+		return ""
+	var state: Node = (main_loop as SceneTree).root.get_node_or_null("GameState")
+	if state == null:
+		return ""
+	var character_value: Variant = state.get("player_character")
+	return (character_value as PlayerCharacter).race_id if character_value is PlayerCharacter else ""
 
 
 func _load_actions() -> void:

@@ -18,13 +18,22 @@ func perform_check(
 	ability_id: String,
 	difficulty: int,
 	bonus: int = 0,
-	forced_natural_roll: int = 0
+	forced_natural_roll: int = 0,
+	forced_second_roll: int = 0,
+	forced_lucky_reroll: int = 0
 ) -> SkillCheckResult:
 	var normalized_ability: String = ability_id.strip_edges().to_lower()
 	var result: SkillCheckResult = SkillCheckResult.new()
 	result.ability_id = normalized_ability
 	result.ability_name = str(ABILITY_NAMES.get(normalized_ability, normalized_ability.capitalize()))
-	result.natural_roll = clampi(forced_natural_roll, 1, 20) if forced_natural_roll > 0 else _dice_roller.roll_die(20)
+	var first: int = _racial_d20(character, forced_natural_roll, forced_lucky_reroll)
+	var racial_advantage: bool = bool(character.active_effects.get("racial_advantage_next_d20", false))
+	if racial_advantage:
+		character.active_effects.erase("racial_advantage_next_d20")
+		var second: int = _racial_d20(character, forced_second_roll, 0)
+		result.natural_roll = maxi(first, second)
+	else:
+		result.natural_roll = first
 	result.ability_modifier = character.get_ability_modifier(normalized_ability)
 	var inspiration_bonus: int = 0
 	var inspiration_die: int = int(character.active_effects.get("bardic_inspiration_die", 0))
@@ -36,6 +45,13 @@ func perform_check(
 	result.difficulty = clampi(difficulty, 1, 30)
 	result.success = result.total >= result.difficulty
 	return result
+
+
+func _racial_d20(character: PlayerCharacter, override: int, lucky_reroll_override: int) -> int:
+	var natural: int = clampi(override, 1, 20) if override > 0 else _dice_roller.roll_die(20)
+	if natural == 1 and character.reroll_natural_one:
+		natural = clampi(lucky_reroll_override, 1, 20) if lucky_reroll_override > 0 else _dice_roller.roll_die(20)
+	return natural
 
 
 static func difficulty_name(difficulty: int) -> String:

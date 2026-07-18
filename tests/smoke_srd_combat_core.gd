@@ -23,6 +23,8 @@ func _run() -> void:
 	character.current_health = 30
 	character.abilities["strength"] = 16
 	character.abilities["dexterity"] = 14
+	character.abilities["constitution"] = 14
+	RaceDataSystem.new().apply_race(character, "orc")
 	state.set("player_character", character)
 	state.set("player_position", Vector2(320.0, 360.0))
 
@@ -41,7 +43,7 @@ func _run() -> void:
 	var grid: BattleGrid = game.get_node_or_null("BattleGrid") as BattleGrid
 	var social_controller: CombatSocialTerrainController = game.get_node_or_null("CombatSocialTerrainController") as CombatSocialTerrainController
 	if environment == null or old_panel == null or catalog == null or dialogue_ui == null or caretaker == null or player == null or grid == null or social_controller == null:
-		_fail("SRD, dialogue, terrain or combat social components are missing.")
+		_fail("SRD, dialogue, terrain, race or combat social components are missing.")
 		return
 	if not environment.is_in_group("combat_environment") or not environment.is_difficult_position(Vector2(400.0, 350.0)):
 		_fail("Difficult terrain environment is missing.")
@@ -129,8 +131,7 @@ func _run() -> void:
 	if turn_system.action_available != action_before or turn_system.bonus_action_available != bonus_before or turn_system.movement_remaining_feet != movement_before:
 		_fail("Free communication consumed a combat resource.")
 		return
-	var response_attack_button: Button = dialogue_ui.call("get_attack_button_for_testing") as Button
-	if response_attack_button == null:
+	if dialogue_ui.call("get_attack_button_for_testing") == null:
 		_fail("Attack option disappeared after a dialogue response.")
 		return
 	dialogue_ui.call("_close_dialogue")
@@ -147,6 +148,28 @@ func _run() -> void:
 		return
 
 	var entries: Dictionary = game.call("_build_catalog_entries") as Dictionary
+	var bonus_entries: Array = entries.get("bonus", []) as Array
+	var found_adrenaline: bool = false
+	for value: Variant in bonus_entries:
+		if value is Dictionary and str((value as Dictionary).get("id", "")) == "ability:adrenaline_rush":
+			found_adrenaline = true
+	if not found_adrenaline:
+		_fail("Orc Adrenaline Rush is absent from bonus actions.")
+		return
+	var movement_before_adrenaline: int = turn_system.movement_remaining_feet
+	catalog.action_requested.emit("ability:adrenaline_rush")
+	for _frame: int in range(3):
+		await process_frame
+	if turn_system.bonus_action_available:
+		_fail("Adrenaline Rush did not consume the bonus action.")
+		return
+	if turn_system.movement_remaining_feet != movement_before_adrenaline + 30:
+		_fail("Adrenaline Rush did not add thirty feet of movement.")
+		return
+	if combat_state.temporary_hit_points != 2 or character.get_resource("adrenaline_rush") != 1:
+		_fail("Adrenaline Rush temporary HP or resource is incorrect.")
+		return
+
 	var action_entries: Array = entries.get("action", []) as Array
 	var found_prone: bool = false
 	for value: Variant in action_entries:
@@ -168,7 +191,15 @@ func _run() -> void:
 		_fail("Stand action did not clear prone state.")
 		return
 
+	character.current_health = character.maximum_health
+	var lethal_damage: int = character.maximum_health + combat_state.temporary_hit_points
+	var relentless_result: Dictionary = game.call("apply_damage_to_player", lethal_damage, "slashing", false, caretaker) as Dictionary
+	await process_frame
+	if character.current_health != 1 or character.get_resource("relentless_endurance") != 0 or not bool(relentless_result.get("relentless", false)):
+		_fail("Orc Relentless Endurance did not leave the character at one HP after a non-instantly-lethal hit.")
+		return
+
 	game.queue_free()
 	await process_frame
-	print("SRD combat dialogue, persistent attack option and terrain trait smoke test passed.")
+	print("SRD combat dialogue, racial abilities and terrain trait smoke test passed.")
 	quit(0)

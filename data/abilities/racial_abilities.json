@@ -1,0 +1,48 @@
+{
+  "human_inspiration": {
+    "id": "human_inspiration",
+    "name": "Человеческая находчивость",
+    "kind": "active",
+    "target": "self",
+    "resource_key": "human_inspiration",
+    "effect": "racial_inspiration",
+    "action_kind": "bonus",
+    "description": "Получить преимущество на следующую атаку или проверку характеристики.",
+    "button": "НАХОДЧИВОСТЬ"
+  },
+  "dragon_breath": {
+    "id": "dragon_breath",
+    "name": "Огненное дыхание",
+    "kind": "active",
+    "target": "enemy",
+    "resource_key": "dragon_breath",
+    "effect": "saving_throw_spell",
+    "action_kind": "action",
+    "is_spell": false,
+    "ability": "constitution",
+    "save_ability": "dexterity",
+    "damage_dice": [1, 10],
+    "damage_dice_progression": {
+      "1": [1, 10],
+      "5": [2, 10],
+      "11": [3, 10],
+      "17": [4, 10]
+    },
+    "damage_type": "fire",
+    "range_ft": 15,
+    "save_for_half": true,
+    "description": "Пламя поражает выбранную цель в пределах 15 футов; спасбросок Ловкости уменьшает урон вдвое. Урон растёт на уровнях 5, 11 и 17.",
+    "button": "ОГНЕННОЕ ДЫХАНИЕ"
+  },
+  "adrenaline_rush": {
+    "id": "adrenaline_rush",
+    "name": "Прилив адреналина",
+    "kind": "active",
+    "target": "self",
+    "resource_key": "adrenaline_rush",
+    "effect": "adrenaline_rush",
+    "action_kind": "bonus",
+    "description": "Совершает Рывок дополнительным действием и даёт временные HP, равные бонусу мастерства.",
+    "button": "ПРИЛИВ АДРЕНАЛИНА"
+  }
+}

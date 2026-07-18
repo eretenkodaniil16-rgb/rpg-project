@@ -137,8 +137,10 @@ func _open_combat_dialogue() -> void:
 	if not _target_is_valid(target):
 		_show_message("Сначала выберите противника, к которому хотите обратиться.", false)
 		return
+	var character: PlayerCharacter = _get_player_character()
+	var race_id: String = character.race_id if character != null else ""
 	var choices: Array[Dictionary] = []
-	for action: Dictionary in _social_system.get_actions():
+	for action: Dictionary in _social_system.get_actions(race_id):
 		choices.append({
 			"text": str(action.get("label", "ОБЩЕНИЕ")),
 			"runtime_action": "combat_social:%s" % str(action.get("id", ""))
@@ -176,7 +178,8 @@ func _perform_social_action(action_id: String, target: Node) -> void:
 	var speaker_name: String = character.character_name.strip_edges() if character != null else "Герой"
 	if speaker_name.is_empty():
 		speaker_name = "Герой"
-	var result: Dictionary = _social_system.resolve_action(action_id, speaker_name, target)
+	var race_id: String = character.race_id if character != null else ""
+	var result: Dictionary = _social_system.resolve_action(action_id, speaker_name, target, race_id)
 	if not bool(result.get("success", false)):
 		_show_message(str(result.get("message", "Свободное действие недоступно.")), false)
 		return
@@ -235,6 +238,9 @@ func _play_gesture(player: Node2D, gesture_id: String) -> void:
 		tween.tween_property(body, "position", original_position + facing * 13.0, 0.09)
 		tween.tween_property(body, "position", original_position - facing * 5.0, 0.09)
 		tween.tween_property(body, "position", original_position, 0.12)
+	elif gesture_id == "thaumaturgy_voice":
+		tween.tween_property(body, "scale", body.scale * 1.08, 0.12)
+		tween.tween_property(body, "scale", body.scale, 0.18)
 
 
 func _sync_player_terrain_trait() -> void:

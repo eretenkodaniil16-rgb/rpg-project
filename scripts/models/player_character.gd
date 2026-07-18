@@ -2,6 +2,7 @@ class_name PlayerCharacter
 extends RefCounted
 
 const DEFAULT_APPEARANCE_COLOR_HEX: String = "#4DA3E8"
+const DEFAULT_RACE_ID: String = "human"
 const DEFAULT_ABILITIES: Dictionary = {
 	"strength": 10,
 	"dexterity": 10,
@@ -14,7 +15,27 @@ const DEFAULT_ABILITIES: Dictionary = {
 var character_name: String = ""
 var character_class_id: String = ""
 var character_class_name: String = ""
+var race_id: String = DEFAULT_RACE_ID
+var race_name: String = "Человек"
 var appearance_color_hex: String = DEFAULT_APPEARANCE_COLOR_HEX
+var size_category: String = "medium"
+var base_speed_feet: int = 30
+var darkvision_feet: int = 0
+var racial_features: Array[String] = []
+var racial_ability_id: String = ""
+var racial_damage_resistances: Array[String] = []
+var racial_condition_save_advantage: Array[String] = []
+var racial_save_advantage_abilities: Array[String] = []
+var racial_magical_save_advantage_abilities: Array[String] = []
+var racial_short_rest_resources: Array[String] = []
+var reroll_natural_one: bool = false
+var immune_to_magical_sleep: bool = false
+var long_rest_hours: int = 8
+var can_move_through_larger_creatures: bool = false
+var naturally_stealthy: bool = false
+var grapple_escape_advantage: bool = false
+var carrying_size_bonus: int = 0
+var applied_racial_hit_point_bonus: int = 0
 var level: int = 1
 var experience: int = 0
 var abilities: Dictionary = DEFAULT_ABILITIES.duplicate(true)
@@ -91,7 +112,27 @@ func to_dict() -> Dictionary:
 		"name": character_name,
 		"class_id": character_class_id,
 		"class_name": character_class_name,
+		"race_id": race_id,
+		"race_name": race_name,
 		"appearance_color_hex": appearance_color_hex,
+		"size_category": size_category,
+		"base_speed_feet": base_speed_feet,
+		"darkvision_feet": darkvision_feet,
+		"racial_features": racial_features.duplicate(),
+		"racial_ability_id": racial_ability_id,
+		"racial_damage_resistances": racial_damage_resistances.duplicate(),
+		"racial_condition_save_advantage": racial_condition_save_advantage.duplicate(),
+		"racial_save_advantage_abilities": racial_save_advantage_abilities.duplicate(),
+		"racial_magical_save_advantage_abilities": racial_magical_save_advantage_abilities.duplicate(),
+		"racial_short_rest_resources": racial_short_rest_resources.duplicate(),
+		"reroll_natural_one": reroll_natural_one,
+		"immune_to_magical_sleep": immune_to_magical_sleep,
+		"long_rest_hours": long_rest_hours,
+		"can_move_through_larger_creatures": can_move_through_larger_creatures,
+		"naturally_stealthy": naturally_stealthy,
+		"grapple_escape_advantage": grapple_escape_advantage,
+		"carrying_size_bonus": carrying_size_bonus,
+		"applied_racial_hit_point_bonus": applied_racial_hit_point_bonus,
 		"level": level,
 		"experience": experience,
 		"abilities": abilities.duplicate(true),
@@ -117,7 +158,27 @@ static func from_dict(data: Dictionary) -> PlayerCharacter:
 	character.character_name = str(data.get("name", "Путник"))
 	character.character_class_id = str(data.get("class_id", "fighter"))
 	character.character_class_name = str(data.get("class_name", "Воин"))
+	character.race_id = str(data.get("race_id", DEFAULT_RACE_ID))
+	character.race_name = str(data.get("race_name", "Человек"))
 	character.appearance_color_hex = normalize_color_hex(str(data.get("appearance_color_hex", DEFAULT_APPEARANCE_COLOR_HEX)))
+	character.size_category = str(data.get("size_category", "medium"))
+	character.base_speed_feet = maxi(int(data.get("base_speed_feet", 30)), 0)
+	character.darkvision_feet = maxi(int(data.get("darkvision_feet", 0)), 0)
+	character.racial_features = _string_array(data.get("racial_features", []))
+	character.racial_ability_id = str(data.get("racial_ability_id", ""))
+	character.racial_damage_resistances = _string_array(data.get("racial_damage_resistances", []))
+	character.racial_condition_save_advantage = _string_array(data.get("racial_condition_save_advantage", []))
+	character.racial_save_advantage_abilities = _string_array(data.get("racial_save_advantage_abilities", []))
+	character.racial_magical_save_advantage_abilities = _string_array(data.get("racial_magical_save_advantage_abilities", []))
+	character.racial_short_rest_resources = _string_array(data.get("racial_short_rest_resources", []))
+	character.reroll_natural_one = bool(data.get("reroll_natural_one", false))
+	character.immune_to_magical_sleep = bool(data.get("immune_to_magical_sleep", false))
+	character.long_rest_hours = clampi(int(data.get("long_rest_hours", 8)), 1, 24)
+	character.can_move_through_larger_creatures = bool(data.get("can_move_through_larger_creatures", false))
+	character.naturally_stealthy = bool(data.get("naturally_stealthy", false))
+	character.grapple_escape_advantage = bool(data.get("grapple_escape_advantage", false))
+	character.carrying_size_bonus = maxi(int(data.get("carrying_size_bonus", 0)), 0)
+	character.applied_racial_hit_point_bonus = maxi(int(data.get("applied_racial_hit_point_bonus", 0)), 0)
 	character.level = maxi(int(data.get("level", 1)), 1)
 	character.experience = maxi(int(data.get("experience", 0)), 0)
 	var loaded_abilities: Variant = data.get("abilities", {})
@@ -133,10 +194,7 @@ static func from_dict(data: Dictionary) -> PlayerCharacter:
 	character.equipped_weapon_id = str(data.get("equipped_weapon_id", ""))
 	character.equipped_armor_id = str(data.get("equipped_armor_id", ""))
 	character.equipped_shield_id = str(data.get("equipped_shield_id", ""))
-	var features_value: Variant = data.get("known_features", [])
-	if features_value is Array:
-		for feature_value: Variant in features_value:
-			character.known_features.append(str(feature_value))
+	character.known_features = _string_array(data.get("known_features", []))
 	character.signature_ability_id = str(data.get("signature_ability_id", ""))
 	var resources_value: Variant = data.get("class_resources", {})
 	character.class_resources = (resources_value as Dictionary).duplicate(true) if resources_value is Dictionary else {}
@@ -153,6 +211,8 @@ static func create_legacy_default() -> PlayerCharacter:
 	character.character_name = "Путник"
 	character.character_class_id = "fighter"
 	character.character_class_name = "Воин"
+	character.race_id = DEFAULT_RACE_ID
+	character.race_name = "Человек"
 	character.appearance_color_hex = DEFAULT_APPEARANCE_COLOR_HEX
 	character.maximum_health = 10
 	character.current_health = 10
@@ -177,3 +237,11 @@ static func normalize_color_hex(value: String) -> String:
 
 static func modifier_for_score(score: int) -> int:
 	return floori((float(score) - 10.0) / 2.0)
+
+
+static func _string_array(value: Variant) -> Array[String]:
+	var result: Array[String] = []
+	if value is Array:
+		for item: Variant in value:
+			result.append(str(item))
+	return result
