@@ -1,6 +1,6 @@
 {
-  "ruleset": "SRD 5.2.1 inspired",
-  "ability_bonus_rule": "Classic ancestry-style ability bonuses are applied once during character creation and capped at 20.",
+  "ruleset": "Основано на открытом справочном документе 5.2.1",
+  "ability_bonus_rule": "Расовые бонусы применяются один раз при создании персонажа; итоговое значение ограничено 20.",
   "races": [
     {
       "id": "human", "name": "Человек", "color_hex": "#4DA3E8", "selection_symbol": "ЧЛ", "size": "medium", "speed_ft": 30, "darkvision_ft": 0,
@@ -33,7 +33,7 @@
       "ability_bonuses": {"constitution": 2, "wisdom": 1},
       "ability_bonus_description": "+2 к Телосложению, +1 к Мудрости",
       "traits": [
-        {"id": "dwarven_toughness", "name": "Дворфийская стойкость", "description": "+1 максимум HP за каждый уровень."},
+        {"id": "dwarven_toughness", "name": "Дворфийская стойкость", "description": "+1 к максимуму здоровья за каждый уровень."},
         {"id": "poison_resilience", "name": "Стойкость к яду", "description": "Сопротивление урону ядом и преимущество против отравления."},
         {"id": "darkvision", "name": "Тёмное зрение", "description": "Видит в темноте на 120 футов."},
         {"id": "stonecunning", "name": "Знание камня", "description": "Треморное чувство будет подключено после появления скрытых объектов и каменных поверхностей."}
@@ -46,7 +46,7 @@
       "ability_bonuses": {"dexterity": 2, "charisma": 1},
       "ability_bonus_description": "+2 к Ловкости, +1 к Харизме",
       "traits": [
-        {"id": "lucky", "name": "Везение", "description": "При натуральной 1 на любом броске d20 кубик перебрасывается один раз."},
+        {"id": "lucky", "name": "Везение", "description": "При натуральной 1 на любом броске к20 кубик перебрасывается один раз."},
         {"id": "brave", "name": "Храбрость", "description": "Преимущество на спасброски против испуга."},
         {"id": "nimble", "name": "Проворство", "description": "Может проходить через клетки существ большего размера, но не может завершать там перемещение."},
         {"id": "naturally_stealthy", "name": "Природная скрытность", "description": "Может попытаться скрыться за соседним существом большего размера."}
@@ -86,7 +86,7 @@
       "ability_bonuses": {"strength": 2, "constitution": 1},
       "ability_bonus_description": "+2 к Силе, +1 к Телосложению",
       "traits": [
-        {"id": "stone_endurance", "name": "Каменная выносливость", "description": "Реакцией уменьшает полученный урон на 1d12 + Телосложение; число применений равно бонусу мастерства."},
+        {"id": "stone_endurance", "name": "Каменная выносливость", "description": "Реакцией уменьшает полученный урон на 1к12 + Телосложение; число применений равно бонусу мастерства."},
         {"id": "powerful_build", "name": "Могучее сложение", "description": "Преимущество при освобождении из захвата и учёт как существа на один размер крупнее для переносимого веса."},
         {"id": "giant_stride", "name": "Шаг великана", "description": "Базовая скорость 35 футов."}
       ],
@@ -99,8 +99,8 @@
       "ability_bonuses": {"strength": 2, "constitution": 1},
       "ability_bonus_description": "+2 к Силе, +1 к Телосложению",
       "traits": [
-        {"id": "adrenaline_rush", "name": "Прилив адреналина", "description": "Дополнительным действием совершает Рывок и получает временные HP, равные бонусу мастерства."},
-        {"id": "relentless_endurance", "name": "Неукротимая стойкость", "description": "Один раз за долгий отдых падение до 0 HP заменяется на 1 HP, если урон не убивает мгновенно."},
+        {"id": "adrenaline_rush", "name": "Прилив адреналина", "description": "Дополнительным действием совершает Рывок и получает временное здоровье, равное бонусу мастерства."},
+        {"id": "relentless_endurance", "name": "Неукротимая стойкость", "description": "Один раз за долгий отдых падение до 0 здоровья заменяется на 1 очко здоровья, если урон не убивает мгновенно."},
         {"id": "darkvision", "name": "Тёмное зрение", "description": "Видит в темноте на 120 футов."}
       ],
       "active_ability_id": "adrenaline_rush",
