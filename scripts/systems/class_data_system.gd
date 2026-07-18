@@ -3,6 +3,7 @@ extends RefCounted
 
 const CLASSES_PATH: String = "res://data/classes/classes.json"
 const ABILITIES_PATH: String = "res://data/abilities/abilities.json"
+const IGNORE_NONMAGICAL_DIFFICULT_TERRAIN: String = "ignore_nonmagical_difficult_terrain"
 
 var _classes: Dictionary = {}
 var _abilities: Dictionary = {}
@@ -52,6 +53,43 @@ func get_class_definition(class_id: String) -> Dictionary:
 	return (value as Dictionary).duplicate(true) if value is Dictionary else {}
 
 
+func get_movement_traits(character: PlayerCharacter) -> Array[String]:
+	var result: Array[String] = []
+	if character == null:
+		return result
+	var class_data: Dictionary = get_class_definition(character.character_class_id)
+	var traits_value: Variant = class_data.get("movement_traits", [])
+	if traits_value is Array:
+		for value: Variant in traits_value:
+			result.append(str(value))
+	return result
+
+
+func has_movement_trait(character: PlayerCharacter, trait_id: String) -> bool:
+	return trait_id in get_movement_traits(character)
+
+
+func ignores_nonmagical_difficult_terrain(character: PlayerCharacter) -> bool:
+	return has_movement_trait(character, IGNORE_NONMAGICAL_DIFFICULT_TERRAIN)
+
+
+func exploration_speed_multiplier(character: PlayerCharacter, difficult_terrain: bool, magical_terrain: bool = false) -> float:
+	if not difficult_terrain:
+		return 1.0
+	if not magical_terrain and ignores_nonmagical_difficult_terrain(character):
+		return 1.0
+	return 0.5
+
+
+func movement_cost_for_terrain(character: PlayerCharacter, base_cost_feet: int, difficult_terrain: bool, magical_terrain: bool = false) -> int:
+	var base_cost: int = maxi(base_cost_feet, 0)
+	if not difficult_terrain:
+		return base_cost
+	if not magical_terrain and ignores_nonmagical_difficult_terrain(character):
+		return base_cost
+	return base_cost * 2
+
+
 func get_ability_definition(ability_id: String) -> Dictionary:
 	var value: Variant = _abilities.get(ability_id, {})
 	return (value as Dictionary).duplicate(true) if value is Dictionary else {}
@@ -67,6 +105,13 @@ func get_feature_views(character: PlayerCharacter) -> Array:
 		var feature: Dictionary = get_ability_definition(feature_id)
 		if not feature.is_empty():
 			result.append(feature)
+	if ignores_nonmagical_difficult_terrain(character):
+		result.append({
+			"id": "wilderness_guide",
+			"name": "Проводник бездорожья",
+			"kind": "passive",
+			"description": "Оригинальная особенность проекта: немагическая труднопроходимая местность не увеличивает стоимость перемещения Следопыта и не замедляет его вне боя."
+		})
 	return result
 
 
