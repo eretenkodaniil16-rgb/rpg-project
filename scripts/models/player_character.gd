@@ -25,8 +25,16 @@ var racial_features: Array[String] = []
 var racial_ability_id: String = ""
 var racial_damage_resistances: Array[String] = []
 var racial_condition_save_advantage: Array[String] = []
+var racial_save_advantage_abilities: Array[String] = []
 var racial_magical_save_advantage_abilities: Array[String] = []
+var racial_short_rest_resources: Array[String] = []
 var reroll_natural_one: bool = false
+var immune_to_magical_sleep: bool = false
+var long_rest_hours: int = 8
+var can_move_through_larger_creatures: bool = false
+var naturally_stealthy: bool = false
+var grapple_escape_advantage: bool = false
+var carrying_size_bonus: int = 0
 var applied_racial_hit_point_bonus: int = 0
 var level: int = 1
 var experience: int = 0
@@ -114,8 +122,16 @@ func to_dict() -> Dictionary:
 		"racial_ability_id": racial_ability_id,
 		"racial_damage_resistances": racial_damage_resistances.duplicate(),
 		"racial_condition_save_advantage": racial_condition_save_advantage.duplicate(),
+		"racial_save_advantage_abilities": racial_save_advantage_abilities.duplicate(),
 		"racial_magical_save_advantage_abilities": racial_magical_save_advantage_abilities.duplicate(),
+		"racial_short_rest_resources": racial_short_rest_resources.duplicate(),
 		"reroll_natural_one": reroll_natural_one,
+		"immune_to_magical_sleep": immune_to_magical_sleep,
+		"long_rest_hours": long_rest_hours,
+		"can_move_through_larger_creatures": can_move_through_larger_creatures,
+		"naturally_stealthy": naturally_stealthy,
+		"grapple_escape_advantage": grapple_escape_advantage,
+		"carrying_size_bonus": carrying_size_bonus,
 		"applied_racial_hit_point_bonus": applied_racial_hit_point_bonus,
 		"level": level,
 		"experience": experience,
@@ -152,8 +168,16 @@ static func from_dict(data: Dictionary) -> PlayerCharacter:
 	character.racial_ability_id = str(data.get("racial_ability_id", ""))
 	character.racial_damage_resistances = _string_array(data.get("racial_damage_resistances", []))
 	character.racial_condition_save_advantage = _string_array(data.get("racial_condition_save_advantage", []))
+	character.racial_save_advantage_abilities = _string_array(data.get("racial_save_advantage_abilities", []))
 	character.racial_magical_save_advantage_abilities = _string_array(data.get("racial_magical_save_advantage_abilities", []))
+	character.racial_short_rest_resources = _string_array(data.get("racial_short_rest_resources", []))
 	character.reroll_natural_one = bool(data.get("reroll_natural_one", false))
+	character.immune_to_magical_sleep = bool(data.get("immune_to_magical_sleep", false))
+	character.long_rest_hours = clampi(int(data.get("long_rest_hours", 8)), 1, 24)
+	character.can_move_through_larger_creatures = bool(data.get("can_move_through_larger_creatures", false))
+	character.naturally_stealthy = bool(data.get("naturally_stealthy", false))
+	character.grapple_escape_advantage = bool(data.get("grapple_escape_advantage", false))
+	character.carrying_size_bonus = maxi(int(data.get("carrying_size_bonus", 0)), 0)
 	character.applied_racial_hit_point_bonus = maxi(int(data.get("applied_racial_hit_point_bonus", 0)), 0)
 	character.level = maxi(int(data.get("level", 1)), 1)
 	character.experience = maxi(int(data.get("experience", 0)), 0)
