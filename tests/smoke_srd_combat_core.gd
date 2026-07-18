@@ -192,7 +192,8 @@ func _run() -> void:
 		return
 
 	character.current_health = character.maximum_health
-	var relentless_result: Dictionary = game.call("apply_damage_to_player", character.maximum_health, "slashing", false, caretaker) as Dictionary
+	var lethal_damage: int = character.maximum_health + combat_state.temporary_hit_points
+	var relentless_result: Dictionary = game.call("apply_damage_to_player", lethal_damage, "slashing", false, caretaker) as Dictionary
 	await process_frame
 	if character.current_health != 1 or character.get_resource("relentless_endurance") != 0 or not bool(relentless_result.get("relentless", false)):
 		_fail("Orc Relentless Endurance did not leave the character at one HP after a non-instantly-lethal hit.")
