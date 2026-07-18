@@ -7,6 +7,7 @@ const SOCIAL_SYSTEM_SCRIPT: Script = preload("res://scripts/systems/combat_socia
 var _game: Node
 var _action_ui: ActionCatalogUI
 var _social_system: CombatSocialActionSystem = SOCIAL_SYSTEM_SCRIPT.new() as CombatSocialActionSystem
+var _class_data: ClassDataSystem = ClassDataSystem.new()
 var _free_category_button: Button
 var _initialized: bool = false
 var _social_action_used_this_turn: bool = false
@@ -127,7 +128,8 @@ func _perform_social_action(action_id: String) -> void:
 	if _game.has_method("_target_is_valid") and not bool(_game.call("_target_is_valid", target)):
 		_show_message("Выбранная цель больше недоступна для общения.", false)
 		return
-	var speaker_name: String = GameState.player_character.character_name.strip_edges()
+	var character: PlayerCharacter = _get_player_character()
+	var speaker_name: String = character.character_name.strip_edges() if character != null else "Герой"
 	if speaker_name.is_empty():
 		speaker_name = "Герой"
 	var result: Dictionary = _social_system.resolve_action(action_id, speaker_name, target)
@@ -167,8 +169,16 @@ func _sync_player_terrain_trait() -> void:
 	var state_value: Variant = _game.get("_player_combat_state")
 	if not state_value is CombatantState:
 		return
-	var class_data := ClassDataSystem.new()
-	(state_value as CombatantState).ignores_nonmagical_difficult_terrain = class_data.ignores_nonmagical_difficult_terrain(GameState.player_character)
+	var character: PlayerCharacter = _get_player_character()
+	(state_value as CombatantState).ignores_nonmagical_difficult_terrain = character != null and _class_data.ignores_nonmagical_difficult_terrain(character)
+
+
+func _get_player_character() -> PlayerCharacter:
+	var state: Node = get_node_or_null("/root/GameState")
+	if state == null:
+		return null
+	var value: Variant = state.get("player_character")
+	return value as PlayerCharacter if value is PlayerCharacter else null
 
 
 func _show_message(text: String, positive: bool) -> void:
