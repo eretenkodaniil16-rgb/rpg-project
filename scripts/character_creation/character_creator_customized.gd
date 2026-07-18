@@ -123,8 +123,8 @@ func _build_race_step() -> void:
 	if traits_value is Array:
 		for trait_value: Variant in traits_value:
 			if trait_value is Dictionary:
-				var trait: Dictionary = trait_value as Dictionary
-				var trait_label: Label = _make_label("• %s — %s" % [str(trait.get("name", "Особенность")), str(trait.get("description", ""))], 16)
+				var trait_data: Dictionary = trait_value as Dictionary
+				var trait_label: Label = _make_label("• %s — %s" % [str(trait_data.get("name", "Особенность")), str(trait_data.get("description", ""))], 16)
 				trait_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 				box.add_child(trait_label)
 
