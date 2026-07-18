@@ -1,6 +1,16 @@
 extends "res://scripts/ui/character_sheet.gd"
 
 
+func _ready() -> void:
+	super._ready()
+	for node: Node in find_children("*", "Label", true, false):
+		var label: Label = node as Label
+		if label.text == "КЛАССОВЫЕ ОСОБЕННОСТИ":
+			label.text = "ОСОБЕННОСТИ КЛАССА И РАСЫ"
+		elif label.text == "Цвет:":
+			label.text = "Цвет расы:"
+
+
 func _refresh() -> void:
 	super._refresh()
 	if _character == null:
