@@ -1,6 +1,6 @@
 [gd_scene load_steps=9 format=3]
 
-[ext_resource type="Script" path="res://scripts/game/game_racial_planned.gd" id="1_game"]
+[ext_resource type="Script" path="res://scripts/game/game_target_free_attacks.gd" id="1_game"]
 [ext_resource type="Script" path="res://scripts/game/player_combat.gd" id="2_player"]
 [ext_resource type="Script" path="res://scripts/game/npc.gd" id="3_npc"]
 [ext_resource type="Script" path="res://scripts/ui/dialogue_ui.gd" id="4_dialogue"]
@@ -81,7 +81,7 @@ offset_top = 18.0
 offset_right = 900.0
 offset_bottom = 54.0
 theme_override_font_sizes/font_size = 18
-text = "Движение: стрелки · Взаимодействие: Enter или Пробел · Выход в меню: Esc"
+text = "Движение: стрелки · Взаимодействие: ввод или пробел · Выход в меню: выход"
 
 [node name="StatusLabel" type="Label" parent="Interface"]
 offset_left = 22.0
@@ -90,7 +90,7 @@ offset_right = 900.0
 offset_bottom = 98.0
 theme_override_colors/font_color = Color(0.82, 0.85, 0.67, 1)
 theme_override_font_sizes/font_size = 18
-text = "Подойдите к Смотрителю и нажмите Enter или Пробел."
+text = "Подойдите к Смотрителю и нажмите ввод или пробел."
 
 [node name="InteractionLabel" type="Label" parent="Interface"]
 visible = false
@@ -100,7 +100,7 @@ offset_right = 834.0
 offset_bottom = 672.0
 theme_override_colors/font_color = Color(1, 0.9, 0.58, 1)
 theme_override_font_sizes/font_size = 22
-text = "Нажмите Enter или Пробел для разговора"
+text = "Нажмите ввод или пробел для разговора"
 horizontal_alignment = 1
 
 [node name="MobileControls" type="Control" parent="Interface"]
