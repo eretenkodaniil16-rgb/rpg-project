@@ -55,6 +55,7 @@ func apply_race(character: PlayerCharacter, race_id: String, preserve_health_rat
 	character.naturally_stealthy = bool(race.get("naturally_stealthy", false))
 	character.grapple_escape_advantage = bool(race.get("grapple_escape_advantage", false))
 	character.carrying_size_bonus = maxi(int(race.get("carrying_size_bonus", 0)), 0)
+	_remove_obsolete_racial_resources(character, race)
 	_initialize_resources(character, race, refill_resources)
 	var racial_bonus: int = get_hit_point_bonus(character)
 	character.maximum_health = maxi(character.maximum_health + racial_bonus - character.applied_racial_hit_point_bonus, 1)
@@ -105,6 +106,27 @@ func get_racial_damage_resistances(character: PlayerCharacter) -> Array[String]:
 
 static func size_rank(size_category: String) -> int:
 	return int(SIZE_RANKS.get(size_category.strip_edges().to_lower(), 2))
+
+func _remove_obsolete_racial_resources(character: PlayerCharacter, selected_race: Dictionary) -> void:
+	var selected_resources: Dictionary = {}
+	var selected_value: Variant = selected_race.get("resources", {})
+	if selected_value is Dictionary:
+		selected_resources = selected_value as Dictionary
+	var all_racial_keys: Dictionary = {}
+	for race_value: Variant in _races.values():
+		if not race_value is Dictionary:
+			continue
+		var resources_value: Variant = (race_value as Dictionary).get("resources", {})
+		if not resources_value is Dictionary:
+			continue
+		for key_value: Variant in (resources_value as Dictionary).keys():
+			all_racial_keys[str(key_value)] = true
+	for key_value: Variant in all_racial_keys.keys():
+		var key: String = str(key_value)
+		if selected_resources.has(key):
+			continue
+		character.class_resources.erase(key)
+		character.class_resource_maximums.erase(key)
 
 func _initialize_resources(character: PlayerCharacter, race: Dictionary, refill_resources: bool) -> void:
 	var resources_value: Variant = race.get("resources", {})
