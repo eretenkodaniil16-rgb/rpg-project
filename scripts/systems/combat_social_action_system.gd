@@ -34,17 +34,26 @@ func resolve_action(action_id: String, speaker_name: String, target: Node) -> Di
 		if float(current_health) / float(maximum_health) <= 0.5:
 			condition_key = "wounded"
 	var speaker_text: String = str(action.get("speaker_text", ""))
+	var kind: String = str(action.get("kind", "speech"))
+	var hero_line: String = "Вы: %s" % speaker_text
 	var message: String = speaker_text
-	if str(action.get("kind", "speech")) == "speech":
+	if kind == "speech":
+		hero_line = "Вы: «%s»" % speaker_text
 		message = "%s: «%s»" % [speaker_name, speaker_text]
 	var response: String = _get_response(action, target_name, condition_key)
+	var dialogue_text: String = hero_line
 	if not response.is_empty():
 		message += "\n%s" % response
+		dialogue_text += "\n\n%s" % response
 	return {
 		"success": true,
 		"message": message,
+		"dialogue_text": dialogue_text,
+		"speaker_text": speaker_text,
+		"response": response,
+		"target_name": target_name,
 		"gesture": str(action.get("gesture", "")),
-		"kind": str(action.get("kind", "speech"))
+		"kind": kind
 	}
 
 
