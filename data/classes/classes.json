@@ -63,7 +63,9 @@
       "primary_abilities": ["dexterity", "wisdom"], "saving_throws": ["strength", "dexterity"],
       "starting_items": {"studded_leather": 1, "scimitar": 1, "shortsword": 1, "longbow": 1, "arrow": 20, "quiver": 1, "druidic_focus": 1, "explorer_pack": 1, "gold_coin": 7},
       "equipment": {"weapon": "longbow", "armor": "studded_leather", "shield": ""},
-      "features": ["favored_enemy", "spellcasting_ranger", "weapon_mastery"], "signature_ability": "hunters_mark"
+      "features": ["favored_enemy", "wilderness_guide", "spellcasting_ranger", "weapon_mastery"],
+      "movement_traits": ["ignore_nonmagical_difficult_terrain"],
+      "signature_ability": "hunters_mark"
     },
     {
       "id": "rogue", "name": "Плут", "role": "Скрытность, ловушки и точечный урон",
