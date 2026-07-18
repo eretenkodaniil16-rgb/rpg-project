@@ -1,14 +1,16 @@
 extends SceneTree
 
 const CLASSES_PATH: String = "res://data/classes/classes.json"
+const RACES_PATH: String = "res://data/races/races.json"
 
 
 func _init() -> void:
 	_test_modifiers()
 	_test_ability_rolls()
-	_test_character_appearance()
+	_test_character_race_and_appearance()
 	_test_classes_file()
-	print("Character creation tests passed.")
+	_test_races_file()
+	print("Character creation and race tests passed.")
 	quit(0)
 
 
@@ -31,14 +33,27 @@ func _test_ability_rolls() -> void:
 		assert(int(result.get("total", 0)) <= 18)
 
 
-func _test_character_appearance() -> void:
+func _test_character_race_and_appearance() -> void:
 	var character: PlayerCharacter = PlayerCharacter.new()
 	character.character_name = "Тест"
 	character.character_class_id = "fighter"
 	character.character_class_name = "Воин"
-	character.appearance_color_hex = "#D95555"
+	character.maximum_health = 10
+	character.current_health = 10
+	var race_data := RaceDataSystem.new()
+	race_data.apply_race(character, "dwarf")
+	assert(character.race_id == "dwarf")
+	assert(character.race_name == "Дворф")
+	assert(character.maximum_health == 11)
+	assert("poison" in character.racial_damage_resistances)
 	var restored: PlayerCharacter = PlayerCharacter.from_dict(character.to_dict())
-	assert(restored.appearance_color_hex == "#D95555")
+	assert(restored.race_id == "dwarf")
+	assert(restored.race_name == "Дворф")
+	assert(restored.appearance_color_hex == character.appearance_color_hex)
+	assert(restored.maximum_health == 11)
+	var legacy: PlayerCharacter = PlayerCharacter.from_dict({"name":"Старый герой", "class_id":"fighter", "class_name":"Воин", "maximum_health":10, "current_health":10})
+	assert(legacy.race_id == "human")
+	assert(legacy.race_name == "Человек")
 	assert(PlayerCharacter.normalize_color_hex("4fb878") == "#4FB878")
 	assert(PlayerCharacter.normalize_color_hex("invalid") == PlayerCharacter.DEFAULT_APPEARANCE_COLOR_HEX)
 
@@ -62,3 +77,23 @@ func _test_classes_file() -> void:
 		assert(not ids.has(class_id))
 		ids[class_id] = true
 		assert(int(class_data.get("hit_die", 0)) in [6, 8, 10, 12])
+
+
+func _test_races_file() -> void:
+	assert(FileAccess.file_exists(RACES_PATH))
+	var race_data := RaceDataSystem.new()
+	var races: Array[Dictionary] = race_data.get_races()
+	assert(races.size() == 9)
+	var required_ids: Array[String] = ["human", "elf", "dwarf", "halfling", "dragonborn", "gnome", "goliath", "orc", "tiefling"]
+	var seen: Dictionary = {}
+	for race: Dictionary in races:
+		var race_id: String = str(race.get("id", ""))
+		assert(race_id in required_ids)
+		assert(not seen.has(race_id))
+		seen[race_id] = true
+		assert(not str(race.get("name", "")).is_empty())
+		assert(not str(race.get("color_hex", "")).is_empty())
+		assert(int(race.get("speed_ft", 0)) > 0)
+		assert((race.get("traits", []) as Array).size() >= 2)
+	for race_id: String in required_ids:
+		assert(seen.has(race_id))
