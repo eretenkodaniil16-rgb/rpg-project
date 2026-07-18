@@ -1,9 +1,12 @@
 {
   "ruleset": "SRD 5.2.1 inspired",
+  "ability_bonus_rule": "Classic ancestry-style ability bonuses are applied once during character creation and capped at 20.",
   "races": [
     {
-      "id": "human", "name": "Человек", "color_hex": "#4DA3E8", "size": "medium", "speed_ft": 30, "darkvision_ft": 0,
+      "id": "human", "name": "Человек", "color_hex": "#4DA3E8", "selection_symbol": "ЧЛ", "size": "medium", "speed_ft": 30, "darkvision_ft": 0,
       "description": "Универсальный и находчивый герой, способный адаптироваться к любому пути.",
+      "ability_bonuses": {"strength": 1, "dexterity": 1, "constitution": 1, "intelligence": 1, "wisdom": 1, "charisma": 1},
+      "ability_bonus_description": "+1 ко всем характеристикам",
       "traits": [
         {"id": "resourceful", "name": "Находчивость", "description": "Один раз за долгий отдых получает преимущество на следующую атаку или проверку характеристики."},
         {"id": "skillful", "name": "Обученность", "description": "Подготовлено для будущего выбора владения навыком в редакторе персонажа."},
@@ -12,8 +15,10 @@
       "active_ability_id": "human_inspiration", "resources": {"human_inspiration": 1}
     },
     {
-      "id": "elf", "name": "Эльф", "color_hex": "#4FB878", "size": "medium", "speed_ft": 30, "darkvision_ft": 60,
+      "id": "elf", "name": "Эльф", "color_hex": "#4FB878", "selection_symbol": "ЭЛ", "size": "medium", "speed_ft": 30, "darkvision_ft": 60,
       "description": "Ловкий долгожитель с обострёнными чувствами и устойчивостью к магическому воздействию.",
+      "ability_bonuses": {"dexterity": 2, "wisdom": 1},
+      "ability_bonus_description": "+2 к Ловкости, +1 к Мудрости",
       "traits": [
         {"id": "darkvision", "name": "Тёмное зрение", "description": "Видит в темноте на 60 футов."},
         {"id": "fey_ancestry", "name": "Наследие фей", "description": "Преимущество на спасброски против очарования."},
@@ -23,8 +28,10 @@
       "condition_save_advantage": ["charmed"], "immune_to_magical_sleep": true, "long_rest_hours": 4
     },
     {
-      "id": "dwarf", "name": "Дворф", "color_hex": "#E0B84F", "size": "medium", "speed_ft": 30, "darkvision_ft": 120,
+      "id": "dwarf", "name": "Дворф", "color_hex": "#E0B84F", "selection_symbol": "ДВ", "size": "medium", "speed_ft": 30, "darkvision_ft": 120,
       "description": "Крепкий народ камня и кузниц, устойчивый к ядам и физическим нагрузкам.",
+      "ability_bonuses": {"constitution": 2, "wisdom": 1},
+      "ability_bonus_description": "+2 к Телосложению, +1 к Мудрости",
       "traits": [
         {"id": "dwarven_toughness", "name": "Дворфийская стойкость", "description": "+1 максимум HP за каждый уровень."},
         {"id": "poison_resilience", "name": "Стойкость к яду", "description": "Сопротивление урону ядом и преимущество против отравления."},
@@ -34,8 +41,10 @@
       "hp_bonus_per_level": 1, "damage_resistances": ["poison"], "condition_save_advantage": ["poisoned"]
     },
     {
-      "id": "halfling", "name": "Полурослик", "color_hex": "#D97955", "size": "small", "speed_ft": 30, "darkvision_ft": 0,
+      "id": "halfling", "name": "Полурослик", "color_hex": "#D97955", "selection_symbol": "ПР", "size": "small", "speed_ft": 30, "darkvision_ft": 0,
       "description": "Небольшой, храбрый и невероятно удачливый путешественник.",
+      "ability_bonuses": {"dexterity": 2, "charisma": 1},
+      "ability_bonus_description": "+2 к Ловкости, +1 к Харизме",
       "traits": [
         {"id": "lucky", "name": "Везение", "description": "При натуральной 1 на любом броске d20 кубик перебрасывается один раз."},
         {"id": "brave", "name": "Храбрость", "description": "Преимущество на спасброски против испуга."},
@@ -46,8 +55,10 @@
       "can_move_through_larger_creatures": true, "naturally_stealthy": true
     },
     {
-      "id": "dragonborn", "name": "Драконорождённый", "color_hex": "#C64E4E", "size": "medium", "speed_ft": 30, "darkvision_ft": 60,
+      "id": "dragonborn", "name": "Драконорождённый", "color_hex": "#C64E4E", "selection_symbol": "ДР", "size": "medium", "speed_ft": 30, "darkvision_ft": 60,
       "description": "Потомок огненной драконьей крови с разрушительным дыханием и природной устойчивостью к пламени.",
+      "ability_bonuses": {"strength": 2, "charisma": 1},
+      "ability_bonus_description": "+2 к Силе, +1 к Харизме",
       "traits": [
         {"id": "fire_ancestry", "name": "Огненная родословная", "description": "Для первой сюжетной версии используется огненное драконье наследие."},
         {"id": "fire_breath", "name": "Огненное дыхание", "description": "Действием поражает выбранную цель в пределах 15 футов; спасбросок Ловкости уменьшает урон вдвое. Урон растёт на уровнях 5, 11 и 17."},
@@ -58,8 +69,10 @@
       "resources": {"dragon_breath": {"formula": "proficiency_bonus", "minimum": 1}}
     },
     {
-      "id": "gnome", "name": "Гном", "color_hex": "#5B83C8", "size": "small", "speed_ft": 30, "darkvision_ft": 60,
+      "id": "gnome", "name": "Гном", "color_hex": "#5B83C8", "selection_symbol": "ГН", "size": "small", "speed_ft": 30, "darkvision_ft": 60,
       "description": "Маленький изобретательный народ с врождённой защитой разума.",
+      "ability_bonuses": {"intelligence": 2, "dexterity": 1},
+      "ability_bonus_description": "+2 к Интеллекту, +1 к Ловкости",
       "traits": [
         {"id": "gnome_cunning", "name": "Гномья хитрость", "description": "Преимущество на все спасброски Интеллекта, Мудрости и Харизмы."},
         {"id": "darkvision", "name": "Тёмное зрение", "description": "Видит в темноте на 60 футов."},
@@ -68,8 +81,10 @@
       "save_advantage_abilities": ["intelligence", "wisdom", "charisma"]
     },
     {
-      "id": "goliath", "name": "Голиаф", "color_hex": "#8A939B", "size": "medium", "speed_ft": 35, "darkvision_ft": 0,
+      "id": "goliath", "name": "Голиаф", "color_hex": "#8A939B", "selection_symbol": "ГЛ", "size": "medium", "speed_ft": 35, "darkvision_ft": 0,
       "description": "Высокий и могучий потомок каменных великанов, способный выдержать сокрушительный удар.",
+      "ability_bonuses": {"strength": 2, "constitution": 1},
+      "ability_bonus_description": "+2 к Силе, +1 к Телосложению",
       "traits": [
         {"id": "stone_endurance", "name": "Каменная выносливость", "description": "Реакцией уменьшает полученный урон на 1d12 + Телосложение; число применений равно бонусу мастерства."},
         {"id": "powerful_build", "name": "Могучее сложение", "description": "Преимущество при освобождении из захвата и учёт как существа на один размер крупнее для переносимого веса."},
@@ -79,8 +94,10 @@
       "grapple_escape_advantage": true, "carrying_size_bonus": 1
     },
     {
-      "id": "orc", "name": "Орк", "color_hex": "#6E8F4E", "size": "medium", "speed_ft": 30, "darkvision_ft": 120,
+      "id": "orc", "name": "Орк", "color_hex": "#6E8F4E", "selection_symbol": "ОР", "size": "medium", "speed_ft": 30, "darkvision_ft": 120,
       "description": "Неутомимый воин с мощным рывком и способностью остаться на ногах после смертельного удара.",
+      "ability_bonuses": {"strength": 2, "constitution": 1},
+      "ability_bonus_description": "+2 к Силе, +1 к Телосложению",
       "traits": [
         {"id": "adrenaline_rush", "name": "Прилив адреналина", "description": "Дополнительным действием совершает Рывок и получает временные HP, равные бонусу мастерства."},
         {"id": "relentless_endurance", "name": "Неукротимая стойкость", "description": "Один раз за долгий отдых падение до 0 HP заменяется на 1 HP, если урон не убивает мгновенно."},
@@ -94,8 +111,10 @@
       "short_rest_resources": ["adrenaline_rush"]
     },
     {
-      "id": "tiefling", "name": "Тифлинг", "color_hex": "#9368D8", "size": "medium", "speed_ft": 30, "darkvision_ft": 60,
+      "id": "tiefling", "name": "Тифлинг", "color_hex": "#9368D8", "selection_symbol": "ТФ", "size": "medium", "speed_ft": 30, "darkvision_ft": 60,
       "description": "Наследник инфернальных планов с тёмным зрением, устойчивостью к огню и врождённой магией.",
+      "ability_bonuses": {"charisma": 2, "intelligence": 1},
+      "ability_bonus_description": "+2 к Харизме, +1 к Интеллекту",
       "traits": [
         {"id": "infernal_legacy", "name": "Инфернальное наследие", "description": "Для первой сюжетной версии используется инфернальная родословная с сопротивлением огню."},
         {"id": "fire_resistance", "name": "Сопротивление огню", "description": "Получает половину урона огнём."},
