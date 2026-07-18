@@ -6,18 +6,26 @@ const PORTRAIT_SCRIPT: Script = preload("res://scripts/ui/dialogue_portrait.gd")
 var _dialogue_ui: Control
 var _portrait: DialoguePortrait
 var _bottom_panel: PanelContainer
+var _interact_button: Button
+var _game_world: Node
 var _last_target_id: int = -1
 
 
 func setup(dialogue_ui: Control) -> void:
 	_dialogue_ui = dialogue_ui
 	_build_layout()
+	_configure_context_button()
 	set_process(true)
 
 
 func _process(_delta: float) -> void:
 	if _dialogue_ui == null or not is_instance_valid(_dialogue_ui):
 		return
+	_update_portrait()
+	_update_context_button_visibility()
+
+
+func _update_portrait() -> void:
 	var target_value: Variant = _dialogue_ui.get("_dialogue_target")
 	var target: Node = target_value as Node if target_value is Node else null
 	var target_id: int = target.get_instance_id() if target != null and is_instance_valid(target) else 0
@@ -92,9 +100,39 @@ func _build_layout() -> void:
 		text.add_theme_font_size_override("font_size", 18)
 
 
+func _configure_context_button() -> void:
+	if _dialogue_ui == null:
+		return
+	_interact_button = _dialogue_ui.get_node_or_null("../MobileControls/InteractButton") as Button
+	_game_world = get_tree().get_first_node_in_group("game_world")
+	if _interact_button == null:
+		return
+	_interact_button.text = "ВЗАИМ."
+	_interact_button.offset_left = -176.0
+	_interact_button.offset_top = -112.0
+	_interact_button.offset_right = -28.0
+	_interact_button.offset_bottom = -52.0
+	_interact_button.add_theme_font_size_override("font_size", 17)
+
+
+func _update_context_button_visibility() -> void:
+	if _interact_button == null or not is_instance_valid(_interact_button):
+		return
+	if _game_world == null or not is_instance_valid(_game_world):
+		_game_world = get_tree().get_first_node_in_group("game_world")
+	var combat_active: bool = false
+	if _game_world != null and _game_world.has_method("is_turn_based_combat_active"):
+		combat_active = bool(_game_world.call("is_turn_based_combat_active"))
+	_interact_button.visible = not combat_active
+
+
 func get_portrait_for_testing() -> DialoguePortrait:
 	return _portrait
 
 
 func get_bottom_panel_for_testing() -> PanelContainer:
 	return _bottom_panel
+
+
+func get_context_button_for_testing() -> Button:
+	return _interact_button
