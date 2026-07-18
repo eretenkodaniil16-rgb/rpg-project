@@ -48,7 +48,6 @@ func _request_attack() -> void:
 	if _turn_system.active and not _turn_system.is_player_turn(player):
 		show_combat_message("Атаковать можно только на своём ходу.", false)
 		return
-
 	var weapon: Dictionary = _class_data.get_equipped_weapon(GameState.player_character)
 	var selected_before: Node = _selected_target
 	var predicted_target: Node = selected_before if _target_is_valid(selected_before) else _predict_directional_target(weapon)
@@ -56,7 +55,6 @@ func _request_attack() -> void:
 	if _turn_system.active and valid_attempt and not _turn_system.consume_action():
 		show_combat_message("Действие на этом ходу уже использовано.", false)
 		return
-
 	await super._request_attack()
 	if not _turn_system.active and valid_attempt and _target_is_valid(predicted_target):
 		_start_turn_based_combat(predicted_target)
@@ -73,7 +71,6 @@ func _on_ability_requested(ability_id: String) -> void:
 	if _turn_system.active and not _turn_system.is_player_turn(player):
 		_ability_panel.set_message("Способность можно применить только на своём ходу.", false)
 		return
-
 	var target_before: Node = _selected_target
 	var can_attempt: bool = _ability_attempt_is_valid(ability)
 	if _turn_system.active and can_attempt:
@@ -85,10 +82,9 @@ func _on_ability_requested(ability_id: String) -> void:
 		elif not _turn_system.consume_action():
 			_ability_panel.set_message("Действие уже использовано.", false)
 			return
-
 	await super._on_ability_requested(ability_id)
 	var effect: String = str(ability.get("effect", ""))
-	if not _turn_system.active and can_attempt and effect in ["spell_attack", "auto_hit_spell"] and _target_is_valid(target_before):
+	if not _turn_system.active and can_attempt and effect in ["spell_attack", "auto_hit_spell", "saving_throw_spell"] and _target_is_valid(target_before):
 		_start_turn_based_combat(target_before)
 	_after_player_action()
 
@@ -232,8 +228,8 @@ func _move_enemy_one_step(actor: Node2D) -> bool:
 	if vertical != 0:
 		candidates.append(Vector2i(0, vertical))
 	var occupied: Dictionary = _occupied_cells(actor)
-	for step: Vector2i in candidates:
-		var destination_cell: Vector2i = actor_cell + step
+	for candidate_step: Vector2i in candidates:
+		var destination_cell: Vector2i = actor_cell + candidate_step
 		if grid.is_cell_valid(destination_cell) and not occupied.has(destination_cell):
 			actor.global_position = grid.cell_to_world_center(destination_cell)
 			return true
@@ -323,18 +319,18 @@ func _occupied_cells(excluded_actor: Node = null) -> Dictionary:
 func _predict_directional_target(weapon: Dictionary) -> Node:
 	if not DistanceSystem.is_ranged_weapon(weapon):
 		return null
-	var long_range_feet: int = int(weapon.get("range_long_ft", int(weapon.get("range_normal_ft", 0))))
-	if long_range_feet <= 0:
+	var maximum_range: int = int(weapon.get("range_long_ft", weapon.get("range_normal_ft", 0)))
+	if maximum_range <= 0:
 		return null
 	var eligible: Array[Node] = []
 	for candidate: Node in _available_targets():
-		if DistanceSystem.distance_feet(player.global_position, (candidate as Node2D).global_position) <= long_range_feet:
+		if DistanceSystem.distance_feet(player.global_position, (candidate as Node2D).global_position) <= maximum_range:
 			eligible.append(candidate)
 	return DirectionalTargetingSystem.find_first_target(
 		player.global_position,
 		_get_player_facing_direction(),
 		eligible,
-		DirectionalTargetingSystem.feet_to_pixels(long_range_feet)
+		DirectionalTargetingSystem.feet_to_pixels(maximum_range)
 	)
 
 
@@ -363,7 +359,7 @@ func _ability_attempt_is_valid(ability: Dictionary) -> bool:
 
 
 func _ability_action_kind(ability_id: String, ability: Dictionary) -> String:
-	var explicit_kind: String = str(ability.get("action_type", ""))
+	var explicit_kind: String = str(ability.get("action_kind", ability.get("action_type", "")))
 	if explicit_kind in ["action", "bonus"]:
 		return explicit_kind
 	if ability_id in ["rage", "bardic_inspiration", "second_wind", "hunters_mark", "innate_sorcery", "martial_arts"]:
@@ -382,8 +378,9 @@ func _after_player_action() -> void:
 func _on_dash_requested() -> void:
 	if not _player_turn_available():
 		return
-	if _turn_system.use_dash():
-		show_combat_message("Рывок: добавлено 30 футов перемещения.", true)
+	var speed: int = maxi(GameState.player_character.base_speed_feet, 0)
+	if _turn_system.use_dash(speed):
+		show_combat_message("Рывок: добавлено %d футов перемещения." % speed, true)
 	else:
 		show_combat_message("Для Рывка требуется свободное действие.", false)
 
