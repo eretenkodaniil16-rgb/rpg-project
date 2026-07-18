@@ -3,6 +3,7 @@ extends RefCounted
 
 const RACES_PATH: String = "res://data/races/races.json"
 const DEFAULT_RACE_ID: String = "human"
+const SIZE_RANKS: Dictionary = {"tiny": 0, "small": 1, "medium": 2, "large": 3, "huge": 4, "gargantuan": 5}
 
 var _races: Dictionary = {}
 
@@ -44,8 +45,16 @@ func apply_race(character: PlayerCharacter, race_id: String, preserve_health_rat
 	character.racial_ability_id = str(race.get("active_ability_id", ""))
 	character.racial_damage_resistances = _string_array(race.get("damage_resistances", []))
 	character.racial_condition_save_advantage = _string_array(race.get("condition_save_advantage", []))
+	character.racial_save_advantage_abilities = _string_array(race.get("save_advantage_abilities", []))
 	character.racial_magical_save_advantage_abilities = _string_array(race.get("magical_save_advantage_abilities", []))
+	character.racial_short_rest_resources = _string_array(race.get("short_rest_resources", []))
 	character.reroll_natural_one = bool(race.get("reroll_natural_one", false))
+	character.immune_to_magical_sleep = bool(race.get("immune_to_magical_sleep", false))
+	character.long_rest_hours = clampi(int(race.get("long_rest_hours", 8)), 1, 24)
+	character.can_move_through_larger_creatures = bool(race.get("can_move_through_larger_creatures", false))
+	character.naturally_stealthy = bool(race.get("naturally_stealthy", false))
+	character.grapple_escape_advantage = bool(race.get("grapple_escape_advantage", false))
+	character.carrying_size_bonus = maxi(int(race.get("carrying_size_bonus", 0)), 0)
 	_initialize_resources(character, race, refill_resources)
 	var racial_bonus: int = get_hit_point_bonus(character)
 	character.maximum_health = maxi(character.maximum_health + racial_bonus - character.applied_racial_hit_point_bonus, 1)
@@ -62,6 +71,14 @@ func ensure_character_race(character: PlayerCharacter) -> void:
 	var stored_current: int = character.current_health
 	apply_race(character, selected_id, true, false)
 	character.current_health = clampi(stored_current, 0, character.maximum_health)
+
+func recharge_short_rest_resources(character: PlayerCharacter) -> void:
+	if character == null:
+		return
+	for resource_key: String in character.racial_short_rest_resources:
+		var maximum: int = character.get_resource_maximum(resource_key)
+		if maximum > 0:
+			character.set_resource(resource_key, maximum, maximum)
 
 func get_hit_point_bonus(character: PlayerCharacter) -> int:
 	if character == null:
@@ -86,15 +103,30 @@ func get_racial_ability_id(character: PlayerCharacter) -> String:
 func get_racial_damage_resistances(character: PlayerCharacter) -> Array[String]:
 	return character.racial_damage_resistances.duplicate() if character != null else []
 
+static func size_rank(size_category: String) -> int:
+	return int(SIZE_RANKS.get(size_category.strip_edges().to_lower(), 2))
+
 func _initialize_resources(character: PlayerCharacter, race: Dictionary, refill_resources: bool) -> void:
 	var resources_value: Variant = race.get("resources", {})
 	if not resources_value is Dictionary:
 		return
 	for key_value: Variant in (resources_value as Dictionary).keys():
 		var key: String = str(key_value)
-		var maximum: int = maxi(int((resources_value as Dictionary)[key_value]), 0)
-		var current: int = maximum if refill_resources or not character.class_resources.has(key) else character.get_resource(key)
+		var maximum: int = _resource_maximum(character, (resources_value as Dictionary)[key_value])
+		var had_resource: bool = character.class_resources.has(key)
+		var stored_current: int = character.get_resource(key)
+		var current: int = maximum if refill_resources or not had_resource else mini(stored_current, maximum)
 		character.set_resource(key, current, maximum)
+
+func _resource_maximum(character: PlayerCharacter, specification: Variant) -> int:
+	if specification is Dictionary:
+		var data: Dictionary = specification as Dictionary
+		var formula: String = str(data.get("formula", "fixed"))
+		var value: int = int(data.get("value", 0))
+		if formula == "proficiency_bonus":
+			value = CombatSystem.proficiency_bonus_for_level(character.level)
+		return maxi(value, int(data.get("minimum", 0)))
+	return maxi(int(specification), 0)
 
 func _load_races() -> void:
 	_races.clear()
