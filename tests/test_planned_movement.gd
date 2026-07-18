@@ -27,7 +27,8 @@ func _run() -> void:
 	if not environment.is_jumpable_cell(grid, blocked_cell):
 		_fail("Low barricade must be jumpable.")
 		return
-	var invalid_path: Dictionary = PlannedMovementSystem.new().build_path(
+	var planner := PlannedMovementSystem.new()
+	var invalid_path: Dictionary = planner.build_path(
 		grid,
 		Vector2i(8, 2),
 		blocked_cell,
@@ -40,25 +41,63 @@ func _run() -> void:
 		_fail("Planner allowed a route ending inside an obstacle.")
 		return
 
-	var planner := PlannedMovementSystem.new()
-	var detour: Dictionary = planner.build_path(
+	var jump_route: Dictionary = planner.build_path(
 		grid,
 		Vector2i(8, 2),
 		Vector2i(10, 2),
 		{},
 		environment,
 		CombatantState.new(),
-		30
+		30,
+		false,
+		true
 	)
-	if not bool(detour.get("reachable", false)):
-		_fail("Planner failed to route around a one-cell-wide obstacle: %s" % detour)
+	if not bool(jump_route.get("reachable", false)):
+		_fail("Planner failed to create an automatic jump route: %s" % jump_route)
 		return
-	var path: Array = detour.get("path", []) as Array
-	if path.has(blocked_cell):
-		_fail("Planned path crosses a blocked cell: %s" % path)
+	var jump_path: Array = jump_route.get("path", []) as Array
+	var jump_indices: Array = jump_route.get("jump_indices", []) as Array
+	if jump_path != [Vector2i(8, 2), Vector2i(10, 2)] or jump_indices != [1]:
+		_fail("Automatic jump transition is incorrect: %s" % jump_route)
 		return
-	if path.size() < 3 or int(detour.get("cost_feet", 0)) < 10:
-		_fail("Detour did not contain a valid two-step route around the obstacle: %s" % detour)
+	if int(jump_route.get("cost_feet", 0)) != 10:
+		_fail("One-cell obstacle jump must cost ten feet: %s" % jump_route)
+		return
+
+	var walking_route: Dictionary = planner.build_path(
+		grid,
+		Vector2i(8, 2),
+		Vector2i(10, 2),
+		{},
+		environment,
+		CombatantState.new(),
+		30,
+		false,
+		false
+	)
+	if not bool(walking_route.get("reachable", false)):
+		_fail("Planner failed to route around the obstacle with jumps disabled: %s" % walking_route)
+		return
+	var walking_path: Array = walking_route.get("path", []) as Array
+	if walking_path.has(blocked_cell) or walking_path.size() < 3:
+		_fail("Walking route crossed the obstacle: %s" % walking_route)
+		return
+
+	var reachable: Dictionary = planner.calculate_reachable_cells(
+		grid,
+		Vector2i(8, 2),
+		{},
+		environment,
+		CombatantState.new(),
+		10,
+		false,
+		true
+	)
+	if reachable.has(blocked_cell):
+		_fail("Blocked obstacle cell appeared in reachable area.")
+		return
+	if not reachable.has(Vector2i(10, 2)) or int(reachable[Vector2i(10, 2)]) != 10:
+		_fail("Jump landing is absent from reachable area: %s" % reachable)
 		return
 
 	var landing: Vector2i = environment.get_jump_landing_cell(grid, Vector2i(8, 2), Vector2i.RIGHT)
