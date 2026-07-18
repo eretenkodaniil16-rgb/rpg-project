@@ -4,8 +4,8 @@ config_version=5
 
 [application]
 
-config/name="RPG Project"
-config/version="0.16.0"
+config/name="Хроники странника"
+config/version="0.16.1"
 run/main_scene="res://scenes/menus/main_menu.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 
