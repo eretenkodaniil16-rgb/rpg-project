@@ -74,13 +74,15 @@ func _run() -> void:
 		_fail("Action catalog is hidden.")
 		return
 	var entries: Dictionary = game.call("_build_catalog_entries") as Dictionary
-	var movement_entries: Array = entries.get("movement", []) as Array
+	var action_entries: Array = entries.get("action", []) as Array
 	var found_prone: bool = false
-	for value: Variant in movement_entries:
-		if value is Dictionary and str((value as Dictionary).get("id", "")) == "prone_toggle":
-			found_prone = true
+	for value: Variant in action_entries:
+		if value is Dictionary:
+			var entry: Dictionary = value as Dictionary
+			if str(entry.get("id", "")) == "prone_toggle" and str(entry.get("group", "")) == "movement":
+				found_prone = true
 	if not found_prone:
-		_fail("Prone action is absent from movement category.")
+		_fail("Prone action is absent from Action > Movement.")
 		return
 
 	var combat_state: CombatantState = game.call("get_player_combat_state") as CombatantState
