@@ -6,6 +6,7 @@ const SOCIAL_SYSTEM_SCRIPT: Script = preload("res://scripts/systems/combat_socia
 
 var _game: Node
 var _action_ui: ActionCatalogUI
+var _dialogue_ui: Node
 var _social_system: CombatSocialActionSystem = SOCIAL_SYSTEM_SCRIPT.new() as CombatSocialActionSystem
 var _class_data: ClassDataSystem = ClassDataSystem.new()
 var _free_category_button: Button
@@ -35,14 +36,27 @@ func _try_initialize() -> void:
 	if not ui_value is ActionCatalogUI:
 		return
 	_action_ui = ui_value as ActionCatalogUI
+	_dialogue_ui = get_tree().get_first_node_in_group("dialogue_ui")
+	if _dialogue_ui == null:
+		return
 	_game.set("_movement_planner", TERRAIN_MOVEMENT_SCRIPT.new() as TerrainAwareMovementSystem)
 	_install_free_category_button()
 	if not _action_ui.action_requested.is_connected(_on_action_requested):
 		_action_ui.action_requested.connect(_on_action_requested)
+	_connect_dialogue_signals()
 	_initialized = true
 	_sync_player_terrain_trait()
 	if _game.has_method("_invalidate_reachable_area"):
 		_game.call("_invalidate_reachable_area")
+
+
+func _connect_dialogue_signals() -> void:
+	var runtime_callable := Callable(self, "_on_dialogue_runtime_choice_requested")
+	if _dialogue_ui.has_signal("runtime_choice_requested") and not _dialogue_ui.is_connected("runtime_choice_requested", runtime_callable):
+		_dialogue_ui.connect("runtime_choice_requested", runtime_callable)
+	var attack_callable := Callable(self, "_on_dialogue_attack_requested")
+	if _dialogue_ui.has_signal("attack_requested") and not _dialogue_ui.is_connected("attack_requested", attack_callable):
+		_dialogue_ui.connect("attack_requested", attack_callable)
 
 
 func _install_free_category_button() -> void:
@@ -86,18 +100,14 @@ func _inject_free_action_entries() -> void:
 	var player: Node = _game.get_node_or_null("Player")
 	var selected_target: Node = _game.get("_selected_target") as Node
 	var player_turn: bool = turn_system.active and turn_system.current_actor() == player and not bool(_game.get("_enemy_turn_running"))
-	var target_valid: bool = selected_target != null and is_instance_valid(selected_target)
-	if _game.has_method("_target_is_valid"):
-		target_valid = bool(_game.call("_target_is_valid", selected_target))
-	var free_entries: Array[Dictionary] = []
-	for action: Dictionary in _social_system.get_actions():
-		free_entries.append({
-			"id": "social:%s" % str(action.get("id", "")),
-			"label": str(action.get("label", "ОБЩЕНИЕ")),
-			"enabled": player_turn and target_valid and not _social_action_used_this_turn,
-			"description": str(action.get("description", "Короткая реплика или жест без расхода действия.")),
-			"group": str(action.get("kind", "speech"))
-		})
+	var target_valid: bool = _target_is_valid(selected_target)
+	var free_entries: Array[Dictionary] = [{
+		"id": "combat_dialogue",
+		"label": "РАЗГОВОР И ЖЕСТЫ",
+		"enabled": player_turn and target_valid and not _social_action_used_this_turn,
+		"description": "Открыть диалог с выбранной целью. Реплика или жест являются свободным действием; в окне всегда доступна атака.",
+		"group": "speech"
+	}]
 	var entries_value: Variant = _action_ui.get("_entries")
 	var entries: Dictionary = (entries_value as Dictionary).duplicate(true) if entries_value is Dictionary else {}
 	entries["free"] = free_entries
@@ -107,27 +117,61 @@ func _inject_free_action_entries() -> void:
 
 
 func _on_action_requested(action_id: String) -> void:
-	if not action_id.begins_with("social:"):
+	if action_id == "combat_dialogue":
+		_open_combat_dialogue()
 		return
-	_perform_social_action(action_id.trim_prefix("social:"))
+	if action_id.begins_with("social:"):
+		_perform_social_action(action_id.trim_prefix("social:"), _game.get("_selected_target") as Node)
 
 
-func _perform_social_action(action_id: String) -> void:
+func _open_combat_dialogue() -> void:
+	var turn_system: TurnBasedCombatSystem = _game.get("_turn_system") as TurnBasedCombatSystem
+	var player: Node = _game.get_node_or_null("Player")
+	var target: Node = _game.get("_selected_target") as Node
+	if turn_system == null or player == null or not turn_system.active or turn_system.current_actor() != player:
+		_show_message("Разговор в бою можно начать только на своём ходу.", false)
+		return
+	if _social_action_used_this_turn:
+		_show_message("В этом ходу уже использована содержательная реплика или жест.", false)
+		return
+	if not _target_is_valid(target):
+		_show_message("Сначала выберите противника, к которому хотите обратиться.", false)
+		return
+	var choices: Array[Dictionary] = []
+	for action: Dictionary in _social_system.get_actions():
+		choices.append({
+			"text": str(action.get("label", "ОБЩЕНИЕ")),
+			"runtime_action": "combat_social:%s" % str(action.get("id", ""))
+		})
+	var dialogue_data: Dictionary = {
+		"speaker": _target_name(target),
+		"text": "Выберите реплику или жест. Это не расходует действие. Атаковать можно прямо из этого окна.",
+		"choices": choices
+	}
+	_action_ui.close_catalog()
+	_dialogue_ui.call("start_dialogue", dialogue_data, target)
+
+
+func _on_dialogue_runtime_choice_requested(action_id: String, target: Node) -> void:
+	if not action_id.begins_with("combat_social:"):
+		return
+	_perform_social_action(action_id.trim_prefix("combat_social:"), target)
+
+
+func _perform_social_action(action_id: String, target: Node) -> void:
 	var turn_system: TurnBasedCombatSystem = _game.get("_turn_system") as TurnBasedCombatSystem
 	var player: Node2D = _game.get_node_or_null("Player") as Node2D
-	var target: Node = _game.get("_selected_target") as Node
 	if turn_system == null or player == null or not turn_system.active or turn_system.current_actor() != player:
 		_show_message("Обратиться к противнику можно только на своём ходу.", false)
 		return
 	if _social_action_used_this_turn:
 		_show_message("В этом ходу уже использована содержательная реплика или жест.", false)
 		return
-	if target == null or not is_instance_valid(target):
-		_show_message("Сначала выберите противника, к которому хотите обратиться.", false)
-		return
-	if _game.has_method("_target_is_valid") and not bool(_game.call("_target_is_valid", target)):
+	if not _target_is_valid(target):
 		_show_message("Выбранная цель больше недоступна для общения.", false)
 		return
+	if _game.has_method("_set_selected_target"):
+		_game.call("_set_selected_target", target)
 	var character: PlayerCharacter = _get_player_character()
 	var speaker_name: String = character.character_name.strip_edges() if character != null else "Герой"
 	if speaker_name.is_empty():
@@ -137,9 +181,37 @@ func _perform_social_action(action_id: String) -> void:
 		_show_message(str(result.get("message", "Свободное действие недоступно.")), false)
 		return
 	_social_action_used_this_turn = true
-	_action_ui.close_catalog()
 	_play_gesture(player, str(result.get("gesture", "")))
-	_show_message(str(result.get("message", "")), true)
+	_dialogue_ui.call(
+		"show_runtime_response",
+		str(result.get("target_name", _target_name(target))),
+		str(result.get("dialogue_text", result.get("message", "")))
+	)
+	_show_message("Свободное действие общения использовано. Обычное действие сохранено.", true)
+
+
+func _on_dialogue_attack_requested(target: Node) -> void:
+	if not _target_is_valid(target):
+		_show_message("Эту цель больше нельзя атаковать.", false)
+		return
+	if _game.has_method("_set_selected_target"):
+		_game.call("_set_selected_target", target)
+	if _game.has_method("_request_attack"):
+		_game.call_deferred("_request_attack")
+
+
+func _target_is_valid(target: Node) -> bool:
+	if target == null or not is_instance_valid(target):
+		return false
+	if _game.has_method("_target_is_valid"):
+		return bool(_game.call("_target_is_valid", target))
+	return true
+
+
+func _target_name(target: Node) -> String:
+	if target == null:
+		return "Неизвестный"
+	return str(target.call("get_combat_name")) if target.has_method("get_combat_name") else str(target.name)
 
 
 func _play_gesture(player: Node2D, gesture_id: String) -> void:
