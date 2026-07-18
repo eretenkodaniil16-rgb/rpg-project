@@ -24,6 +24,7 @@ var helped_attack: bool = false
 var readied_attack: bool = false
 var grappled_by_id: int = 0
 var grappling_target_id: int = 0
+var ignores_nonmagical_difficult_terrain: bool = false
 
 
 func add_condition(
@@ -152,7 +153,8 @@ func to_dict() -> Dictionary:
 		"death_save_failures": death_save_failures,
 		"stable": stable,
 		"dead": dead,
-		"concentrating_on": concentrating_on
+		"concentrating_on": concentrating_on,
+		"ignores_nonmagical_difficult_terrain": ignores_nonmagical_difficult_terrain
 	}
 
 
@@ -170,6 +172,7 @@ static func from_dict(data: Dictionary) -> CombatantState:
 	state.stable = bool(data.get("stable", false))
 	state.dead = bool(data.get("dead", false))
 	state.concentrating_on = str(data.get("concentrating_on", ""))
+	state.ignores_nonmagical_difficult_terrain = bool(data.get("ignores_nonmagical_difficult_terrain", false))
 	return state
 
 
