@@ -35,12 +35,13 @@ func _run() -> void:
 	var environment: CombatEnvironment = game.get_node_or_null("CombatEnvironment") as CombatEnvironment
 	var old_panel: Control = game.find_child("SrdCombatUI", true, false) as Control
 	var catalog: ActionCatalogUI = game.get_node_or_null("Interface/ActionCatalogUI") as ActionCatalogUI
+	var dialogue_ui: Control = game.get_node_or_null("Interface/DialogueUI") as Control
 	var caretaker: Node = game.get_node_or_null("Caretaker")
 	var player: Node2D = game.get_node_or_null("Player") as Node2D
 	var grid: BattleGrid = game.get_node_or_null("BattleGrid") as BattleGrid
 	var social_controller: CombatSocialTerrainController = game.get_node_or_null("CombatSocialTerrainController") as CombatSocialTerrainController
-	if environment == null or old_panel == null or catalog == null or caretaker == null or player == null or grid == null or social_controller == null:
-		_fail("SRD, terrain or combat social components are missing.")
+	if environment == null or old_panel == null or catalog == null or dialogue_ui == null or caretaker == null or player == null or grid == null or social_controller == null:
+		_fail("SRD, dialogue, terrain or combat social components are missing.")
 		return
 	if not environment.is_in_group("combat_environment") or not environment.is_difficult_position(Vector2(400.0, 350.0)):
 		_fail("Difficult terrain environment is missing.")
@@ -56,6 +57,18 @@ func _run() -> void:
 	if not is_equal_approx(ranger_speed, 220.0):
 		_fail("Ranger terrain trait did not preserve exploration speed: %f" % ranger_speed)
 		return
+
+	caretaker.call("interact")
+	await process_frame
+	if not dialogue_ui.visible:
+		_fail("Ordinary NPC conversation did not open the dialogue window.")
+		return
+	var ordinary_attack_button: Button = dialogue_ui.call("get_attack_button_for_testing") as Button
+	if ordinary_attack_button == null or ordinary_attack_button.text != "АТАКОВАТЬ":
+		_fail("Ordinary NPC dialogue does not contain the persistent attack option.")
+		return
+	dialogue_ui.call("_close_dialogue")
+	await process_frame
 
 	var half_cover: Dictionary = environment.get_cover(Vector2(600.0, 220.0), Vector2(700.0, 220.0))
 	if int(half_cover.get("bonus", 0)) != 2:
@@ -88,7 +101,26 @@ func _run() -> void:
 	var action_before: bool = turn_system.action_available
 	var bonus_before: bool = turn_system.bonus_action_available
 	var movement_before: int = turn_system.movement_remaining_feet
-	catalog.action_requested.emit("social:say_stop")
+	var ui_entries: Dictionary = catalog.get("_entries") as Dictionary
+	var free_entries: Array = ui_entries.get("free", []) as Array
+	if free_entries.size() != 1 or str((free_entries[0] as Dictionary).get("id", "")) != "combat_dialogue":
+		_fail("Free-action tab must open one dialogue command instead of listing phrases directly.")
+		return
+	catalog.action_requested.emit("combat_dialogue")
+	await process_frame
+	await process_frame
+	if not dialogue_ui.visible:
+		_fail("Combat communication did not open the dialogue window.")
+		return
+	if int(dialogue_ui.call("get_runtime_choice_count_for_testing")) < 4:
+		_fail("Combat dialogue did not load speech and gesture choices from structured data.")
+		return
+	var combat_attack_button: Button = dialogue_ui.call("get_attack_button_for_testing") as Button
+	if combat_attack_button == null or combat_attack_button.text != "АТАКОВАТЬ":
+		_fail("Combat dialogue does not contain the persistent attack option.")
+		return
+
+	dialogue_ui.emit_signal("runtime_choice_requested", "combat_social:say_stop", caretaker)
 	await process_frame
 	await process_frame
 	if not social_controller.social_action_used_for_testing():
@@ -97,10 +129,12 @@ func _run() -> void:
 	if turn_system.action_available != action_before or turn_system.bonus_action_available != bonus_before or turn_system.movement_remaining_feet != movement_before:
 		_fail("Free communication consumed a combat resource.")
 		return
-	var ui_entries: Dictionary = catalog.get("_entries") as Dictionary
-	if not ui_entries.has("free") or (ui_entries.get("free", []) as Array).size() < 4:
-		_fail("Speech and gesture choices were not loaded from structured data.")
+	var response_attack_button: Button = dialogue_ui.call("get_attack_button_for_testing") as Button
+	if response_attack_button == null:
+		_fail("Attack option disappeared after a dialogue response.")
 		return
+	dialogue_ui.call("_close_dialogue")
+	await process_frame
 
 	var combat_state: CombatantState = game.call("get_player_combat_state") as CombatantState
 	if combat_state == null or not combat_state.ignores_nonmagical_difficult_terrain:
@@ -136,5 +170,5 @@ func _run() -> void:
 
 	game.queue_free()
 	await process_frame
-	print("SRD combat, free communication and terrain trait smoke test passed.")
+	print("SRD combat dialogue, persistent attack option and terrain trait smoke test passed.")
 	quit(0)
