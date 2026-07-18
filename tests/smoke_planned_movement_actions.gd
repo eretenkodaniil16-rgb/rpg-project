@@ -65,7 +65,6 @@ func _run() -> void:
 		_fail("Exploration jump did not land beyond the jumpable obstacle.")
 		return
 
-	# Return before the barricade so the combat planner can test an automatic jump.
 	player.global_position = grid.cell_to_world_center(Vector2i(8, 2))
 	state.set("player_position", player.global_position)
 	game.call("_start_turn_based_combat", caretaker)
@@ -107,18 +106,19 @@ func _run() -> void:
 		_fail("Reachable area did not exclude the obstacle and include its jump landing: %s" % reachable_costs)
 		return
 
-	game.call("_plan_to_cell", Vector2i(10, 2))
+	# Simulate dragging a finger from the current cell across the obstacle to the landing cell.
+	game.set("_last_route_pointer_cell", Vector2i(8, 2))
+	game.call("_handle_route_drag", Vector2i(10, 2))
 	await process_frame
 	var planned_path: Array = game.get("_planned_path") as Array
 	var jump_indices: Array = game.get("_planned_jump_indices") as Array
 	if planned_path != [Vector2i(8, 2), Vector2i(10, 2)] or jump_indices != [1]:
-		_fail("Automatic combat jump route is incorrect: %s / %s" % [planned_path, jump_indices])
+		_fail("Dragged automatic combat jump route is incorrect: %s / %s" % [planned_path, jump_indices])
 		return
 	if not catalog.confirm_move_button.visible:
 		_fail("Floating movement confirmation did not appear for a selected route.")
 		return
 
-	# Pressing a selected route cell removes that cell and everything after it.
 	game.call("_handle_route_press", Vector2i(10, 2))
 	await process_frame
 	if not (game.get("_planned_path") as Array).is_empty() or catalog.confirm_move_button.visible:
