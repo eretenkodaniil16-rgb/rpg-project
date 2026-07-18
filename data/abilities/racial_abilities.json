@@ -22,10 +22,16 @@
     "ability": "constitution",
     "save_ability": "dexterity",
     "damage_dice": [1, 10],
+    "damage_dice_progression": {
+      "1": [1, 10],
+      "5": [2, 10],
+      "11": [3, 10],
+      "17": [4, 10]
+    },
     "damage_type": "fire",
     "range_ft": 15,
     "save_for_half": true,
-    "description": "Пламя поражает выбранную цель в пределах 15 футов; спасбросок Ловкости уменьшает урон вдвое.",
+    "description": "Пламя поражает выбранную цель в пределах 15 футов; спасбросок Ловкости уменьшает урон вдвое. Урон растёт на уровнях 5, 11 и 17.",
     "button": "ОГНЕННОЕ ДЫХАНИЕ"
   },
   "adrenaline_rush": {
@@ -36,7 +42,7 @@
     "resource_key": "adrenaline_rush",
     "effect": "adrenaline_rush",
     "action_kind": "bonus",
-    "description": "Добавляет 30 футов перемещения и временные HP, равные бонусу мастерства.",
+    "description": "Совершает Рывок дополнительным действием и даёт временные HP, равные бонусу мастерства.",
     "button": "ПРИЛИВ АДРЕНАЛИНА"
   }
 }
