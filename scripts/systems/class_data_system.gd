@@ -188,16 +188,17 @@ func short_rest(character: PlayerCharacter, roll_override: int = -1) -> Dictiona
 		character.hit_dice_current -= 1
 		spent_hit_die = true
 	_recharge_short_rest_features(character)
+	_race_data.recharge_short_rest_resources(character)
 	_save_state()
 	if spent_hit_die:
 		return {
 			"success": true,
-			"message": "Короткий отдых: d%d выпало %d, восстановлено %d здоровья." % [character.hit_die_size, roll, character.current_health - before],
+			"message": "Короткий отдых: d%d выпало %d, восстановлено %d здоровья. Расовые ресурсы короткого отдыха восстановлены." % [character.hit_die_size, roll, character.current_health - before],
 			"healing": character.current_health - before,
 			"roll": roll,
 			"spent_hit_die": true
 		}
-	var message: String = "Короткий отдых завершён без траты Кости Хитов."
+	var message: String = "Короткий отдых завершён без траты Кости Хитов. Расовые ресурсы короткого отдыха восстановлены."
 	if character.current_health < character.maximum_health:
 		message += " Свободных Костей Хитов не осталось."
 	else:
@@ -216,7 +217,12 @@ func long_rest(character: PlayerCharacter) -> Dictionary:
 	if character.character_class_id == "rogue":
 		character.active_effects["sneak_attack_ready"] = true
 	_save_state()
-	return {"success": true, "message": "Долгий отдых восстановил здоровье, Кости Хитов и расовые/классовые ресурсы.", "healing": character.current_health - before}
+	return {
+		"success": true,
+		"message": "Долгий отдых (%d ч.) восстановил здоровье, Кости Хитов и расовые/классовые ресурсы." % character.long_rest_hours,
+		"healing": character.current_health - before,
+		"duration_hours": character.long_rest_hours
+	}
 
 
 func get_resource_text(character: PlayerCharacter, ability: Dictionary) -> String:
