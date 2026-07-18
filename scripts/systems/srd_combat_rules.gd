@@ -30,16 +30,18 @@ func roll_d20(
 	modifier: int = 0,
 	advantage: bool = false,
 	disadvantage: bool = false,
-	overrides: Array[int] = []
+	overrides: Array[int] = [],
+	reroll_natural_one: bool = false,
+	reroll_overrides: Array[int] = []
 ) -> Dictionary:
 	if advantage and disadvantage:
 		advantage = false
 		disadvantage = false
-	var first: int = clampi(overrides[0], 1, 20) if overrides.size() > 0 else _dice.roll_die(20)
+	var first: int = _roll_d20_die(overrides, 0, reroll_natural_one, reroll_overrides)
 	var second: int = 0
 	var natural: int = first
 	if advantage or disadvantage:
-		second = clampi(overrides[1], 1, 20) if overrides.size() > 1 else _dice.roll_die(20)
+		second = _roll_d20_die(overrides, 1, reroll_natural_one, reroll_overrides)
 		natural = maxi(first, second) if advantage else mini(first, second)
 	return {
 		"first": first,
@@ -57,9 +59,11 @@ func resolve_d20_test(
 	dc: int,
 	advantage: bool = false,
 	disadvantage: bool = false,
-	overrides: Array[int] = []
+	overrides: Array[int] = [],
+	reroll_natural_one: bool = false,
+	reroll_overrides: Array[int] = []
 ) -> Dictionary:
-	var roll: Dictionary = roll_d20(modifier, advantage, disadvantage, overrides)
+	var roll: Dictionary = roll_d20(modifier, advantage, disadvantage, overrides, reroll_natural_one, reroll_overrides)
 	roll["dc"] = maxi(dc, 0)
 	roll["success"] = int(roll.get("total", 0)) >= maxi(dc, 0)
 	return roll
@@ -88,6 +92,8 @@ func resolve_saving_throw(
 		var condition_id: String = str(context.get("condition_id", ""))
 		if not condition_id.is_empty() and condition_id in state.saving_throw_advantage_conditions:
 			advantage = true
+		if ability_id in state.saving_throw_advantage_abilities:
+			advantage = true
 		if bool(context.get("magical", false)) and ability_id in state.magical_save_advantage_abilities:
 			advantage = true
 	if automatic_failure:
@@ -101,7 +107,20 @@ func resolve_saving_throw(
 			"advantage": false,
 			"disadvantage": false
 		}
-	var result: Dictionary = resolve_d20_test(modifier, dc, advantage, disadvantage, overrides)
+	var rerolls: Array[int] = []
+	var reroll_value: Variant = context.get("lucky_reroll_overrides", [])
+	if reroll_value is Array:
+		for value: Variant in reroll_value:
+			rerolls.append(int(value))
+	var result: Dictionary = resolve_d20_test(
+		modifier,
+		dc,
+		advantage,
+		disadvantage,
+		overrides,
+		state != null and state.reroll_natural_one,
+		rerolls
+	)
 	result["ability_id"] = ability_id
 	result["automatic_failure"] = false
 	return result
@@ -201,7 +220,7 @@ func resolve_concentration_check(
 	return result
 
 
-func resolve_death_save(state: CombatantState, roll_override: int = -1) -> Dictionary:
+func resolve_death_save(state: CombatantState, roll_override: int = -1, lucky_reroll_override: int = -1) -> Dictionary:
 	if state == null:
 		return {"resolved": false}
 	if state.dead or state.stable:
@@ -213,6 +232,8 @@ func resolve_death_save(state: CombatantState, roll_override: int = -1) -> Dicti
 			"failures": state.death_save_failures
 		}
 	var natural: int = clampi(roll_override, 1, 20) if roll_override >= 1 else _dice.roll_die(20)
+	if natural == 1 and state.reroll_natural_one:
+		natural = clampi(lucky_reroll_override, 1, 20) if lucky_reroll_override >= 1 else _dice.roll_die(20)
 	var regained_hit_point: bool = false
 	if natural == 20:
 		regained_hit_point = true
@@ -308,3 +329,10 @@ func normalize_damage_type(value: String) -> String:
 		"яд": "poison", "психический": "psychic", "излучение": "radiant", "рубящий": "slashing", "звук": "thunder"
 	}
 	return str(aliases.get(normalized, normalized if normalized in DAMAGE_TYPES else "bludgeoning"))
+
+
+func _roll_d20_die(overrides: Array[int], index: int, reroll_natural_one: bool, reroll_overrides: Array[int]) -> int:
+	var natural: int = clampi(overrides[index], 1, 20) if index < overrides.size() else _dice.roll_die(20)
+	if natural == 1 and reroll_natural_one:
+		natural = clampi(reroll_overrides[index], 1, 20) if index < reroll_overrides.size() else _dice.roll_die(20)
+	return natural
