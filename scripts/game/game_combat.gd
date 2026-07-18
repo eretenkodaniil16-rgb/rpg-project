@@ -20,7 +20,7 @@ func _cycle_target() -> void:
 	var targets: Array[Node] = _available_targets()
 	if targets.is_empty():
 		_set_selected_target(null)
-		show_combat_message("Нет доступных целей. Дальнобойная атака будет направлена по ходу движения.", false)
+		show_combat_message("Нет доступных целей. Атака будет выполнена по направлению взгляда.", false)
 		return
 	var current_index: int = targets.find(_selected_target)
 	if current_index < 0:
@@ -31,7 +31,7 @@ func _cycle_target() -> void:
 		show_combat_message("Выбрана следующая цель.", true)
 	else:
 		_set_selected_target(null)
-		show_combat_message("Свободная стрельба: атака полетит по направлению движения.", true)
+		show_combat_message("Свободная атака: удар или выстрел будет направлен по ходу движения.", true)
 
 
 func _update_target_label() -> void:
@@ -43,14 +43,19 @@ func _update_target_label() -> void:
 		_target_button.text = "СЛЕД. ЦЕЛЬ" if has_target else "ЦЕЛЬ"
 	if _attack_button != null:
 		var weapon: Dictionary = _class_data.get_equipped_weapon(GameState.player_character)
-		_attack_button.text = "ВЫСТРЕЛ" if not has_target and DistanceSystem.is_ranged_weapon(weapon) else "АТАКА"
+		if has_target:
+			_attack_button.text = "АТАКА"
+		elif DistanceSystem.is_ranged_weapon(weapon):
+			_attack_button.text = "ВЫСТРЕЛ"
+		else:
+			_attack_button.text = "УДАР"
 	if not has_target:
 		_target_label.text = ""
 		return
 	var target_position: Vector2 = (_selected_target as Node2D).global_position
 	var cells: int = DistanceSystem.grid_steps(player.global_position, target_position)
 	var distance: int = cells * 5
-	_target_label.text = "Цель: %s · %d клеток · %d футов · КД %d · %d HP" % [
+	_target_label.text = "Цель: %s · %d клеток · %d футов · КД %d · здоровье %d" % [
 		_target_name(_selected_target),
 		cells,
 		distance,
@@ -64,13 +69,48 @@ func _request_attack() -> void:
 		return
 	if _target_is_valid(_selected_target):
 		_face_toward((_selected_target as Node2D).global_position)
-		super._request_attack()
+		await super._request_attack()
 		return
 	var weapon: Dictionary = _class_data.get_equipped_weapon(GameState.player_character)
-	if not DistanceSystem.is_ranged_weapon(weapon):
-		show_combat_message("Для атаки оружием ближнего боя сначала выберите цель.", false)
+	if DistanceSystem.is_ranged_weapon(weapon):
+		await _request_directional_ranged_attack(weapon)
+	else:
+		await _request_directional_melee_attack(weapon)
+
+
+func _request_directional_melee_attack(weapon: Dictionary) -> void:
+	var reach_feet: int = maxi(int(weapon.get("reach_ft", 5)), 5)
+	var direction: Vector2 = _get_player_facing_direction()
+	var target: Node = _find_directional_melee_target(weapon)
+	if _target_is_valid(target):
+		await _perform_directional_attack_on_target(target, weapon, "")
 		return
-	_request_directional_ranged_attack(weapon)
+	var endpoint: Vector2 = DirectionalTargetingSystem.endpoint_inside_rect(
+		player.global_position,
+		direction,
+		DirectionalTargetingSystem.feet_to_pixels(reach_feet),
+		FREE_AIM_BOUNDS
+	)
+	_set_combat_busy(true)
+	player.play_attack_animation(endpoint)
+	await get_tree().create_timer(0.24).timeout
+	_set_combat_busy(false)
+	show_combat_message("Удар выполнен по направлению взгляда, но никого не задел.", false)
+	_sync_exploration_hud_visibility()
+
+
+func _find_directional_melee_target(weapon: Dictionary) -> Node:
+	var reach_feet: int = maxi(int(weapon.get("reach_ft", 5)), 5)
+	var eligible_targets: Array[Node] = []
+	for candidate: Node in _available_targets():
+		if DistanceSystem.distance_feet(player.global_position, (candidate as Node2D).global_position) <= reach_feet:
+			eligible_targets.append(candidate)
+	return DirectionalTargetingSystem.find_first_target(
+		player.global_position,
+		_get_player_facing_direction(),
+		eligible_targets,
+		DirectionalTargetingSystem.feet_to_pixels(reach_feet) * 1.5
+	)
 
 
 func _request_directional_ranged_attack(weapon: Dictionary) -> void:
@@ -111,7 +151,7 @@ func _request_directional_ranged_attack(weapon: Dictionary) -> void:
 	_set_combat_busy(false)
 	GameState.save_game()
 	_update_status()
-	show_combat_message("Снаряд выпущен по направлению движения, но никого не задел.", false)
+	show_combat_message("Снаряд выпущен по направлению взгляда, но никого не задел.", false)
 	_sync_exploration_hud_visibility()
 
 
@@ -139,7 +179,11 @@ func _perform_directional_attack_on_target(target: Node, weapon: Dictionary, amm
 	_set_combat_busy(true)
 	if not ammo_id.is_empty():
 		GameState.remove_item(ammo_id, 1, false)
-	await _play_weapon_projectile(weapon, target_position, result.hit)
+	if DistanceSystem.is_ranged_weapon(weapon):
+		await _play_weapon_projectile(weapon, target_position, result.hit)
+	else:
+		player.play_attack_animation(target_position)
+		await get_tree().create_timer(0.24).timeout
 	if _target_is_valid(target):
 		target.call("receive_player_attack", result, true)
 	GameState.save_game()
