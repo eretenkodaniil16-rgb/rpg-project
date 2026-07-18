@@ -24,9 +24,9 @@ func use_self_ability(character: PlayerCharacter, ability: Dictionary) -> Dictio
 			var temporary_hit_points: int = CombatSystem.proficiency_bonus_for_level(character.level)
 			return {
 				"success": true,
-				"message": "Прилив адреналина: добавлено 30 футов перемещения и %d временных HP." % temporary_hit_points,
+				"message": "Прилив адреналина: добавлено перемещение Рывка и %d временных HP." % temporary_hit_points,
 				"healing": 0,
-				"movement_bonus_feet": 30,
+				"movement_bonus_feet": character.base_speed_feet,
 				"temporary_hit_points": temporary_hit_points
 			}
 		"heal_2d8_wisdom": return _heal_with_dice(character, ability, 2, 8, character.get_ability_modifier("wisdom"))
@@ -77,10 +77,9 @@ func perform_offensive_ability(
 	if not _consume(character, resource_key, 1):
 		result.note = "Не осталось доступных применений способности."
 		return result
-	var dice_value: Variant = ability.get("damage_dice", [1, 6])
-	var damage_dice: Array = dice_value as Array if dice_value is Array else [1, 6]
-	var dice_count: int = maxi(int(damage_dice[0]) if damage_dice.size() > 0 else 1, 1)
-	var die_sides: int = maxi(int(damage_dice[1]) if damage_dice.size() > 1 else 6, 2)
+	var damage_dice: Array[int] = _damage_dice_for_level(ability, character.level)
+	var dice_count: int = maxi(damage_dice[0] if damage_dice.size() > 0 else 1, 1)
+	var die_sides: int = maxi(damage_dice[1] if damage_dice.size() > 1 else 6, 2)
 	var effect: String = str(ability.get("effect", "spell_attack"))
 	if effect == "auto_hit_spell":
 		result.automatic_hit = true
@@ -160,6 +159,31 @@ func consume_bardic_inspiration(character: PlayerCharacter) -> int:
 		return 0
 	character.active_effects.erase("bardic_inspiration_die")
 	return _dice.roll_die(die_sides)
+
+
+func _damage_dice_for_level(ability: Dictionary, level: int) -> Array[int]:
+	var selected: Array[int] = [1, 6]
+	var base_value: Variant = ability.get("damage_dice", selected)
+	if base_value is Array:
+		selected = _int_pair(base_value as Array, selected)
+	var progression_value: Variant = ability.get("damage_dice_progression", {})
+	if not progression_value is Dictionary:
+		return selected
+	var best_level: int = -1
+	for threshold_value: Variant in (progression_value as Dictionary).keys():
+		var threshold: int = int(str(threshold_value))
+		if threshold <= level and threshold > best_level:
+			var dice_value: Variant = (progression_value as Dictionary)[threshold_value]
+			if dice_value is Array:
+				selected = _int_pair(dice_value as Array, selected)
+				best_level = threshold
+	return selected
+
+
+func _int_pair(value: Array, fallback: Array[int]) -> Array[int]:
+	if value.size() < 2:
+		return fallback
+	return [maxi(int(value[0]), 1), maxi(int(value[1]), 2)]
 
 
 func _heal_with_dice(character: PlayerCharacter, ability: Dictionary, count: int, sides: int, bonus: int) -> Dictionary:
