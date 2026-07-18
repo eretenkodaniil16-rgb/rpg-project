@@ -92,6 +92,8 @@ func _run() -> void:
 		return
 
 	game.call("_stop_turn_based_combat", "test")
+	game.call("_refresh_action_catalog")
+	await process_frame
 	await process_frame
 	if bool(game.call("is_turn_based_combat_active")) or catalog.catalog_button.visible:
 		_fail("Turn based combat did not stop cleanly.")
