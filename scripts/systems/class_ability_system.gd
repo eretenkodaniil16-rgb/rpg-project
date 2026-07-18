@@ -8,7 +8,7 @@ var _srd_rules: SrdCombatRules = SrdCombatRules.new()
 func use_self_ability(character: PlayerCharacter, ability: Dictionary) -> Dictionary:
 	var effect: String = str(ability.get("effect", ""))
 	var resource_key: String = str(ability.get("resource_key", "unlimited"))
-	if effect in ["rage", "bardic_inspiration"] and not _consume(character, resource_key, 1):
+	if effect in ["rage", "bardic_inspiration", "racial_inspiration", "adrenaline_rush"] and not _consume(character, resource_key, 1):
 		return _failure("Заряды способности закончились.")
 	match effect:
 		"rage":
@@ -17,6 +17,18 @@ func use_self_ability(character: PlayerCharacter, ability: Dictionary) -> Dictio
 		"bardic_inspiration":
 			character.active_effects["bardic_inspiration_die"] = 6
 			return _success("Вдохновение добавит 1d6 к следующему броску d20.")
+		"racial_inspiration":
+			character.active_effects["racial_advantage_next_d20"] = true
+			return _success("Находчивость даст преимущество на следующую атаку или проверку характеристики.")
+		"adrenaline_rush":
+			var temporary_hit_points: int = CombatSystem.proficiency_bonus_for_level(character.level)
+			return {
+				"success": true,
+				"message": "Прилив адреналина: добавлено 30 футов перемещения и %d временных HP." % temporary_hit_points,
+				"healing": 0,
+				"movement_bonus_feet": 30,
+				"temporary_hit_points": temporary_hit_points
+			}
 		"heal_2d8_wisdom": return _heal_with_dice(character, ability, 2, 8, character.get_ability_modifier("wisdom"))
 		"heal_1d10_level": return _heal_with_dice(character, ability, 1, 10, character.level)
 		"lay_on_hands": return _use_lay_on_hands(character, ability)
@@ -46,7 +58,7 @@ func perform_offensive_ability(
 	result.attack_name = str(ability.get("name", "Магическая атака"))
 	result.target_name = str(attack_context.get("target_name", "Цель"))
 	result.damage_type = _srd_rules.normalize_damage_type(str(ability.get("damage_type", "force")))
-	result.is_spell = true
+	result.is_spell = bool(ability.get("is_spell", true))
 	result.cover_bonus = maxi(int(attack_context.get("cover_bonus", 0)), 0)
 	result.target_armor_class = maxi(target_armor_class + result.cover_bonus, 0)
 	result.distance_feet = maxi(int(attack_context.get("distance_feet", 0)), 0)
@@ -84,7 +96,7 @@ func perform_offensive_ability(
 		var spell_dc: int = int(ability.get("save_dc", 8 + CombatSystem.proficiency_bonus_for_level(character.level) + character.get_ability_modifier(ability_id_for_spell)))
 		var defender_state: CombatantState = attack_context.get("defender_state") as CombatantState
 		var save_modifier: int = int(attack_context.get("target_save_modifier", 0))
-		var save_result: Dictionary = _srd_rules.resolve_saving_throw(save_ability, save_modifier, spell_dc, defender_state)
+		var save_result: Dictionary = _srd_rules.resolve_saving_throw(save_ability, save_modifier, spell_dc, defender_state, false, false, [], {"magical": result.is_spell})
 		var rolled_damage: int = _roll_damage(dice_count, die_sides, damage_rolls_override) + int(ability.get("damage_bonus", 0))
 		result.automatic_hit = true
 		result.hit = not bool(save_result.get("success", false)) or bool(ability.get("save_for_half", false))
@@ -113,15 +125,18 @@ func perform_offensive_ability(
 		result.automatic_miss = true
 		result.note = "Текущее состояние не позволяет сотворить атакующее заклинание."
 		return result
-	result.advantage = bool(attack_context.get("advantage", false)) or bool(adjustments.get("advantage", false))
+	var racial_advantage: bool = bool(character.active_effects.get("racial_advantage_next_d20", false))
+	result.advantage = bool(attack_context.get("advantage", false)) or bool(adjustments.get("advantage", false)) or racial_advantage
 	result.disadvantage = bool(attack_context.get("disadvantage", false)) or bool(adjustments.get("disadvantage", false))
 	if result.advantage and result.disadvantage:
 		result.advantage = false
 		result.disadvantage = false
-	result.first_roll = clampi(natural_roll_override, 1, 20) if natural_roll_override >= 1 else _dice.roll_die(20)
+	if racial_advantage:
+		character.active_effects.erase("racial_advantage_next_d20")
+	result.first_roll = _racial_d20(character, natural_roll_override, int(attack_context.get("lucky_first_reroll_override", -1)))
 	if result.advantage or result.disadvantage:
 		var second_override: int = int(attack_context.get("second_roll_override", -1))
-		result.second_roll = clampi(second_override, 1, 20) if second_override >= 1 else _dice.roll_die(20)
+		result.second_roll = _racial_d20(character, second_override, int(attack_context.get("lucky_second_reroll_override", -1)))
 		result.natural_roll = maxi(result.first_roll, result.second_roll) if result.advantage else mini(result.first_roll, result.second_roll)
 	else:
 		result.natural_roll = result.first_roll
@@ -178,6 +193,13 @@ func _consume(character: PlayerCharacter, resource_key: String, amount: int) -> 
 	return character.consume_resource(resource_key, amount)
 
 
+func _racial_d20(character: PlayerCharacter, override: int, lucky_reroll_override: int = -1) -> int:
+	var natural: int = clampi(override, 1, 20) if override >= 1 else _dice.roll_die(20)
+	if natural == 1 and character.reroll_natural_one:
+		natural = clampi(lucky_reroll_override, 1, 20) if lucky_reroll_override >= 1 else _dice.roll_die(20)
+	return natural
+
+
 func _roll_damage(count: int, sides: int, overrides: Array[int]) -> int:
 	var total: int = 0
 	for index: int in range(count):
@@ -194,4 +216,4 @@ func _failure(message: String) -> Dictionary:
 
 
 func _ability_name(ability_id: String) -> String:
-	return {"strength":"Сила", "dexterity":"Ловкость", "wisdom":"Мудрость", "intelligence":"Интеллект", "charisma":"Харизма"}.get(ability_id, ability_id)
+	return {"strength":"Сила", "dexterity":"Ловкость", "wisdom":"Мудрость", "intelligence":"Интеллект", "charisma":"Харизма", "constitution":"Телосложение"}.get(ability_id, ability_id)
