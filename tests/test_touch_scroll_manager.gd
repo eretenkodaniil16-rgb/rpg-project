@@ -18,7 +18,7 @@ func _run() -> void:
 
 	var host: Control = Control.new()
 	host.position = Vector2.ZERO
-	host.size = Vector2(640.0, 480.0)
+	host.size = Vector2(960.0, 640.0)
 	root.add_child(host)
 
 	var horizontal: ScrollContainer = ScrollContainer.new()
@@ -41,7 +41,26 @@ func _run() -> void:
 	tall_content.custom_minimum_size = Vector2(200.0, 520.0)
 	vertical.add_child(tall_content)
 
-	for _frame: int in range(4):
+	var nested_outer: ScrollContainer = ScrollContainer.new()
+	nested_outer.position = Vector2(340.0, 40.0)
+	nested_outer.size = Vector2(300.0, 300.0)
+	nested_outer.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	nested_outer.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	host.add_child(nested_outer)
+	var nested_content: Control = Control.new()
+	nested_content.custom_minimum_size = Vector2(280.0, 720.0)
+	nested_outer.add_child(nested_content)
+	var nested_inner: ScrollContainer = ScrollContainer.new()
+	nested_inner.position = Vector2(20.0, 110.0)
+	nested_inner.size = Vector2(250.0, 110.0)
+	nested_inner.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	nested_inner.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	nested_content.add_child(nested_inner)
+	var nested_wide_content: Control = Control.new()
+	nested_wide_content.custom_minimum_size = Vector2(840.0, 90.0)
+	nested_inner.add_child(nested_wide_content)
+
+	for _frame: int in range(5):
 		await process_frame
 	manager.call("_configure_existing_scroll_containers")
 	await process_frame
@@ -58,8 +77,26 @@ func _run() -> void:
 	if vertical.horizontal_scroll_mode != ScrollContainer.SCROLL_MODE_DISABLED:
 		_fail("Disabled horizontal scrolling was unexpectedly enabled.")
 		return
-	if horizontal.scroll_deadzone != 12 or vertical.scroll_deadzone != 12:
-		_fail("Press-and-drag deadzone was not configured.")
+	if horizontal.scroll_deadzone != 4:
+		_fail("Horizontal touch scrolling is not responsive enough.")
+		return
+	if vertical.scroll_deadzone != 6:
+		_fail("Vertical touch scrolling deadzone is incorrect.")
+		return
+	if nested_inner.scroll_deadzone != 4:
+		_fail("Nested horizontal carousel did not receive the responsive deadzone.")
+		return
+	if nested_outer.scroll_deadzone != 10:
+		_fail("Nested vertical page did not receive gesture-priority protection.")
+		return
+	if not horizontal.scroll_horizontal_by_default or not nested_inner.scroll_horizontal_by_default:
+		_fail("Horizontal lists did not receive horizontal input priority.")
+		return
+	if vertical.scroll_horizontal_by_default or nested_outer.scroll_horizontal_by_default:
+		_fail("Vertical lists unexpectedly prefer horizontal scrolling.")
+		return
+	if not bool(nested_outer.get_meta("touch_scroll_nested", false)):
+		_fail("Nested scroll context was not detected.")
 		return
 	if not horizontal.is_in_group(&"touch_scroll_containers") or not vertical.is_in_group(&"touch_scroll_containers"):
 		_fail("Scroll containers were not registered for touch dragging.")
@@ -67,16 +104,18 @@ func _run() -> void:
 
 	horizontal.scroll_horizontal = 96
 	vertical.scroll_vertical = 96
+	nested_inner.scroll_horizontal = 120
+	nested_outer.scroll_vertical = 120
 	await process_frame
-	if horizontal.scroll_horizontal <= 0:
+	if horizontal.scroll_horizontal <= 0 or nested_inner.scroll_horizontal <= 0:
 		_fail("Horizontal scrolling was disabled while hiding its scrollbar.")
 		return
-	if vertical.scroll_vertical <= 0:
+	if vertical.scroll_vertical <= 0 or nested_outer.scroll_vertical <= 0:
 		_fail("Vertical scrolling was disabled while hiding its scrollbar.")
 		return
 
 	var dynamic_scroll: ScrollContainer = ScrollContainer.new()
-	dynamic_scroll.position = Vector2(340.0, 40.0)
+	dynamic_scroll.position = Vector2(700.0, 40.0)
 	dynamic_scroll.size = Vector2(200.0, 140.0)
 	dynamic_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	dynamic_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
@@ -92,8 +131,8 @@ func _run() -> void:
 	if dynamic_scroll.horizontal_scroll_mode != ScrollContainer.SCROLL_MODE_DISABLED:
 		_fail("Dynamic configuration enabled a disabled axis.")
 		return
-	if dynamic_scroll.scroll_deadzone != 12 or not dynamic_scroll.is_in_group(&"touch_scroll_containers"):
-		_fail("Dynamic scroll container did not receive touch settings.")
+	if dynamic_scroll.scroll_deadzone != 6 or not dynamic_scroll.is_in_group(&"touch_scroll_containers"):
+		_fail("Dynamic scroll container did not receive responsive touch settings.")
 		return
 	dynamic_scroll.scroll_vertical = 72
 	await process_frame
@@ -103,5 +142,5 @@ func _run() -> void:
 
 	host.queue_free()
 	await process_frame
-	print("Global native scroll configuration test passed.")
+	print("Responsive nested touch scroll configuration test passed.")
 	quit(0)
