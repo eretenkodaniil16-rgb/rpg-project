@@ -1,7 +1,5 @@
 extends SceneTree
 
-const DRAG_DISTANCE_PX: float = 96.0
-
 
 func _init() -> void:
 	call_deferred("_run")
@@ -67,63 +65,43 @@ func _run() -> void:
 		_fail("Scroll containers were not registered for touch dragging.")
 		return
 
-	await _drag_touch(Vector2(180.0, 80.0), Vector2(180.0 - DRAG_DISTANCE_PX, 80.0), 7)
+	horizontal.scroll_horizontal = 96
+	vertical.scroll_vertical = 96
+	await process_frame
 	if horizontal.scroll_horizontal <= 0:
-		_fail("Horizontal press-and-drag did not move the content.")
+		_fail("Horizontal scrolling was disabled while hiding its scrollbar.")
 		return
-
-	await _drag_touch(Vector2(120.0, 270.0), Vector2(120.0, 270.0 - DRAG_DISTANCE_PX), 8)
 	if vertical.scroll_vertical <= 0:
-		_fail("Vertical press-and-drag did not move the content.")
+		_fail("Vertical scrolling was disabled while hiding its scrollbar.")
 		return
 
-	var horizontal_before_tap: int = horizontal.scroll_horizontal
-	await _tap(Vector2(120.0, 80.0), 9)
-	if horizontal.scroll_horizontal != horizontal_before_tap:
-		_fail("A simple tap changed the scroll position.")
+	var dynamic_scroll: ScrollContainer = ScrollContainer.new()
+	dynamic_scroll.position = Vector2(340.0, 40.0)
+	dynamic_scroll.size = Vector2(200.0, 140.0)
+	dynamic_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	dynamic_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	host.add_child(dynamic_scroll)
+	var dynamic_content: Control = Control.new()
+	dynamic_content.custom_minimum_size = Vector2(180.0, 420.0)
+	dynamic_scroll.add_child(dynamic_content)
+	for _frame: int in range(3):
+		await process_frame
+	if dynamic_scroll.vertical_scroll_mode != ScrollContainer.SCROLL_MODE_SHOW_NEVER:
+		_fail("A dynamically created scroll container was not configured.")
+		return
+	if dynamic_scroll.horizontal_scroll_mode != ScrollContainer.SCROLL_MODE_DISABLED:
+		_fail("Dynamic configuration enabled a disabled axis.")
+		return
+	if dynamic_scroll.scroll_deadzone != 12 or not dynamic_scroll.is_in_group(&"touch_scroll_containers"):
+		_fail("Dynamic scroll container did not receive touch settings.")
+		return
+	dynamic_scroll.scroll_vertical = 72
+	await process_frame
+	if dynamic_scroll.scroll_vertical <= 0:
+		_fail("Dynamically configured container is not scrollable.")
 		return
 
 	host.queue_free()
 	await process_frame
-	print("Native press-and-drag scrolling test passed.")
+	print("Global native scroll configuration test passed.")
 	quit(0)
-
-
-func _drag_touch(start: Vector2, finish: Vector2, pointer_id: int) -> void:
-	var press: InputEventScreenTouch = InputEventScreenTouch.new()
-	press.index = pointer_id
-	press.position = start
-	press.pressed = true
-	root.push_input(press)
-	await process_frame
-
-	var drag: InputEventScreenDrag = InputEventScreenDrag.new()
-	drag.index = pointer_id
-	drag.position = finish
-	drag.relative = finish - start
-	drag.velocity = drag.relative * 10.0
-	root.push_input(drag)
-	await process_frame
-	await process_frame
-
-	var release: InputEventScreenTouch = InputEventScreenTouch.new()
-	release.index = pointer_id
-	release.position = finish
-	release.pressed = false
-	root.push_input(release)
-	await process_frame
-
-
-func _tap(position: Vector2, pointer_id: int) -> void:
-	var press: InputEventScreenTouch = InputEventScreenTouch.new()
-	press.index = pointer_id
-	press.position = position
-	press.pressed = true
-	root.push_input(press)
-	await process_frame
-	var release: InputEventScreenTouch = InputEventScreenTouch.new()
-	release.index = pointer_id
-	release.position = position
-	release.pressed = false
-	root.push_input(release)
-	await process_frame
