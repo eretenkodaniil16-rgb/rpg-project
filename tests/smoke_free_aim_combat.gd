@@ -118,6 +118,9 @@ func _run() -> void:
 	if popup != null and popup.visible:
 		popup.call("_on_continue_pressed")
 		await process_frame
+	if game.has_method("is_turn_based_combat_active") and bool(game.call("is_turn_based_combat_active")):
+		game.call("force_player_turn_for_testing")
+		await process_frame
 	game.call("_cycle_target")
 	await process_frame
 	await process_frame
