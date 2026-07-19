@@ -1,7 +1,7 @@
 extends SceneTree
 
 const CHARACTER_CREATOR_SCENE: String = "res://scenes/character_creation/character_creator.tscn"
-const CAROUSEL_COPY_COUNT: int = 3
+const CAROUSEL_COPY_COUNT: int = 5
 
 
 func _init() -> void:
@@ -69,6 +69,9 @@ func _run_smoke_test() -> void:
 	if race_strip == null or race_strip.get_child_count() != races.size() * CAROUSEL_COPY_COUNT:
 		_fail("Race carousel is not cyclic: expected %d cards, got %d." % [races.size() * CAROUSEL_COPY_COUNT, 0 if race_strip == null else race_strip.get_child_count()])
 		return
+	if race_carousel.scroll_deadzone != 4:
+		_fail("Race carousel did not receive responsive horizontal touch settings.")
+		return
 	if races.size() > 1:
 		var first_race_id: String = str((races[0] as Dictionary).get("id", ""))
 		var last_race_id: String = str((races[races.size() - 1] as Dictionary).get("id", ""))
@@ -125,6 +128,9 @@ func _run_smoke_test() -> void:
 	if class_strip == null or class_strip.get_child_count() != classes.size() * CAROUSEL_COPY_COUNT:
 		_fail("Class carousel is not cyclic: expected %d cards, got %d." % [classes.size() * CAROUSEL_COPY_COUNT, 0 if class_strip == null else class_strip.get_child_count()])
 		return
+	if class_carousel.scroll_deadzone != 4:
+		_fail("Class carousel did not receive responsive horizontal touch settings.")
+		return
 	if classes.size() > 1:
 		var first_class_id: String = str((classes[0] as Dictionary).get("id", ""))
 		var last_class_id: String = str((classes[classes.size() - 1] as Dictionary).get("id", ""))
@@ -134,6 +140,6 @@ func _run_smoke_test() -> void:
 			_fail("Class arrow did not wrap from first class to last class.")
 			return
 
-	print("Character creator cyclic showcase and racial bonuses smoke test passed.")
+	print("Character creator smooth cyclic showcase and racial bonuses smoke test passed.")
 	creator.queue_free()
 	quit(0)
