@@ -14,6 +14,7 @@ func perform_basic_attack(
 	attack_context: Dictionary = {}
 ) -> AttackResult:
 	var result: AttackResult = AttackResult.new()
+	result.attacker_name = character.character_name if not character.character_name.is_empty() else "Герой"
 	var is_unarmed: bool = weapon.is_empty()
 	result.attack_name = "Безоружный удар" if is_unarmed else str(weapon.get("name", "Атака оружием"))
 	result.target_name = str(attack_context.get("target_name", "Цель"))
@@ -37,27 +38,18 @@ func perform_basic_attack(
 		result.automatic_miss = true
 		result.note = "Цель находится за полным укрытием и не может быть атакована напрямую."
 		return result
-
 	var ability_id: String = _attack_ability(character, weapon, is_unarmed, result.range_state)
 	result.ability_name = _ability_name(ability_id)
 	result.ability_modifier = character.get_ability_modifier(ability_id)
 	result.proficiency_bonus = proficiency_bonus_for_level(character.level)
 	result.attack_bonus = result.ability_modifier + result.proficiency_bonus
-
 	var attacker_state: CombatantState = attack_context.get("attacker_state") as CombatantState
 	var defender_state: CombatantState = attack_context.get("defender_state") as CombatantState
-	var adjustments: Dictionary = _srd_rules.attack_roll_adjustments(
-		attacker_state,
-		defender_state,
-		result.distance_feet,
-		bool(attack_context.get("attacker_can_see_defender", true)),
-		bool(attack_context.get("defender_can_see_attacker", true))
-	)
+	var adjustments: Dictionary = _srd_rules.attack_roll_adjustments(attacker_state, defender_state, result.distance_feet, bool(attack_context.get("attacker_can_see_defender", true)), bool(attack_context.get("defender_can_see_attacker", true)))
 	if bool(adjustments.get("blocked", false)):
 		result.automatic_miss = true
 		result.note = "Текущее состояние не позволяет совершить атаку."
 		return result
-
 	var racial_advantage: bool = bool(character.active_effects.get("racial_advantage_next_d20", false))
 	var contextual_advantage: bool = bool(attack_context.get("advantage", false)) or racial_advantage
 	var legacy_ranged_disadvantage: bool = result.range_state != "melee" and bool(attack_context.get("disadvantage", false))
@@ -71,7 +63,6 @@ func perform_basic_attack(
 		result.disadvantage = false
 	if racial_advantage:
 		character.active_effects.erase("racial_advantage_next_d20")
-
 	result.first_roll = _racial_d20(character, natural_roll_override, int(attack_context.get("lucky_first_reroll_override", -1)))
 	if result.advantage or result.disadvantage:
 		var second_override: int = int(attack_context.get("second_roll_override", -1))
@@ -88,7 +79,6 @@ func perform_basic_attack(
 		result.note = "Укрытие цели повышает КД на +%d." % result.cover_bonus
 	if not result.hit:
 		return result
-
 	var damage_dice: Array = weapon.get("damage_dice", [1, 1]) as Array if not is_unarmed else [1, 1]
 	if is_unarmed and character.character_class_id == "monk":
 		damage_dice = [1, 6]
@@ -98,7 +88,6 @@ func perform_basic_attack(
 		result.damage = maxi(0, 1 + result.ability_modifier)
 	else:
 		result.damage = maxi(0, _roll_damage(dice_count * (2 if result.critical else 1), die_sides, damage_rolls_override) + result.ability_modifier)
-
 	if ability_id == "strength" and int(character.active_effects.get("rage_attacks", 0)) > 0:
 		result.bonus_damage += 2
 		character.active_effects["rage_attacks"] = int(character.active_effects["rage_attacks"]) - 1
