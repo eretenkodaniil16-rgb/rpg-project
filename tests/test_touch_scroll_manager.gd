@@ -56,7 +56,12 @@ func _run() -> void:
 	var horizontal_button: Button = Button.new()
 	horizontal_button.text = "Scrollable button content"
 	horizontal_button.custom_minimum_size = Vector2(720.0, 80.0)
+	horizontal_button.set_meta("selector_id", "test_card")
 	horizontal.add_child(horizontal_button)
+	var press_counter: Array[int] = [0]
+	horizontal_button.pressed.connect(func() -> void:
+		press_counter[0] += 1
+	)
 
 	var vertical: ScrollContainer = ScrollContainer.new()
 	vertical.position = Vector2(40.0, 180.0)
@@ -87,6 +92,7 @@ func _run() -> void:
 	var nested_button: Button = Button.new()
 	nested_button.text = "Nested horizontal buttons"
 	nested_button.custom_minimum_size = Vector2(840.0, 90.0)
+	nested_button.set_meta("selector_id", "nested_test_card")
 	nested_inner.add_child(nested_button)
 
 	for _frame: int in range(5):
@@ -116,37 +122,69 @@ func _run() -> void:
 		_fail("Scroll containers were not registered for custom touch dragging.")
 		return
 
-	# A movement below the physical-screen threshold remains a tap and must not scroll.
+	# A deliberate tap with only tiny finger jitter activates the captured card.
 	horizontal.scroll_horizontal = 120
 	manager.call("_input", _screen_touch(0, Vector2(120.0, 80.0), true))
-	manager.call("_input", _screen_drag(0, Vector2(114.0, 81.0), Vector2(-6.0, 1.0), Vector2(-120.0, 20.0)))
-	manager.call("_input", _screen_touch(0, Vector2(114.0, 81.0), false))
-	await process_frame
+	manager.call("_input", _screen_drag(0, Vector2(117.0, 81.0), Vector2(-3.0, 1.0), Vector2(-60.0, 20.0)))
+	manager.call("_input", _screen_touch(0, Vector2(117.0, 81.0), false))
+	for _frame: int in range(2):
+		await process_frame
 	if horizontal.scroll_horizontal != 120:
-		_fail("A short tap-sized movement unexpectedly scrolled the list.")
+		_fail("A deliberate tap unexpectedly scrolled the list.")
+		return
+	if press_counter[0] != 1:
+		_fail("A deliberate card tap was not activated exactly once.")
 		return
 
-	# Horizontal dragging must work even when the touch starts on a Button.
+	# Movement larger than tap tolerance but smaller than the swipe threshold is
+	# intentionally neutral: it must neither select the card nor move the list.
 	manager.call("_input", _screen_touch(1, Vector2(120.0, 80.0), true))
-	manager.call("_input", _screen_drag(1, Vector2(60.0, 83.0), Vector2(-60.0, 3.0), Vector2(-900.0, 45.0)))
+	manager.call("_input", _screen_drag(1, Vector2(114.0, 81.0), Vector2(-6.0, 1.0), Vector2(-120.0, 20.0)))
+	manager.call("_input", _screen_touch(1, Vector2(114.0, 81.0), false))
+	for _frame: int in range(2):
+		await process_frame
+	if horizontal.scroll_horizontal != 120:
+		_fail("A neutral movement unexpectedly scrolled the list.")
+		return
+	if press_counter[0] != 1:
+		_fail("A swipe attempt below the scroll threshold incorrectly selected a card.")
+		return
+
+	# Horizontal dragging must work when the touch starts on the same Button and
+	# must never activate that Button.
+	manager.call("_input", _screen_touch(2, Vector2(120.0, 80.0), true))
+	manager.call("_input", _screen_drag(2, Vector2(60.0, 83.0), Vector2(-60.0, 3.0), Vector2(-900.0, 45.0)))
 	await process_frame
 	var horizontal_after_drag: int = horizontal.scroll_horizontal
 	if horizontal_after_drag < 170:
 		_fail("Custom horizontal touch dragging did not move button content.")
 		return
-	manager.call("_input", _screen_touch(1, Vector2(60.0, 83.0), false))
+	manager.call("_input", _screen_touch(2, Vector2(60.0, 83.0), false))
 	manager.call("_process", 0.08)
 	await process_frame
 	if horizontal.scroll_horizontal <= horizontal_after_drag:
 		_fail("Horizontal fling inertia did not continue after release.")
 		return
+	if press_counter[0] != 1:
+		_fail("A completed swipe incorrectly activated its starting card.")
+		return
+
+	# Touching a moving carousel only stops its inertia. Releasing immediately
+	# must not activate the card under the finger.
+	manager.call("_input", _screen_touch(3, Vector2(120.0, 80.0), true))
+	manager.call("_input", _screen_touch(3, Vector2(120.0, 80.0), false))
+	for _frame: int in range(2):
+		await process_frame
+	if press_counter[0] != 1:
+		_fail("Stopping carousel inertia incorrectly activated a card.")
+		return
 
 	# Inside a nested horizontal list, horizontal motion belongs to the inner list.
 	nested_inner.scroll_horizontal = 140
 	nested_outer.scroll_vertical = 0
-	manager.call("_input", _screen_touch(2, Vector2(420.0, 160.0), true))
-	manager.call("_input", _screen_drag(2, Vector2(350.0, 165.0), Vector2(-70.0, 5.0), Vector2(-500.0, 35.0)))
-	manager.call("_input", _screen_touch(2, Vector2(350.0, 165.0), false))
+	manager.call("_input", _screen_touch(4, Vector2(420.0, 160.0), true))
+	manager.call("_input", _screen_drag(4, Vector2(350.0, 165.0), Vector2(-70.0, 5.0), Vector2(-500.0, 35.0)))
+	manager.call("_input", _screen_touch(4, Vector2(350.0, 165.0), false))
 	await process_frame
 	if nested_inner.scroll_horizontal < 200:
 		_fail("Nested horizontal gesture was not assigned to the inner list.")
@@ -157,9 +195,9 @@ func _run() -> void:
 
 	# The same starting area must route a vertical gesture to the outer page.
 	var inner_before_vertical: int = nested_inner.scroll_horizontal
-	manager.call("_input", _screen_touch(3, Vector2(420.0, 160.0), true))
-	manager.call("_input", _screen_drag(3, Vector2(425.0, 90.0), Vector2(5.0, -70.0), Vector2(35.0, -500.0)))
-	manager.call("_input", _screen_touch(3, Vector2(425.0, 90.0), false))
+	manager.call("_input", _screen_touch(5, Vector2(420.0, 160.0), true))
+	manager.call("_input", _screen_drag(5, Vector2(425.0, 90.0), Vector2(5.0, -70.0), Vector2(35.0, -500.0)))
+	manager.call("_input", _screen_touch(5, Vector2(425.0, 90.0), false))
 	await process_frame
 	if nested_outer.scroll_vertical < 60:
 		_fail("Vertical gesture inside a carousel was not assigned to the outer page.")
@@ -189,5 +227,5 @@ func _run() -> void:
 
 	host.queue_free()
 	await process_frame
-	print("Custom physical touch gesture routing and inertia test passed.")
+	print("Captured card tap discrimination, custom touch routing, and inertia test passed.")
 	quit(0)
