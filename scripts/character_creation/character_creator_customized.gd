@@ -17,7 +17,7 @@ var _custom_creator_initialized: bool = false
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	call_deferred("_initialize_custom_creator")
+	_initialize_custom_creator()
 
 
 func _initialize_custom_creator() -> void:
