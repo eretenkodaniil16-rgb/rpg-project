@@ -106,6 +106,14 @@ jobs:
             exit 1
           fi
 
+      - name: Validate mobile combat, progression and HUD
+        shell: bash
+        run: |
+          set -o pipefail
+          timeout 90s ./$GODOT_BINARY --headless --path "$GITHUB_WORKSPACE" \
+            --script res://tests/test_mobile_combat_progression_hud.gd \
+            2>&1 | tee build/android/mobile-regression-test.log
+
       - name: Export signed Android debug APK
         shell: bash
         run: |
@@ -132,6 +140,7 @@ jobs:
           name: rpg-project-build-logs-${{ github.run_number }}
           path: |
             build/android/import.log
+            build/android/mobile-regression-test.log
             build/android/export.log
           if-no-files-found: ignore
           retention-days: 14
