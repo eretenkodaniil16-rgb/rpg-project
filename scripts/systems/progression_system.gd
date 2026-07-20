@@ -6,7 +6,7 @@ const EXPERIENCE_STEP: int = 100
 
 static func total_experience_for_level(level: int) -> int:
 	var safe_level: int = maxi(level, 1)
-	return EXPERIENCE_STEP * (safe_level - 1) * safe_level / 2
+	return floori(float(EXPERIENCE_STEP * (safe_level - 1) * safe_level) / 2.0)
 
 
 static func experience_required_for_next_level(character: PlayerCharacter) -> int:
