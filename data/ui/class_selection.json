@@ -1,0 +1,16 @@
+{
+  "classes": {
+    "barbarian": {"symbol": "ВР", "accent": "#A84732", "difficulty": 1, "tags": ["Ближний бой", "Выживаемость", "Ярость"]},
+    "bard": {"symbol": "БД", "accent": "#9B4F9E", "difficulty": 2, "tags": ["Поддержка", "Диалоги", "Магия"]},
+    "cleric": {"symbol": "ЖР", "accent": "#C79A3B", "difficulty": 2, "tags": ["Исцеление", "Защита", "Святая магия"]},
+    "druid": {"symbol": "ДР", "accent": "#4F8C58", "difficulty": 2, "tags": ["Контроль", "Природа", "Универсальность"]},
+    "fighter": {"symbol": "ВН", "accent": "#66778B", "difficulty": 1, "tags": ["Оружие", "Тактика", "Стойкость"]},
+    "monk": {"symbol": "МН", "accent": "#3F8C8C", "difficulty": 2, "tags": ["Мобильность", "Контроль", "Без доспеха"]},
+    "paladin": {"symbol": "ПЛ", "accent": "#D0B45C", "difficulty": 2, "tags": ["Защита", "Лидерство", "Исцеление"]},
+    "ranger": {"symbol": "СЛ", "accent": "#4C7F47", "difficulty": 2, "tags": ["Стрельба", "Разведка", "Природа"]},
+    "rogue": {"symbol": "ПТ", "accent": "#5D6675", "difficulty": 2, "tags": ["Скрытность", "Взлом", "Точный урон"]},
+    "sorcerer": {"symbol": "ЧД", "accent": "#B44767", "difficulty": 3, "tags": ["Атакующая магия", "Харизма", "Метамагия"]},
+    "warlock": {"symbol": "КЛ", "accent": "#7652A8", "difficulty": 2, "tags": ["Договор", "Дальний бой", "Проклятия"]},
+    "wizard": {"symbol": "ВЛ", "accent": "#4B70B5", "difficulty": 3, "tags": ["Заклинания", "Знания", "Подготовка"]}
+  }
+}

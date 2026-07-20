@@ -61,14 +61,14 @@ theme_override_constants/separation = 14
 [node name="Title" type="Label" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 38
-text = "RPG PROJECT"
+text = "ХРОНИКИ СТРАННИКА"
 horizontal_alignment = 1
 
 [node name="Subtitle" type="Label" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.7, 0.75, 0.82, 1)
 theme_override_font_sizes/font_size = 18
-text = "Первый технический прототип"
+text = "Сюжетная ролевая игра"
 horizontal_alignment = 1
 
 [node name="Separator" type="HSeparator" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]

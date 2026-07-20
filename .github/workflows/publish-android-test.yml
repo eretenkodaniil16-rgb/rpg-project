@@ -1,16 +1,17 @@
-name: Build Android APK
+name: Publish Android test build
 
 on:
   pull_request:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  build-android:
+  publish-android-test:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.number == 15
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
 
     steps:
       - name: Checkout repository
@@ -89,31 +90,27 @@ jobs:
             --headless --editor --path "$GITHUB_WORKSPACE" --quit
 
       - name: Export Android APK
-        id: export
-        continue-on-error: true
         shell: bash
         run: |
           mkdir -p "$GITHUB_WORKSPACE/build/android"
-          set +e
           ./Godot_v4.7.1-stable_linux.x86_64 \
             --headless --verbose --path "$GITHUB_WORKSPACE" \
             --export-debug "Android" \
-            "$GITHUB_WORKSPACE/build/android/rpg-project-0.16.3-debug.apk" \
-            2>&1 | tee "$GITHUB_WORKSPACE/build/android/export.log"
-          export_status=${PIPESTATUS[0]}
-          echo "$export_status" > "$GITHUB_WORKSPACE/build/android/export-status.txt"
-          exit "$export_status"
+            "$GITHUB_WORKSPACE/build/android/rpg-project-0.16.4-debug.apk"
 
-      - name: Upload Android build and diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: rpg-project-0.16.3-android-debug
-          path: build/android/
-          if-no-files-found: error
-          retention-days: 14
-
-      - name: Fail workflow when export failed
-        if: steps.export.outcome != 'success'
+      - name: Publish test prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
         shell: bash
-        run: exit 1
+        run: |
+          tag="v0.16.4-touch-scroll-test"
+          title="Android test build 0.16.4"
+          notes="Тестовая Android-сборка новой системы прокрутки касанием. Собрана из PR #15; не является стабильным релизом."
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release edit "$tag" --title "$title" --notes "$notes" --prerelease
+          else
+            gh release create "$tag" --target "$GITHUB_SHA" --title "$title" --notes "$notes" --prerelease
+          fi
+          gh release upload "$tag" \
+            "$GITHUB_WORKSPACE/build/android/rpg-project-0.16.4-debug.apk" \
+            --clobber

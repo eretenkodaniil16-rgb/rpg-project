@@ -4,14 +4,15 @@ config_version=5
 
 [application]
 
-config/name="RPG Project"
-config/version="0.15.2"
+config/name="Хроники странника"
+config/version="0.16.4"
 run/main_scene="res://scenes/menus/main_menu.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 
 [autoload]
 
 GameState="*res://scripts/core/game_state.gd"
+TouchScrollManager="*res://scripts/ui/touch_scroll_manager.gd"
 
 [display]
 
