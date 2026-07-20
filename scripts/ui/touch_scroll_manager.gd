@@ -9,14 +9,17 @@ const AXIS_VERTICAL: int = 2
 # gesture before it reaches the container. The manager handles physical touch
 # events in _input(), before GUI dispatch.
 const NATIVE_TOUCH_DEADZONE_PX: int = 100000
-const GESTURE_START_SCREEN_PX: float = 12.0
-const DIAGONAL_COMMIT_SCREEN_PX: float = 24.0
+const GESTURE_START_SCREEN_PX: float = 8.0
+const DIAGONAL_COMMIT_SCREEN_PX: float = 18.0
 const AXIS_DOMINANCE_RATIO: float = 1.18
+const TAP_MAX_SCREEN_DISTANCE_PX: float = 5.0
+const TAP_MAX_SCREEN_PATH_PX: float = 8.0
+const TAP_MAX_DURATION_MSEC: int = 500
 const MIN_FLING_SCREEN_SPEED: float = 220.0
 const MAX_FLING_LOGICAL_SPEED: float = 3600.0
 const INERTIA_FRICTION: float = 7.5
 const INERTIA_STOP_LOGICAL_SPEED: float = 32.0
-const EMULATED_MOUSE_SUPPRESSION_MSEC: int = 140
+const EMULATED_MOUSE_SUPPRESSION_MSEC: int = 180
 const CANCEL_EVENT_DEVICE_ID: int = 17001
 
 var _touch_states: Dictionary = {}
@@ -130,21 +133,35 @@ func _handle_screen_touch(event: InputEventScreenTouch) -> void:
 
 func _begin_touch(event: InputEventScreenTouch) -> void:
 	var candidates: Array[ScrollContainer] = _scroll_candidates_at(event.position)
-	# Touching a moving list must stop it immediately, even when the finger
-	# remains still and the gesture later resolves as a normal tap.
+	var stopped_inertia: bool = false
+	# A touch that stops a moving list is only a stop gesture. Releasing the
+	# finger must not also select the card under it.
 	for candidate: ScrollContainer in candidates:
-		_stop_inertia(candidate, true)
+		stopped_inertia = _stop_inertia(candidate, true) or stopped_inertia
+	var captured_button: BaseButton = _capturable_button_at(event.position, candidates)
+	var captures_gui: bool = captured_button != null
 	_touch_states[event.index] = {
 		"candidates": candidates,
+		"press_position": event.position,
 		"screen_delta": Vector2.ZERO,
 		"logical_delta": Vector2.ZERO,
 		"logical_velocity": Vector2.ZERO,
 		"screen_velocity": Vector2.ZERO,
+		"screen_path_length": 0.0,
+		"max_screen_distance": 0.0,
+		"started_msec": Time.get_ticks_msec(),
 		"axis": AXIS_NONE,
 		"scroll": null,
 		"claimed": false,
 		"continued_inertia": false,
+		"stopped_inertia": stopped_inertia,
+		"captured_button": captured_button,
+		"captures_gui": captures_gui,
+		"tap_canceled": stopped_inertia,
 	}
+	if captures_gui:
+		_suppress_emulated_mouse()
+		get_viewport().set_input_as_handled()
 
 
 func _handle_screen_drag(event: InputEventScreenDrag) -> void:
@@ -157,6 +174,18 @@ func _handle_screen_drag(event: InputEventScreenDrag) -> void:
 	logical_delta += event.relative
 	state["screen_delta"] = screen_delta
 	state["logical_delta"] = logical_delta
+
+	var path_length: float = float(state.get("screen_path_length", 0.0)) + event.screen_relative.length()
+	var press_position: Vector2 = state.get("press_position", event.position)
+	var max_distance: float = maxf(
+		float(state.get("max_screen_distance", 0.0)),
+		event.position.distance_to(press_position)
+	)
+	state["screen_path_length"] = path_length
+	state["max_screen_distance"] = max_distance
+	if max_distance > TAP_MAX_SCREEN_DISTANCE_PX or path_length > TAP_MAX_SCREEN_PATH_PX:
+		state["tap_canceled"] = true
+
 	var previous_logical_velocity: Vector2 = state.get("logical_velocity", Vector2.ZERO)
 	var previous_screen_velocity: Vector2 = state.get("screen_velocity", Vector2.ZERO)
 	state["logical_velocity"] = previous_logical_velocity.lerp(event.velocity, 0.42)
@@ -166,6 +195,9 @@ func _handle_screen_drag(event: InputEventScreenDrag) -> void:
 		var axis: int = _axis_for_screen_delta(screen_delta)
 		if axis == AXIS_NONE:
 			_touch_states[event.index] = state
+			if bool(state.get("captures_gui", false)):
+				_suppress_emulated_mouse()
+				get_viewport().set_input_as_handled()
 			return
 		var scroll: ScrollContainer = _pick_scroll_for_axis(
 			state.get("candidates", []),
@@ -174,15 +206,20 @@ func _handle_screen_drag(event: InputEventScreenDrag) -> void:
 		)
 		if scroll == null:
 			_touch_states[event.index] = state
+			if bool(state.get("captures_gui", false)):
+				_suppress_emulated_mouse()
+				get_viewport().set_input_as_handled()
 			return
 		var continued_inertia: bool = _stop_inertia(scroll, false)
 		state["axis"] = axis
 		state["scroll"] = scroll
 		state["claimed"] = true
 		state["continued_inertia"] = continued_inertia
+		state["tap_canceled"] = true
 		if not continued_inertia:
 			scroll.emit_signal("scroll_started")
-		_cancel_gui_press(event.index, event.position)
+		if not bool(state.get("captures_gui", false)):
+			_cancel_gui_press(event.index, event.position)
 		_apply_finger_delta(scroll, axis, _component(logical_delta, axis))
 		state["logical_delta"] = Vector2.ZERO
 	else:
@@ -201,8 +238,17 @@ func _end_touch(event: InputEventScreenTouch) -> void:
 		return
 	var state: Dictionary = _touch_states[event.index]
 	_touch_states.erase(event.index)
+
+	if bool(state.get("captures_gui", false)):
+		_suppress_emulated_mouse()
+		get_viewport().set_input_as_handled()
+
 	if not bool(state.get("claimed", false)):
+		if _is_deliberate_tap(state, event.position):
+			var captured_button: BaseButton = state.get("captured_button") as BaseButton
+			call_deferred("_activate_captured_button", captured_button)
 		return
+
 	_suppress_emulated_mouse()
 	get_viewport().set_input_as_handled()
 	var scroll: ScrollContainer = state.get("scroll") as ScrollContainer
@@ -225,6 +271,70 @@ func _end_touch(event: InputEventScreenTouch) -> void:
 		}
 	else:
 		scroll.emit_signal("scroll_ended")
+
+
+func _is_deliberate_tap(state: Dictionary, release_position: Vector2) -> bool:
+	if bool(state.get("claimed", false)):
+		return false
+	if bool(state.get("tap_canceled", false)) or bool(state.get("stopped_inertia", false)):
+		return false
+	var button: BaseButton = state.get("captured_button") as BaseButton
+	if not is_instance_valid(button) or button.disabled or not button.is_visible_in_tree():
+		return false
+	if Time.get_ticks_msec() - int(state.get("started_msec", 0)) > TAP_MAX_DURATION_MSEC:
+		return false
+	if float(state.get("max_screen_distance", 0.0)) > TAP_MAX_SCREEN_DISTANCE_PX:
+		return false
+	if float(state.get("screen_path_length", 0.0)) > TAP_MAX_SCREEN_PATH_PX:
+		return false
+	return button.get_global_rect().grow(8.0).has_point(release_position)
+
+
+func _activate_captured_button(button: BaseButton) -> void:
+	if not is_instance_valid(button) or button.disabled or not button.is_visible_in_tree():
+		return
+	button.emit_signal("pressed")
+
+
+func _capturable_button_at(position: Vector2, candidates: Array[ScrollContainer]) -> BaseButton:
+	var best: BaseButton = null
+	var best_depth: int = -1
+	for scroll: ScrollContainer in candidates:
+		var candidate: BaseButton = _deepest_capturable_button(scroll, position)
+		if candidate == null:
+			continue
+		var depth: int = _node_depth(candidate)
+		if depth > best_depth:
+			best = candidate
+			best_depth = depth
+	return best
+
+
+func _deepest_capturable_button(node: Node, position: Vector2) -> BaseButton:
+	var best: BaseButton = null
+	var best_depth: int = -1
+	if node is BaseButton:
+		var button: BaseButton = node as BaseButton
+		var opted_in: bool = button.has_meta("selector_id") or bool(button.get_meta("touch_scroll_capture", false))
+		if (
+			opted_in
+			and not button.disabled
+			and button.is_visible_in_tree()
+			and button.mouse_filter != Control.MOUSE_FILTER_IGNORE
+			and button.get_global_rect().has_point(position)
+			and _point_inside_clipping_ancestors(button, position)
+		):
+			best = button
+			best_depth = _node_depth(button)
+	for child: Node in node.get_children():
+		var child_button: BaseButton = _deepest_capturable_button(child, position)
+		if child_button == null:
+			continue
+		var child_depth: int = _node_depth(child_button)
+		if child_depth > best_depth:
+			best = child_button
+			best_depth = child_depth
+	return best
 
 
 func _axis_for_screen_delta(delta: Vector2) -> int:
@@ -373,8 +483,8 @@ func _finish_inertia(instance_id: int, emit_ended: bool) -> void:
 
 
 func _cancel_gui_press(touch_index: int, position: Vector2) -> void:
-	# Buttons receive an emulated mouse press before the gesture is classified.
-	# A canceled release clears their pressed state without activating them.
+	# Non-captured buttons still receive the initial emulated mouse press. A
+	# canceled release clears their pressed state without activating them.
 	var mouse_cancel: InputEventMouseButton = InputEventMouseButton.new()
 	mouse_cancel.device = CANCEL_EVENT_DEVICE_ID
 	mouse_cancel.position = position
@@ -411,6 +521,6 @@ func _should_suppress_emulated_mouse(event: InputEvent) -> bool:
 	for state_value: Variant in _touch_states.values():
 		if state_value is Dictionary:
 			var touch_state: Dictionary = state_value
-			if bool(touch_state.get("claimed", false)):
+			if bool(touch_state.get("claimed", false)) or bool(touch_state.get("captures_gui", false)):
 				return true
 	return false
