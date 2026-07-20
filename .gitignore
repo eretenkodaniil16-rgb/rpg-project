@@ -2,6 +2,7 @@
 .godot/
 
 # Exported builds
+build/
 builds/
 exports/
 *.apk
@@ -9,10 +10,20 @@ exports/
 *.exe
 *.pck
 
+# Local toolchains and generated environment data
+.tools/
+.secrets/
+local-build-environment.json
+
 # Android build cache and signing material
 android/build/
 *.keystore
 *.jks
+
+# Local backups and temporary files
+*.backup
+*.bak
+*.tmp
 
 # IDE and operating-system files
 .vscode/
