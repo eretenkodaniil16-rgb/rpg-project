@@ -1,32 +1,17 @@
-extends SceneTree
+extends Node
 
 
-func _init() -> void:
+func _ready() -> void:
 	call_deferred("_run")
 
 
 func _fail(message: String) -> void:
 	push_error(message)
-	quit(1)
-
-
-func _ensure_runtime_singleton(node_name: String, script_path: String) -> Node:
-	var existing: Node = root.get_node_or_null(node_name)
-	if existing != null:
-		return existing
-	var singleton_script: Script = load(script_path) as Script
-	var instance: Node = singleton_script.new() as Node
-	instance.name = node_name
-	root.add_child(instance)
-	return instance
+	get_tree().quit(1)
 
 
 func _run() -> void:
-	var game_state: Node = _ensure_runtime_singleton("GameState", "res://scripts/core/game_state.gd")
-	var assist: Node = _ensure_runtime_singleton("CharacterSelectionTouchAssist", "res://scripts/ui/character_selection_touch_assist.gd")
-	await process_frame
-	game_state.call("new_game")
-
+	GameState.new_game()
 	var hero := PlayerCharacter.new()
 	hero.character_name = "Тестовый воин"
 	hero.character_class_id = "fighter"
@@ -39,7 +24,7 @@ func _run() -> void:
 	hero.hit_die_size = 10
 	hero.hit_dice_maximum = 1
 	hero.hit_dice_current = 1
-	game_state.set("player_character", hero)
+	GameState.player_character = hero
 	ClassDataSystem.new().ensure_starting_loadout(hero)
 
 	var progression: Dictionary = ProgressionSystem.grant_experience(hero, 100)
@@ -52,9 +37,9 @@ func _run() -> void:
 
 	var game_scene: PackedScene = load("res://scenes/game/game.tscn") as PackedScene
 	var game: Node = game_scene.instantiate()
-	root.add_child(game)
-	await process_frame
-	await process_frame
+	add_child(game)
+	await get_tree().process_frame
+	await get_tree().process_frame
 
 	var attack_button := game.find_child("AttackButton", true, false) as Button
 	var catalog_button := game.find_child("ActionCatalogButton", true, false) as Button
@@ -76,7 +61,7 @@ func _run() -> void:
 		_fail("Character hub is missing.")
 		return
 	hub.open_tab(hero, 0)
-	await process_frame
+	await get_tree().process_frame
 	if hub.find_child("CharacterPortrait", true, false) == null:
 		_fail("Character portrait is missing from the character tab.")
 		return
@@ -88,15 +73,19 @@ func _run() -> void:
 	var selector_host := Control.new()
 	selector_host.position = Vector2(500.0, 300.0)
 	selector_host.size = Vector2(220.0, 120.0)
-	root.add_child(selector_host)
+	add_child(selector_host)
 	var selector := Button.new()
 	selector.size = Vector2(180.0, 90.0)
 	selector.set_meta("selector_id", "fighter")
 	selector_host.add_child(selector)
 	var selection_state: Dictionary = {"count": 0}
 	selector.pressed.connect(func() -> void: selection_state["count"] = int(selection_state["count"]) + 1)
-	await process_frame
+	await get_tree().process_frame
 
+	var assist: Node = get_node_or_null("/root/CharacterSelectionTouchAssist")
+	if assist == null:
+		_fail("Character selection touch assistant is not registered.")
+		return
 	var press := InputEventScreenTouch.new()
 	press.index = 41
 	press.pressed = true
@@ -111,18 +100,14 @@ func _run() -> void:
 	release.pressed = false
 	release.position = Vector2(552.0, 340.0)
 	assist.call("_input", release)
-	await process_frame
-	await process_frame
+	await get_tree().process_frame
+	await get_tree().process_frame
 	if int(selection_state.get("count", 0)) < 1:
 		_fail("A small finger movement still cancels race/class selection.")
 		return
 
 	selector_host.queue_free()
 	game.queue_free()
-	if assist.get_parent() == root:
-		assist.queue_free()
-	if game_state.get_parent() == root:
-		game_state.queue_free()
-	await process_frame
+	await get_tree().process_frame
 	print("Mobile attack layout, progression, persistent HUD and selection threshold test passed.")
-	quit(0)
+	get_tree().quit(0)
