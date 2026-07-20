@@ -47,7 +47,7 @@ func _process(_delta: float) -> void:
 func _build_ui() -> void:
 	var panel := PanelContainer.new()
 	panel.name = "PlayerStatusPanel"
-	panel.position = Vector2(20.0, 18.0)
+	panel.position = Vector2(20.0, 104.0)
 	panel.size = Vector2(350.0, 116.0)
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.modulate = Color(1.0, 1.0, 1.0, 0.94)
