@@ -1,13 +1,12 @@
 extends "res://scripts/game/game_target_free_attacks.gd"
 
 const PREPARED_PANEL_SCRIPT: Script = preload("res://scripts/ui/prepared_action_panel.gd")
-const CHARACTER_HUB_SCRIPT: Script = preload("res://scripts/ui/character_hub.gd")
+const CHARACTER_HUB_SCRIPT: Script = preload("res://scripts/ui/character_hub_inventory.gd")
 const COMBAT_FEED_SCRIPT: Script = preload("res://scripts/ui/combat_event_feed.gd")
 const D20_OVERLAY_SCRIPT: Script = preload("res://scripts/ui/d20_roll_overlay.gd")
 
 var _combat_feed: CombatEventFeed
 var _d20_overlay: D20RollOverlay
-
 
 func _ready() -> void:
 	super._ready()
@@ -38,7 +37,6 @@ func _ready() -> void:
 	_register_exploration_hud()
 	_sync_exploration_hud_visibility()
 
-
 func _open_character_sheet() -> void:
 	if GameState.input_locked or _character_sheet == null:
 		return
@@ -49,7 +47,6 @@ func _open_character_sheet() -> void:
 		_character_sheet.open_sheet(GameState.player_character)
 	_sync_exploration_hud_visibility()
 
-
 func _open_inventory() -> void:
 	if GameState.input_locked or _character_sheet == null:
 		return
@@ -59,7 +56,6 @@ func _open_inventory() -> void:
 	else:
 		super._open_inventory()
 	_sync_exploration_hud_visibility()
-
 
 func _on_prepared_action_changed(_ability_id: String) -> void:
 	if _ability_panel != null:
