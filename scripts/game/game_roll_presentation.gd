@@ -3,10 +3,6 @@ extends "res://scripts/game/game_feature_ui.gd"
 var _reaction_roll: bool = false
 
 
-func mark_next_npc_attack_as_reaction() -> void:
-	_reaction_roll = true
-
-
 func resolve_npc_attack(attacker: Node, attack_bonus: int, damage_die: int, damage_bonus: int, damage_type: String = "slashing") -> Dictionary:
 	if attacker == null or not (attacker is Node2D):
 		_reaction_roll = false
@@ -49,3 +45,26 @@ func resolve_npc_attack(attacker: Node, attack_bonus: int, damage_die: int, dama
 		_combat_feed.show_result(result)
 	_reaction_roll = false
 	return {"hit": result.hit, "natural": result.natural_roll, "total": result.total, "applied": result.damage, "critical": result.critical}
+
+
+func _trigger_enemy_opportunity_attacks(from_position: Vector2, to_position: Vector2) -> void:
+	for entry: Dictionary in _turn_system.entries:
+		if bool(entry.get("is_player", false)):
+			continue
+		var actor: Node = entry.get("node") as Node
+		if not is_instance_valid(actor) or not (actor is Node2D):
+			continue
+		if actor.has_method("is_hostile") and not bool(actor.call("is_hostile")):
+			continue
+		if not _turn_system.has_reaction(actor):
+			continue
+		var current_distance: int = DistanceSystem.distance_feet((actor as Node2D).global_position, from_position)
+		var future_distance: int = DistanceSystem.distance_feet((actor as Node2D).global_position, to_position)
+		if current_distance <= DistanceSystem.MELEE_REACH_FEET and future_distance > DistanceSystem.MELEE_REACH_FEET:
+			_turn_system.consume_reaction(actor)
+			if actor.has_method("perform_opportunity_attack"):
+				_reaction_roll = true
+				actor.call("perform_opportunity_attack")
+				_reaction_roll = false
+				if GameState.player_character.current_health <= 0:
+					return
