@@ -1,0 +1,116 @@
+name: Publish Android test build
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish-android-test:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.number == 15
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager \
+            "platform-tools" \
+            "build-tools;35.0.1" \
+            "platforms;android-35" \
+            "cmake;3.10.2.4988404" \
+            "ndk;28.1.13356709"
+
+      - name: Download Godot and export templates
+        shell: bash
+        run: |
+          curl --location --fail --retry 3 \
+            --output godot.zip \
+            "https://github.com/godotengine/godot/releases/download/4.7.1-stable/Godot_v4.7.1-stable_linux.x86_64.zip"
+          unzip -q godot.zip
+          chmod +x Godot_v4.7.1-stable_linux.x86_64
+          curl --location --fail --retry 3 \
+            --output export_templates.tpz \
+            "https://github.com/godotengine/godot/releases/download/4.7.1-stable/Godot_v4.7.1-stable_export_templates.tpz"
+          rm -rf /tmp/godot-export-templates
+          mkdir -p /tmp/godot-export-templates
+          unzip -q export_templates.tpz -d /tmp/godot-export-templates
+          mkdir -p "$HOME/.local/share/godot/export_templates/4.7.1.stable"
+          cp -a /tmp/godot-export-templates/templates/. \
+            "$HOME/.local/share/godot/export_templates/4.7.1.stable/"
+
+      - name: Create debug keystore
+        shell: bash
+        run: |
+          keytool -genkeypair \
+            -keystore "$GITHUB_WORKSPACE/debug.keystore" \
+            -storepass android \
+            -alias androiddebugkey \
+            -keypass android \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -dname "CN=Android Debug,O=RPG Project,C=NL"
+
+      - name: Configure Godot Android paths
+        shell: bash
+        run: |
+          mkdir -p "$HOME/.config/godot"
+          cat > "$HOME/.config/godot/editor_settings-4.7.tres" <<EOF_SETTINGS
+          [gd_resource type="EditorSettings" format=3]
+
+          [resource]
+          export/android/android_sdk_path = "$ANDROID_HOME"
+          export/android/java_sdk_path = "$JAVA_HOME"
+          export/android/debug_keystore = "$GITHUB_WORKSPACE/debug.keystore"
+          export/android/debug_keystore_user = "androiddebugkey"
+          export/android/debug_keystore_pass = "android"
+          EOF_SETTINGS
+
+      - name: Import project resources
+        shell: bash
+        run: |
+          ./Godot_v4.7.1-stable_linux.x86_64 \
+            --headless --editor --path "$GITHUB_WORKSPACE" --quit
+
+      - name: Export Android APK
+        shell: bash
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/build/android"
+          ./Godot_v4.7.1-stable_linux.x86_64 \
+            --headless --verbose --path "$GITHUB_WORKSPACE" \
+            --export-debug "Android" \
+            "$GITHUB_WORKSPACE/build/android/rpg-project-0.16.4-debug.apk"
+
+      - name: Publish test prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          tag="v0.16.4-touch-scroll-test"
+          title="Android test build 0.16.4"
+          notes="Тестовая Android-сборка новой системы прокрутки касанием. Собрана из PR #15; не является стабильным релизом."
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release edit "$tag" --title "$title" --notes "$notes" --prerelease
+          else
+            gh release create "$tag" --target "$GITHUB_SHA" --title "$title" --notes "$notes" --prerelease
+          fi
+          gh release upload "$tag" \
+            "$GITHUB_WORKSPACE/build/android/rpg-project-0.16.4-debug.apk" \
+            --clobber
