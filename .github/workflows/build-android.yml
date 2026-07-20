@@ -29,43 +29,25 @@ jobs:
         shell: bash
         run: |
           yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager \
-            "platform-tools" \
-            "build-tools;35.0.1" \
-            "platforms;android-35" \
-            "cmake;3.10.2.4988404" \
-            "ndk;28.1.13356709"
+          sdkmanager             "platform-tools"             "build-tools;35.0.1"             "platforms;android-35"             "cmake;3.10.2.4988404"             "ndk;28.1.13356709"
 
       - name: Download Godot and export templates
         shell: bash
         run: |
-          curl --location --fail --retry 3 \
-            --output godot.zip \
-            "https://github.com/godotengine/godot/releases/download/4.7.1-stable/Godot_v4.7.1-stable_linux.x86_64.zip"
+          curl --location --fail --retry 3             --output godot.zip             "https://github.com/godotengine/godot/releases/download/4.7.1-stable/Godot_v4.7.1-stable_linux.x86_64.zip"
           unzip -q godot.zip
           chmod +x Godot_v4.7.1-stable_linux.x86_64
-          curl --location --fail --retry 3 \
-            --output export_templates.tpz \
-            "https://github.com/godotengine/godot/releases/download/4.7.1-stable/Godot_v4.7.1-stable_export_templates.tpz"
+          curl --location --fail --retry 3             --output export_templates.tpz             "https://github.com/godotengine/godot/releases/download/4.7.1-stable/Godot_v4.7.1-stable_export_templates.tpz"
           rm -rf /tmp/godot-export-templates
           mkdir -p /tmp/godot-export-templates
           unzip -q export_templates.tpz -d /tmp/godot-export-templates
           mkdir -p "$HOME/.local/share/godot/export_templates/4.7.1.stable"
-          cp -a /tmp/godot-export-templates/templates/. \
-            "$HOME/.local/share/godot/export_templates/4.7.1.stable/"
+          cp -a /tmp/godot-export-templates/templates/.             "$HOME/.local/share/godot/export_templates/4.7.1.stable/"
 
       - name: Create debug keystore
         shell: bash
         run: |
-          keytool -genkeypair \
-            -keystore "$GITHUB_WORKSPACE/debug.keystore" \
-            -storepass android \
-            -alias androiddebugkey \
-            -keypass android \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 10000 \
-            -dname "CN=Android Debug,O=RPG Project,C=NL"
+          keytool -genkeypair             -keystore "$GITHUB_WORKSPACE/debug.keystore"             -storepass android             -alias androiddebugkey             -keypass android             -keyalg RSA             -keysize 2048             -validity 10000             -dname "CN=Android Debug,O=RPG Project,C=NL"
 
       - name: Configure Godot Android paths
         shell: bash
@@ -85,8 +67,7 @@ jobs:
       - name: Import project resources
         shell: bash
         run: |
-          ./Godot_v4.7.1-stable_linux.x86_64 \
-            --headless --editor --path "$GITHUB_WORKSPACE" --quit
+          ./Godot_v4.7.1-stable_linux.x86_64             --headless --editor --path "$GITHUB_WORKSPACE" --quit
 
       - name: Export Android APK
         id: export
@@ -95,11 +76,7 @@ jobs:
         run: |
           mkdir -p "$GITHUB_WORKSPACE/build/android"
           set +e
-          ./Godot_v4.7.1-stable_linux.x86_64 \
-            --headless --verbose --path "$GITHUB_WORKSPACE" \
-            --export-debug "Android" \
-            "$GITHUB_WORKSPACE/build/android/rpg-project-0.16.3-debug.apk" \
-            2>&1 | tee "$GITHUB_WORKSPACE/build/android/export.log"
+          ./Godot_v4.7.1-stable_linux.x86_64             --headless --verbose --path "$GITHUB_WORKSPACE"             --export-debug "Android"             "$GITHUB_WORKSPACE/build/android/rpg-project-0.17.0-debug.apk"             2>&1 | tee "$GITHUB_WORKSPACE/build/android/export.log"
           export_status=${PIPESTATUS[0]}
           echo "$export_status" > "$GITHUB_WORKSPACE/build/android/export-status.txt"
           exit "$export_status"
@@ -108,7 +85,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: rpg-project-0.16.3-android-debug
+          name: rpg-project-0.17.0-android-debug
           path: build/android/
           if-no-files-found: error
           retention-days: 14
