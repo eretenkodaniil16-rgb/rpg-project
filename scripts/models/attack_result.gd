@@ -1,11 +1,13 @@
 class_name AttackResult
 extends RefCounted
 
+var attacker_name: String = "Герой"
 var attack_name: String = "Безоружный удар"
 var target_name: String = "Цель"
 var ability_name: String = "Сила"
 var damage_type: String = "дробящий"
 var is_spell: bool = false
+var is_reaction: bool = false
 var automatic_hit: bool = false
 var natural_roll: int = 1
 var first_roll: int = 1
@@ -35,11 +37,13 @@ var note: String = ""
 
 func to_dict() -> Dictionary:
 	return {
+		"attacker_name": attacker_name,
 		"attack_name": attack_name,
 		"target_name": target_name,
 		"ability_name": ability_name,
 		"damage_type": damage_type,
 		"is_spell": is_spell,
+		"is_reaction": is_reaction,
 		"automatic_hit": automatic_hit,
 		"natural_roll": natural_roll,
 		"first_roll": first_roll,
