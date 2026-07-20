@@ -2,6 +2,7 @@ extends SceneTree
 
 const CHARACTER_CREATOR_SCENE: String = "res://scenes/character_creation/character_creator.tscn"
 const CAROUSEL_COPY_COUNT: int = 5
+const CUSTOM_TOUCH_DEADZONE: int = 100000
 
 
 func _init() -> void:
@@ -69,8 +70,11 @@ func _run_smoke_test() -> void:
 	if race_strip == null or race_strip.get_child_count() != races.size() * CAROUSEL_COPY_COUNT:
 		_fail("Race carousel is not cyclic: expected %d cards, got %d." % [races.size() * CAROUSEL_COPY_COUNT, 0 if race_strip == null else race_strip.get_child_count()])
 		return
-	if race_carousel.scroll_deadzone != 4:
-		_fail("Race carousel did not receive responsive horizontal touch settings.")
+	if race_carousel.scroll_deadzone != CUSTOM_TOUCH_DEADZONE:
+		_fail("Race carousel did not disable native touch dragging for the custom gesture manager.")
+		return
+	if not bool(race_carousel.get_meta("touch_scroll_horizontal", false)):
+		_fail("Race carousel was not registered as a horizontal custom touch target.")
 		return
 	if races.size() > 1:
 		var first_race_id: String = str((races[0] as Dictionary).get("id", ""))
@@ -128,8 +132,11 @@ func _run_smoke_test() -> void:
 	if class_strip == null or class_strip.get_child_count() != classes.size() * CAROUSEL_COPY_COUNT:
 		_fail("Class carousel is not cyclic: expected %d cards, got %d." % [classes.size() * CAROUSEL_COPY_COUNT, 0 if class_strip == null else class_strip.get_child_count()])
 		return
-	if class_carousel.scroll_deadzone != 4:
-		_fail("Class carousel did not receive responsive horizontal touch settings.")
+	if class_carousel.scroll_deadzone != CUSTOM_TOUCH_DEADZONE:
+		_fail("Class carousel did not disable native touch dragging for the custom gesture manager.")
+		return
+	if not bool(class_carousel.get_meta("touch_scroll_horizontal", false)):
+		_fail("Class carousel was not registered as a horizontal custom touch target.")
 		return
 	if classes.size() > 1:
 		var first_class_id: String = str((classes[0] as Dictionary).get("id", ""))
@@ -140,6 +147,6 @@ func _run_smoke_test() -> void:
 			_fail("Class arrow did not wrap from first class to last class.")
 			return
 
-	print("Character creator smooth cyclic showcase and racial bonuses smoke test passed.")
+	print("Character creator custom touch carousel and racial bonuses smoke test passed.")
 	creator.queue_free()
 	quit(0)
