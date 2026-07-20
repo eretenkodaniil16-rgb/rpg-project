@@ -111,7 +111,7 @@ jobs:
         run: |
           set -o pipefail
           timeout 90s ./$GODOT_BINARY --headless --path "$GITHUB_WORKSPACE" \
-            --script res://tests/test_mobile_combat_progression_hud.gd \
+            res://tests/test_mobile_combat_progression_hud.tscn \
             2>&1 | tee build/android/mobile-regression-test.log
 
       - name: Export signed Android debug APK
