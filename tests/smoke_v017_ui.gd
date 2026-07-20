@@ -1,23 +1,23 @@
 extends SceneTree
 
-
 func _init() -> void:
 	call_deferred("_run")
-
 
 func _fail(message: String) -> void:
 	push_error(message)
 	quit(1)
 
-
 func _run() -> void:
+	GameState.new_game()
 	var hero := PlayerCharacter.new()
 	hero.character_name = "Тестовый герой"
 	hero.character_class_id = "paladin"
 	hero.character_class_name = "Паладин"
-	hero.signature_ability_id = "lay_on_hands"
-	hero.known_features = ["lay_on_hands"]
+	hero.maximum_health = 12
+	hero.current_health = 12
 	GameState.player_character = hero
+	var class_data := ClassDataSystem.new()
+	class_data.ensure_starting_loadout(hero)
 	GameState.set_flag("prepared_ability_id", "lay_on_hands")
 
 	var host := Control.new()
@@ -32,7 +32,7 @@ func _run() -> void:
 		_fail("Universal prepared action did not load the selected ability.")
 		return
 
-	var hub := CharacterHub.new()
+	var hub := CharacterHubInventory.new()
 	host.add_child(hub)
 	await process_frame
 	hub.open_tab(hero, 2)
@@ -43,6 +43,20 @@ func _run() -> void:
 		return
 	if tabs.get_tab_title(0) != "ПЕРСОНАЖ" or tabs.get_tab_title(1) != "ИНВЕНТАРЬ" or tabs.get_tab_title(2) != "ЗАКЛИНАНИЯ И СПОСОБНОСТИ":
 		_fail("Character hub tab titles are incorrect.")
+		return
+
+	var test_weapon: Dictionary = {}
+	for value: Variant in GameState.get_inventory_entries():
+		if value is Dictionary and str((value as Dictionary).get("id", "")) == "javelin":
+			test_weapon = value as Dictionary
+			break
+	if test_weapon.is_empty():
+		_fail("Equipment test item is missing from the starter inventory.")
+		return
+	hub.call("_select_inventory_entry", test_weapon)
+	hub.call("_equip_inventory_entry")
+	if hero.equipped_weapon_id != "javelin":
+		_fail("Character inventory tab did not equip the selected weapon.")
 		return
 
 	var dice := D20RollOverlay.new()
@@ -77,5 +91,5 @@ func _run() -> void:
 	hub.close_sheet()
 	host.queue_free()
 	await process_frame
-	print("Prepared actions, character tabs, compact combat feed and d20 presentation test passed.")
+	print("Prepared actions, character tabs, equipment, compact combat feed and d20 presentation test passed.")
 	quit(0)
