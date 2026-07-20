@@ -130,6 +130,10 @@ func _handle_screen_touch(event: InputEventScreenTouch) -> void:
 
 func _begin_touch(event: InputEventScreenTouch) -> void:
 	var candidates: Array[ScrollContainer] = _scroll_candidates_at(event.position)
+	# Touching a moving list must stop it immediately, even when the finger
+	# remains still and the gesture later resolves as a normal tap.
+	for candidate: ScrollContainer in candidates:
+		_stop_inertia(candidate, true)
 	_touch_states[event.index] = {
 		"candidates": candidates,
 		"screen_delta": Vector2.ZERO,
