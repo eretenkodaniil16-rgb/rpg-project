@@ -22,7 +22,7 @@ func _ready() -> void:
 	_character_sheet = hub
 	var old_panel: AbilityPanel = _ability_panel
 	if old_panel != null:
-		old_panel.queue_free()
+		old_panel.free()
 	var prepared_panel: PreparedActionPanel = PREPARED_PANEL_SCRIPT.new() as PreparedActionPanel
 	prepared_panel.name = "PreparedActionPanel"
 	prepared_panel.ability_requested.connect(_on_ability_requested)
