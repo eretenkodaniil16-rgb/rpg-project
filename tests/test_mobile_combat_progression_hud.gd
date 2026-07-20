@@ -10,8 +10,23 @@ func _fail(message: String) -> void:
 	quit(1)
 
 
+func _ensure_runtime_singleton(node_name: String, script_path: String) -> Node:
+	var existing: Node = root.get_node_or_null(node_name)
+	if existing != null:
+		return existing
+	var singleton_script: Script = load(script_path) as Script
+	var instance: Node = singleton_script.new() as Node
+	instance.name = node_name
+	root.add_child(instance)
+	return instance
+
+
 func _run() -> void:
-	GameState.new_game()
+	var game_state: Node = _ensure_runtime_singleton("GameState", "res://scripts/core/game_state.gd")
+	var assist: Node = _ensure_runtime_singleton("CharacterSelectionTouchAssist", "res://scripts/ui/character_selection_touch_assist.gd")
+	await process_frame
+	game_state.call("new_game")
+
 	var hero := PlayerCharacter.new()
 	hero.character_name = "Тестовый воин"
 	hero.character_class_id = "fighter"
@@ -24,7 +39,7 @@ func _run() -> void:
 	hero.hit_die_size = 10
 	hero.hit_dice_maximum = 1
 	hero.hit_dice_current = 1
-	GameState.player_character = hero
+	game_state.set("player_character", hero)
 	ClassDataSystem.new().ensure_starting_loadout(hero)
 
 	var progression: Dictionary = ProgressionSystem.grant_experience(hero, 100)
@@ -82,10 +97,6 @@ func _run() -> void:
 	selector.pressed.connect(func() -> void: selection_state["count"] = int(selection_state["count"]) + 1)
 	await process_frame
 
-	var assist: Node = root.get_node_or_null("CharacterSelectionTouchAssist")
-	if assist == null:
-		_fail("Character selection touch assistant is not registered.")
-		return
 	var press := InputEventScreenTouch.new()
 	press.index = 41
 	press.pressed = true
@@ -108,6 +119,10 @@ func _run() -> void:
 
 	selector_host.queue_free()
 	game.queue_free()
+	if assist.get_parent() == root:
+		assist.queue_free()
+	if game_state.get_parent() == root:
+		game_state.queue_free()
 	await process_frame
 	print("Mobile attack layout, progression, persistent HUD and selection threshold test passed.")
 	quit(0)
