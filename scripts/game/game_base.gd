@@ -10,6 +10,8 @@ const BATTLE_GRID_SCRIPT: Script = preload("res://scripts/game/battle_grid.gd")
 @onready var mobile_action_button: Button = $Interface/MobileControls/InteractButton
 
 var _battle_grid: Node2D
+var _interaction_action_available: bool = false
+var _interaction_suppressed: bool = false
 
 
 func _ready() -> void:
@@ -22,6 +24,7 @@ func _ready() -> void:
 		dialogue_ui.connect("dialogue_closed", Callable(self, "_on_dialogue_closed"))
 	_configure_platform_prompts()
 	_update_status()
+	_refresh_interaction_ui()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -42,17 +45,36 @@ func set_interaction_hint(is_visible: bool) -> void:
 
 
 func set_interaction_action(is_visible: bool, action_description: String, mobile_button_text: String = "ДЕЙСТВИЕ") -> void:
-	interaction_label.visible = is_visible and not GameState.input_locked
+	_interaction_action_available = is_visible
 	if is_visible:
 		if _uses_touch_controls():
 			interaction_label.text = "Нажмите %s, чтобы %s" % [mobile_button_text, action_description]
 		else:
 			interaction_label.text = "Нажмите Enter или Пробел, чтобы %s" % action_description
 	mobile_action_button.text = mobile_button_text if is_visible else "ДЕЙСТВИЕ"
+	_refresh_interaction_ui()
+
+
+func set_interaction_suppressed(value: bool) -> void:
+	if _interaction_suppressed == value:
+		return
+	_interaction_suppressed = value
+	_refresh_interaction_ui()
+
+
+func is_interaction_action_available() -> bool:
+	return _interaction_action_available
+
+
+func _refresh_interaction_ui() -> void:
+	var should_show: bool = _interaction_action_available and not _interaction_suppressed and not GameState.input_locked
+	interaction_label.visible = should_show
+	mobile_action_button.visible = should_show and _uses_touch_controls()
 
 
 func _on_dialogue_closed() -> void:
 	_update_status()
+	_refresh_interaction_ui()
 
 
 func _configure_platform_prompts() -> void:

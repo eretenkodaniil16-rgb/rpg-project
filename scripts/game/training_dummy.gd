@@ -3,6 +3,7 @@ extends Node2D
 
 @export var armor_class: int = 10
 @export var maximum_health: int = 12
+@export var experience_reward: int = 25
 
 @onready var visual: Node2D = $Visual
 @onready var health_label: Label = $HealthLabel
@@ -16,6 +17,7 @@ var _resetting: bool = false
 var _targeted: bool = false
 var _turn_active: bool = false
 var _combat_overlay_visible: bool = true
+var _experience_awarded_for_break: bool = false
 var _target_marker: Label
 var _turn_marker: Label
 
@@ -128,7 +130,9 @@ func receive_player_attack(result: AttackResult, show_interface: bool = true) ->
 		get_tree().call_group("combat_ui", "show_result", result)
 	if current_health <= 0 and not _resetting:
 		_resetting = true
-		GameState.add_item("straw_scrap", 1)
+		GameState.add_item("straw_scrap", 1, false)
+		_award_break_experience()
+		GameState.save_game()
 		_schedule_reset.call_deferred()
 
 
@@ -153,12 +157,28 @@ func receive_signature_ability(ability: Dictionary, show_interface: bool = true,
 func reset_combat_state(full_restore: bool = true) -> void:
 	_resetting = false
 	_turn_active = false
+	_experience_awarded_for_break = false
 	if full_restore:
 		current_health = maximum_health
 	visual.rotation_degrees = 0.0
 	visual.modulate = Color.WHITE
 	_reset_target_passives()
 	_update_health_label()
+
+
+func _award_break_experience() -> void:
+	if _experience_awarded_for_break or experience_reward <= 0:
+		return
+	_experience_awarded_for_break = true
+	var progression: Dictionary = ProgressionSystem.grant_experience(GameState.player_character, experience_reward)
+	var message: String = "+%d опыта за тренировочную цель." % int(progression.get("experience_gained", 0))
+	var levels_gained: int = int(progression.get("levels_gained", 0))
+	if levels_gained > 0:
+		message += " Новый уровень: %d. Максимум здоровья увеличен на %d." % [
+			GameState.player_character.level,
+			int(progression.get("health_gained", 0))
+		]
+	get_tree().call_group("game_world", "show_combat_message", message, true)
 
 
 func _schedule_reset() -> void:

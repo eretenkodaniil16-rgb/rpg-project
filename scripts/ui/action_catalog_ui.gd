@@ -90,45 +90,19 @@ func is_catalog_open() -> bool:
 
 func close_catalog() -> void:
 	panel.hide()
+	_last_signature = ""
 
 
 func _build_interface() -> void:
-	catalog_button = Button.new()
-	catalog_button.name = "ActionCatalogButton"
-	catalog_button.text = "ДЕЙСТВИЯ"
-	catalog_button.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	catalog_button.offset_left = -268.0
-	catalog_button.offset_top = -224.0
-	catalog_button.offset_right = -28.0
-	catalog_button.offset_bottom = -164.0
-	catalog_button.add_theme_font_size_override("font_size", 20)
-	catalog_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	catalog_button = _make_rail_button("ActionCatalogButton", "ДЕЙСТВИЯ", 116.0, 168.0, 18)
 	catalog_button.pressed.connect(_toggle_catalog)
 	add_child(catalog_button)
 
-	end_turn_button = Button.new()
-	end_turn_button.name = "EndTurnFixedButton"
-	end_turn_button.text = "ЗАВЕРШИТЬ ХОД"
-	end_turn_button.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	end_turn_button.offset_left = -268.0
-	end_turn_button.offset_top = -146.0
-	end_turn_button.offset_right = -28.0
-	end_turn_button.offset_bottom = -82.0
-	end_turn_button.add_theme_font_size_override("font_size", 18)
-	end_turn_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	end_turn_button = _make_rail_button("EndTurnFixedButton", "КОНЕЦ ХОДА", 176.0, 228.0, 16)
 	end_turn_button.pressed.connect(func() -> void: action_requested.emit("end_turn"))
 	add_child(end_turn_button)
 
-	confirm_move_button = Button.new()
-	confirm_move_button.name = "ConfirmMovementFloatingButton"
-	confirm_move_button.text = "ПЕРЕМЕСТИТЬСЯ"
-	confirm_move_button.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	confirm_move_button.offset_left = -190.0
-	confirm_move_button.offset_top = -92.0
-	confirm_move_button.offset_right = 190.0
-	confirm_move_button.offset_bottom = -28.0
-	confirm_move_button.add_theme_font_size_override("font_size", 19)
-	confirm_move_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	confirm_move_button = _make_rail_button("ConfirmMovementFloatingButton", "ПЕРЕМЕСТИТЬСЯ", 236.0, 294.0, 15)
 	confirm_move_button.pressed.connect(func() -> void: action_requested.emit("confirm_move"))
 	add_child(confirm_move_button)
 
@@ -143,38 +117,41 @@ func _build_interface() -> void:
 	panel = PanelContainer.new()
 	panel.name = "ActionCatalogPanel"
 	panel.set_anchors_preset(Control.PRESET_CENTER)
-	panel.offset_left = -500.0
-	panel.offset_top = -265.0
-	panel.offset_right = 500.0
-	panel.offset_bottom = 265.0
+	panel.offset_left = -430.0
+	panel.offset_top = -235.0
+	panel.offset_right = 430.0
+	panel.offset_bottom = 235.0
 	panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	panel.z_index = 170
+	panel.modulate = Color(1.0, 1.0, 1.0, 0.96)
 	add_child(panel)
 
 	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 24)
-	margin.add_theme_constant_override("margin_top", 20)
-	margin.add_theme_constant_override("margin_right", 24)
-	margin.add_theme_constant_override("margin_bottom", 20)
+	margin.add_theme_constant_override("margin_left", 20)
+	margin.add_theme_constant_override("margin_top", 16)
+	margin.add_theme_constant_override("margin_right", 20)
+	margin.add_theme_constant_override("margin_bottom", 16)
 	panel.add_child(margin)
 
 	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 10)
+	column.add_theme_constant_override("separation", 8)
 	margin.add_child(column)
 
 	var top_row := HBoxContainer.new()
 	column.add_child(top_row)
 	header_label = Label.new()
 	header_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	header_label.add_theme_font_size_override("font_size", 22)
+	header_label.add_theme_font_size_override("font_size", 20)
 	top_row.add_child(header_label)
 	close_button = Button.new()
 	close_button.text = "ЗАКРЫТЬ"
+	close_button.custom_minimum_size = Vector2(130.0, 48.0)
 	close_button.pressed.connect(close_catalog)
 	top_row.add_child(close_button)
 
 	resource_label = Label.new()
 	resource_label.add_theme_color_override("font_color", Color(0.65, 0.9, 1.0, 1.0))
-	resource_label.add_theme_font_size_override("font_size", 16)
+	resource_label.add_theme_font_size_override("font_size", 15)
 	resource_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	column.add_child(resource_label)
 
@@ -185,6 +162,7 @@ func _build_interface() -> void:
 		var category_button := Button.new()
 		category_button.name = "%sCategoryButton" % category_id.capitalize()
 		category_button.text = str(CATEGORY_LABELS.get(category_id, category_id))
+		category_button.custom_minimum_size = Vector2(0.0, 48.0)
 		category_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		category_button.pressed.connect(_select_category.bind(category_id))
 		category_row.add_child(category_button)
@@ -196,26 +174,43 @@ func _build_interface() -> void:
 		var group_button := Button.new()
 		group_button.name = "%sActionGroupButton" % group_id.capitalize()
 		group_button.text = str(ACTION_GROUP_LABELS.get(group_id, group_id))
+		group_button.custom_minimum_size = Vector2(0.0, 44.0)
 		group_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		group_button.pressed.connect(_select_action_group.bind(group_id))
 		action_group_row.add_child(group_button)
 
 	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(0.0, 280.0)
+	scroll.custom_minimum_size = Vector2(0.0, 210.0)
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	column.add_child(scroll)
 	action_grid = GridContainer.new()
-	action_grid.columns = 3
+	action_grid.columns = 2
 	action_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	action_grid.add_theme_constant_override("h_separation", 10)
-	action_grid.add_theme_constant_override("v_separation", 10)
+	action_grid.add_theme_constant_override("v_separation", 8)
 	scroll.add_child(action_grid)
 
 	description_label = Label.new()
-	description_label.custom_minimum_size = Vector2(0.0, 50.0)
+	description_label.custom_minimum_size = Vector2(0.0, 46.0)
 	description_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	description_label.add_theme_color_override("font_color", Color(0.86, 0.84, 0.72, 1.0))
 	column.add_child(description_label)
+
+
+func _make_rail_button(node_name: String, text_value: String, top: float, bottom: float, font_size: int) -> Button:
+	var button := Button.new()
+	button.name = node_name
+	button.text = text_value
+	button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	button.offset_left = -188.0
+	button.offset_top = top
+	button.offset_right = -18.0
+	button.offset_bottom = bottom
+	button.add_theme_font_size_override("font_size", font_size)
+	button.mouse_filter = Control.MOUSE_FILTER_STOP
+	button.z_index = 120
+	button.modulate = Color(1.0, 1.0, 1.0, 0.88)
+	return button
 
 
 func _toggle_catalog() -> void:
@@ -253,27 +248,32 @@ func _rebuild_action_grid() -> void:
 		visible_entries.append(entry)
 	if visible_entries.is_empty():
 		var empty_label := Label.new()
-		empty_label.text = "В этой категории сейчас нет доступных возможностей."
-		empty_label.custom_minimum_size = Vector2(860.0, 60.0)
+		empty_label.text = "В этой категории сейчас нет возможностей."
+		empty_label.custom_minimum_size = Vector2(760.0, 58.0)
 		empty_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		action_grid.add_child(empty_label)
 		description_label.text = ""
 		return
 	for entry: Dictionary in visible_entries:
+		var available: bool = bool(entry.get("enabled", true))
+		var description: String = str(entry.get("description", ""))
 		var button := Button.new()
 		button.name = "%sActionButton" % str(entry.get("id", "action")).capitalize()
 		button.text = str(entry.get("label", "Действие"))
-		button.custom_minimum_size = Vector2(285.0, 64.0)
-		button.disabled = not bool(entry.get("enabled", true))
-		button.tooltip_text = str(entry.get("description", ""))
-		button.pressed.connect(_emit_action.bind(str(entry.get("id", "")), str(entry.get("description", ""))))
-		button.mouse_entered.connect(_show_description.bind(str(entry.get("description", ""))))
+		button.custom_minimum_size = Vector2(390.0, 58.0)
+		button.tooltip_text = description
+		button.modulate = Color.WHITE if available else Color(0.62, 0.62, 0.62, 1.0)
+		button.pressed.connect(_emit_action.bind(str(entry.get("id", "")), description, available))
+		button.mouse_entered.connect(_show_description.bind(description))
 		action_grid.add_child(button)
-	description_label.text = "Выберите возможность. Обычное и дополнительное действия расходуются раздельно."
+	description_label.text = "Недоступные действия остаются нажимаемыми и объясняют причину."
 
 
-func _emit_action(action_id: String, description: String) -> void:
-	description_label.text = description
+func _emit_action(action_id: String, description: String, available: bool) -> void:
+	if not available:
+		description_label.text = "Сейчас недоступно: %s" % description
+		return
+	close_catalog()
 	action_requested.emit(action_id)
 
 
