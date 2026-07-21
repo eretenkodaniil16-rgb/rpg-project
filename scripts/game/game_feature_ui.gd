@@ -15,6 +15,7 @@ func _ready() -> void:
 	super._ready()
 	_remove_duplicate_inventory_menu()
 	_separate_mobile_combat_buttons()
+	_compact_world_labels()
 	var old_sheet: CharacterSheet = _character_sheet
 	if old_sheet != null:
 		old_sheet.queue_free()
@@ -61,15 +62,29 @@ func _remove_duplicate_inventory_menu() -> void:
 
 func _separate_mobile_combat_buttons() -> void:
 	if _target_button != null:
-		_target_button.offset_top = -398.0
-		_target_button.offset_bottom = -338.0
-		_target_button.z_index = 90
+		_target_button.offset_left = -188.0
+		_target_button.offset_top = 116.0
+		_target_button.offset_right = -18.0
+		_target_button.offset_bottom = 168.0
+		_target_button.z_index = 120
 		_target_button.mouse_filter = Control.MOUSE_FILTER_STOP
+		_target_button.modulate = Color(1.0, 1.0, 1.0, 0.88)
 	if _attack_button != null:
-		_attack_button.offset_top = -328.0
-		_attack_button.offset_bottom = -248.0
-		_attack_button.z_index = 90
+		_attack_button.offset_left = -188.0
+		_attack_button.offset_top = 176.0
+		_attack_button.offset_right = -18.0
+		_attack_button.offset_bottom = 236.0
+		_attack_button.z_index = 120
 		_attack_button.mouse_filter = Control.MOUSE_FILTER_STOP
+		_attack_button.modulate = Color(1.0, 1.0, 1.0, 0.88)
+
+
+func _compact_world_labels() -> void:
+	help_label.add_theme_font_size_override("font_size", 14)
+	help_label.offset_right = 650.0
+	status_label.add_theme_font_size_override("font_size", 15)
+	status_label.offset_top = 48.0
+	status_label.offset_right = 700.0
 
 
 func _open_character_sheet() -> void:
