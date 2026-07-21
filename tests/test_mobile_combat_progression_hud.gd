@@ -42,22 +42,38 @@ func _run() -> void:
 	await get_tree().process_frame
 
 	var attack_button := game.find_child("AttackButton", true, false) as Button
+	var quick_attack_button := game.find_child("QuickAttackButton", true, false) as Button
 	var catalog_button := game.find_child("ActionCatalogButton", true, false) as Button
 	var end_turn_button := game.find_child("EndTurnFixedButton", true, false) as Button
 	var confirm_move_button := game.find_child("ConfirmMovementFloatingButton", true, false) as Button
-	if attack_button == null or catalog_button == null or end_turn_button == null or confirm_move_button == null:
+	if attack_button == null or quick_attack_button == null or catalog_button == null or end_turn_button == null or confirm_move_button == null:
 		_fail("Combat buttons are missing from the game HUD.")
 		return
+	if quick_attack_button.position.y + quick_attack_button.size.y > catalog_button.position.y:
+		_fail("Quick attack button is not placed above the actions button.")
+		return
 	if attack_button.get_global_rect().intersects(catalog_button.get_global_rect()):
-		_fail("Attack button still overlaps the mobile action catalog button.")
+		_fail("Exploration attack button still overlaps the mobile action catalog button.")
 		return
 	var route_safe_zone := Rect2(900.0, 340.0, 380.0, 380.0)
-	for control: Button in [attack_button, catalog_button, end_turn_button, confirm_move_button]:
+	for control: Button in [attack_button, quick_attack_button, catalog_button, end_turn_button, confirm_move_button]:
 		if control.get_global_rect().intersects(route_safe_zone):
 			_fail("A fixed combat button still blocks the lower-right route area: %s" % control.name)
 			return
 	if game.find_child("InventoryButton", true, false) != null:
 		_fail("Duplicate top inventory button is still present.")
+		return
+
+	var menu_button := game.find_child("MenuButton", true, false) as Button
+	var quest_button := game.find_child("QuestButton", true, false) as Button
+	var character_button := game.find_child("CharacterButton", true, false) as Button
+	if menu_button == null or quest_button == null or character_button == null:
+		_fail("Top navigation buttons are missing.")
+		return
+	var quest_gap: float = menu_button.get_global_rect().position.x - quest_button.get_global_rect().end.x
+	var character_gap: float = quest_button.get_global_rect().position.x - character_button.get_global_rect().end.x
+	if quest_gap < 0.0 or quest_gap > 20.0 or character_gap < 0.0 or character_gap > 20.0:
+		_fail("Character and quest buttons are not grouped beside the menu button.")
 		return
 
 	var status_hud := game.find_child("PlayerStatusHud", true, false) as PlayerStatusHud
@@ -78,6 +94,11 @@ func _run() -> void:
 		return
 	var action_state: Dictionary = {"id": ""}
 	action_catalog.action_requested.connect(func(action_id: String) -> void: action_state["id"] = action_id)
+	action_catalog.quick_attack_button.pressed.emit()
+	if str(action_state.get("id", "")) != "attack":
+		_fail("Quick attack button did not request an attack.")
+		return
+	action_state["id"] = ""
 	action_catalog.panel.show()
 	action_catalog.call("_emit_action", "test_action", "Проверка", true)
 	if str(action_state.get("id", "")) != "test_action" or action_catalog.panel.visible:
@@ -89,6 +110,22 @@ func _run() -> void:
 		_fail("Unavailable catalog action did not provide visible feedback.")
 		return
 	action_catalog.close_catalog()
+
+	var d20_overlay := game.find_child("D20RollOverlay", true, false) as D20RollOverlay
+	if d20_overlay == null or d20_overlay.z_index < 4090:
+		_fail("D20 result overlay is missing or not above other UI.")
+		return
+	d20_overlay.show_d20_roll("Герой", "Проверка силы", 12, 16, true, 12, 0, 15, 4)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var target_label := d20_overlay.find_child("D20TargetLabel", true, false) as Label
+	var modifier_label := d20_overlay.find_child("D20ModifierLabel", true, false) as Label
+	if not d20_overlay.visible or target_label == null or modifier_label == null:
+		_fail("Detailed D20 result presentation is missing.")
+		return
+	if "15" not in target_label.text or "+4" not in modifier_label.text:
+		_fail("D20 result does not show required target and modifier.")
+		return
 
 	var hub := game.find_child("CharacterHub", true, false) as CharacterHub
 	if hub == null:
@@ -140,8 +177,9 @@ func _run() -> void:
 		_fail("A small finger movement still cancels race/class selection.")
 		return
 
+	await get_tree().create_timer(2.3).timeout
 	selector_host.queue_free()
 	game.queue_free()
 	await get_tree().process_frame
-	print("Compact gameplay HUD, clear route area, responsive actions, progression and selection threshold test passed.")
+	print("Quick attack, grouped top navigation, detailed D20 overlay, compact HUD and selection threshold test passed.")
 	get_tree().quit(0)
