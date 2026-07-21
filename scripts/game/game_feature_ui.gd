@@ -53,6 +53,9 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	super._process(delta)
 	set_interaction_suppressed(is_turn_based_combat_active())
+	if _attack_button != null and not is_turn_based_combat_active():
+		_attack_button.text = "АТАКА"
+		_attack_button.custom_minimum_size = Vector2(170.0, 60.0)
 
 
 func _remove_duplicate_inventory_menu() -> void:
@@ -82,6 +85,7 @@ func _separate_mobile_combat_buttons() -> void:
 		_attack_button.offset_top = -214.0
 		_attack_button.offset_right = -28.0
 		_attack_button.offset_bottom = -154.0
+		_attack_button.custom_minimum_size = Vector2(170.0, 60.0)
 		_attack_button.z_index = 125
 		_attack_button.mouse_filter = Control.MOUSE_FILTER_STOP
 		_attack_button.add_theme_font_size_override("font_size", 17)
