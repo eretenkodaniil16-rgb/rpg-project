@@ -25,7 +25,19 @@ func show_result(result: AttackResult) -> void:
 	if result == null:
 		return
 	if not result.automatic_hit and result.natural_roll > 0:
-		get_tree().call_group("dice_presenter", "show_d20_roll", result.attacker_name, result.attack_name, result.natural_roll, result.total, result.hit, result.first_roll, result.second_roll)
+		get_tree().call_group(
+			"dice_presenter",
+			"show_d20_roll",
+			result.attacker_name,
+			result.attack_name,
+			result.natural_roll,
+			result.total,
+			result.hit,
+			result.first_roll,
+			result.second_roll,
+			result.target_armor_class,
+			result.total - result.natural_roll
+		)
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = Vector2(380.0, 58.0)
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
