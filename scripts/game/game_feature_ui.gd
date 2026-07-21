@@ -76,13 +76,25 @@ func _separate_mobile_combat_buttons() -> void:
 		_target_button.mouse_filter = Control.MOUSE_FILTER_STOP
 		_target_button.modulate = Color(1.0, 1.0, 1.0, 0.88)
 	if _attack_button != null:
-		_attack_button.offset_left = -188.0
-		_attack_button.offset_top = 176.0
-		_attack_button.offset_right = -18.0
-		_attack_button.offset_bottom = 236.0
-		_attack_button.z_index = 120
+		_attack_button.text = "АТАКА"
+		_attack_button.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+		_attack_button.offset_left = -198.0
+		_attack_button.offset_top = -214.0
+		_attack_button.offset_right = -28.0
+		_attack_button.offset_bottom = -154.0
+		_attack_button.z_index = 125
 		_attack_button.mouse_filter = Control.MOUSE_FILTER_STOP
-		_attack_button.modulate = Color(1.0, 1.0, 1.0, 0.88)
+		_attack_button.add_theme_font_size_override("font_size", 17)
+		_attack_button.modulate = Color(1.0, 0.88, 0.70, 0.96)
+		var attack_style := StyleBoxFlat.new()
+		attack_style.bg_color = Color(0.42, 0.08, 0.07, 0.94)
+		attack_style.border_color = Color(0.96, 0.72, 0.25, 1.0)
+		attack_style.set_border_width_all(3)
+		attack_style.corner_radius_top_left = 12
+		attack_style.corner_radius_top_right = 12
+		attack_style.corner_radius_bottom_left = 12
+		attack_style.corner_radius_bottom_right = 12
+		_attack_button.add_theme_stylebox_override("normal", attack_style)
 
 
 func _compact_world_labels() -> void:
