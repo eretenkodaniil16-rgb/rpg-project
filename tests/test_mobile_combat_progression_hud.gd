@@ -46,11 +46,37 @@ func _run() -> void:
 	var catalog_button := game.find_child("ActionCatalogButton", true, false) as Button
 	var end_turn_button := game.find_child("EndTurnFixedButton", true, false) as Button
 	var confirm_move_button := game.find_child("ConfirmMovementFloatingButton", true, false) as Button
-	if attack_button == null or quick_attack_button == null or catalog_button == null or end_turn_button == null or confirm_move_button == null:
-		_fail("Combat buttons are missing from the game HUD.")
+	var action_catalog := game.find_child("ActionCatalogUI", true, false) as ActionCatalogUI
+	if attack_button == null or quick_attack_button == null or catalog_button == null or end_turn_button == null or confirm_move_button == null or action_catalog == null:
+		_fail("Combat buttons or action catalog are missing from the game HUD.")
 		return
-	if quick_attack_button.position.y + quick_attack_button.size.y > catalog_button.position.y:
-		_fail("Quick attack button is not placed above the actions button.")
+
+	var menu_button := game.find_child("MenuButton", true, false) as Button
+	var quest_button := game.find_child("QuestButton", true, false) as Button
+	var character_button := game.find_child("CharacterButton", true, false) as Button
+	if menu_button == null or quest_button == null or character_button == null:
+		_fail("Top navigation buttons are missing.")
+		return
+
+	action_catalog.refresh(
+		true,
+		true,
+		false,
+		{"action": [], "bonus": [], "reaction": []},
+		"Действие: готово",
+		"маршрут не выбран"
+	)
+	if not quick_attack_button.visible or quick_attack_button.disabled:
+		_fail("Quick attack button is not visibly available during the player's combat turn.")
+		return
+	if quick_attack_button.get_global_rect().intersects(menu_button.get_global_rect()):
+		_fail("Quick attack button is still hidden below the menu button.")
+		return
+	if quick_attack_button.get_global_rect().end.y > catalog_button.get_global_rect().position.y:
+		_fail("Quick attack button is not placed directly above the actions button.")
+		return
+	if quick_attack_button.size.y < 28.0 or quick_attack_button.text != "АТАКА":
+		_fail("Quick attack button is too small or has an unclear label.")
 		return
 	if attack_button.get_global_rect().intersects(catalog_button.get_global_rect()):
 		_fail("Exploration attack button still overlaps the mobile action catalog button.")
@@ -64,12 +90,6 @@ func _run() -> void:
 		_fail("Duplicate top inventory button is still present.")
 		return
 
-	var menu_button := game.find_child("MenuButton", true, false) as Button
-	var quest_button := game.find_child("QuestButton", true, false) as Button
-	var character_button := game.find_child("CharacterButton", true, false) as Button
-	if menu_button == null or quest_button == null or character_button == null:
-		_fail("Top navigation buttons are missing.")
-		return
 	var quest_gap: float = menu_button.get_global_rect().position.x - quest_button.get_global_rect().end.x
 	var character_gap: float = quest_button.get_global_rect().position.x - character_button.get_global_rect().end.x
 	if quest_gap < 0.0 or quest_gap > 20.0 or character_gap < 0.0 or character_gap > 20.0:
@@ -88,10 +108,6 @@ func _run() -> void:
 		_fail("Gameplay character HUD is still too large.")
 		return
 
-	var action_catalog := game.find_child("ActionCatalogUI", true, false) as ActionCatalogUI
-	if action_catalog == null:
-		_fail("Action catalog UI is missing.")
-		return
 	var action_state: Dictionary = {"id": ""}
 	action_catalog.action_requested.connect(func(action_id: String) -> void: action_state["id"] = action_id)
 	action_catalog.quick_attack_button.pressed.emit()
@@ -181,5 +197,5 @@ func _run() -> void:
 	selector_host.queue_free()
 	game.queue_free()
 	await get_tree().process_frame
-	print("Quick attack, grouped top navigation, detailed D20 overlay, compact HUD and selection threshold test passed.")
+	print("Visible quick attack, grouped navigation, detailed D20 overlay, compact HUD and selection threshold test passed.")
 	get_tree().quit(0)
