@@ -42,13 +42,22 @@ func _run() -> void:
 	await get_tree().process_frame
 
 	var attack_button := game.find_child("AttackButton", true, false) as Button
-	var quick_attack_button := game.find_child("QuickAttackButton", true, false) as Button
 	var catalog_button := game.find_child("ActionCatalogButton", true, false) as Button
 	var end_turn_button := game.find_child("EndTurnFixedButton", true, false) as Button
 	var confirm_move_button := game.find_child("ConfirmMovementFloatingButton", true, false) as Button
 	var action_catalog := game.find_child("ActionCatalogUI", true, false) as ActionCatalogUI
-	if attack_button == null or quick_attack_button == null or catalog_button == null or end_turn_button == null or confirm_move_button == null or action_catalog == null:
-		_fail("Combat buttons or action catalog are missing from the game HUD.")
+	var interaction_button := game.find_child("InteractButton", true, false) as Button
+	if attack_button == null or catalog_button == null or end_turn_button == null or confirm_move_button == null or action_catalog == null or interaction_button == null:
+		_fail("Exploration attack button or combat action catalog is missing.")
+		return
+	if game.find_child("QuickAttackButton", true, false) != null:
+		_fail("A separate quick attack button is still present during combat.")
+		return
+	if attack_button.text != "АТАКА" or attack_button.size.y < 40.0:
+		_fail("Exploration attack shortcut is too small or has an unclear label.")
+		return
+	if attack_button.get_global_rect().end.y > interaction_button.get_global_rect().position.y:
+		_fail("Exploration attack shortcut is not placed above the interaction button.")
 		return
 
 	var menu_button := game.find_child("MenuButton", true, false) as Button
@@ -62,27 +71,33 @@ func _run() -> void:
 		true,
 		true,
 		false,
-		{"action": [], "bonus": [], "reaction": []},
+		{
+			"action": [{
+				"id": "attack",
+				"label": "АТАКА",
+				"enabled": true,
+				"description": "Обычная атака экипированным оружием.",
+				"group": "attack"
+			}],
+			"bonus": [],
+			"reaction": []
+		},
 		"Действие: готово",
 		"маршрут не выбран"
 	)
-	if not quick_attack_button.visible or quick_attack_button.disabled:
-		_fail("Quick attack button is not visibly available during the player's combat turn.")
+	action_catalog.panel.show()
+	action_catalog.call("_select_category", "action")
+	action_catalog.call("_select_action_group", "attack")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var combat_attack_button := action_catalog.find_child("AttackActionButton", true, false) as Button
+	if combat_attack_button == null or combat_attack_button.text != "АТАКА":
+		_fail("Combat attack is missing from ДЕЙСТВИЯ → АТАКИ.")
 		return
-	if quick_attack_button.get_global_rect().intersects(menu_button.get_global_rect()):
-		_fail("Quick attack button is still hidden below the menu button.")
-		return
-	if quick_attack_button.get_global_rect().end.y > catalog_button.get_global_rect().position.y:
-		_fail("Quick attack button is not placed directly above the actions button.")
-		return
-	if quick_attack_button.size.y < 28.0 or quick_attack_button.text != "АТАКА":
-		_fail("Quick attack button is too small or has an unclear label.")
-		return
-	if attack_button.get_global_rect().intersects(catalog_button.get_global_rect()):
-		_fail("Exploration attack button still overlaps the mobile action catalog button.")
-		return
+	action_catalog.close_catalog()
+
 	var route_safe_zone := Rect2(900.0, 340.0, 380.0, 380.0)
-	for control: Button in [attack_button, quick_attack_button, catalog_button, end_turn_button, confirm_move_button]:
+	for control: Button in [catalog_button, end_turn_button, confirm_move_button]:
 		if control.get_global_rect().intersects(route_safe_zone):
 			_fail("A fixed combat button still blocks the lower-right route area: %s" % control.name)
 			return
@@ -110,11 +125,6 @@ func _run() -> void:
 
 	var action_state: Dictionary = {"id": ""}
 	action_catalog.action_requested.connect(func(action_id: String) -> void: action_state["id"] = action_id)
-	action_catalog.quick_attack_button.pressed.emit()
-	if str(action_state.get("id", "")) != "attack":
-		_fail("Quick attack button did not request an attack.")
-		return
-	action_state["id"] = ""
 	action_catalog.panel.show()
 	action_catalog.call("_emit_action", "test_action", "Проверка", true)
 	if str(action_state.get("id", "")) != "test_action" or action_catalog.panel.visible:
@@ -197,5 +207,5 @@ func _run() -> void:
 	selector_host.queue_free()
 	game.queue_free()
 	await get_tree().process_frame
-	print("Visible quick attack, grouped navigation, detailed D20 overlay, compact HUD and selection threshold test passed.")
+	print("Exploration-only attack shortcut, combat catalog attack, detailed D20 overlay and compact HUD test passed.")
 	get_tree().quit(0)
