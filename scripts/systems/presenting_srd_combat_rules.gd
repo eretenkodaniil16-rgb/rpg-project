@@ -12,7 +12,7 @@ func resolve_d20_test(
 	reroll_overrides: Array[int] = []
 ) -> Dictionary:
 	var result: Dictionary = super.resolve_d20_test(modifier, dc, advantage, disadvantage, overrides, reroll_natural_one, reroll_overrides)
-	_present("Участник", "Проверка d20", result, bool(result.get("success", false)))
+	_present("Участник", "Проверка d20", result, bool(result.get("success", false)), dc, modifier)
 	return result
 
 
@@ -20,11 +20,11 @@ func resolve_death_save(state: CombatantState, roll_override: int = -1, lucky_re
 	var result: Dictionary = super.resolve_death_save(state, roll_override, lucky_reroll_override)
 	if bool(result.get("resolved", false)):
 		var success: bool = bool(result.get("regained_hit_point", false)) or int(result.get("natural", 0)) >= 10
-		_present("Герой", "Спасбросок смерти", result, success)
+		_present("Герой", "Спасбросок смерти", result, success, 10, 0)
 	return result
 
 
-func _present(actor_name: String, purpose: String, result: Dictionary, success: bool) -> void:
+func _present(actor_name: String, purpose: String, result: Dictionary, success: bool, target_number: int = 0, modifier: int = 0) -> void:
 	var tree: SceneTree = Engine.get_main_loop() as SceneTree
 	if tree == null:
 		return
@@ -40,5 +40,7 @@ func _present(actor_name: String, purpose: String, result: Dictionary, success: 
 		int(result.get("total", natural)),
 		success,
 		int(result.get("first", natural)),
-		int(result.get("second", 0))
+		int(result.get("second", 0)),
+		target_number,
+		modifier
 	)
