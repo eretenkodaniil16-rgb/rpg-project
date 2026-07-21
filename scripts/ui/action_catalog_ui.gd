@@ -68,7 +68,8 @@ func refresh(
 	_entries = entries.duplicate(true)
 	resource_label.text = resource_text
 	header_label.text = "БОЕВЫЕ ДЕЙСТВИЯ · %s" % movement_plan_text
-	quick_attack_button.modulate = Color(1.0, 1.0, 1.0, 0.96) if player_turn else Color(0.72, 0.72, 0.72, 0.90)
+	quick_attack_button.disabled = not player_turn
+	quick_attack_button.modulate = Color.WHITE if player_turn else Color(0.72, 0.72, 0.72, 0.90)
 	quick_attack_button.tooltip_text = "Быстрая обычная атака экипированным оружием."
 	catalog_button.disabled = not player_turn
 	end_turn_button.disabled = not player_turn
@@ -98,19 +99,26 @@ func close_catalog() -> void:
 
 
 func _build_interface() -> void:
-	quick_attack_button = _make_rail_button("QuickAttackButton", "АТАКА", 56.0, 108.0, 17)
+	quick_attack_button = _make_rail_button("QuickAttackButton", "АТАКА", 84.0, 116.0, 16)
+	quick_attack_button.z_index = 150
+	quick_attack_button.add_theme_color_override("font_color", Color(1.0, 0.94, 0.76, 1.0))
+	quick_attack_button.add_theme_color_override("font_hover_color", Color.WHITE)
+	quick_attack_button.add_theme_color_override("font_pressed_color", Color.WHITE)
+	quick_attack_button.add_theme_stylebox_override("normal", _make_attack_style(Color(0.46, 0.10, 0.08, 0.98), Color(1.0, 0.66, 0.34, 1.0)))
+	quick_attack_button.add_theme_stylebox_override("hover", _make_attack_style(Color(0.62, 0.15, 0.10, 1.0), Color(1.0, 0.82, 0.42, 1.0)))
+	quick_attack_button.add_theme_stylebox_override("pressed", _make_attack_style(Color(0.32, 0.06, 0.05, 1.0), Color(1.0, 0.76, 0.34, 1.0)))
 	quick_attack_button.pressed.connect(func() -> void: action_requested.emit("attack"))
 	add_child(quick_attack_button)
 
-	catalog_button = _make_rail_button("ActionCatalogButton", "ДЕЙСТВИЯ", 116.0, 168.0, 18)
+	catalog_button = _make_rail_button("ActionCatalogButton", "ДЕЙСТВИЯ", 122.0, 174.0, 18)
 	catalog_button.pressed.connect(_toggle_catalog)
 	add_child(catalog_button)
 
-	end_turn_button = _make_rail_button("EndTurnFixedButton", "КОНЕЦ ХОДА", 176.0, 228.0, 16)
+	end_turn_button = _make_rail_button("EndTurnFixedButton", "КОНЕЦ ХОДА", 182.0, 234.0, 16)
 	end_turn_button.pressed.connect(func() -> void: action_requested.emit("end_turn"))
 	add_child(end_turn_button)
 
-	confirm_move_button = _make_rail_button("ConfirmMovementFloatingButton", "ПЕРЕМЕСТИТЬСЯ", 236.0, 294.0, 15)
+	confirm_move_button = _make_rail_button("ConfirmMovementFloatingButton", "ПЕРЕМЕСТИТЬСЯ", 242.0, 300.0, 15)
 	confirm_move_button.pressed.connect(func() -> void: action_requested.emit("confirm_move"))
 	add_child(confirm_move_button)
 
@@ -219,6 +227,20 @@ func _make_rail_button(node_name: String, text_value: String, top: float, bottom
 	button.z_index = 120
 	button.modulate = Color(1.0, 1.0, 1.0, 0.88)
 	return button
+
+
+func _make_attack_style(fill_color: Color, border_color: Color) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = fill_color
+	style.border_color = border_color
+	style.set_border_width_all(2)
+	style.corner_radius_top_left = 8
+	style.corner_radius_top_right = 8
+	style.corner_radius_bottom_left = 8
+	style.corner_radius_bottom_right = 8
+	style.content_margin_left = 8.0
+	style.content_margin_right = 8.0
+	return style
 
 
 func _toggle_catalog() -> void:
