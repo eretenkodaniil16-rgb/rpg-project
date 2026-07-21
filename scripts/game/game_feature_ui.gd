@@ -49,6 +49,11 @@ func _ready() -> void:
 	_sync_exploration_hud_visibility()
 
 
+func _process(delta: float) -> void:
+	super._process(delta)
+	set_interaction_suppressed(is_turn_based_combat_active())
+
+
 func _remove_duplicate_inventory_menu() -> void:
 	var old_button: Button = _inventory_button
 	_inventory_button = null
