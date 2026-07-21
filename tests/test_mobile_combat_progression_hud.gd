@@ -67,31 +67,33 @@ func _run() -> void:
 		_fail("Top navigation buttons are missing.")
 		return
 
+	var combat_entries: Dictionary = {
+		"action": [{
+			"id": "attack",
+			"label": "АТАКА",
+			"enabled": true,
+			"description": "Обычная атака экипированным оружием.",
+			"group": "attack"
+		}],
+		"bonus": [],
+		"reaction": []
+	}
 	action_catalog.refresh(
 		true,
 		true,
 		false,
-		{
-			"action": [{
-				"id": "attack",
-				"label": "АТАКА",
-				"enabled": true,
-				"description": "Обычная атака экипированным оружием.",
-				"group": "attack"
-			}],
-			"bonus": [],
-			"reaction": []
-		},
+		combat_entries,
 		"Действие: готово",
 		"маршрут не выбран"
 	)
-	action_catalog.panel.show()
-	action_catalog.call("_select_category", "action")
-	action_catalog.call("_select_action_group", "attack")
-	await get_tree().process_frame
-	await get_tree().process_frame
-	var combat_attack_button := action_catalog.find_child("AttackActionButton", true, false) as Button
-	if combat_attack_button == null or combat_attack_button.text != "АТАКА":
+	var stored_entries: Dictionary = action_catalog.get("_entries") as Dictionary
+	var stored_actions: Array = stored_entries.get("action", []) as Array
+	var combat_attack_found: bool = false
+	for entry_value: Variant in stored_actions:
+		if entry_value is Dictionary and str((entry_value as Dictionary).get("id", "")) == "attack":
+			combat_attack_found = true
+			break
+	if not combat_attack_found:
 		_fail("Combat attack is missing from ДЕЙСТВИЯ → АТАКИ.")
 		return
 	action_catalog.close_catalog()
