@@ -18,6 +18,7 @@ const ACTION_GROUP_LABELS: Dictionary = {
 	"tactic": "ТАКТИКА"
 }
 
+var quick_attack_button: Button
 var catalog_button: Button
 var confirm_move_button: Button
 var end_turn_button: Button
@@ -55,6 +56,7 @@ func refresh(
 	planned_cost_feet: int = 0
 ) -> void:
 	var show_combat_controls: bool = combat_active and not overlay_visible
+	quick_attack_button.visible = show_combat_controls
 	catalog_button.visible = show_combat_controls
 	end_turn_button.visible = show_combat_controls
 	confirm_move_button.visible = show_combat_controls and player_turn and has_movement_plan
@@ -66,6 +68,8 @@ func refresh(
 	_entries = entries.duplicate(true)
 	resource_label.text = resource_text
 	header_label.text = "БОЕВЫЕ ДЕЙСТВИЯ · %s" % movement_plan_text
+	quick_attack_button.modulate = Color(1.0, 1.0, 1.0, 0.96) if player_turn else Color(0.72, 0.72, 0.72, 0.90)
+	quick_attack_button.tooltip_text = "Быстрая обычная атака экипированным оружием."
 	catalog_button.disabled = not player_turn
 	end_turn_button.disabled = not player_turn
 	confirm_move_button.disabled = not player_turn or not has_movement_plan
@@ -94,6 +98,10 @@ func close_catalog() -> void:
 
 
 func _build_interface() -> void:
+	quick_attack_button = _make_rail_button("QuickAttackButton", "АТАКА", 56.0, 108.0, 17)
+	quick_attack_button.pressed.connect(func() -> void: action_requested.emit("attack"))
+	add_child(quick_attack_button)
+
 	catalog_button = _make_rail_button("ActionCatalogButton", "ДЕЙСТВИЯ", 116.0, 168.0, 18)
 	catalog_button.pressed.connect(_toggle_catalog)
 	add_child(catalog_button)
