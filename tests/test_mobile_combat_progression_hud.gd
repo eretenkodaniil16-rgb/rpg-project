@@ -43,18 +43,52 @@ func _run() -> void:
 
 	var attack_button := game.find_child("AttackButton", true, false) as Button
 	var catalog_button := game.find_child("ActionCatalogButton", true, false) as Button
-	if attack_button == null or catalog_button == null:
+	var end_turn_button := game.find_child("EndTurnFixedButton", true, false) as Button
+	var confirm_move_button := game.find_child("ConfirmMovementFloatingButton", true, false) as Button
+	if attack_button == null or catalog_button == null or end_turn_button == null or confirm_move_button == null:
 		_fail("Combat buttons are missing from the game HUD.")
 		return
 	if attack_button.get_global_rect().intersects(catalog_button.get_global_rect()):
 		_fail("Attack button still overlaps the mobile action catalog button.")
 		return
+	var route_safe_zone := Rect2(900.0, 340.0, 380.0, 380.0)
+	for control: Button in [attack_button, catalog_button, end_turn_button, confirm_move_button]:
+		if control.get_global_rect().intersects(route_safe_zone):
+			_fail("A fixed combat button still blocks the lower-right route area: %s" % control.name)
+			return
 	if game.find_child("InventoryButton", true, false) != null:
 		_fail("Duplicate top inventory button is still present.")
 		return
-	if game.find_child("GameplayHealthBar", true, false) == null or game.find_child("GameplayExperienceBar", true, false) == null:
-		_fail("Persistent gameplay health or experience bar is missing.")
+
+	var status_hud := game.find_child("PlayerStatusHud", true, false) as PlayerStatusHud
+	if status_hud == null or status_hud.find_child("GameplayHealthBar", true, false) == null:
+		_fail("Compact gameplay health bar is missing.")
 		return
+	if status_hud.find_child("GameplayExperienceBar", true, false) != null:
+		_fail("Gameplay HUD still contains the large experience panel.")
+		return
+	var status_panel := status_hud.find_child("PlayerStatusPanel", true, false) as Control
+	if status_panel == null or status_panel.size.y > 60.0:
+		_fail("Gameplay character HUD is still too large.")
+		return
+
+	var action_catalog := game.find_child("ActionCatalogUI", true, false) as ActionCatalogUI
+	if action_catalog == null:
+		_fail("Action catalog UI is missing.")
+		return
+	var action_state: Dictionary = {"id": ""}
+	action_catalog.action_requested.connect(func(action_id: String) -> void: action_state["id"] = action_id)
+	action_catalog.panel.show()
+	action_catalog.call("_emit_action", "test_action", "Проверка", true)
+	if str(action_state.get("id", "")) != "test_action" or action_catalog.panel.visible:
+		_fail("Available catalog action did not emit or close the catalog.")
+		return
+	action_catalog.panel.show()
+	action_catalog.call("_emit_action", "blocked_action", "Нужна соседняя цель.", false)
+	if not action_catalog.panel.visible or "недоступно" not in action_catalog.description_label.text.to_lower():
+		_fail("Unavailable catalog action did not provide visible feedback.")
+		return
+	action_catalog.close_catalog()
 
 	var hub := game.find_child("CharacterHub", true, false) as CharacterHub
 	if hub == null:
@@ -109,5 +143,5 @@ func _run() -> void:
 	selector_host.queue_free()
 	game.queue_free()
 	await get_tree().process_frame
-	print("Mobile attack layout, progression, persistent HUD and selection threshold test passed.")
+	print("Compact gameplay HUD, clear route area, responsive actions, progression and selection threshold test passed.")
 	get_tree().quit(0)
