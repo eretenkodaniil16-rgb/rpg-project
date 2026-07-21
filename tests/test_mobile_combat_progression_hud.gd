@@ -41,6 +41,36 @@ func _run() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 
+	var player_node := game.find_child("Player", true, false) as CharacterBody2D
+	var character_sprite := game.find_child("CharacterSprite", true, false) as Sprite2D
+	var fallback_body: Polygon2D = null
+	if player_node != null:
+		fallback_body = player_node.get_node_or_null("Body") as Polygon2D
+	if player_node == null or character_sprite == null or fallback_body == null:
+		_fail("Human warrior gameplay visual is missing from the player.")
+		return
+	if not character_sprite.visible or fallback_body.visible:
+		_fail("Human fighter does not use the authored gameplay sprite.")
+		return
+	if character_sprite.texture_filter != CanvasItem.TEXTURE_FILTER_NEAREST:
+		_fail("Human warrior sprite does not use nearest-neighbor filtering.")
+		return
+	if character_sprite.texture == null or character_sprite.texture.get_width() != 96 or character_sprite.texture.get_height() != 96:
+		_fail("Human warrior idle frame is not 96x96 pixels.")
+		return
+	var facing_cases: Array[Dictionary] = [
+		{"direction": Vector2.DOWN, "suffix": "_down.png"},
+		{"direction": Vector2.LEFT, "suffix": "_left.png"},
+		{"direction": Vector2.RIGHT, "suffix": "_right.png"},
+		{"direction": Vector2.UP, "suffix": "_up.png"}
+	]
+	for facing_case: Dictionary in facing_cases:
+		player_node.call("set_visual_facing", facing_case["direction"])
+		var texture: Texture2D = character_sprite.texture
+		if texture == null or not texture.resource_path.ends_with(str(facing_case["suffix"])):
+			_fail("Human warrior idle sprite did not switch to %s." % str(facing_case["suffix"]))
+			return
+
 	var attack_button := game.find_child("AttackButton", true, false) as Button
 	var catalog_button := game.find_child("ActionCatalogButton", true, false) as Button
 	var end_turn_button := game.find_child("EndTurnFixedButton", true, false) as Button
@@ -209,5 +239,5 @@ func _run() -> void:
 	selector_host.queue_free()
 	game.queue_free()
 	await get_tree().process_frame
-	print("Exploration-only attack shortcut, combat catalog attack, detailed D20 overlay and compact HUD test passed.")
+	print("Human warrior idle directions, exploration attack, combat catalog, D20 overlay and compact HUD test passed.")
 	get_tree().quit(0)
