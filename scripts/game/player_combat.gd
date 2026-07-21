@@ -13,6 +13,7 @@ var _terrain_class_data: ClassDataSystem = ClassDataSystem.new()
 
 func _ready() -> void:
 	super._ready()
+	set_visual_facing(_facing_direction)
 	_build_facing_indicator()
 	_update_facing_indicator()
 	call_deferred("_install_runtime_controllers")
@@ -98,6 +99,7 @@ func set_facing_direction(direction: Vector2) -> void:
 	if direction.length_squared() <= 0.0001:
 		return
 	_facing_direction = direction.normalized()
+	set_visual_facing(_facing_direction)
 	_update_facing_indicator()
 
 
