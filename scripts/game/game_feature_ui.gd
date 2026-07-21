@@ -16,6 +16,7 @@ func _ready() -> void:
 	_remove_duplicate_inventory_menu()
 	_separate_mobile_combat_buttons()
 	_compact_world_labels()
+	_move_top_menu_buttons()
 	var old_sheet: CharacterSheet = _character_sheet
 	if old_sheet != null:
 		old_sheet.queue_free()
@@ -90,6 +91,23 @@ func _compact_world_labels() -> void:
 	status_label.add_theme_font_size_override("font_size", 15)
 	status_label.offset_top = 48.0
 	status_label.offset_right = 700.0
+
+
+func _move_top_menu_buttons() -> void:
+	if _quest_button != null:
+		_quest_button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+		_quest_button.offset_left = -354.0
+		_quest_button.offset_top = 20.0
+		_quest_button.offset_right = -188.0
+		_quest_button.offset_bottom = 78.0
+		_quest_button.add_theme_font_size_override("font_size", 15)
+	if _character_button != null:
+		_character_button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+		_character_button.offset_left = -536.0
+		_character_button.offset_top = 20.0
+		_character_button.offset_right = -364.0
+		_character_button.offset_bottom = 78.0
+		_character_button.add_theme_font_size_override("font_size", 15)
 
 
 func _open_character_sheet() -> void:
