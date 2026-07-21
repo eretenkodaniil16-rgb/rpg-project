@@ -1,5 +1,11 @@
 extends CharacterBody2D
 
+const HUMAN_WARRIOR_IDLE_DOWN: Texture2D = preload("res://assets/characters/human/warrior_m01/gameplay/frames/human_warrior_m01_idle_down.png")
+const HUMAN_WARRIOR_IDLE_LEFT: Texture2D = preload("res://assets/characters/human/warrior_m01/gameplay/frames/human_warrior_m01_idle_left.png")
+const HUMAN_WARRIOR_IDLE_RIGHT: Texture2D = preload("res://assets/characters/human/warrior_m01/gameplay/frames/human_warrior_m01_idle_right.png")
+const HUMAN_WARRIOR_IDLE_UP: Texture2D = preload("res://assets/characters/human/warrior_m01/gameplay/frames/human_warrior_m01_idle_up.png")
+const AUTHORED_SPRITE_OFFSET: Vector2 = Vector2(0.0, -42.0)
+
 @export var movement_speed: float = 220.0
 @export var movement_bounds: Rect2 = Rect2(28.0, 28.0, 1224.0, 664.0)
 
@@ -13,9 +19,14 @@ var _mobile_left: bool = false
 var _mobile_right: bool = false
 var _mobile_vector: Vector2 = Vector2.ZERO
 var _attack_tween: Tween = null
+var _character_sprite: Sprite2D = null
+var _active_visual: Node2D = null
+var _active_visual_base_position: Vector2 = Vector2.ZERO
+var _visual_facing_direction: Vector2 = Vector2.RIGHT
 
 
 func _ready() -> void:
+	_install_character_sprite()
 	apply_character_appearance()
 
 
@@ -87,10 +98,11 @@ func play_attack_animation(target_global_position: Vector2) -> void:
 		direction = Vector2.RIGHT
 	if _attack_tween != null:
 		_attack_tween.kill()
-	body_visual.position = Vector2.ZERO
+	var visual: Node2D = _active_visual if is_instance_valid(_active_visual) else body_visual
+	visual.position = _active_visual_base_position
 	_attack_tween = create_tween()
-	_attack_tween.tween_property(body_visual, "position", direction * 15.0, 0.07)
-	_attack_tween.tween_property(body_visual, "position", Vector2.ZERO, 0.11)
+	_attack_tween.tween_property(visual, "position", _active_visual_base_position + direction * 15.0, 0.07)
+	_attack_tween.tween_property(visual, "position", _active_visual_base_position, 0.11)
 
 
 func apply_character_appearance() -> void:
@@ -100,14 +112,61 @@ func apply_character_appearance() -> void:
 	name_label.offset_left = -120.0
 	name_label.offset_right = 120.0
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	body_visual.color = Color.from_string(character.appearance_color_hex, Color(0.3, 0.64, 0.91, 1.0))
 	var visual_scale: float = 0.78 if character.size_category == "small" else 1.0
-	body_visual.scale = Vector2.ONE * visual_scale
+	var use_authored_sprite: bool = _supports_authored_human_warrior(character)
+	if use_authored_sprite:
+		body_visual.hide()
+		_character_sprite.show()
+		_character_sprite.scale = Vector2.ONE * visual_scale
+		_character_sprite.position = AUTHORED_SPRITE_OFFSET
+		_active_visual = _character_sprite
+		_active_visual_base_position = AUTHORED_SPRITE_OFFSET
+		name_label.offset_top = -112.0
+		name_label.offset_bottom = -86.0
+		set_visual_facing(_visual_facing_direction)
+	else:
+		_character_sprite.hide()
+		body_visual.show()
+		body_visual.position = Vector2.ZERO
+		body_visual.color = Color.from_string(character.appearance_color_hex, Color(0.3, 0.64, 0.91, 1.0))
+		body_visual.scale = Vector2.ONE * visual_scale
+		_active_visual = body_visual
+		_active_visual_base_position = Vector2.ZERO
+		name_label.offset_top = -50.0
+		name_label.offset_bottom = -25.0
 	var collision: CollisionShape2D = get_node_or_null("CollisionShape2D") as CollisionShape2D
 	if collision != null and collision.shape is RectangleShape2D:
 		var shape: RectangleShape2D = (collision.shape as RectangleShape2D).duplicate() as RectangleShape2D
 		shape.size = Vector2(30.0, 30.0) if character.size_category == "small" else Vector2(38.0, 38.0)
 		collision.shape = shape
+
+
+func set_visual_facing(direction: Vector2) -> void:
+	if direction.length_squared() <= 0.0001:
+		return
+	_visual_facing_direction = direction.normalized()
+	if not is_instance_valid(_character_sprite) or not _character_sprite.visible:
+		return
+	if absf(_visual_facing_direction.x) > absf(_visual_facing_direction.y):
+		_character_sprite.texture = HUMAN_WARRIOR_IDLE_RIGHT if _visual_facing_direction.x >= 0.0 else HUMAN_WARRIOR_IDLE_LEFT
+	else:
+		_character_sprite.texture = HUMAN_WARRIOR_IDLE_DOWN if _visual_facing_direction.y >= 0.0 else HUMAN_WARRIOR_IDLE_UP
+
+
+func _install_character_sprite() -> void:
+	_character_sprite = Sprite2D.new()
+	_character_sprite.name = "CharacterSprite"
+	_character_sprite.centered = true
+	_character_sprite.position = AUTHORED_SPRITE_OFFSET
+	_character_sprite.texture = HUMAN_WARRIOR_IDLE_RIGHT
+	_character_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_character_sprite.z_index = 1
+	_character_sprite.hide()
+	add_child(_character_sprite)
+
+
+func _supports_authored_human_warrior(character: PlayerCharacter) -> bool:
+	return character.race_id == "human" and character.character_class_id == "fighter"
 
 
 func _get_mobile_direction() -> Vector2:
