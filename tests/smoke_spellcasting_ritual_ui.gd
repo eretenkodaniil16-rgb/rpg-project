@@ -11,7 +11,11 @@ func _fail(message: String) -> void:
 
 
 func _run() -> void:
-	GameState.new_game()
+	var game_state: Node = root.get_node_or_null("GameState")
+	if game_state == null:
+		_fail("GameState autoload was not available to the spellcasting UI smoke test.")
+		return
+	game_state.call("new_game")
 	var wizard := PlayerCharacter.new()
 	wizard.character_name = "Ритуалист"
 	wizard.character_class_id = "wizard"
@@ -20,7 +24,7 @@ func _run() -> void:
 	wizard.abilities["intelligence"] = 16
 	wizard.base_abilities["intelligence"] = 16
 	SpellcastingSystem.new().ensure_character(wizard, false)
-	GameState.player_character = wizard
+	game_state.set("player_character", wizard)
 
 	var hub := CharacterHubInventory.new()
 	root.add_child(hub)
