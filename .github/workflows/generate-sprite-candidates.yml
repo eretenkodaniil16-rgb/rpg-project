@@ -1,0 +1,122 @@
+name: Generate sprite candidates
+
+on:
+  workflow_dispatch:
+    inputs:
+      frame_id:
+        description: "Animation frame to generate"
+        required: true
+        type: choice
+        default: walk_down_f01
+        options:
+          - walk_down_f01
+          - walk_down_f02
+          - walk_down_f03
+          - walk_down_f04
+          - walk_down_f05
+          - walk_down_f06
+      candidates:
+        description: "First-round candidates (1-10)"
+        required: true
+        type: choice
+        default: "8"
+        options:
+          - "4"
+          - "6"
+          - "8"
+          - "10"
+      top_k:
+        description: "Candidates shown for human approval"
+        required: true
+        type: choice
+        default: "2"
+        options:
+          - "1"
+          - "2"
+          - "3"
+      max_rounds:
+        description: "Maximum edit rounds"
+        required: true
+        type: choice
+        default: "2"
+        options:
+          - "1"
+          - "2"
+      extra_reference:
+        description: "Optional repo-relative path to an approved previous frame"
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sprite-${{ github.ref }}-${{ inputs.frame_id }}
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      PYTHONPATH: tools/sprite_pipeline
+
+    steps:
+      - name: Checkout selected branch
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: tools/sprite_pipeline/requirements.txt
+
+      - name: Install dependencies
+        run: python -m pip install --disable-pip-version-check -r tools/sprite_pipeline/requirements.txt
+
+      - name: Verify secret without exposing it
+        shell: bash
+        run: |
+          if [[ -z "${OPENAI_API_KEY}" ]]; then
+            echo "Repository secret OPENAI_API_KEY is missing." >&2
+            exit 1
+          fi
+
+      - name: Generate, filter and rank candidates
+        id: pipeline
+        continue-on-error: true
+        shell: bash
+        run: |
+          mkdir -p build/sprite-pipeline
+          extra_args=()
+          if [[ -n "${{ inputs.extra_reference }}" ]]; then
+            extra_args+=(--extra-reference "${{ inputs.extra_reference }}")
+          fi
+          set +e
+          python tools/sprite_pipeline/run_pipeline.py run \
+            --frame-id "${{ inputs.frame_id }}" \
+            --candidates "${{ inputs.candidates }}" \
+            --top-k "${{ inputs.top_k }}" \
+            --max-rounds "${{ inputs.max_rounds }}" \
+            "${extra_args[@]}" 2>&1 | tee build/sprite-pipeline/pipeline.log
+          pipeline_status=${PIPESTATUS[0]}
+          echo "$pipeline_status" > build/sprite-pipeline/status.txt
+          exit "$pipeline_status"
+
+      - name: Upload candidates and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sprite-review-${{ inputs.frame_id }}-${{ github.run_number }}
+          path: |
+            art_pipeline_runs/
+            build/sprite-pipeline/
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Fail when pipeline failed
+        if: steps.pipeline.outcome != 'success'
+        run: exit 1
