@@ -42,34 +42,62 @@ func _run() -> void:
 	await get_tree().process_frame
 
 	var player_node := game.find_child("Player", true, false) as CharacterBody2D
-	var character_sprite := game.find_child("CharacterSprite", true, false) as Sprite2D
+	var character_sprite := game.find_child("CharacterSprite", true, false) as AnimatedSprite2D
 	var fallback_body: Polygon2D = null
 	if player_node != null:
 		fallback_body = player_node.get_node_or_null("Body") as Polygon2D
 	if player_node == null or character_sprite == null or fallback_body == null:
 		_fail("Human warrior gameplay visual is missing from the player.")
 		return
-	if not character_sprite.visible or fallback_body.visible:
-		_fail("Human fighter does not use the authored gameplay sprite.")
+	if not character_sprite.visible or not fallback_body.visible or fallback_body.color.a > 0.001:
+		_fail("Human fighter visual root or authored sprite visibility is incorrect.")
+		return
+	if character_sprite.get_parent() != fallback_body:
+		_fail("Authored sprite is not attached to the shared visual transform root.")
+		return
+	var active_visual: Node2D = player_node.call("get_active_visual") as Node2D
+	if active_visual != fallback_body:
+		_fail("Player animations are not routed through the shared visual transform root.")
 		return
 	if character_sprite.texture_filter != CanvasItem.TEXTURE_FILTER_NEAREST:
 		_fail("Human warrior sprite does not use nearest-neighbor filtering.")
 		return
-	if character_sprite.texture == null or character_sprite.texture.get_width() != 96 or character_sprite.texture.get_height() != 96:
+	if character_sprite.sprite_frames == null:
+		_fail("Human warrior animation library is missing.")
+		return
+	var initial_texture: Texture2D = character_sprite.sprite_frames.get_frame_texture(&"idle_right", 0)
+	if initial_texture == null or initial_texture.get_width() != 96 or initial_texture.get_height() != 96:
 		_fail("Human warrior idle frame is not 96x96 pixels.")
 		return
 	var facing_cases: Array[Dictionary] = [
-		{"direction": Vector2.DOWN, "suffix": "_down.png"},
-		{"direction": Vector2.LEFT, "suffix": "_left.png"},
-		{"direction": Vector2.RIGHT, "suffix": "_right.png"},
-		{"direction": Vector2.UP, "suffix": "_up.png"}
+		{"direction": Vector2.DOWN, "direction_id": "down", "suffix": "_down.png"},
+		{"direction": Vector2.LEFT, "direction_id": "left", "suffix": "_left.png"},
+		{"direction": Vector2.RIGHT, "direction_id": "right", "suffix": "_right.png"},
+		{"direction": Vector2.UP, "direction_id": "up", "suffix": "_up.png"}
 	]
 	for facing_case: Dictionary in facing_cases:
 		player_node.call("set_visual_facing", facing_case["direction"])
-		var texture: Texture2D = character_sprite.texture
+		var animation_name := StringName("idle_%s" % str(facing_case["direction_id"]))
+		if character_sprite.animation != animation_name:
+			_fail("Human warrior idle animation did not switch to %s." % animation_name)
+			return
+		var texture: Texture2D = character_sprite.sprite_frames.get_frame_texture(animation_name, 0)
 		if texture == null or not texture.resource_path.ends_with(str(facing_case["suffix"])):
 			_fail("Human warrior idle sprite did not switch to %s." % str(facing_case["suffix"]))
 			return
+
+	player_node.call("set_visual_motion", true, Vector2.DOWN)
+	if character_sprite.animation != &"walk_down":
+		_fail("Movement did not enter the directional walk state.")
+		return
+	var walk_fallback: Texture2D = character_sprite.sprite_frames.get_frame_texture(&"walk_down", 0)
+	if walk_fallback == null or not walk_fallback.resource_path.ends_with("_down.png"):
+		_fail("Walk state does not fall back safely to the matching idle frame.")
+		return
+	player_node.call("set_visual_motion", false)
+	if character_sprite.animation != &"idle_down" or player_node.call("get_visual_motion_state_for_testing") != &"idle":
+		_fail("Movement stop did not return the visual to idle.")
+		return
 
 	var attack_button := game.find_child("AttackButton", true, false) as Button
 	var catalog_button := game.find_child("ActionCatalogButton", true, false) as Button
@@ -239,5 +267,5 @@ func _run() -> void:
 	selector_host.queue_free()
 	game.queue_free()
 	await get_tree().process_frame
-	print("Human warrior idle directions, exploration attack, combat catalog, D20 overlay and compact HUD test passed.")
+	print("Human warrior animation states, shared visual root, combat HUD and mobile interaction test passed.")
 	get_tree().quit(0)
