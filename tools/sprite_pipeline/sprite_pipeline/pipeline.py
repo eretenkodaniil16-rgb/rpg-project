@@ -5,6 +5,8 @@ import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 
+from PIL import Image, ImageDraw
+
 from .config import PipelineConfig
 from .openai_backend import OpenAIBackend, VisualGrade
 from .ranking import RankedCandidate, rank_candidates, select_top
@@ -146,6 +148,7 @@ class SpritePipeline:
         frame_id: str,
         input_dir: Path,
         output_root: Path,
+        top_k: int | None = None,
     ) -> Path:
         frame = self.config.frame(frame_id)
         source_reference = self.config.resolve_repo_path(frame.source_reference)
@@ -166,7 +169,25 @@ class SpritePipeline:
             ))
         if not results:
             raise RuntimeError(f"В {input_dir} не найдено PNG-файлов")
+
+        selected_count = max(1, min(top_k or self.config.generation.top_k, 10))
+        passed = sorted(
+            (result for result in results if result.passed and result.normalized_path),
+            key=lambda result: (-result.technical_score, result.candidate_id),
+        )
+        selected = passed[:selected_count]
+
         _write_technical_report(run_dir, results)
+        _write_manual_review(
+            run_dir=run_dir,
+            frame_id=frame.frame_id,
+            direction=frame.direction,
+            source_dir=input_dir,
+            source_reference=source_reference,
+            results=results,
+            selected=selected,
+            started_at=started_at,
+        )
         return run_dir
 
 
@@ -204,3 +225,129 @@ def _write_technical_report(run_dir: Path, results: list[TechnicalResult]) -> No
         if source.exists():
             rejected_dir.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, rejected_dir / source.name)
+
+
+def _write_manual_review(
+    run_dir: Path,
+    frame_id: str,
+    direction: str,
+    source_dir: Path,
+    source_reference: Path | None,
+    results: list[TechnicalResult],
+    selected: list[TechnicalResult],
+    started_at: datetime,
+) -> None:
+    selected_dir = run_dir / "selected"
+    selected_dir.mkdir(parents=True, exist_ok=True)
+
+    selected_payload: list[dict[str, object]] = []
+    for rank, result in enumerate(selected, start=1):
+        assert result.normalized_path is not None
+        source = Path(result.normalized_path)
+        target = selected_dir / f"rank_{rank:02d}_{source.name}"
+        shutil.copy2(source, target)
+        selected_payload.append({
+            "rank": rank,
+            "candidate_id": result.candidate_id,
+            "technical_score": result.technical_score,
+            "normalized_file": target.name,
+            "metrics": result.metrics,
+        })
+
+    contact_sheet = selected_dir / "contact_sheet.png"
+    _write_contact_sheet(contact_sheet, selected)
+
+    report_payload = {
+        "schema_version": 1,
+        "mode": "manual",
+        "character_id": "human_warrior_m01",
+        "frame_id": frame_id,
+        "direction": direction,
+        "started_at": started_at.isoformat(),
+        "source_dir": str(source_dir),
+        "source_reference": str(source_reference) if source_reference else None,
+        "candidate_count": len(results),
+        "passed_count": sum(1 for result in results if result.passed),
+        "rejected_count": sum(1 for result in results if not result.passed),
+        "selected": selected_payload,
+        "note": "Technical screening only. Final face, equipment-side and pose approval is manual.",
+    }
+    (run_dir / "report.json").write_text(
+        json.dumps(report_payload, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    (run_dir / "report.md").write_text(
+        _manual_report_markdown(frame_id, results, selected),
+        encoding="utf-8",
+    )
+
+
+def _write_contact_sheet(path: Path, selected: list[TechnicalResult]) -> None:
+    cell_width = 160
+    cell_height = 136
+    count = max(1, len(selected))
+    sheet = Image.new("RGBA", (cell_width * count, cell_height), (28, 28, 28, 255))
+    draw = ImageDraw.Draw(sheet)
+
+    if not selected:
+        draw.text((12, 12), "No candidates passed technical validation", fill=(255, 255, 255, 255))
+        sheet.save(path, format="PNG", optimize=True)
+        return
+
+    for index, result in enumerate(selected):
+        assert result.normalized_path is not None
+        sprite = Image.open(result.normalized_path).convert("RGBA")
+        preview = sprite.resize((96, 96), Image.Resampling.NEAREST)
+        x = index * cell_width + (cell_width - preview.width) // 2
+        sheet.alpha_composite(preview, (x, 8))
+        draw.text(
+            (index * cell_width + 8, 108),
+            f"#{index + 1} {result.candidate_id}\nscore {result.technical_score:.1f}",
+            fill=(255, 255, 255, 255),
+        )
+    sheet.save(path, format="PNG", optimize=True)
+
+
+def _manual_report_markdown(
+    frame_id: str,
+    results: list[TechnicalResult],
+    selected: list[TechnicalResult],
+) -> str:
+    passed_count = sum(1 for result in results if result.passed)
+    lines = [
+        f"# Manual sprite validation: `{frame_id}`",
+        "",
+        f"- Submitted: **{len(results)}**",
+        f"- Passed technical checks: **{passed_count}**",
+        f"- Rejected: **{len(results) - passed_count}**",
+        f"- Selected for human art review: **{len(selected)}**",
+        "",
+        "> This report contains deterministic technical screening only. Face identity, physical equipment sides, perspective and exact animation pose still require human approval.",
+        "",
+        "## Selected candidates",
+        "",
+    ]
+    if selected:
+        lines.extend([
+            "| Rank | Candidate | Technical score | Face similarity | Reference similarity |",
+            "|---:|---|---:|---:|---:|",
+        ])
+        for rank, result in enumerate(selected, start=1):
+            lines.append(
+                "| "
+                f"{rank} | `{result.candidate_id}` | {result.technical_score:.1f} | "
+                f"{float(result.metrics.get('face_similarity', 0.0)):.1f} | "
+                f"{float(result.metrics.get('reference_similarity', 0.0)):.1f} |"
+            )
+    else:
+        lines.append("No candidate passed the technical gate.")
+
+    lines.extend(["", "## All candidates", ""])
+    for result in sorted(results, key=lambda item: item.candidate_id):
+        status = "PASS" if result.passed else "REJECT"
+        reasons = ", ".join(result.hard_reject_reasons) or "none"
+        lines.append(
+            f"- **{status}** `{result.candidate_id}` — score {result.technical_score:.1f}; reasons: {reasons}"
+        )
+    lines.append("")
+    return "\n".join(lines)
