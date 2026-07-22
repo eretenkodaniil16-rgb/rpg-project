@@ -12,11 +12,11 @@ class PipelineConfigTests(unittest.TestCase):
         manifest = repo_root / "tools/sprite_pipeline/configs/human_warrior_m01.json"
         return load_config(manifest, repo_root)
 
-    def test_human_warrior_manifest_is_bounded_and_locked(self) -> None:
+    def test_human_warrior_manifest_is_bounded_and_ready(self) -> None:
         config = self._config()
 
         self.assertEqual(config.character_id, "human_warrior_m01")
-        self.assertFalse(config.ready)
+        self.assertTrue(config.ready)
         self.assertEqual(
             list(config.frames),
             [
