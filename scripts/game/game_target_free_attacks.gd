@@ -39,4 +39,24 @@ func _request_attack() -> void:
 func _build_srd_attack_context(target: Node, distance: int) -> Dictionary:
 	var context: Dictionary = super._build_srd_attack_context(target, distance)
 	context["turn_based"] = _turn_system.active
+	if is_instance_valid(target) and target.has_method("get_current_health") and target.has_method("get_maximum_health"):
+		context["target_wounded"] = int(target.call("get_current_health")) < int(target.call("get_maximum_health"))
+	else:
+		context["target_wounded"] = false
 	return context
+
+
+func _ability_attempt_is_valid(ability: Dictionary) -> bool:
+	if super._ability_attempt_is_valid(ability):
+		return true
+	var fallback_key: String = str(ability.get("fallback_resource_key", ""))
+	if fallback_key.is_empty() or GameState.player_character.get_resource(fallback_key) <= 0:
+		return false
+	var target_type: String = str(ability.get("target", "self"))
+	if target_type != "self":
+		if not _target_is_valid(_selected_target):
+			return false
+		var maximum_range: int = int(ability.get("range_ft", 5))
+		if DistanceSystem.distance_feet(player.global_position, (_selected_target as Node2D).global_position) > maximum_range:
+			return false
+	return true
