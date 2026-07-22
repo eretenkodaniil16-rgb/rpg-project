@@ -202,11 +202,16 @@ func can_cast_spell(character: PlayerCharacter, spell: Dictionary, as_ritual: bo
 	if character == null or spell.is_empty() or not is_spell_definition(spell):
 		return false
 	var spell_id: String = str(spell.get("id", ""))
-	if spell_id.is_empty() or spell_id not in get_known_spell_ids(character) or not is_prepared(character, spell_id):
+	var known: bool = not spell_id.is_empty() and spell_id in get_known_spell_ids(character)
+	if not known:
 		return false
 	var level: int = maxi(int(spell.get("spell_level", 0)), 0)
+	var prepared: bool = is_prepared(character, spell_id)
 	if as_ritual:
-		return level > 0 and bool(spell.get("ritual", false)) and not in_combat
+		var wizard_ritual_adept: bool = character.character_class_id == "wizard" and "ritual_adept" in character.known_features
+		return level > 0 and bool(spell.get("ritual", false)) and not in_combat and (prepared or wizard_ritual_adept)
+	if not prepared:
+		return false
 	if level == 0:
 		return true
 	var resource_key: String = str(spell.get("resource_key", ""))
@@ -259,7 +264,7 @@ func slot_resource_key(character: PlayerCharacter, level: int) -> String:
 func cast_ritual(character: PlayerCharacter, spell_id: String, current_world_minutes: int, in_combat: bool = false) -> Dictionary:
 	var spell: Dictionary = get_spell_definition(spell_id)
 	if not can_cast_spell(character, spell, true, in_combat):
-		return _failure("Ритуал недоступен: заклинание должно быть изучено, подготовлено и иметь тег «Ритуал»; в бою ритуалы запрещены.")
+		return _failure("Ритуал недоступен: нужен известный Ritual-спелл; обычно он должен быть подготовлен. Волшебник с Мастером ритуалов может читать его из книги без подготовки. В бою ритуалы запрещены.")
 	var casting_minutes: int = ritual_casting_minutes(spell)
 	var completion_minute: int = maxi(current_world_minutes, 0) + casting_minutes
 	var effect_result: Dictionary = _apply_utility_effect(character, spell, completion_minute)
@@ -343,6 +348,8 @@ func describe_spell(character: PlayerCharacter, spell: Dictionary) -> String:
 		tags.append("Ритуал")
 	var tag_text: String = "" if tags.is_empty() else " · %s" % " · ".join(tags)
 	var prepared_text: String = "Подготовлено" if is_prepared(character, str(spell.get("id", ""))) else "Не подготовлено"
+	if not is_prepared(character, str(spell.get("id", ""))) and character.character_class_id == "wizard" and "ritual_adept" in character.known_features and bool(spell.get("ritual", false)):
+		prepared_text += " · доступно как ритуал из книги"
 	return "%s · %s\nСотворение: %s · Дистанция: %s%s\n%s" % [
 		level_text,
 		str(spell.get("school", "Магия")),
