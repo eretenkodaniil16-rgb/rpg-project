@@ -5,6 +5,9 @@ const HUMAN_WARRIOR_IDLE_LEFT: Texture2D = preload("res://assets/characters/huma
 const HUMAN_WARRIOR_IDLE_RIGHT: Texture2D = preload("res://assets/characters/human/warrior_m01/gameplay/frames/human_warrior_m01_idle_right.png")
 const HUMAN_WARRIOR_IDLE_UP: Texture2D = preload("res://assets/characters/human/warrior_m01/gameplay/frames/human_warrior_m01_idle_up.png")
 const AUTHORED_SPRITE_OFFSET: Vector2 = Vector2(0.0, -42.0)
+const VISUAL_MOVEMENT_EPSILON_SQUARED: float = 0.01
+const VISUAL_STATE_IDLE: StringName = &"idle"
+const VISUAL_STATE_WALK: StringName = &"walk"
 
 @export var movement_speed: float = 220.0
 @export var movement_bounds: Rect2 = Rect2(28.0, 28.0, 1224.0, 664.0)
@@ -19,15 +22,24 @@ var _mobile_left: bool = false
 var _mobile_right: bool = false
 var _mobile_vector: Vector2 = Vector2.ZERO
 var _attack_tween: Tween = null
-var _character_sprite: Sprite2D = null
+var _character_sprite: AnimatedSprite2D = null
 var _active_visual: Node2D = null
 var _active_visual_base_position: Vector2 = Vector2.ZERO
 var _visual_facing_direction: Vector2 = Vector2.RIGHT
+var _visual_motion_state: StringName = VISUAL_STATE_IDLE
+var _last_visual_sample_position: Vector2 = Vector2.ZERO
 
 
 func _ready() -> void:
 	_install_character_sprite()
 	apply_character_appearance()
+	_last_visual_sample_position = global_position
+
+
+func _process(_delta: float) -> void:
+	var movement_delta: Vector2 = global_position - _last_visual_sample_position
+	_last_visual_sample_position = global_position
+	set_visual_motion(movement_delta.length_squared() > VISUAL_MOVEMENT_EPSILON_SQUARED, movement_delta)
 
 
 func _physics_process(_delta: float) -> void:
@@ -98,7 +110,7 @@ func play_attack_animation(target_global_position: Vector2) -> void:
 		direction = Vector2.RIGHT
 	if _attack_tween != null:
 		_attack_tween.kill()
-	var visual: Node2D = _active_visual if is_instance_valid(_active_visual) else body_visual
+	var visual: Node2D = get_active_visual()
 	visual.position = _active_visual_base_position
 	_attack_tween = create_tween()
 	_attack_tween.tween_property(visual, "position", _active_visual_base_position + direction * 15.0, 0.07)
@@ -114,24 +126,22 @@ func apply_character_appearance() -> void:
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	var visual_scale: float = 0.78 if character.size_category == "small" else 1.0
 	var use_authored_sprite: bool = _supports_authored_human_warrior(character)
+	body_visual.show()
+	body_visual.position = Vector2.ZERO
+	body_visual.rotation = 0.0
+	body_visual.scale = Vector2.ONE * visual_scale
+	_active_visual = body_visual
+	_active_visual_base_position = Vector2.ZERO
 	if use_authored_sprite:
-		body_visual.hide()
+		body_visual.color = Color(0.0, 0.0, 0.0, 0.0)
 		_character_sprite.show()
-		_character_sprite.scale = Vector2.ONE * visual_scale
 		_character_sprite.position = AUTHORED_SPRITE_OFFSET
-		_active_visual = _character_sprite
-		_active_visual_base_position = AUTHORED_SPRITE_OFFSET
 		name_label.offset_top = -112.0
 		name_label.offset_bottom = -86.0
-		set_visual_facing(_visual_facing_direction)
+		_refresh_visual_animation()
 	else:
 		_character_sprite.hide()
-		body_visual.show()
-		body_visual.position = Vector2.ZERO
 		body_visual.color = Color.from_string(character.appearance_color_hex, Color(0.3, 0.64, 0.91, 1.0))
-		body_visual.scale = Vector2.ONE * visual_scale
-		_active_visual = body_visual
-		_active_visual_base_position = Vector2.ZERO
 		name_label.offset_top = -50.0
 		name_label.offset_bottom = -25.0
 	var collision: CollisionShape2D = get_node_or_null("CollisionShape2D") as CollisionShape2D
@@ -141,28 +151,86 @@ func apply_character_appearance() -> void:
 		collision.shape = shape
 
 
+func get_active_visual() -> Node2D:
+	return _active_visual if is_instance_valid(_active_visual) else body_visual
+
+
+func get_active_visual_base_position() -> Vector2:
+	return _active_visual_base_position
+
+
 func set_visual_facing(direction: Vector2) -> void:
 	if direction.length_squared() <= 0.0001:
 		return
 	_visual_facing_direction = direction.normalized()
+	_refresh_visual_animation()
+
+
+func set_visual_motion(is_moving: bool, direction: Vector2 = Vector2.ZERO) -> void:
+	if direction.length_squared() > 0.0001:
+		_visual_facing_direction = direction.normalized()
+	_visual_motion_state = VISUAL_STATE_WALK if is_moving else VISUAL_STATE_IDLE
+	_refresh_visual_animation()
+
+
+func get_visual_motion_state_for_testing() -> StringName:
+	return _visual_motion_state
+
+
+func _refresh_visual_animation() -> void:
 	if not is_instance_valid(_character_sprite) or not _character_sprite.visible:
 		return
-	if absf(_visual_facing_direction.x) > absf(_visual_facing_direction.y):
-		_character_sprite.texture = HUMAN_WARRIOR_IDLE_RIGHT if _visual_facing_direction.x >= 0.0 else HUMAN_WARRIOR_IDLE_LEFT
-	else:
-		_character_sprite.texture = HUMAN_WARRIOR_IDLE_DOWN if _visual_facing_direction.y >= 0.0 else HUMAN_WARRIOR_IDLE_UP
+	var direction_id: StringName = _direction_id(_visual_facing_direction)
+	var desired_animation := StringName("%s_%s" % [_visual_motion_state, direction_id])
+	if not _character_sprite.sprite_frames.has_animation(desired_animation):
+		desired_animation = StringName("idle_%s" % direction_id)
+	if _character_sprite.animation != desired_animation:
+		_character_sprite.play(desired_animation)
+
+
+func _direction_id(direction: Vector2) -> StringName:
+	if absf(direction.x) > absf(direction.y):
+		return &"right" if direction.x >= 0.0 else &"left"
+	return &"down" if direction.y >= 0.0 else &"up"
 
 
 func _install_character_sprite() -> void:
-	_character_sprite = Sprite2D.new()
+	_character_sprite = AnimatedSprite2D.new()
 	_character_sprite.name = "CharacterSprite"
 	_character_sprite.centered = true
 	_character_sprite.position = AUTHORED_SPRITE_OFFSET
-	_character_sprite.texture = HUMAN_WARRIOR_IDLE_RIGHT
+	_character_sprite.sprite_frames = _build_character_sprite_frames()
 	_character_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_character_sprite.z_index = 1
 	_character_sprite.hide()
-	add_child(_character_sprite)
+	body_visual.add_child(_character_sprite)
+	_character_sprite.play(&"idle_right")
+
+
+func _build_character_sprite_frames() -> SpriteFrames:
+	var frames := SpriteFrames.new()
+	if frames.has_animation(&"default"):
+		frames.remove_animation(&"default")
+	var direction_textures: Dictionary = {
+		&"down": HUMAN_WARRIOR_IDLE_DOWN,
+		&"left": HUMAN_WARRIOR_IDLE_LEFT,
+		&"right": HUMAN_WARRIOR_IDLE_RIGHT,
+		&"up": HUMAN_WARRIOR_IDLE_UP
+	}
+	for direction_value: Variant in direction_textures.keys():
+		var direction_id := StringName(str(direction_value))
+		var texture: Texture2D = direction_textures[direction_value] as Texture2D
+		var idle_animation := StringName("idle_%s" % direction_id)
+		frames.add_animation(idle_animation)
+		frames.set_animation_loop(idle_animation, true)
+		frames.set_animation_speed(idle_animation, 1.0)
+		frames.add_frame(idle_animation, texture)
+		var walk_animation := StringName("walk_%s" % direction_id)
+		frames.add_animation(walk_animation)
+		frames.set_animation_loop(walk_animation, true)
+		frames.set_animation_speed(walk_animation, 8.0)
+		frames.add_frame(walk_animation, texture)
+	return frames
 
 
 func _supports_authored_human_warrior(character: PlayerCharacter) -> bool:
