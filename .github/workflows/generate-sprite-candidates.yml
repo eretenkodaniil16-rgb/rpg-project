@@ -77,6 +77,30 @@ jobs:
       - name: Install dependencies
         run: python -m pip install --disable-pip-version-check -r tools/sprite_pipeline/requirements.txt
 
+      - name: Verify approved reference pack
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from sprite_pipeline.config import load_config
+
+          config = load_config(
+              Path("tools/sprite_pipeline/configs/human_warrior_m01.json"),
+              Path.cwd(),
+          )
+          if not config.ready:
+              raise SystemExit(
+                  "Paid generation is locked: manifest ready=false. "
+                  "Add and approve the master/idle PNG files before running this workflow."
+              )
+          extra = "${{ inputs.extra_reference }}".strip() or None
+          references = config.reference_paths("${{ inputs.frame_id }}", extra)
+          missing = [str(path) for path in references if not path.is_file()]
+          if missing:
+              raise SystemExit("Reference pack is incomplete:\n- " + "\n- ".join(missing))
+          print("Approved reference pack is complete.")
+          PY
+
       - name: Verify secret without exposing it
         shell: bash
         run: |
