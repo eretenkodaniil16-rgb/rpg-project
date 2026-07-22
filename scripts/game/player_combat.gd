@@ -9,6 +9,7 @@ var _facing_indicator: Polygon2D = null
 var _turn_based_mode: bool = false
 var _grid_move_cooldown: float = 0.0
 var _terrain_class_data: ClassDataSystem = ClassDataSystem.new()
+var _origin_feat_data: OriginFeatSystem = OriginFeatSystem.new()
 
 
 func _ready() -> void:
@@ -76,6 +77,14 @@ func get_effective_movement_speed_at(world_position: Vector2) -> float:
 
 func ignores_nonmagical_difficult_terrain() -> bool:
 	return _terrain_class_data.ignores_nonmagical_difficult_terrain(GameState.player_character)
+
+
+func get_initiative_proficiency_bonus() -> int:
+	return _origin_feat_data.initiative_proficiency_bonus(GameState.player_character)
+
+
+func on_combat_turn_started() -> void:
+	_origin_feat_data.begin_turn(GameState.player_character)
 
 
 func set_turn_based_mode(value: bool) -> void:

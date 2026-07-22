@@ -3,6 +3,7 @@ extends RefCounted
 
 var _dice_roller: DiceRoller = DiceRoller.new()
 var _srd_rules: SrdCombatRules = SrdCombatRules.new()
+var _origin_feats: OriginFeatSystem = OriginFeatSystem.new()
 
 
 func perform_basic_attack(
@@ -87,7 +88,17 @@ func perform_basic_attack(
 	if is_unarmed and character.character_class_id != "monk":
 		result.damage = maxi(0, 1 + result.ability_modifier)
 	else:
-		result.damage = maxi(0, _roll_damage(dice_count * (2 if result.critical else 1), die_sides, damage_rolls_override) + result.ability_modifier)
+		var rolled_dice_count: int = dice_count * (2 if result.critical else 1)
+		var weapon_damage_roll: int = _roll_damage(rolled_dice_count, die_sides, damage_rolls_override)
+		var turn_based: bool = bool(attack_context.get("turn_based", false))
+		if not is_unarmed and _origin_feats.can_apply_savage_attacker(character, turn_based):
+			var second_damage_overrides: Array[int] = _int_array(attack_context.get("savage_damage_rolls_override", []))
+			var second_weapon_damage_roll: int = _roll_damage(rolled_dice_count, die_sides, second_damage_overrides)
+			var selected_weapon_damage: int = maxi(weapon_damage_roll, second_weapon_damage_roll)
+			result.note = _append_note(result.note, "Свирепый атакующий: %d или %d, выбран %d." % [weapon_damage_roll, second_weapon_damage_roll, selected_weapon_damage])
+			weapon_damage_roll = selected_weapon_damage
+			_origin_feats.consume_savage_attacker(character, turn_based)
+		result.damage = maxi(0, weapon_damage_roll + result.ability_modifier)
 	if ability_id == "strength" and int(character.active_effects.get("rage_attacks", 0)) > 0:
 		result.bonus_damage += 2
 		character.active_effects["rage_attacks"] = int(character.active_effects["rage_attacks"]) - 1
@@ -154,6 +165,14 @@ func _roll_damage(count: int, sides: int, overrides: Array[int]) -> int:
 	for index: int in range(count):
 		total += clampi(int(overrides[index]), 1, sides) if index < overrides.size() else _dice_roller.roll_die(sides)
 	return total
+
+
+func _int_array(value: Variant) -> Array[int]:
+	var result: Array[int] = []
+	if value is Array:
+		for item: Variant in value:
+			result.append(int(item))
+	return result
 
 
 func _append_note(current: String, addition: String) -> String:

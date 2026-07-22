@@ -7,8 +7,7 @@ var _srd_rules: SrdCombatRules = SrdCombatRules.new()
 
 func use_self_ability(character: PlayerCharacter, ability: Dictionary) -> Dictionary:
 	var effect: String = str(ability.get("effect", ""))
-	var resource_key: String = str(ability.get("resource_key", "unlimited"))
-	if effect in ["rage", "bardic_inspiration", "racial_inspiration", "adrenaline_rush"] and not _consume(character, resource_key, 1):
+	if effect in ["rage", "bardic_inspiration", "racial_inspiration", "adrenaline_rush"] and not _consume_ability_resource(character, ability, 1):
 		return _failure("Заряды способности закончились.")
 	match effect:
 		"rage":
@@ -29,18 +28,25 @@ func use_self_ability(character: PlayerCharacter, ability: Dictionary) -> Dictio
 				"movement_bonus_feet": character.base_speed_feet,
 				"temporary_hit_points": temporary_hit_points
 			}
-		"heal_2d8_wisdom": return _heal_with_dice(character, ability, 2, 8, character.get_ability_modifier("wisdom"))
-		"heal_1d10_level": return _heal_with_dice(character, ability, 1, 10, character.level)
-		"lay_on_hands": return _use_lay_on_hands(character, ability)
-		_: return _failure("Эта особенность действует пассивно и не требует активации.")
+		"heal_2d8_wisdom":
+			return _heal_with_dice(character, ability, 2, 8, character.get_ability_modifier("wisdom"))
+		"heal_1d10_level":
+			return _heal_with_dice(character, ability, 1, 10, character.level)
+		"origin_heal":
+			var healing_pair: Array[int] = _int_pair(ability.get("healing_dice", [1, 8]) as Array, [1, 8])
+			var ability_id: String = str(ability.get("ability", "wisdom"))
+			return _heal_with_dice(character, ability, healing_pair[0], healing_pair[1], character.get_ability_modifier(ability_id))
+		"lay_on_hands":
+			return _use_lay_on_hands(character, ability)
+		_:
+			return _failure("Эта особенность действует пассивно и не требует активации.")
 
 
 func apply_target_ability(character: PlayerCharacter, ability: Dictionary) -> Dictionary:
 	var effect: String = str(ability.get("effect", ""))
 	if effect != "hunters_mark":
 		return _failure("Способность не может быть применена к этой цели.")
-	var resource_key: String = str(ability.get("resource_key", "hunters_mark"))
-	if not _consume(character, resource_key, 1):
+	if not _consume_ability_resource(character, ability, 1):
 		return _failure("Свободные применения Метки охотника закончились.")
 	character.active_effects["hunters_mark_hits"] = 3
 	return _success("Цель отмечена. Три следующих попадания нанесут дополнительно 1d6 урона.")
@@ -72,14 +78,14 @@ func perform_offensive_ability(
 		result.automatic_miss = true
 		result.note = "Цель находится за полным укрытием."
 		return result
-
-	var resource_key: String = str(ability.get("resource_key", "unlimited"))
-	if not _consume(character, resource_key, 1):
-		result.note = "Не осталось доступных применений способности."
+	if not _consume_ability_resource(character, ability, 1):
+		result.note = "Не осталось доступных применений способности или ячеек подходящего уровня."
 		return result
 	var damage_dice: Array[int] = _damage_dice_for_level(ability, character.level)
 	var dice_count: int = maxi(damage_dice[0] if damage_dice.size() > 0 else 1, 1)
 	var die_sides: int = maxi(damage_dice[1] if damage_dice.size() > 1 else 6, 2)
+	if bool(attack_context.get("target_wounded", false)) and int(ability.get("wounded_damage_die", 0)) > 0:
+		die_sides = int(ability.get("wounded_damage_die", die_sides))
 	var effect: String = str(ability.get("effect", "spell_attack"))
 	if effect == "auto_hit_spell":
 		result.automatic_hit = true
@@ -161,6 +167,26 @@ func consume_bardic_inspiration(character: PlayerCharacter) -> int:
 	return _dice.roll_die(die_sides)
 
 
+func can_pay_ability_cost(character: PlayerCharacter, ability: Dictionary) -> bool:
+	var resource_key: String = str(ability.get("resource_key", "unlimited"))
+	if resource_key.is_empty() or resource_key == "unlimited":
+		return true
+	if character.get_resource(resource_key) > 0:
+		return true
+	var fallback_key: String = str(ability.get("fallback_resource_key", ""))
+	return not fallback_key.is_empty() and character.get_resource(fallback_key) > 0
+
+
+func active_resource_key(character: PlayerCharacter, ability: Dictionary) -> String:
+	var resource_key: String = str(ability.get("resource_key", "unlimited"))
+	if resource_key.is_empty() or resource_key == "unlimited":
+		return "unlimited"
+	if character.get_resource(resource_key) > 0:
+		return resource_key
+	var fallback_key: String = str(ability.get("fallback_resource_key", ""))
+	return fallback_key if not fallback_key.is_empty() and character.get_resource(fallback_key) > 0 else resource_key
+
+
 func _damage_dice_for_level(ability: Dictionary, level: int) -> Array[int]:
 	var selected: Array[int] = [1, 6]
 	var base_value: Variant = ability.get("damage_dice", selected)
@@ -189,8 +215,7 @@ func _int_pair(value: Array, fallback: Array[int]) -> Array[int]:
 func _heal_with_dice(character: PlayerCharacter, ability: Dictionary, count: int, sides: int, bonus: int) -> Dictionary:
 	if character.current_health >= character.maximum_health:
 		return _failure("Здоровье уже полностью восстановлено.")
-	var resource_key: String = str(ability.get("resource_key", "spell_slots_1"))
-	if not _consume(character, resource_key, 1):
+	if not _consume_ability_resource(character, ability, 1):
 		return _failure("Не осталось ячеек или применений способности.")
 	var amount: int = maxi(0, _roll_damage(count, sides, []) + bonus)
 	var before: int = character.current_health
@@ -213,8 +238,14 @@ func _use_lay_on_hands(character: PlayerCharacter, ability: Dictionary) -> Dicti
 	return {"success": true, "message": "Наложение рук восстановило %d здоровья." % amount, "healing": amount}
 
 
-func _consume(character: PlayerCharacter, resource_key: String, amount: int) -> bool:
-	return character.consume_resource(resource_key, amount)
+func _consume_ability_resource(character: PlayerCharacter, ability: Dictionary, amount: int) -> bool:
+	var resource_key: String = str(ability.get("resource_key", "unlimited"))
+	if resource_key.is_empty() or resource_key == "unlimited":
+		return true
+	if character.consume_resource(resource_key, amount):
+		return true
+	var fallback_key: String = str(ability.get("fallback_resource_key", ""))
+	return not fallback_key.is_empty() and character.consume_resource(fallback_key, amount)
 
 
 func _racial_d20(character: PlayerCharacter, override: int, lucky_reroll_override: int = -1) -> int:

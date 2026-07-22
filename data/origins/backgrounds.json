@@ -11,7 +11,14 @@
       "skill_proficiencies": ["insight", "religion"],
       "tool_proficiencies": ["calligraphers_supplies"],
       "equipment_choice": "package_or_50_gp",
-      "equipment_package": ["calligraphers_supplies", "prayer_book", "holy_symbol", "parchment_10", "robe", "gold_8"]
+      "equipment_package": [
+        {"item_id":"calligraphers_supplies","quantity":1},
+        {"item_id":"prayer_book","quantity":1},
+        {"item_id":"holy_symbol","quantity":1},
+        {"item_id":"parchment","quantity":10},
+        {"item_id":"robe","quantity":1},
+        {"item_id":"gold_coin","quantity":8}
+      ]
     },
     {
       "id": "criminal",
@@ -23,7 +30,14 @@
       "skill_proficiencies": ["sleight_of_hand", "stealth"],
       "tool_proficiencies": ["thieves_tools"],
       "equipment_choice": "package_or_50_gp",
-      "equipment_package": ["dagger_2", "thieves_tools", "crowbar", "pouch_2", "travelers_clothes", "gold_16"]
+      "equipment_package": [
+        {"item_id":"dagger","quantity":2},
+        {"item_id":"thieves_tools","quantity":1},
+        {"item_id":"crowbar","quantity":1},
+        {"item_id":"pouch","quantity":2},
+        {"item_id":"travelers_clothes","quantity":1},
+        {"item_id":"gold_coin","quantity":16}
+      ]
     },
     {
       "id": "sage",
@@ -35,7 +49,14 @@
       "skill_proficiencies": ["arcana", "history"],
       "tool_proficiencies": ["calligraphers_supplies"],
       "equipment_choice": "package_or_50_gp",
-      "equipment_package": ["quarterstaff", "calligraphers_supplies", "history_book", "parchment_8", "robe", "gold_8"]
+      "equipment_package": [
+        {"item_id":"quarterstaff","quantity":1},
+        {"item_id":"calligraphers_supplies","quantity":1},
+        {"item_id":"history_book","quantity":1},
+        {"item_id":"parchment","quantity":8},
+        {"item_id":"robe","quantity":1},
+        {"item_id":"gold_coin","quantity":8}
+      ]
     },
     {
       "id": "soldier",
@@ -47,7 +68,16 @@
       "skill_proficiencies": ["athletics", "intimidation"],
       "tool_proficiencies": ["gaming_set_choice"],
       "equipment_choice": "package_or_50_gp",
-      "equipment_package": ["spear", "shortbow", "arrow_20", "gaming_set_choice", "healers_kit", "quiver", "travelers_clothes", "gold_14"]
+      "equipment_package": [
+        {"item_id":"spear","quantity":1},
+        {"item_id":"shortbow","quantity":1},
+        {"item_id":"arrow","quantity":20},
+        {"item_id":"gaming_set","quantity":1},
+        {"item_id":"healers_kit","quantity":1},
+        {"item_id":"quiver","quantity":1},
+        {"item_id":"travelers_clothes","quantity":1},
+        {"item_id":"gold_coin","quantity":14}
+      ]
     }
   ]
 }
