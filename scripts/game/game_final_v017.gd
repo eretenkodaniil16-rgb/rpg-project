@@ -1,7 +1,14 @@
 extends "res://scripts/game/game_presented_rolls.gd"
 
+var _spellcasting_runtime: SpellcastingSystem = SpellcastingSystem.new()
+var _world_time_runtime: WorldTimeSystem = WorldTimeSystem.new()
+
 
 func _ready() -> void:
+	var spell_state_changed: bool = _spellcasting_runtime.ensure_character(GameState.player_character, false)
+	_spellcasting_runtime.cleanup_expired_effects(GameState.player_character, _world_time_runtime.get_minutes(GameState))
+	if spell_state_changed:
+		GameState.save_game()
 	super._ready()
 	if _attack_popup != null:
 		_attack_popup.remove_from_group("combat_ui")
