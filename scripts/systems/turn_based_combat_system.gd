@@ -32,6 +32,8 @@ func start_combat(
 	current_index = -1
 	entries.clear()
 	var player_initiative_proficiency: int = maxi(player_proficiency_bonus, 0) if player_initiative_proficient else 0
+	if player.has_method("get_initiative_proficiency_bonus"):
+		player_initiative_proficiency = maxi(player_initiative_proficiency, int(player.call("get_initiative_proficiency_bonus")))
 	entries.append(_make_entry(player, true, player_dexterity_modifier, player_initiative_proficiency, initiative_overrides))
 	for opponent: Node in opponents:
 		if not is_instance_valid(opponent):
@@ -244,6 +246,9 @@ func _begin_current_turn() -> void:
 	if current_index < 0 or current_index >= entries.size():
 		return
 	entries[current_index]["reaction"] = true
+	var actor: Node = entries[current_index].get("node") as Node
+	if is_instance_valid(actor) and actor.has_method("on_combat_turn_started"):
+		actor.call("on_combat_turn_started")
 	var player_turn: bool = bool(entries[current_index].get("is_player", false))
 	if player_turn:
 		action_available = true
