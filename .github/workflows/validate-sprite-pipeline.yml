@@ -48,7 +48,7 @@ jobs:
           PYTHONPATH: tools/sprite_pipeline
         run: python -m unittest discover -s tools/sprite_pipeline/tests -p "test_*.py" -v
 
-      - name: Validate manifest without enabling paid generation
+      - name: Validate manifest and ready references
         env:
           PYTHONPATH: tools/sprite_pipeline
         run: |
@@ -61,9 +61,17 @@ jobs:
               Path.cwd(),
           )
           assert config.character_id == "human_warrior_m01"
-          assert config.ready is False
           assert len(config.frames) == 6
           assert config.generation.max_rounds <= 2
           assert config.generation.initial_candidates <= 10
-          print("Sprite pipeline manifest is valid and paid generation remains locked.")
+
+          if config.ready:
+              missing = []
+              for frame_id in config.frames:
+                  missing.extend(str(path) for path in config.reference_paths(frame_id) if not path.is_file())
+              if missing:
+                  raise AssertionError("ready=true but reference pack is incomplete:\n- " + "\n- ".join(sorted(set(missing))))
+              print("Sprite pipeline manifest is ready and all required references exist.")
+          else:
+              print("Sprite pipeline manifest is valid; paid generation remains locked until approved references are added.")
           PY
