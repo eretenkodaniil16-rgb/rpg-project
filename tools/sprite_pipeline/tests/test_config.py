@@ -7,11 +7,13 @@ from sprite_pipeline.config import load_config
 
 
 class PipelineConfigTests(unittest.TestCase):
-    def test_human_warrior_manifest_is_bounded_and_locked(self) -> None:
+    def _config(self):
         repo_root = Path(__file__).resolve().parents[3]
         manifest = repo_root / "tools/sprite_pipeline/configs/human_warrior_m01.json"
+        return load_config(manifest, repo_root)
 
-        config = load_config(manifest, repo_root)
+    def test_human_warrior_manifest_is_bounded_and_locked(self) -> None:
+        config = self._config()
 
         self.assertEqual(config.character_id, "human_warrior_m01")
         self.assertFalse(config.ready)
@@ -37,15 +39,25 @@ class PipelineConfigTests(unittest.TestCase):
         self.assertIn("physical_equipment_sides_swapped", config.hard_reject_labels)
 
     def test_master_and_pose_prompts_are_combined(self) -> None:
-        repo_root = Path(__file__).resolve().parents[3]
-        manifest = repo_root / "tools/sprite_pipeline/configs/human_warrior_m01.json"
-        config = load_config(manifest, repo_root)
+        config = self._config()
 
         prompt = config.load_prompt("walk_down_f01")
 
         self.assertIn("ЭТО НЕ НОВАЯ ГЕНЕРАЦИЯ", prompt)
         self.assertIn("контакт физической левой ноги", prompt)
         self.assertIn("ФИЗИЧЕСКОЙ ЛЕВОЙ", prompt)
+
+    def test_extra_reference_cannot_escape_repository(self) -> None:
+        config = self._config()
+
+        with self.assertRaisesRegex(ValueError, "выходит за разрешённый каталог"):
+            config.reference_paths("walk_down_f01", "../../../../etc/passwd")
+
+    def test_prompt_path_cannot_escape_pipeline_root(self) -> None:
+        config = self._config()
+
+        with self.assertRaisesRegex(ValueError, "выходит за разрешённый каталог"):
+            config.resolve_pipeline_path("../../../README.md")
 
 
 if __name__ == "__main__":
