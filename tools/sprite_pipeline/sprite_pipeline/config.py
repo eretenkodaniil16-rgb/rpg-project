@@ -59,10 +59,10 @@ class PipelineConfig:
         return self.manifest_path.parent.parent
 
     def resolve_repo_path(self, relative_path: str) -> Path:
-        return (self.repo_root / relative_path).resolve()
+        return _resolve_within(self.repo_root, relative_path, "reference")
 
     def resolve_pipeline_path(self, relative_path: str) -> Path:
-        return (self.pipeline_root / relative_path).resolve()
+        return _resolve_within(self.pipeline_root, relative_path, "pipeline file")
 
     def load_prompt(self, frame_id: str) -> str:
         frame = self.frame(frame_id)
@@ -187,6 +187,16 @@ def load_config(manifest_path: Path, repo_root: Path) -> PipelineConfig:
         manifest_path=manifest_path.resolve(),
         repo_root=repo_root.resolve(),
     )
+
+
+def _resolve_within(root: Path, relative_path: str, label: str) -> Path:
+    safe_root = root.resolve()
+    candidate = (safe_root / relative_path).resolve()
+    try:
+        candidate.relative_to(safe_root)
+    except ValueError as exc:
+        raise ValueError(f"{label} path выходит за разрешённый каталог: {relative_path}") from exc
+    return candidate
 
 
 def _require_keys(data: dict[str, Any], keys: list[str], label: str) -> None:
