@@ -25,12 +25,17 @@ on:
           - "2"
           - "3"
           - "4"
+  push:
+    branches:
+      - tools/hybrid-sprite-pipeline
+    paths:
+      - "art_pipeline_submissions/human_warrior_m01/**/*.png"
 
 permissions:
   contents: read
 
 concurrency:
-  group: manual-sprite-${{ github.ref }}-${{ inputs.frame_id }}
+  group: manual-sprite-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -39,12 +44,12 @@ jobs:
     timeout-minutes: 15
     env:
       PYTHONPATH: tools/sprite_pipeline
-      SPRITE_FRAME_ID: ${{ inputs.frame_id }}
-      SPRITE_TOP_K: ${{ inputs.top_k }}
 
     steps:
       - name: Checkout selected branch
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
       - name: Set up Python 3.12
         uses: actions/setup-python@v5
@@ -60,7 +65,34 @@ jobs:
         id: submission
         shell: bash
         run: |
-          submission_dir="art_pipeline_submissions/human_warrior_m01/${SPRITE_FRAME_ID}"
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            frame_id="${{ inputs.frame_id }}"
+            top_k="${{ inputs.top_k }}"
+          else
+            before_sha="${{ github.event.before }}"
+            if git cat-file -e "${before_sha}^{commit}" 2>/dev/null; then
+              changed_files="$(git diff --name-only "$before_sha" "${{ github.sha }}" -- 'art_pipeline_submissions/human_warrior_m01/**/*.png')"
+            else
+              changed_files="$(git diff --name-only HEAD^ HEAD -- 'art_pipeline_submissions/human_warrior_m01/**/*.png')"
+            fi
+            mapfile -t frames < <(printf '%s\n' "$changed_files" | awk -F/ 'NF >= 4 {print $3}' | sort -u)
+            if (( ${#frames[@]} != 1 )); then
+              echo "Upload PNG candidates for exactly one frame per commit. Detected frames: ${frames[*]:-none}" >&2
+              exit 1
+            fi
+            frame_id="${frames[0]}"
+            top_k="3"
+          fi
+
+          case "$frame_id" in
+            walk_down_f01|walk_down_f02|walk_down_f03|walk_down_f04|walk_down_f05|walk_down_f06) ;;
+            *)
+              echo "Unsupported frame_id: $frame_id" >&2
+              exit 1
+              ;;
+          esac
+
+          submission_dir="art_pipeline_submissions/human_warrior_m01/${frame_id}"
           if [[ ! -d "$submission_dir" ]]; then
             echo "Submission directory does not exist: $submission_dir" >&2
             exit 1
@@ -71,17 +103,24 @@ jobs:
             echo "No PNG candidates found in $submission_dir" >&2
             exit 1
           fi
+          if (( ${#png_files[@]} > 10 )); then
+            echo "At most 10 PNG candidates are allowed per frame; found ${#png_files[@]}." >&2
+            exit 1
+          fi
+
+          echo "frame_id=$frame_id" >> "$GITHUB_OUTPUT"
+          echo "top_k=$top_k" >> "$GITHUB_OUTPUT"
           echo "input_dir=$submission_dir" >> "$GITHUB_OUTPUT"
-          echo "Found ${#png_files[@]} PNG candidate(s)."
+          echo "Found ${#png_files[@]} PNG candidate(s) for $frame_id."
 
       - name: Run deterministic manual validation
         shell: bash
         run: |
           mkdir -p build/manual-sprite-review
           python tools/sprite_pipeline/run_pipeline.py validate \
-            --frame-id "$SPRITE_FRAME_ID" \
+            --frame-id "${{ steps.submission.outputs.frame_id }}" \
             --input-dir "${{ steps.submission.outputs.input_dir }}" \
-            --top-k "$SPRITE_TOP_K" \
+            --top-k "${{ steps.submission.outputs.top_k }}" \
             2>&1 | tee build/manual-sprite-review/validation.log
 
       - name: Publish review summary
@@ -97,7 +136,7 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: sprite-review-manual-${{ inputs.frame_id }}-${{ github.run_number }}
+          name: sprite-review-manual-${{ steps.submission.outputs.frame_id }}-${{ github.run_number }}
           path: |
             art_pipeline_runs/**/selected/**
             art_pipeline_runs/**/report.md
@@ -110,7 +149,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: sprite-diagnostics-manual-${{ inputs.frame_id }}-${{ github.run_number }}
+          name: sprite-diagnostics-manual-${{ steps.submission.outputs.frame_id || 'unknown' }}-${{ github.run_number }}
           path: |
             art_pipeline_runs/
             build/manual-sprite-review/
