@@ -46,6 +46,7 @@ func _run_smoke_test() -> void:
 	if back_button == null or next_button == null or not back_button.is_visible_in_tree() or not next_button.is_visible_in_tree():
 		_fail("Character creator navigation is not visible.")
 		return
+	creator.set("_character_name", "Тестовый герой")
 
 	creator.call("_show_step", 1)
 	await process_frame
