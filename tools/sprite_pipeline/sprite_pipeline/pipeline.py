@@ -56,10 +56,6 @@ class SpritePipeline:
         rounds_completed = 0
 
         for round_number in range(1, round_limit + 1):
-            rounds_completed = round_number
-            raw_dir = run_dir / "raw" / f"round_{round_number:02d}"
-            normalized_dir = run_dir / "normalized" / f"round_{round_number:02d}"
-
             round_references = list(reference_paths)
             round_prompt = prompt
             round_count = candidate_count
@@ -78,6 +74,9 @@ class SpritePipeline:
                     f"{correction_text or '- сохранить предыдущий кандидат без новых изменений'}"
                 )
 
+            rounds_completed = round_number
+            raw_dir = run_dir / "raw" / f"round_{round_number:02d}"
+            normalized_dir = run_dir / "normalized" / f"round_{round_number:02d}"
             generated = backend.edit_images(
                 round_references,
                 round_prompt,
