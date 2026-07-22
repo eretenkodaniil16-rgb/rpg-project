@@ -3,6 +3,7 @@ extends RefCounted
 
 const DEFAULT_APPEARANCE_COLOR_HEX: String = "#4DA3E8"
 const DEFAULT_RACE_ID: String = "human"
+const DEFAULT_RULESET_ID: String = "srd_5_2_1"
 const DEFAULT_ABILITIES: Dictionary = {
 	"strength": 10,
 	"dexterity": 10,
@@ -11,12 +12,45 @@ const DEFAULT_ABILITIES: Dictionary = {
 	"charisma": 10,
 	"wisdom": 10
 }
+const SKILL_ABILITIES: Dictionary = {
+	"acrobatics": "dexterity",
+	"animal_handling": "wisdom",
+	"arcana": "intelligence",
+	"athletics": "strength",
+	"deception": "charisma",
+	"history": "intelligence",
+	"insight": "wisdom",
+	"intimidation": "charisma",
+	"investigation": "intelligence",
+	"medicine": "wisdom",
+	"nature": "intelligence",
+	"perception": "wisdom",
+	"performance": "charisma",
+	"persuasion": "charisma",
+	"religion": "intelligence",
+	"sleight_of_hand": "dexterity",
+	"stealth": "dexterity",
+	"survival": "wisdom"
+}
 
 var character_name: String = ""
 var character_class_id: String = ""
 var character_class_name: String = ""
 var race_id: String = DEFAULT_RACE_ID
 var race_name: String = "Человек"
+var ruleset_id: String = DEFAULT_RULESET_ID
+var background_id: String = ""
+var background_name: String = ""
+var background_ability_bonuses: Dictionary = {}
+var origin_feat_id: String = ""
+var origin_applied: bool = false
+var skill_proficiencies: Array[String] = []
+var saving_throw_proficiencies: Array[String] = []
+var tool_proficiencies: Array[String] = []
+var weapon_proficiencies: Array[String] = []
+var armor_training: Array[String] = []
+var language_proficiencies: Array[String] = ["common"]
+var expertise_skills: Array[String] = []
 var appearance_color_hex: String = DEFAULT_APPEARANCE_COLOR_HEX
 var size_category: String = "medium"
 var base_speed_feet: int = 30
@@ -38,6 +72,7 @@ var carrying_size_bonus: int = 0
 var applied_racial_hit_point_bonus: int = 0
 var level: int = 1
 var experience: int = 0
+var base_abilities: Dictionary = DEFAULT_ABILITIES.duplicate(true)
 var abilities: Dictionary = DEFAULT_ABILITIES.duplicate(true)
 var maximum_health: int = 1
 var current_health: int = 1
@@ -62,6 +97,50 @@ func get_ability_score(ability_id: String) -> int:
 
 func get_ability_modifier(ability_id: String) -> int:
 	return modifier_for_score(get_ability_score(ability_id))
+
+
+func get_proficiency_bonus() -> int:
+	var safe_level: int = maxi(level, 1)
+	return clampi(2 + floori(float(safe_level - 1) / 4.0), 2, 6)
+
+
+func get_skill_ability(skill_id: String) -> String:
+	return str(SKILL_ABILITIES.get(skill_id, ""))
+
+
+func get_skill_modifier(skill_id: String) -> int:
+	var ability_id: String = get_skill_ability(skill_id)
+	if ability_id.is_empty():
+		return 0
+	var result: int = get_ability_modifier(ability_id)
+	if skill_id in skill_proficiencies:
+		result += get_proficiency_bonus()
+		if skill_id in expertise_skills:
+			result += get_proficiency_bonus()
+	return result
+
+
+func get_saving_throw_modifier(ability_id: String) -> int:
+	var result: int = get_ability_modifier(ability_id)
+	if ability_id in saving_throw_proficiencies:
+		result += get_proficiency_bonus()
+	return result
+
+
+func get_passive_skill(skill_id: String) -> int:
+	return 10 + get_skill_modifier(skill_id)
+
+
+func is_proficient_with_tool(tool_id: String) -> bool:
+	return tool_id in tool_proficiencies
+
+
+func is_proficient_with_weapon(weapon_id_or_category: String) -> bool:
+	return weapon_id_or_category in weapon_proficiencies
+
+
+func has_armor_training(category_id: String) -> bool:
+	return category_id in armor_training
 
 
 func get_resource(resource_key: String) -> int:
@@ -114,6 +193,19 @@ func to_dict() -> Dictionary:
 		"class_name": character_class_name,
 		"race_id": race_id,
 		"race_name": race_name,
+		"ruleset_id": ruleset_id,
+		"background_id": background_id,
+		"background_name": background_name,
+		"background_ability_bonuses": background_ability_bonuses.duplicate(true),
+		"origin_feat_id": origin_feat_id,
+		"origin_applied": origin_applied,
+		"skill_proficiencies": skill_proficiencies.duplicate(),
+		"saving_throw_proficiencies": saving_throw_proficiencies.duplicate(),
+		"tool_proficiencies": tool_proficiencies.duplicate(),
+		"weapon_proficiencies": weapon_proficiencies.duplicate(),
+		"armor_training": armor_training.duplicate(),
+		"language_proficiencies": language_proficiencies.duplicate(),
+		"expertise_skills": expertise_skills.duplicate(),
 		"appearance_color_hex": appearance_color_hex,
 		"size_category": size_category,
 		"base_speed_feet": base_speed_feet,
@@ -135,6 +227,7 @@ func to_dict() -> Dictionary:
 		"applied_racial_hit_point_bonus": applied_racial_hit_point_bonus,
 		"level": level,
 		"experience": experience,
+		"base_abilities": base_abilities.duplicate(true),
 		"abilities": abilities.duplicate(true),
 		"maximum_health": maximum_health,
 		"current_health": current_health,
@@ -160,6 +253,22 @@ static func from_dict(data: Dictionary) -> PlayerCharacter:
 	character.character_class_name = str(data.get("class_name", "Воин"))
 	character.race_id = str(data.get("race_id", DEFAULT_RACE_ID))
 	character.race_name = str(data.get("race_name", "Человек"))
+	character.ruleset_id = str(data.get("ruleset_id", DEFAULT_RULESET_ID))
+	character.background_id = str(data.get("background_id", ""))
+	character.background_name = str(data.get("background_name", ""))
+	var bonus_value: Variant = data.get("background_ability_bonuses", {})
+	character.background_ability_bonuses = (bonus_value as Dictionary).duplicate(true) if bonus_value is Dictionary else {}
+	character.origin_feat_id = str(data.get("origin_feat_id", ""))
+	character.origin_applied = bool(data.get("origin_applied", false))
+	character.skill_proficiencies = _unique_string_array(data.get("skill_proficiencies", []))
+	character.saving_throw_proficiencies = _unique_string_array(data.get("saving_throw_proficiencies", []))
+	character.tool_proficiencies = _unique_string_array(data.get("tool_proficiencies", []))
+	character.weapon_proficiencies = _unique_string_array(data.get("weapon_proficiencies", []))
+	character.armor_training = _unique_string_array(data.get("armor_training", []))
+	character.language_proficiencies = _unique_string_array(data.get("language_proficiencies", ["common"]))
+	if character.language_proficiencies.is_empty():
+		character.language_proficiencies.append("common")
+	character.expertise_skills = _unique_string_array(data.get("expertise_skills", []))
 	character.appearance_color_hex = normalize_color_hex(str(data.get("appearance_color_hex", DEFAULT_APPEARANCE_COLOR_HEX)))
 	character.size_category = str(data.get("size_category", "medium"))
 	character.base_speed_feet = maxi(int(data.get("base_speed_feet", 30)), 0)
@@ -185,7 +294,14 @@ static func from_dict(data: Dictionary) -> PlayerCharacter:
 	if loaded_abilities is Dictionary:
 		for ability_id_value: Variant in DEFAULT_ABILITIES.keys():
 			var ability_id: String = str(ability_id_value)
-			character.abilities[ability_id] = clampi(int(loaded_abilities.get(ability_id, 10)), 1, 30)
+			character.abilities[ability_id] = clampi(int((loaded_abilities as Dictionary).get(ability_id, 10)), 1, 30)
+	var loaded_base_abilities: Variant = data.get("base_abilities", character.abilities)
+	if loaded_base_abilities is Dictionary:
+		for ability_id_value: Variant in DEFAULT_ABILITIES.keys():
+			var ability_id: String = str(ability_id_value)
+			character.base_abilities[ability_id] = clampi(int((loaded_base_abilities as Dictionary).get(ability_id, character.abilities.get(ability_id, 10))), 1, 30)
+	else:
+		character.base_abilities = character.abilities.duplicate(true)
 	character.maximum_health = maxi(int(data.get("maximum_health", 1)), 1)
 	character.current_health = clampi(int(data.get("current_health", character.maximum_health)), 0, character.maximum_health)
 	character.hit_die_size = maxi(int(data.get("hit_die_size", 8)), 2)
@@ -213,12 +329,17 @@ static func create_legacy_default() -> PlayerCharacter:
 	character.character_class_name = "Воин"
 	character.race_id = DEFAULT_RACE_ID
 	character.race_name = "Человек"
+	character.ruleset_id = DEFAULT_RULESET_ID
+	character.background_id = "legacy_origin"
+	character.background_name = "Наследие прежней версии"
+	character.origin_applied = true
 	character.appearance_color_hex = DEFAULT_APPEARANCE_COLOR_HEX
 	character.maximum_health = 10
 	character.current_health = 10
 	character.hit_die_size = 10
 	character.hit_dice_maximum = 1
 	character.hit_dice_current = 1
+	character.base_abilities = character.abilities.duplicate(true)
 	return character
 
 
@@ -244,4 +365,12 @@ static func _string_array(value: Variant) -> Array[String]:
 	if value is Array:
 		for item: Variant in value:
 			result.append(str(item))
+	return result
+
+
+static func _unique_string_array(value: Variant) -> Array[String]:
+	var result: Array[String] = []
+	for item: String in _string_array(value):
+		if not item.is_empty() and item not in result:
+			result.append(item)
 	return result

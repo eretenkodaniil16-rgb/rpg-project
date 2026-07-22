@@ -10,6 +10,7 @@ var _classes: Dictionary = {}
 var _abilities: Dictionary = {}
 var _dice: DiceRoller = DiceRoller.new()
 var _race_data: RaceDataSystem = RaceDataSystem.new()
+var _origin_data: OriginDataSystem = OriginDataSystem.new()
 
 
 func _init() -> void:
@@ -24,6 +25,8 @@ func ensure_starting_loadout(character: PlayerCharacter) -> bool:
 	var class_data: Dictionary = get_class_definition(character.character_class_id)
 	if class_data.is_empty():
 		return false
+	_origin_data.ensure_legacy_origin(character)
+	_origin_data.apply_class_proficiencies(character, class_data)
 	character.initialize_hit_dice(int(class_data.get("hit_die", 8)))
 	if character.starter_loadout_granted:
 		return false
