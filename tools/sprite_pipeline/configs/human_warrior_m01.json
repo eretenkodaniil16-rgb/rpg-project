@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "character_id": "human_warrior_m01",
-  "ready": false,
+  "ready": true,
   "master_prompt_file": "prompts/human_warrior_m01_master.txt",
   "technical": {
     "canvas_width": 96,
