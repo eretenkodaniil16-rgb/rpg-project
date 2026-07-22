@@ -3,10 +3,16 @@ extends RefCounted
 
 var _dice: DiceRoller = DiceRoller.new()
 var _srd_rules: SrdCombatRules = SrdCombatRules.new()
+var _spellcasting: SpellcastingSystem = SpellcastingSystem.new()
+var _world_time: WorldTimeSystem = WorldTimeSystem.new()
 
 
 func use_self_ability(character: PlayerCharacter, ability: Dictionary) -> Dictionary:
 	var effect: String = str(ability.get("effect", ""))
+	if effect in ["utility_detect_magic", "utility_comprehend_languages"]:
+		var state: Node = _get_game_state()
+		var current_minutes: int = _world_time.get_minutes(state)
+		return _spellcasting.cast_utility_spell(character, ability, current_minutes, false)
 	if effect in ["rage", "bardic_inspiration", "racial_inspiration", "adrenaline_rush"] and not _consume_ability_resource(character, ability, 1):
 		return _failure("Заряды способности закончились.")
 	match effect:
@@ -49,6 +55,8 @@ func apply_target_ability(character: PlayerCharacter, ability: Dictionary) -> Di
 	if not _consume_ability_resource(character, ability, 1):
 		return _failure("Свободные применения Метки охотника закончились.")
 	character.active_effects["hunters_mark_hits"] = 3
+	if bool(ability.get("concentration", false)):
+		_spellcasting.begin_concentration(character, str(ability.get("id", "hunters_mark")))
 	return _success("Цель отмечена. Три следующих попадания нанесут дополнительно 1d6 урона.")
 
 
@@ -79,8 +87,10 @@ func perform_offensive_ability(
 		result.note = "Цель находится за полным укрытием."
 		return result
 	if not _consume_ability_resource(character, ability, 1):
-		result.note = "Не осталось доступных применений способности или ячеек подходящего уровня."
+		result.note = "Заклинание не подготовлено или не осталось ячеек подходящего уровня."
 		return result
+	if bool(ability.get("concentration", false)):
+		_spellcasting.begin_concentration(character, str(ability.get("id", "")))
 	var damage_dice: Array[int] = _damage_dice_for_level(ability, character.level)
 	var dice_count: int = maxi(damage_dice[0] if damage_dice.size() > 0 else 1, 1)
 	var die_sides: int = maxi(damage_dice[1] if damage_dice.size() > 1 else 6, 2)
@@ -96,7 +106,9 @@ func perform_offensive_ability(
 		result.damage_before_mitigation = result.damage
 		return result
 	if effect == "saving_throw_spell":
-		var ability_id_for_spell: String = str(ability.get("ability", "charisma"))
+		var ability_id_for_spell: String = _spellcasting.get_spellcasting_ability(character, ability)
+		if ability_id_for_spell.is_empty():
+			ability_id_for_spell = str(ability.get("ability", "charisma"))
 		var save_ability: String = str(ability.get("save_ability", "dexterity"))
 		var spell_dc: int = int(ability.get("save_dc", 8 + CombatSystem.proficiency_bonus_for_level(character.level) + character.get_ability_modifier(ability_id_for_spell)))
 		var defender_state: CombatantState = attack_context.get("defender_state") as CombatantState
@@ -112,7 +124,9 @@ func perform_offensive_ability(
 		result.note = "%s спасбросок: %d против Сл %d — %s." % [save_ability, result.total, spell_dc, "успех" if bool(save_result.get("success", false)) else "провал"]
 		return result
 
-	var ability_id: String = str(ability.get("ability", "charisma"))
+	var ability_id: String = _spellcasting.get_spellcasting_ability(character, ability)
+	if ability_id.is_empty():
+		ability_id = str(ability.get("ability", "charisma"))
 	result.ability_name = _ability_name(ability_id)
 	result.ability_modifier = character.get_ability_modifier(ability_id)
 	result.proficiency_bonus = CombatSystem.proficiency_bonus_for_level(character.level)
@@ -168,6 +182,8 @@ func consume_bardic_inspiration(character: PlayerCharacter) -> int:
 
 
 func can_pay_ability_cost(character: PlayerCharacter, ability: Dictionary) -> bool:
+	if _spellcasting.is_spell_definition(ability):
+		return _spellcasting.can_cast_spell(character, ability, false, false)
 	var resource_key: String = str(ability.get("resource_key", "unlimited"))
 	if resource_key.is_empty() or resource_key == "unlimited":
 		return true
@@ -178,6 +194,8 @@ func can_pay_ability_cost(character: PlayerCharacter, ability: Dictionary) -> bo
 
 
 func active_resource_key(character: PlayerCharacter, ability: Dictionary) -> String:
+	if _spellcasting.is_spell_definition(ability):
+		return _spellcasting.active_resource_key(character, ability)
 	var resource_key: String = str(ability.get("resource_key", "unlimited"))
 	if resource_key.is_empty() or resource_key == "unlimited":
 		return "unlimited"
@@ -216,7 +234,7 @@ func _heal_with_dice(character: PlayerCharacter, ability: Dictionary, count: int
 	if character.current_health >= character.maximum_health:
 		return _failure("Здоровье уже полностью восстановлено.")
 	if not _consume_ability_resource(character, ability, 1):
-		return _failure("Не осталось ячеек или применений способности.")
+		return _failure("Заклинание не подготовлено или не осталось ячеек либо применений.")
 	var amount: int = maxi(0, _roll_damage(count, sides, []) + bonus)
 	var before: int = character.current_health
 	character.current_health = mini(character.maximum_health, character.current_health + amount)
@@ -239,6 +257,8 @@ func _use_lay_on_hands(character: PlayerCharacter, ability: Dictionary) -> Dicti
 
 
 func _consume_ability_resource(character: PlayerCharacter, ability: Dictionary, amount: int) -> bool:
+	if _spellcasting.is_spell_definition(ability):
+		return _spellcasting.consume_spell_cost(character, ability)
 	var resource_key: String = str(ability.get("resource_key", "unlimited"))
 	if resource_key.is_empty() or resource_key == "unlimited":
 		return true
@@ -260,6 +280,13 @@ func _roll_damage(count: int, sides: int, overrides: Array[int]) -> int:
 	for index: int in range(count):
 		total += clampi(int(overrides[index]), 1, sides) if index < overrides.size() else _dice.roll_die(sides)
 	return total
+
+
+func _get_game_state() -> Node:
+	var main_loop: MainLoop = Engine.get_main_loop()
+	if main_loop is SceneTree:
+		return (main_loop as SceneTree).root.get_node_or_null("GameState")
+	return null
 
 
 func _success(message: String) -> Dictionary:
