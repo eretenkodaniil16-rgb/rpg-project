@@ -1,0 +1,28 @@
+{
+  "ruleset_id": "srd_5_2_1",
+  "automatic_languages": [
+    {"id": "common", "name": "Общий"}
+  ],
+  "standard_language_choices": [
+    {"id": "common_sign_language", "name": "Общий язык жестов"},
+    {"id": "draconic", "name": "Драконий"},
+    {"id": "dwarvish", "name": "Дворфийский"},
+    {"id": "elvish", "name": "Эльфийский"},
+    {"id": "giant", "name": "Великаний"},
+    {"id": "gnomish", "name": "Гномий"},
+    {"id": "goblin", "name": "Гоблинский"},
+    {"id": "halfling", "name": "Полуросликов"},
+    {"id": "orc", "name": "Орочий"}
+  ],
+  "rare_languages": [
+    {"id": "abyssal", "name": "Бездны"},
+    {"id": "celestial", "name": "Небесный"},
+    {"id": "deep_speech", "name": "Глубинная речь"},
+    {"id": "druidic", "name": "Друидический"},
+    {"id": "infernal", "name": "Инфернальный"},
+    {"id": "primordial", "name": "Первичный"},
+    {"id": "sylvan", "name": "Сильван"},
+    {"id": "thieves_cant", "name": "Воровской жаргон"},
+    {"id": "undercommon", "name": "Подземный общий"}
+  ]
+}
