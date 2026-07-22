@@ -26,11 +26,13 @@ func open_sheet(character: PlayerCharacter) -> void:
 
 func open_tab(character: PlayerCharacter, tab_index: int = 0) -> void:
 	_hero = character
+	var state: Node = _game_state()
 	_spellcasting.ensure_character(_hero, false)
-	_spellcasting.cleanup_expired_effects(_hero, _world_time.get_minutes(GameState))
+	_spellcasting.cleanup_expired_effects(_hero, _world_time.get_minutes(state))
 	_refresh_all()
 	_tabs.current_tab = clampi(tab_index, 0, 2)
-	GameState.input_locked = true
+	if state != null:
+		state.set("input_locked", true)
 	show()
 	_close.grab_focus()
 
@@ -39,7 +41,9 @@ func close_sheet() -> void:
 	if not visible:
 		return
 	hide()
-	GameState.input_locked = false
+	var state: Node = _game_state()
+	if state != null:
+		state.set("input_locked", false)
 	closed.emit()
 
 
@@ -151,7 +155,7 @@ func _refresh_character() -> void:
 	_clear(_character_box)
 	_character_box.add_child(_label("%s — %s, уровень %d" % [_hero.character_name, _hero.character_class_name, _hero.level], 25))
 	_character_box.add_child(_label("Здоровье %d/%d · КД %d · Опыт %d" % [_hero.current_health, _hero.maximum_health, _class_data.get_armor_class(_hero), _hero.experience], 19))
-	_character_box.add_child(_label("Время мира: %s" % _world_time.format_current(GameState), 18))
+	_character_box.add_child(_label("Время мира: %s" % _world_time.format_current(_game_state()), 18))
 	var names: Dictionary = {"strength":"Сила", "dexterity":"Ловкость", "constitution":"Телосложение", "intelligence":"Интеллект", "wisdom":"Мудрость", "charisma":"Харизма"}
 	for ability_id: String in names.keys():
 		var modifier: int = _hero.get_ability_modifier(ability_id)
@@ -174,7 +178,8 @@ func _refresh_character() -> void:
 
 func _refresh_inventory() -> void:
 	_clear(_inventory_box)
-	var entries: Array = GameState.get_inventory_entries()
+	var state: Node = _game_state()
+	var entries: Array = state.call("get_inventory_entries") as Array if state != null else []
 	if entries.is_empty():
 		_inventory_box.add_child(_label("Инвентарь пуст.", 19))
 		return
@@ -222,7 +227,9 @@ func _select_power(ability: Dictionary) -> void:
 		resource_text = _spell_resource_text(ability)
 	_details.text = "%s%s\n\nРесурс: %s\n\n%s" % [mechanics_text, str(ability.get("name", "Действие")), resource_text, str(ability.get("description", ""))]
 	_prepare.show()
-	_prepare.disabled = _selected_power == str(GameState.get_flag(PREPARED_FLAG, ""))
+	var state: Node = _game_state()
+	var saved_id: String = str(state.call("get_flag", PREPARED_FLAG, "")) if state != null else ""
+	_prepare.disabled = _selected_power == saved_id
 	_prepare.text = "НА БЫСТРОЙ КНОПКЕ" if _prepare.disabled else "НА БЫСТРУЮ КНОПКУ"
 	_refresh_spell_buttons(ability)
 
@@ -247,8 +254,11 @@ func _refresh_spell_buttons(ability: Dictionary) -> void:
 func _prepare_selected() -> void:
 	if _selected_power.is_empty():
 		return
-	GameState.set_flag(PREPARED_FLAG, _selected_power)
-	GameState.save_game()
+	var state: Node = _game_state()
+	if state == null:
+		return
+	state.call("set_flag", PREPARED_FLAG, _selected_power)
+	state.call("save_game")
 	prepared_action_changed.emit(_selected_power)
 	_refresh_powers()
 
@@ -261,7 +271,9 @@ func _toggle_spell_prepared() -> void:
 		response = _spellcasting.unprepare_spell(_hero, _selected_power)
 	else:
 		response = _spellcasting.prepare_spell(_hero, _selected_power)
-	GameState.save_game()
+	var state: Node = _game_state()
+	if state != null:
+		state.call("save_game")
 	_refresh_powers()
 	var selected: Dictionary = _class_data.get_ability_definition(_selected_power)
 	if not selected.is_empty():
@@ -272,17 +284,19 @@ func _toggle_spell_prepared() -> void:
 func _cast_selected_ritual() -> void:
 	if _selected_power.is_empty():
 		return
-	var current_minutes: int = _world_time.get_minutes(GameState)
+	var state: Node = _game_state()
+	var current_minutes: int = _world_time.get_minutes(state)
 	var response: Dictionary = _spellcasting.cast_ritual(_hero, _selected_power, current_minutes, _is_combat_active())
 	if bool(response.get("success", false)):
-		_world_time.advance(GameState, int(response.get("advance_minutes", 0)), false)
-		_spellcasting.cleanup_expired_effects(_hero, _world_time.get_minutes(GameState))
-		GameState.save_game()
+		_world_time.advance(state, int(response.get("advance_minutes", 0)), false)
+		_spellcasting.cleanup_expired_effects(_hero, _world_time.get_minutes(state))
+		if state != null:
+			state.call("save_game")
 	_refresh_all()
 	var selected: Dictionary = _class_data.get_ability_definition(_selected_power)
 	if not selected.is_empty():
 		_select_power(selected)
-		_details.text += "\n\n%s\n%s" % [str(response.get("message", "")), _world_time.format_current(GameState)]
+		_details.text += "\n\n%s\n%s" % [str(response.get("message", "")), _world_time.format_current(state)]
 
 
 func _active_entries() -> Array[Dictionary]:
@@ -299,13 +313,15 @@ func _active_entries() -> Array[Dictionary]:
 
 
 func _prepared_id(entries: Array[Dictionary]) -> String:
-	var saved: String = str(GameState.get_flag(PREPARED_FLAG, ""))
+	var state: Node = _game_state()
+	var saved: String = str(state.call("get_flag", PREPARED_FLAG, "")) if state != null else ""
 	for ability: Dictionary in entries:
 		if str(ability.get("id", "")) == saved:
 			return saved
 	for ability: Dictionary in entries:
 		if str(ability.get("id", "")) == _hero.signature_ability_id:
-			GameState.set_flag(PREPARED_FLAG, _hero.signature_ability_id)
+			if state != null:
+				state.call("set_flag", PREPARED_FLAG, _hero.signature_ability_id)
 			return _hero.signature_ability_id
 	return str(entries[0].get("id", "")) if not entries.is_empty() else ""
 
@@ -345,10 +361,12 @@ func _is_combat_active() -> bool:
 func _rest(long_rest: bool) -> void:
 	var result: Dictionary = _class_data.long_rest(_hero) if long_rest else _class_data.short_rest(_hero)
 	if bool(result.get("success", false)):
-		_world_time.advance(GameState, int(result.get("duration_hours", 1 if not long_rest else _hero.long_rest_hours)) * 60, false)
+		var state: Node = _game_state()
+		_world_time.advance(state, int(result.get("duration_hours", 1 if not long_rest else _hero.long_rest_hours)) * 60, false)
 		_spellcasting.ensure_character(_hero, long_rest)
-		_spellcasting.cleanup_expired_effects(_hero, _world_time.get_minutes(GameState))
-		GameState.save_game()
+		_spellcasting.cleanup_expired_effects(_hero, _world_time.get_minutes(state))
+		if state != null:
+			state.call("save_game")
 		rest_completed.emit("long" if long_rest else "short")
 	_refresh_all()
 
