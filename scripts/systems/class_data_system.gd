@@ -5,12 +5,15 @@ const CLASSES_PATH: String = "res://data/classes/classes.json"
 const ABILITIES_PATH: String = "res://data/abilities/abilities.json"
 const RACIAL_ABILITIES_PATH: String = "res://data/abilities/racial_abilities.json"
 const IGNORE_NONMAGICAL_DIFFICULT_TERRAIN: String = "ignore_nonmagical_difficult_terrain"
+const ORIGIN_EQUIPMENT_GRANTED_FLAG: String = "origin_equipment_granted"
+const ORIGIN_EQUIPMENT_CHOICE_FLAG: String = "origin_equipment_choice"
 
 var _classes: Dictionary = {}
 var _abilities: Dictionary = {}
 var _dice: DiceRoller = DiceRoller.new()
 var _race_data: RaceDataSystem = RaceDataSystem.new()
 var _origin_data: OriginDataSystem = OriginDataSystem.new()
+var _origin_feats: OriginFeatSystem = OriginFeatSystem.new()
 
 
 func _init() -> void:
@@ -29,7 +32,11 @@ func ensure_starting_loadout(character: PlayerCharacter) -> bool:
 	_origin_data.apply_class_proficiencies(character, class_data)
 	character.initialize_hit_dice(int(class_data.get("hit_die", 8)))
 	if character.starter_loadout_granted:
-		return false
+		_origin_feats.initialize_character(character, false)
+		var migrated_equipment: bool = _grant_origin_equipment(character, state)
+		if migrated_equipment:
+			state.call("save_game")
+		return migrated_equipment
 	var items_value: Variant = class_data.get("starting_items", {})
 	if items_value is Dictionary:
 		for item_id_value: Variant in (items_value as Dictionary).keys():
@@ -47,6 +54,8 @@ func ensure_starting_loadout(character: PlayerCharacter) -> bool:
 			character.known_features.append(str(feature_value))
 	character.signature_ability_id = str(class_data.get("signature_ability", ""))
 	_initialize_signature_resource(character)
+	_origin_feats.initialize_character(character, true)
+	_grant_origin_equipment(character, state)
 	if character.character_class_id == "rogue":
 		character.active_effects["sneak_attack_ready"] = true
 	character.starter_loadout_granted = true
@@ -217,6 +226,7 @@ func long_rest(character: PlayerCharacter) -> Dictionary:
 	character.hit_dice_maximum = maxi(character.level, 1)
 	character.hit_dice_current = character.hit_dice_maximum
 	character.restore_class_resources()
+	_origin_feats.initialize_character(character, true)
 	if character.character_class_id == "rogue":
 		character.active_effects["sneak_attack_ready"] = true
 	_save_state()
@@ -232,7 +242,35 @@ func get_resource_text(character: PlayerCharacter, ability: Dictionary) -> Strin
 	var resource_key: String = str(ability.get("resource_key", "unlimited"))
 	if resource_key == "unlimited" or resource_key.is_empty():
 		return "Без ограничений"
-	return "%d / %d" % [character.get_resource(resource_key), character.get_resource_maximum(resource_key)]
+	var primary_text: String = "%d / %d" % [character.get_resource(resource_key), character.get_resource_maximum(resource_key)]
+	var fallback_key: String = str(ability.get("fallback_resource_key", ""))
+	if fallback_key.is_empty():
+		return primary_text
+	return "Бесплатно %s · ячейки %d / %d" % [primary_text, character.get_resource(fallback_key), character.get_resource_maximum(fallback_key)]
+
+
+func _grant_origin_equipment(character: PlayerCharacter, state: Node) -> bool:
+	if bool(state.call("get_flag", ORIGIN_EQUIPMENT_GRANTED_FLAG, false)):
+		return false
+	if character.background_id == OriginDataSystem.LEGACY_BACKGROUND_ID:
+		state.call("set_flag", ORIGIN_EQUIPMENT_GRANTED_FLAG, true)
+		return true
+	var background: Dictionary = _origin_data.get_background(character.background_id)
+	if background.is_empty():
+		return false
+	var choice: String = str(state.call("get_flag", ORIGIN_EQUIPMENT_CHOICE_FLAG, "package"))
+	if choice == "gold":
+		state.call("add_item", "gold_coin", 50, false)
+	else:
+		var package_value: Variant = background.get("equipment_package", [])
+		if package_value is Array:
+			for entry_value: Variant in package_value:
+				if not entry_value is Dictionary:
+					continue
+				var entry: Dictionary = entry_value as Dictionary
+				state.call("add_item", str(entry.get("item_id", "")), maxi(int(entry.get("quantity", 1)), 1), false)
+	state.call("set_flag", ORIGIN_EQUIPMENT_GRANTED_FLAG, true)
+	return true
 
 
 func _recharge_short_rest_features(character: PlayerCharacter) -> void:
