@@ -127,10 +127,12 @@ class OpenAIBackend:
         )
         raw = json.loads(response.output_text)
         scores = {key: float(value) for key, value in raw["scores"].items()}
+        reject_reasons = [str(item) for item in raw["hard_reject_reasons"]]
+        hard_reject = bool(raw["hard_reject"]) or bool(reject_reasons)
         return VisualGrade(
             candidate_id=candidate_id,
-            hard_reject=bool(raw["hard_reject"]),
-            hard_reject_reasons=[str(item) for item in raw["hard_reject_reasons"]],
+            hard_reject=hard_reject,
+            hard_reject_reasons=reject_reasons,
             scores=scores,
             summary=str(raw["summary"]),
             strengths=[str(item) for item in raw["strengths"]],
@@ -148,7 +150,7 @@ def _grader_prompt(candidate_id: str, frame_prompt: str, reject_labels: tuple[st
     return f"""
 Ты — строгий арт-директор и технический контролёр игрового pixel-art проекта.
 
-Сравни CANDIDATE с приложенными REFERENCE. Первый reference задаёт личность, лицо и общий стиль. Направленный idle задаёт масштаб, перспективу и физические стороны экипировки. Оцени только соответствие, не пытайся оправдать изменения генератора.
+Сравни CANDIDATE со всеми приложенными REFERENCE. REFERENCE 1 — редактируемый направленный gameplay-idle: он задаёт масштаб, перспективу, базовую линию и физические стороны экипировки. Последующие REFERENCE — master-эталоны личности, лица, волос, материалов и общего художественного стиля. Кандидат должен одновременно сохранять оба типа требований. Оцени только соответствие и не оправдывай изменения генератора.
 
 Кандидат: {candidate_id}
 
@@ -164,7 +166,7 @@ def _grader_prompt(candidate_id: str, frame_prompt: str, reject_labels: tuple[st
 - palette_style: кожа, бордовый шарф, кожа/кольчуга/сталь, чёткий pixel-art без размытия.
 
 Немедленный hard reject применяется при любом из классов: {labels}.
-Hard reject важнее итогового балла. В corrections перечисляй только конкретные локальные исправления. Не предлагай полный редизайн или новую генерацию персонажа.
+Hard reject важнее итогового балла. Если hard_reject=false, массив hard_reject_reasons обязан быть пустым. Если hard_reject=true, перечисли только реально обнаруженные классы или однозначные технические причины. В corrections указывай только конкретные локальные исправления. Не предлагай полный редизайн или новую генерацию персонажа.
 """.strip()
 
 
