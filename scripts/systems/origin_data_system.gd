@@ -5,6 +5,7 @@ const BACKGROUNDS_PATH: String = "res://data/origins/backgrounds.json"
 const LANGUAGES_PATH: String = "res://data/origins/languages.json"
 const DEFAULT_BACKGROUND_ID: String = "soldier"
 const COMMON_LANGUAGE_ID: String = "common"
+const LEGACY_BACKGROUND_ID: String = "legacy_origin"
 
 var _backgrounds: Dictionary = {}
 var _standard_languages: Array[Dictionary] = []
@@ -159,6 +160,12 @@ func ensure_legacy_origin(character: PlayerCharacter) -> void:
 	character.ruleset_id = PlayerCharacter.DEFAULT_RULESET_ID
 	if character.base_abilities.is_empty():
 		character.base_abilities = character.abilities.duplicate(true)
+	if character.background_id.is_empty():
+		character.background_id = LEGACY_BACKGROUND_ID
+		character.background_name = "Наследие прежней версии"
+		character.background_ability_bonuses.clear()
+		character.origin_feat_id = ""
+		character.origin_applied = true
 	if character.language_proficiencies.is_empty():
 		character.language_proficiencies.append(COMMON_LANGUAGE_ID)
 
