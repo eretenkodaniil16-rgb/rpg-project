@@ -49,7 +49,7 @@ func _on_ability_requested(ability_id: String) -> void:
 
 
 func apply_damage_to_player(amount: int, damage_type: String, critical_hit: bool = false, source: Node = null) -> Dictionary:
-	var result: Dictionary = await super.apply_damage_to_player(amount, damage_type, critical_hit, source)
+	var result: Dictionary = super.apply_damage_to_player(amount, damage_type, critical_hit, source)
 	if _player_combat_state.concentrating_on.is_empty():
 		_spellcasting_sync.end_concentration(GameState.player_character)
 	return result
