@@ -47,9 +47,13 @@ func _run() -> void:
 	if wizard.get_resource("spell_slots_1") != 1:
 		_fail("Loading/ensuring spellcasting incorrectly refilled a spent slot.")
 		return
-	spells.ensure_character(wizard, true)
+	spells.recover_after_rest(wizard, false)
+	if wizard.get_resource("spell_slots_1") != 1:
+		_fail("A short rest incorrectly restored ordinary Wizard spell slots.")
+		return
+	spells.recover_after_rest(wizard, true)
 	if wizard.get_resource("spell_slots_1") != 2:
-		_fail("Long-rest refill did not restore spell slots.")
+		_fail("Long-rest recovery did not restore ordinary spell slots.")
 		return
 
 	var unprepare_result: Dictionary = spells.unprepare_spell(wizard, "magic_missile")
@@ -114,10 +118,24 @@ func _run() -> void:
 	if warlock.get_resource("pact_slots_1") != 1 or spells.slot_resource_key(warlock, 1) != "pact_slots_1":
 		_fail("Warlock pact slot profile was not isolated from ordinary spell slots.")
 		return
+	warlock.consume_resource("pact_slots_1", 1)
+	if warlock.get_resource("pact_slots_1") != 0:
+		_fail("Warlock pact slot could not be spent.")
+		return
+	spells.recover_after_rest(warlock, false)
+	if warlock.get_resource("pact_slots_1") != 1:
+		_fail("Warlock pact slot was not restored by a short rest.")
+		return
+
+	spells.begin_concentration(wizard, "detect_magic")
+	spells.recover_after_rest(wizard, true)
+	if not spells.get_concentration_spell_id(wizard).is_empty():
+		_fail("Long rest did not end concentration.")
+		return
 
 	if time.format_time(480) != "День 1, 08:00" or time.format_time(1500) != "День 2, 01:00":
 		_fail("World time formatting is incorrect.")
 		return
 
-	print("Spellcasting, concentration, rituals and world time tests passed.")
+	print("Spellcasting, concentration, rituals, rest recovery and world time tests passed.")
 	quit(0)
