@@ -16,10 +16,17 @@ def write_reports(
     ranked: list[RankedCandidate],
     selected: list[RankedCandidate],
 ) -> None:
+    minimum_score = float(metadata.get("minimum_score", 0.0))
     payload = {
         "metadata": metadata,
         "ranked_candidates": [candidate.to_dict() for candidate in ranked],
-        "selected_candidates": [candidate.to_dict() for candidate in selected],
+        "selected_candidates": [
+            {
+                **candidate.to_dict(),
+                "meets_threshold": candidate.final_score >= minimum_score and not candidate.hard_reject,
+            }
+            for candidate in selected
+        ],
     }
     (run_dir / "report.json").write_text(
         json.dumps(payload, ensure_ascii=False, indent=2),
@@ -37,13 +44,17 @@ def write_reports(
         target = selected_dir / f"rank_{index:02d}_{candidate.candidate_id}.png"
         shutil.copy2(source, target)
     if selected:
-        create_contact_sheet(selected, selected_dir / "contact_sheet.png")
+        create_contact_sheet(selected, selected_dir / "contact_sheet.png", minimum_score)
 
 
-def create_contact_sheet(candidates: list[RankedCandidate], output_path: Path) -> None:
+def create_contact_sheet(
+    candidates: list[RankedCandidate],
+    output_path: Path,
+    minimum_score: float,
+) -> None:
     scale = 4
     card_width = 96 * scale + 24
-    card_height = 96 * scale + 72
+    card_height = 96 * scale + 92
     sheet = Image.new("RGBA", (card_width * len(candidates), card_height), (24, 24, 24, 255))
     draw = ImageDraw.Draw(sheet)
     for index, candidate in enumerate(candidates):
@@ -54,8 +65,12 @@ def create_contact_sheet(candidates: list[RankedCandidate], output_path: Path) -
         checker = _checkerboard(enlarged.size)
         sheet.alpha_composite(checker, (x, y))
         sheet.alpha_composite(enlarged, (x, y))
+        meets_threshold = candidate.final_score >= minimum_score and not candidate.hard_reject
+        status = "PASS" if meets_threshold else "BELOW THRESHOLD"
+        status_color = (220, 245, 220, 255) if meets_threshold else (255, 205, 125, 255)
         draw.text((x, y + enlarged.height + 8), f"#{index + 1}  {candidate.final_score:.1f}/100", fill=(240, 240, 240, 255))
-        draw.text((x, y + enlarged.height + 28), candidate.candidate_id, fill=(190, 190, 190, 255))
+        draw.text((x, y + enlarged.height + 28), status, fill=status_color)
+        draw.text((x, y + enlarged.height + 48), candidate.candidate_id, fill=(190, 190, 190, 255))
     output_path.parent.mkdir(parents=True, exist_ok=True)
     sheet.convert("RGB").save(output_path, format="PNG", optimize=True)
 
@@ -75,42 +90,53 @@ def _markdown_report(
     ranked: list[RankedCandidate],
     selected: list[RankedCandidate],
 ) -> str:
+    minimum_score = float(metadata.get("minimum_score", 0.0))
     lines = [
-        "# Sprite pipeline report",
+        "# Отчёт гибридного sprite pipeline",
         "",
-        f"- Character: `{metadata.get('character_id', '')}`",
-        f"- Frame: `{metadata.get('frame_id', '')}`",
-        f"- Started: `{metadata.get('started_at', '')}`",
-        f"- Rounds: `{metadata.get('rounds_completed', 0)}`",
-        f"- Minimum score: `{metadata.get('minimum_score', '')}`",
+        f"- Персонаж: `{metadata.get('character_id', '')}`",
+        f"- Кадр: `{metadata.get('frame_id', '')}`",
+        f"- Запущено: `{metadata.get('started_at', '')}`",
+        f"- Выполнено раундов: `{metadata.get('rounds_completed', 0)}`",
+        f"- Проходной балл: `{minimum_score:.1f}`",
         "",
-        "## Selected for human approval",
+        "## Кандидаты для согласования",
         "",
     ]
     if not selected:
-        lines.append("No candidate survived hard rejects. Manual intervention is required.")
+        lines.append("Ни один кандидат не пережил hard reject. Требуется ручная или модульная правка.")
     else:
         for index, candidate in enumerate(selected, start=1):
+            meets_threshold = candidate.final_score >= minimum_score and not candidate.hard_reject
+            status = "ПРОШЁЛ АВТОМАТИЧЕСКИЙ ПОРОГ" if meets_threshold else "НИЖЕ ПОРОГА — ТОЛЬКО РУЧНОЕ РАССМОТРЕНИЕ"
             lines.extend([
                 f"### {index}. `{candidate.candidate_id}` — {candidate.final_score:.1f}/100",
                 "",
+                f"**Статус:** {status}",
+                "",
                 candidate.summary,
                 "",
-                "Strengths: " + ("; ".join(candidate.strengths) if candidate.strengths else "none recorded"),
+                "Сильные стороны: " + ("; ".join(candidate.strengths) if candidate.strengths else "не зафиксированы"),
                 "",
-                "Required corrections: " + ("; ".join(candidate.corrections) if candidate.corrections else "none"),
+                "Требуемые исправления: " + ("; ".join(candidate.corrections) if candidate.corrections else "нет"),
                 "",
             ])
     lines.extend([
-        "## Full ranking",
+        "## Полный рейтинг",
         "",
-        "| Candidate | Final | Visual | Technical | Hard reject |",
-        "|---|---:|---:|---:|---|",
+        "| Кандидат | Итог | Vision | Техника | Статус | Hard reject |",
+        "|---|---:|---:|---:|---|---|",
     ])
     for candidate in ranked:
         reject_text = ", ".join(candidate.hard_reject_reasons) if candidate.hard_reject_reasons else "—"
+        if candidate.hard_reject:
+            status = "REJECT"
+        elif candidate.final_score >= minimum_score:
+            status = "PASS"
+        else:
+            status = "BELOW"
         lines.append(
-            f"| `{candidate.candidate_id}` | {candidate.final_score:.1f} | {candidate.visual_score:.1f} | {candidate.technical_score:.1f} | {reject_text} |"
+            f"| `{candidate.candidate_id}` | {candidate.final_score:.1f} | {candidate.visual_score:.1f} | {candidate.technical_score:.1f} | {status} | {reject_text} |"
         )
     lines.append("")
     return "\n".join(lines)
