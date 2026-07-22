@@ -1,5 +1,7 @@
 extends "res://scripts/game/game_racial_planned.gd"
 
+var _spellcasting_sync: SpellcastingSystem = SpellcastingSystem.new()
+
 
 func _request_attack() -> void:
 	if GameState.input_locked or _any_overlay_visible() or _attack_in_progress or _enemy_turn_running:
@@ -34,6 +36,23 @@ func _request_attack() -> void:
 	if not _turn_system.active and valid_attempt and _target_is_valid(predicted_target):
 		_start_turn_based_combat(predicted_target)
 	_after_player_action()
+
+
+func _on_ability_requested(ability_id: String) -> void:
+	await super._on_ability_requested(ability_id)
+	var ability: Dictionary = _class_data.get_ability_definition(ability_id)
+	if ability.is_empty() or not bool(ability.get("concentration", false)):
+		return
+	var concentration_id: String = _spellcasting_sync.get_concentration_spell_id(GameState.player_character)
+	if not concentration_id.is_empty():
+		_player_combat_state.set_concentration(concentration_id, player.get_instance_id())
+
+
+func apply_damage_to_player(amount: int, damage_type: String, critical_hit: bool = false, source: Node = null) -> Dictionary:
+	var result: Dictionary = await super.apply_damage_to_player(amount, damage_type, critical_hit, source)
+	if _player_combat_state.concentrating_on.is_empty():
+		_spellcasting_sync.end_concentration(GameState.player_character)
+	return result
 
 
 func _build_srd_attack_context(target: Node, distance: int) -> Dictionary:
