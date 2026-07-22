@@ -18,6 +18,7 @@ func _run() -> void:
 	wizard.character_class_name = "Волшебник"
 	wizard.abilities["intelligence"] = 16
 	wizard.base_abilities["intelligence"] = 16
+	wizard.known_features.append("ritual_adept")
 
 	if not spells.ensure_character(wizard, false):
 		_fail("Wizard spellcasting profile was not initialized.")
@@ -69,6 +70,17 @@ func _run() -> void:
 		return
 
 	var detect_magic: Dictionary = spells.get_spell_definition("detect_magic")
+	var unprepare_ritual_result: Dictionary = spells.unprepare_spell(wizard, "detect_magic")
+	if not bool(unprepare_ritual_result.get("success", false)) or spells.is_prepared(wizard, "detect_magic"):
+		_fail("Wizard ritual could not be removed from preparation for the Ritual Adept test.")
+		return
+	if spells.can_cast_spell(wizard, detect_magic, false, false):
+		_fail("Unprepared Wizard ritual remained castable as a normal spell.")
+		return
+	if not spells.can_cast_spell(wizard, detect_magic, true, false):
+		_fail("Wizard Ritual Adept could not cast a known spellbook ritual without preparing it.")
+		return
+
 	var slot_before_ritual: int = wizard.get_resource("spell_slots_1")
 	var ritual_result: Dictionary = spells.cast_ritual(wizard, "detect_magic", 480, false)
 	if not bool(ritual_result.get("success", false)) or int(ritual_result.get("advance_minutes", 0)) != 10:
@@ -137,5 +149,5 @@ func _run() -> void:
 		_fail("World time formatting is incorrect.")
 		return
 
-	print("Spellcasting, concentration, rituals, rest recovery and world time tests passed.")
+	print("Spellcasting, concentration, rituals, Ritual Adept, rest recovery and world time tests passed.")
 	quit(0)
