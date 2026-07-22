@@ -36,6 +36,7 @@ def main() -> int:
     validate_parser.add_argument("--frame-id", required=True)
     validate_parser.add_argument("--input-dir", type=Path, required=True)
     validate_parser.add_argument("--output-root", type=Path, default=Path("art_pipeline_runs"))
+    validate_parser.add_argument("--top-k", type=int)
 
     args = parser.parse_args()
     try:
@@ -55,6 +56,7 @@ def main() -> int:
                 frame_id=args.frame_id,
                 input_dir=args.input_dir,
                 output_root=args.output_root,
+                top_k=args.top_k,
             )
     except Exception as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
