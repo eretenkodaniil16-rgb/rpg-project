@@ -25,9 +25,9 @@ func advance(state: Node, minutes: int, save_after: bool = true) -> int:
 
 func format_time(total_minutes: int) -> String:
 	var safe_minutes: int = maxi(total_minutes, 0)
-	var day: int = safe_minutes / MINUTES_PER_DAY + 1
+	var day: int = floori(float(safe_minutes) / float(MINUTES_PER_DAY)) + 1
 	var minutes_in_day: int = safe_minutes % MINUTES_PER_DAY
-	var hour: int = minutes_in_day / MINUTES_PER_HOUR
+	var hour: int = floori(float(minutes_in_day) / float(MINUTES_PER_HOUR))
 	var minute: int = minutes_in_day % MINUTES_PER_HOUR
 	return "День %d, %02d:%02d" % [day, hour, minute]
 
