@@ -60,8 +60,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 50
     env:
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       PYTHONPATH: tools/sprite_pipeline
+      SPRITE_FRAME_ID: ${{ inputs.frame_id }}
+      SPRITE_CANDIDATES: ${{ inputs.candidates }}
+      SPRITE_TOP_K: ${{ inputs.top_k }}
+      SPRITE_MAX_ROUNDS: ${{ inputs.max_rounds }}
+      SPRITE_EXTRA_REFERENCE: ${{ inputs.extra_reference }}
 
     steps:
       - name: Checkout selected branch
@@ -81,6 +85,7 @@ jobs:
         shell: bash
         run: |
           python - <<'PY'
+          import os
           from pathlib import Path
           from sprite_pipeline.config import load_config
 
@@ -93,8 +98,9 @@ jobs:
                   "Paid generation is locked: manifest ready=false. "
                   "Add and approve the master/idle PNG files before running this workflow."
               )
-          extra = "${{ inputs.extra_reference }}".strip() or None
-          references = config.reference_paths("${{ inputs.frame_id }}", extra)
+          frame_id = os.environ["SPRITE_FRAME_ID"]
+          extra = os.environ.get("SPRITE_EXTRA_REFERENCE", "").strip() or None
+          references = config.reference_paths(frame_id, extra)
           missing = [str(path) for path in references if not path.is_file()]
           if missing:
               raise SystemExit("Reference pack is incomplete:\n- " + "\n- ".join(missing))
@@ -102,6 +108,8 @@ jobs:
           PY
 
       - name: Verify secret without exposing it
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         shell: bash
         run: |
           if [[ -z "${OPENAI_API_KEY}" ]]; then
@@ -112,19 +120,21 @@ jobs:
       - name: Generate, filter and rank candidates
         id: pipeline
         continue-on-error: true
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         shell: bash
         run: |
           mkdir -p build/sprite-pipeline
           extra_args=()
-          if [[ -n "${{ inputs.extra_reference }}" ]]; then
-            extra_args+=(--extra-reference "${{ inputs.extra_reference }}")
+          if [[ -n "$SPRITE_EXTRA_REFERENCE" ]]; then
+            extra_args+=(--extra-reference "$SPRITE_EXTRA_REFERENCE")
           fi
           set +e
           python tools/sprite_pipeline/run_pipeline.py run \
-            --frame-id "${{ inputs.frame_id }}" \
-            --candidates "${{ inputs.candidates }}" \
-            --top-k "${{ inputs.top_k }}" \
-            --max-rounds "${{ inputs.max_rounds }}" \
+            --frame-id "$SPRITE_FRAME_ID" \
+            --candidates "$SPRITE_CANDIDATES" \
+            --top-k "$SPRITE_TOP_K" \
+            --max-rounds "$SPRITE_MAX_ROUNDS" \
             "${extra_args[@]}" 2>&1 | tee build/sprite-pipeline/pipeline.log
           pipeline_status=${PIPESTATUS[0]}
           echo "$pipeline_status" > build/sprite-pipeline/status.txt
