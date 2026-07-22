@@ -40,7 +40,7 @@ func _refresh_character() -> void:
 	experience_bar.show_percentage = false
 	overview.add_child(experience_bar)
 	overview.add_child(_label("Опыт: %d/%d · всего %d" % [experience_progress, experience_required, _hero.experience], 17))
-	overview.add_child(_label("Время мира: %s" % _world_time.format_current(GameState), 16))
+	overview.add_child(_label("Время мира: %s" % _world_time.format_current(_game_state()), 16))
 
 	var spell_profile: Dictionary = _spellcasting.get_spellcasting_profile(_hero.character_class_id)
 	if not spell_profile.is_empty() or not _spellcasting.get_known_spell_ids(_hero).is_empty():
@@ -133,7 +133,8 @@ func _character_initials(value: String) -> String:
 func _refresh_inventory() -> void:
 	_clear(_inventory_box)
 	_selected_inventory_entry.clear()
-	var entries: Array = GameState.get_inventory_entries()
+	var state: Node = _game_state()
+	var entries: Array = state.call("get_inventory_entries") as Array if state != null else []
 	if entries.is_empty():
 		_inventory_box.add_child(_label("Инвентарь пуст.", 19))
 		return
