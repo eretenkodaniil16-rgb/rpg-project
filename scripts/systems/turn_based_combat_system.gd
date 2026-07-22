@@ -2,6 +2,7 @@ class_name TurnBasedCombatSystem
 extends RefCounted
 
 const BASE_MOVEMENT_FEET: int = 30
+const INITIATIVE_DIE_SIDES: int = 20
 
 var active: bool = false
 var round_number: int = 0
@@ -18,17 +19,26 @@ var dodging: bool = false
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
 
-func start_combat(player: Node, opponents: Array[Node], player_dexterity_modifier: int, initiative_overrides: Dictionary = {}) -> void:
+func start_combat(
+	player: Node,
+	opponents: Array[Node],
+	player_dexterity_modifier: int,
+	initiative_overrides: Dictionary = {},
+	player_proficiency_bonus: int = 0,
+	player_initiative_proficient: bool = false
+) -> void:
 	active = true
 	round_number = 1
 	current_index = -1
 	entries.clear()
-	entries.append(_make_entry(player, true, player_dexterity_modifier, initiative_overrides))
+	var player_initiative_proficiency: int = maxi(player_proficiency_bonus, 0) if player_initiative_proficient else 0
+	entries.append(_make_entry(player, true, player_dexterity_modifier, player_initiative_proficiency, initiative_overrides))
 	for opponent: Node in opponents:
 		if not is_instance_valid(opponent):
 			continue
 		var modifier: int = int(opponent.call("get_initiative_modifier")) if opponent.has_method("get_initiative_modifier") else 0
-		entries.append(_make_entry(opponent, false, modifier, initiative_overrides))
+		var proficiency: int = int(opponent.call("get_initiative_proficiency_bonus")) if opponent.has_method("get_initiative_proficiency_bonus") else 0
+		entries.append(_make_entry(opponent, false, modifier, maxi(proficiency, 0), initiative_overrides))
 	entries.sort_custom(_sort_entries)
 	current_index = _first_active_index()
 	_begin_current_turn()
@@ -161,6 +171,33 @@ func get_initiative(actor: Node) -> int:
 	return int(entries[entry_index].get("initiative", 0)) if entry_index >= 0 else 0
 
 
+func get_initiative_roll(actor: Node) -> int:
+	var entry_index: int = _find_entry_index(actor)
+	return int(entries[entry_index].get("initiative_roll", 0)) if entry_index >= 0 else 0
+
+
+func swap_initiative(actor: Node, ally: Node, actor_willing: bool = true, ally_willing: bool = true) -> bool:
+	if not active or actor == ally or not actor_willing or not ally_willing:
+		return false
+	var actor_index: int = _find_entry_index(actor)
+	var ally_index: int = _find_entry_index(ally)
+	if actor_index < 0 or ally_index < 0:
+		return false
+	if not _entry_is_active(entries[actor_index]) or not _entry_is_active(entries[ally_index]):
+		return false
+	if _actor_is_incapacitated(actor) or _actor_is_incapacitated(ally):
+		return false
+	var current: Node = current_actor()
+	var actor_initiative: int = int(entries[actor_index].get("initiative", 0))
+	entries[actor_index]["initiative"] = int(entries[ally_index].get("initiative", 0))
+	entries[ally_index]["initiative"] = actor_initiative
+	entries[actor_index]["initiative_swapped"] = true
+	entries[ally_index]["initiative_swapped"] = true
+	entries.sort_custom(_sort_entries)
+	current_index = _find_entry_index(current)
+	return true
+
+
 func force_current_actor_for_testing(actor: Node) -> void:
 	var entry_index: int = _find_entry_index(actor)
 	if entry_index >= 0:
@@ -168,18 +205,26 @@ func force_current_actor_for_testing(actor: Node) -> void:
 		_begin_current_turn()
 
 
-func _make_entry(actor: Node, is_player: bool, dexterity_modifier: int, overrides: Dictionary) -> Dictionary:
+func _make_entry(
+	actor: Node,
+	is_player: bool,
+	dexterity_modifier: int,
+	initiative_proficiency_bonus: int,
+	overrides: Dictionary
+) -> Dictionary:
 	var instance_id: int = actor.get_instance_id()
-	var initiative_roll: int = int(overrides.get(instance_id, _rng.randi_range(1, 4)))
+	var initiative_roll: int = clampi(int(overrides.get(instance_id, _rng.randi_range(1, INITIATIVE_DIE_SIDES))), 1, INITIATIVE_DIE_SIDES)
 	var display_name: String = "Герой" if is_player else (str(actor.call("get_combat_name")) if actor.has_method("get_combat_name") else actor.name)
 	return {
 		"node": actor,
 		"name": display_name,
 		"is_player": is_player,
 		"dexterity_modifier": dexterity_modifier,
+		"initiative_proficiency_bonus": initiative_proficiency_bonus,
 		"initiative_roll": initiative_roll,
-		"initiative": initiative_roll + dexterity_modifier,
-		"reaction": true
+		"initiative": initiative_roll + dexterity_modifier + initiative_proficiency_bonus,
+		"reaction": true,
+		"initiative_swapped": false
 	}
 
 
@@ -227,6 +272,16 @@ func _entry_is_active(entry: Dictionary) -> bool:
 	if not is_instance_valid(actor):
 		return false
 	return not actor.has_method("is_combat_active") or bool(actor.call("is_combat_active"))
+
+
+func _actor_is_incapacitated(actor: Node) -> bool:
+	if actor == null:
+		return true
+	if actor.has_method("is_incapacitated"):
+		return bool(actor.call("is_incapacitated"))
+	if actor.has_method("can_take_combat_turn"):
+		return not bool(actor.call("can_take_combat_turn"))
+	return false
 
 
 func _find_entry_index(actor: Node) -> int:
