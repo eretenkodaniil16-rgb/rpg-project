@@ -45,6 +45,10 @@ jobs:
         shell: bash
         run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_spellcasting_and_rituals.gd
 
+      - name: Smoke test spellcasting and ritual UI
+        shell: bash
+        run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_spellcasting_ritual_ui.gd
+
       - name: Validate press-and-drag scrolling
         shell: bash
         run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_touch_scroll_manager.gd
