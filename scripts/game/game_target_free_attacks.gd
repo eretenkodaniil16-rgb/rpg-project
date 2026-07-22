@@ -34,3 +34,9 @@ func _request_attack() -> void:
 	if not _turn_system.active and valid_attempt and _target_is_valid(predicted_target):
 		_start_turn_based_combat(predicted_target)
 	_after_player_action()
+
+
+func _build_srd_attack_context(target: Node, distance: int) -> Dictionary:
+	var context: Dictionary = super._build_srd_attack_context(target, distance)
+	context["turn_based"] = _turn_system.active
+	return context
