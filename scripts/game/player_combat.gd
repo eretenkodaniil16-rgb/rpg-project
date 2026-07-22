@@ -83,6 +83,10 @@ func get_initiative_proficiency_bonus() -> int:
 	return _origin_feat_data.initiative_proficiency_bonus(GameState.player_character)
 
 
+func on_combat_turn_started() -> void:
+	_origin_feat_data.begin_turn(GameState.player_character)
+
+
 func set_turn_based_mode(value: bool) -> void:
 	_turn_based_mode = value
 	_grid_move_cooldown = 0.0
