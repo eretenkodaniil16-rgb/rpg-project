@@ -37,12 +37,12 @@ func ensure_character(character: PlayerCharacter, refill_slots: bool = false) ->
 			changed = true
 		for spell_id: String in _string_array(profile.get("starting_spells", [])):
 			changed = _append_unique(character.known_features, spell_id) or changed
-		var prepared: Array[String] = get_prepared_spell_ids(character)
+		var profile_prepared: Array[String] = get_prepared_spell_ids(character)
 		for spell_id: String in _string_array(profile.get("starting_prepared", [])):
-			if spell_id not in prepared:
-				prepared.append(spell_id)
+			if spell_id not in profile_prepared:
+				profile_prepared.append(spell_id)
 				changed = true
-		_store_prepared_spell_ids(character, prepared)
+		_store_prepared_spell_ids(character, profile_prepared)
 		var slot_maximums_value: Variant = profile.get("slot_maximums", {})
 		if slot_maximums_value is Dictionary:
 			for level_value: Variant in (slot_maximums_value as Dictionary).keys():
@@ -61,11 +61,39 @@ func ensure_character(character: PlayerCharacter, refill_slots: bool = false) ->
 		var spell: Dictionary = get_spell_definition(feature_id)
 		if spell.is_empty() or not bool(spell.get("always_prepared", false)):
 			continue
-		var prepared: Array[String] = get_prepared_spell_ids(character)
-		if feature_id not in prepared:
-			prepared.append(feature_id)
-			_store_prepared_spell_ids(character, prepared)
+		var always_prepared_ids: Array[String] = get_prepared_spell_ids(character)
+		if feature_id not in always_prepared_ids:
+			always_prepared_ids.append(feature_id)
+			_store_prepared_spell_ids(character, always_prepared_ids)
 			changed = true
+	return changed
+
+
+func recover_after_rest(character: PlayerCharacter, long_rest: bool) -> bool:
+	if character == null:
+		return false
+	ensure_character(character, false)
+	var profile: Dictionary = get_spellcasting_profile(character.character_class_id)
+	if profile.is_empty():
+		if long_rest:
+			end_concentration(character)
+		return false
+	var recovery: String = str(profile.get("slot_recovery", "long_rest"))
+	var should_refill: bool = long_rest or recovery == "short_rest"
+	var changed: bool = false
+	if should_refill:
+		var slot_maximums_value: Variant = profile.get("slot_maximums", {})
+		if slot_maximums_value is Dictionary:
+			for level_value: Variant in (slot_maximums_value as Dictionary).keys():
+				var level: int = maxi(int(str(level_value)), 1)
+				var resource_key: String = slot_resource_key(character, level)
+				var maximum: int = maxi(character.get_resource_maximum(resource_key), 0)
+				if character.get_resource(resource_key) != maximum:
+					character.class_resources[resource_key] = maximum
+					changed = true
+	if long_rest and not get_concentration_spell_id(character).is_empty():
+		end_concentration(character)
+		changed = true
 	return changed
 
 
