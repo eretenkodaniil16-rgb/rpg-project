@@ -30,6 +30,26 @@ jobs:
             echo "Area patch is already applied." | tee patch.log
             exit 0
           fi
+          python - <<'PY'
+          from pathlib import Path
+          path = Path("tools/maintenance/apply_spell_targeting_areas_patch.py")
+          text = path.read_text(encoding="utf-8")
+          old = '''game = replace_once(
+              game,
+              "if GameState.input_locked or _any_overlay_visible() or _attack_in_progress or _enemy_turn_running:\\n",
+              "if GameState.input_locked or _any_overlay_visible() or _attack_in_progress or _enemy_turn_running or _spell_area_targeting_active:\\n",
+              "attack guard",
+          )'''
+          new = '''game = replace_once(
+              game,
+              "func _request_attack() -> void:\\n\\tif GameState.input_locked or _any_overlay_visible() or _attack_in_progress or _enemy_turn_running:\\n",
+              "func _request_attack() -> void:\\n\\tif GameState.input_locked or _any_overlay_visible() or _attack_in_progress or _enemy_turn_running or _spell_area_targeting_active:\\n",
+              "attack guard",
+          )'''
+          if text.count(old) != 1:
+              raise RuntimeError(f"Unable to disambiguate attack guard: {text.count(old)} matches")
+          path.write_text(text.replace(old, new, 1), encoding="utf-8")
+          PY
           python tools/maintenance/apply_spell_targeting_areas_patch.py 2>&1 | tee patch.log
 
       - name: Upload patch diagnostics
