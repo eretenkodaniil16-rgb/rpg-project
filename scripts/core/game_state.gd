@@ -4,7 +4,7 @@ signal quest_updated(quest_id: String)
 signal inventory_changed(item_id: String)
 
 const SAVE_PATH: String = "user://savegame.json"
-const SAVE_VERSION: int = 4
+const SAVE_VERSION: int = 5
 const DEFAULT_PLAYER_POSITION: Vector2 = Vector2(320.0, 360.0)
 const QUESTS_PATH: String = "res://data/quests/quests.json"
 const ITEMS_PATH: String = "res://data/items/items.json"
@@ -263,6 +263,9 @@ func load_game() -> bool:
 	if version == 3:
 		save_data = _migrate_version_3_to_4(save_data)
 		version = 4
+	if version == 4:
+		save_data = _migrate_version_4_to_5(save_data)
+		version = 5
 	if version != SAVE_VERSION:
 		push_error("Неподдерживаемая версия сохранения: %d" % version)
 		return false
@@ -351,4 +354,17 @@ func _migrate_version_3_to_4(old_data: Dictionary) -> Dictionary:
 		}
 	}
 	migrated_data["inventory"] = {}
+	return migrated_data
+
+
+func _migrate_version_4_to_5(old_data: Dictionary) -> Dictionary:
+	var migrated_data: Dictionary = old_data.duplicate(true)
+	migrated_data["version"] = 5
+	var character_value: Variant = migrated_data.get("player_character", {})
+	var character_data: Dictionary = character_value as Dictionary if character_value is Dictionary else PlayerCharacter.create_legacy_default().to_dict()
+	if not character_data.has("spellbook_spell_ids"):
+		character_data["spellbook_spell_ids"] = []
+	if not character_data.has("spellbook_initialized"):
+		character_data["spellbook_initialized"] = false
+	migrated_data["player_character"] = character_data
 	return migrated_data

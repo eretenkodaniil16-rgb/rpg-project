@@ -249,6 +249,7 @@ func get_spellcasting_context(
 		"focus_in_hand": focus_in_hand,
 		"has_component_pouch": has_component_pouch,
 		"has_required_material": has_required_material,
+		"has_spellbook": state != null and bool(state.call("has_item", "spellbook")),
 		"turn_token": turn_token,
 		"equipped_weapon_id": character.equipped_weapon_id,
 		"equipped_armor_id": character.equipped_armor_id,

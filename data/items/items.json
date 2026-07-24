@@ -623,5 +623,45 @@
     "stackable": false,
     "max_stack": 1,
     "component_pouch": true
+  },
+  "spell_scroll_caustic_pulse": {
+    "id": "spell_scroll_caustic_pulse",
+    "name": "Свиток: Едкий импульс",
+    "type": "spell_scroll",
+    "description": "Магический свиток с формулой заклинания. Волшебник может попытаться переписать её в книгу.",
+    "stackable": true,
+    "max_stack": 10,
+    "spell_id": "caustic_pulse",
+    "spell_level": 1
+  },
+  "spell_scroll_detect_magic": {
+    "id": "spell_scroll_detect_magic",
+    "name": "Свиток: Обнаружение магии",
+    "type": "spell_scroll",
+    "description": "Магический свиток с формулой заклинания. Волшебник может попытаться переписать её в книгу.",
+    "stackable": true,
+    "max_stack": 10,
+    "spell_id": "detect_magic",
+    "spell_level": 1
+  },
+  "spell_scroll_cure_wounds": {
+    "id": "spell_scroll_cure_wounds",
+    "name": "Свиток: Лечение ран",
+    "type": "spell_scroll",
+    "description": "Магический свиток с формулой заклинания. Волшебник может попытаться переписать её в книгу.",
+    "stackable": true,
+    "max_stack": 10,
+    "spell_id": "cure_wounds",
+    "spell_level": 1
+  },
+  "spell_scroll_counterspell": {
+    "id": "spell_scroll_counterspell",
+    "name": "Свиток: Контрзаклинание",
+    "type": "spell_scroll",
+    "description": "Магический свиток с формулой заклинания. Волшебник может попытаться переписать её в книгу.",
+    "stackable": true,
+    "max_stack": 10,
+    "spell_id": "counterspell",
+    "spell_level": 3
   }
 }

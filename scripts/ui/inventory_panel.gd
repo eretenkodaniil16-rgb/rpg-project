@@ -2,9 +2,11 @@ class_name InventoryPanel
 extends Control
 
 var _class_data: ClassDataSystem = ClassDataSystem.new()
+var _spellbook_system: WizardSpellbookSystem = WizardSpellbookSystem.new()
 var _item_list: VBoxContainer
 var _details_label: Label
 var _equip_button: Button
+var _copy_scroll_button: Button
 var _selected_entry: Dictionary = {}
 
 
@@ -96,6 +98,14 @@ func _build_layout() -> void:
 	_equip_button.pressed.connect(_equip_selected)
 	_equip_button.hide()
 	detail_column.add_child(_equip_button)
+	_copy_scroll_button = Button.new()
+	_copy_scroll_button.name = "CopyScrollButton"
+	_copy_scroll_button.text = "ПЕРЕПИСАТЬ В КНИГУ"
+	_copy_scroll_button.custom_minimum_size = Vector2(0.0, 58.0)
+	_copy_scroll_button.add_theme_font_size_override("font_size", 19)
+	_copy_scroll_button.pressed.connect(_copy_selected_scroll)
+	_copy_scroll_button.hide()
+	detail_column.add_child(_copy_scroll_button)
 
 
 func _refresh() -> void:
@@ -108,6 +118,7 @@ func _refresh() -> void:
 		_item_list.add_child(empty_label)
 		_details_label.text = "Предметы появятся здесь после получения наград, находок или добычи."
 		_equip_button.hide()
+		_copy_scroll_button.hide()
 		return
 	entries.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return str(a.get("type", "")) < str(b.get("type", "")))
 	for entry_value: Variant in entries:
@@ -133,19 +144,81 @@ func _show_details(entry: Dictionary) -> void:
 		"quest":"Квестовый предмет", "material":"Материал", "consumable":"Расходуемый предмет",
 		"weapon":"Оружие", "armor":"Броня", "shield":"Щит", "ammunition":"Боеприпасы",
 		"currency":"Валюта", "focus":"Магический фокус", "tool":"Инструмент",
-		"book":"Книга", "gear":"Снаряжение", "misc":"Прочее"
+		"book":"Книга", "spell_scroll":"Свиток заклинания", "gear":"Снаряжение", "misc":"Прочее"
 	}.get(type_id, "Прочее")
 	var item_id: String = str(entry.get("id", ""))
 	var equipped: bool = _class_data.is_equipped(GameState.player_character, item_id)
-	var equipment_text: String = "\nСостояние: ЭКИПИРОВАНО" if equipped else ""
+	var equipment_text: String = "
+Состояние: ЭКИПИРОВАНО" if equipped else ""
 	var stats_text: String = _equipment_stats(entry)
-	_details_label.text = "%s\n\nТип: %s\nКоличество: %d%s%s\n\n%s" % [
+	var scroll_text: String = _scroll_transcription_text(entry) if type_id == "spell_scroll" else ""
+	_details_label.text = "%s
+
+Тип: %s
+Количество: %d%s%s
+
+%s%s" % [
 		str(entry.get("name", "Предмет")), type_name, int(entry.get("quantity", 0)),
-		equipment_text, stats_text, str(entry.get("description", "Описание отсутствует."))
+		equipment_text, stats_text, str(entry.get("description", "Описание отсутствует.")), scroll_text
 	]
 	_equip_button.visible = type_id in ["weapon", "armor", "shield"]
 	_equip_button.disabled = equipped
 	_equip_button.text = "ЭКИПИРОВАНО" if equipped else "ЭКИПИРОВАТЬ"
+	_copy_scroll_button.visible = type_id == "spell_scroll"
+	if type_id == "spell_scroll":
+		var inspection: Dictionary = _spellbook_system.inspect_scroll(GameState.player_character, item_id, GameState)
+		_copy_scroll_button.disabled = not bool(inspection.get("success", false))
+		_copy_scroll_button.text = "ПЕРЕПИСАТЬ В КНИГУ"
+	else:
+		_copy_scroll_button.disabled = true
+
+
+func _scroll_transcription_text(entry: Dictionary) -> String:
+	var inspection: Dictionary = _spellbook_system.inspect_scroll(
+		GameState.player_character,
+		str(entry.get("id", "")),
+		GameState
+	)
+	if not bool(inspection.get("success", false)):
+		return "
+
+Переписывание: %s" % str(inspection.get("message", "Недоступно."))
+	var minutes: int = int(inspection.get("time_minutes", 0))
+	var hours: int = floori(float(minutes) / 60.0)
+	var remaining_minutes: int = minutes % 60
+	var time_text: String = "%d ч" % hours
+	if remaining_minutes > 0:
+		time_text += " %d мин" % remaining_minutes
+	return "
+
+Переписывание в книгу:
+Стоимость: %d зм · Время: %s · Проверка Магии: Сл %d
+Свиток уничтожается при успехе и провале." % [
+		int(inspection.get("cost_gp", 0)),
+		time_text,
+		int(inspection.get("check_dc", 0))
+	]
+
+
+func _copy_selected_scroll() -> void:
+	var item_id: String = str(_selected_entry.get("id", ""))
+	if item_id.is_empty() or str(_selected_entry.get("type", "")) != "spell_scroll":
+		return
+	var result: Dictionary = _spellbook_system.copy_scroll_to_spellbook(
+		GameState.player_character,
+		item_id,
+		GameState
+	)
+	_refresh()
+	var check_text: String = ""
+	if bool(result.get("scroll_consumed", false)):
+		check_text = "
+Бросок: %d, итог %d против Сл %d." % [
+			int(result.get("natural_roll", 0)),
+			int(result.get("check_total", 0)),
+			int(result.get("check_dc", 0))
+		]
+	_details_label.text = "%s%s" % [str(result.get("message", "Переписывание завершено.")), check_text]
 
 
 func _equipment_stats(entry: Dictionary) -> String:
