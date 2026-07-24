@@ -226,12 +226,18 @@ func _confirm_spell_area() -> void:
 			total_damage += result.damage
 			applied_targets += 1
 			target.call("receive_player_attack", result, false)
+			if target.has_method("get_current_health") and int(target.call("get_current_health")) <= 0:
+				_release_grapples_for(target)
 	_set_combat_busy(false)
 	_ability_panel.set_message("%s: целей %d, суммарный урон %d." % [spell_name, applied_targets, total_damage], true)
 	GameState.save_game()
 	_update_status()
 	_sync_exploration_hud_visibility()
-	var combat_trigger: Node = targets[0] if not targets.is_empty() else null
+	var combat_trigger: Node = null
+	for target: Node in targets:
+		if _target_is_valid(target):
+			combat_trigger = target
+			break
 	_cancel_spell_area_targeting()
 	if not _turn_system.active and is_instance_valid(combat_trigger):
 		_start_turn_based_combat(combat_trigger)
@@ -258,6 +264,8 @@ func _cancel_spell_area_targeting() -> void:
 
 func _process(delta: float) -> void:
 	super._process(delta)
+	if _spell_area_targeting_active and (GameState.input_locked or _any_overlay_visible()):
+		_cancel_spell_area_targeting()
 	_sync_player_damage_traits()
 	_refresh_srd_interface()
 
@@ -582,6 +590,8 @@ func _begin_current_turn() -> void:
 
 
 func _advance_combat_turn() -> void:
+	if _spell_area_targeting_active:
+		_cancel_spell_area_targeting()
 	if _turn_system.active:
 		var previous: Node = _turn_system.current_actor()
 		if is_instance_valid(previous):
