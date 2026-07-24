@@ -11,6 +11,7 @@ on:
       - "scripts/game/battle_grid.gd"
       - "scripts/game/game_srd_combat.gd"
       - "tests/test_spell_targeting_areas.gd"
+      - "tests/test_spell_area_origin_cover_rules.gd"
       - "tests/test_spell_area_class_ability.gd"
       - "tests/smoke_spell_area_targeting_ui.gd"
   push:
@@ -25,6 +26,7 @@ on:
       - "scripts/game/battle_grid.gd"
       - "scripts/game/game_srd_combat.gd"
       - "tests/test_spell_targeting_areas.gd"
+      - "tests/test_spell_area_origin_cover_rules.gd"
       - "tests/test_spell_area_class_ability.gd"
       - "tests/smoke_spell_area_targeting_ui.gd"
 
@@ -57,6 +59,10 @@ jobs:
       - name: Validate area spell class abilities
         shell: bash
         run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_spell_area_class_ability.gd
+
+      - name: Validate area origin and cover rules
+        shell: bash
+        run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_spell_area_origin_cover_rules.gd
 
       - name: Validate area geometry and multi-target resolution
         shell: bash
