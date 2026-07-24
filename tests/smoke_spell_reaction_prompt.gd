@@ -155,11 +155,14 @@ func _run() -> void:
 	if wizard.current_health != hp_before_counter:
 		_fail("A countered Burning Hands still damaged the player.")
 		return
+	if turns.current_actor() != player or not turns.has_reaction(player):
+		_fail("The enemy turn did not advance to the player or reset the reaction at the start of that turn.")
+		return
 	if prompt.visible or prompt.is_waiting_for_decision():
 		_fail("Reaction prompt remained open after Counterspell resolved.")
 		return
 
 	_finished = true
 	game.queue_free()
-	print("Mobile Counterspell prompt pauses enemy casting, Skip resumes it, and Counterspell preserves the original enemy slot.")
+	print("Mobile Counterspell prompt pauses enemy casting, Skip resumes it, Counterspell preserves the enemy slot, and the reaction resets on the player's next turn.")
 	quit(0)
