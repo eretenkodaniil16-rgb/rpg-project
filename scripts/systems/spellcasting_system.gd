@@ -37,12 +37,15 @@ func ensure_character(character: PlayerCharacter, refill_slots: bool = false) ->
 			changed = true
 		for spell_id: String in _string_array(profile.get("starting_spells", [])):
 			changed = _append_unique(character.known_features, spell_id) or changed
+		var had_prepared_state: bool = character.class_resources.has(PREPARED_SPELLS_STATE_KEY)
 		var profile_prepared: Array[String] = get_prepared_spell_ids(character)
-		for spell_id: String in _string_array(profile.get("starting_prepared", [])):
-			if spell_id not in profile_prepared:
-				profile_prepared.append(spell_id)
-				changed = true
+		if not had_prepared_state:
+			for spell_id: String in _string_array(profile.get("starting_prepared", [])):
+				if spell_id not in profile_prepared:
+					profile_prepared.append(spell_id)
+					changed = true
 		_store_prepared_spell_ids(character, profile_prepared)
+		changed = changed or not had_prepared_state
 		var slot_maximums_value: Variant = profile.get("slot_maximums", {})
 		if slot_maximums_value is Dictionary:
 			for level_value: Variant in (slot_maximums_value as Dictionary).keys():
@@ -300,6 +303,8 @@ func begin_concentration(character: PlayerCharacter, spell_id: String) -> String
 	if character == null:
 		return ""
 	var previous: String = str(character.class_resources.get(CONCENTRATION_STATE_KEY, ""))
+	if not previous.is_empty() and previous != spell_id:
+		_clear_concentration_bound_effect(character, previous)
 	character.class_resources[CONCENTRATION_STATE_KEY] = spell_id
 	return previous
 
@@ -309,11 +314,32 @@ func end_concentration(character: PlayerCharacter) -> String:
 		return ""
 	var previous: String = str(character.class_resources.get(CONCENTRATION_STATE_KEY, ""))
 	character.class_resources.erase(CONCENTRATION_STATE_KEY)
+	_clear_concentration_bound_effect(character, previous)
 	return previous
 
 
 func get_concentration_spell_id(character: PlayerCharacter) -> String:
 	return "" if character == null else str(character.class_resources.get(CONCENTRATION_STATE_KEY, ""))
+
+
+func sync_concentration_to_combat_state(character: PlayerCharacter, combat_state: CombatantState, source_id: int = 0) -> void:
+	if combat_state == null:
+		return
+	var spell_id: String = get_concentration_spell_id(character)
+	if spell_id.is_empty():
+		combat_state.clear_concentration()
+	else:
+		combat_state.set_concentration(spell_id, source_id)
+
+
+func _clear_concentration_bound_effect(character: PlayerCharacter, spell_id: String) -> void:
+	if character == null or spell_id.is_empty():
+		return
+	match spell_id:
+		"detect_magic":
+			character.active_effects.erase(DETECT_MAGIC_UNTIL_KEY)
+		"hunters_mark":
+			character.active_effects.erase("hunters_mark_hits")
 
 
 func cleanup_expired_effects(character: PlayerCharacter, current_world_minutes: int) -> void:

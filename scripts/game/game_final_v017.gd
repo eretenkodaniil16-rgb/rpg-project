@@ -10,6 +10,12 @@ func _ready() -> void:
 	if spell_state_changed:
 		GameState.save_game()
 	super._ready()
+	var concentration_source_id: int = player.get_instance_id() if player != null else 0
+	_spellcasting_runtime.sync_concentration_to_combat_state(
+		GameState.player_character,
+		_player_combat_state,
+		concentration_source_id
+	)
 	if _attack_popup != null:
 		_attack_popup.remove_from_group("combat_ui")
 	_add_exploration_hud_node(_d20_overlay)

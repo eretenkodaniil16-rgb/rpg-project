@@ -61,6 +61,10 @@ func _run() -> void:
 	if not bool(unprepare_result.get("success", false)) or spells.is_prepared(wizard, "magic_missile"):
 		_fail("Prepared spell could not be removed from preparation.")
 		return
+	spells.ensure_character(wizard, false)
+	if spells.is_prepared(wizard, "magic_missile"):
+		_fail("Starting preparation was incorrectly re-applied after an explicit unprepare.")
+		return
 	if spells.can_cast_spell(wizard, magic_missile):
 		_fail("Unprepared level-one spell remained castable.")
 		return
@@ -101,6 +105,18 @@ func _run() -> void:
 	spells.cleanup_expired_effects(wizard, 500)
 	if not spells.get_concentration_spell_id(wizard).is_empty():
 		_fail("Expired concentration ritual was not cleaned up.")
+		return
+
+	wizard.active_effects[SpellcastingSystem.DETECT_MAGIC_UNTIL_KEY] = 520
+	spells.begin_concentration(wizard, "detect_magic")
+	var combat_state := CombatantState.new()
+	spells.sync_concentration_to_combat_state(wizard, combat_state, 77)
+	if combat_state.concentrating_on != "detect_magic" or combat_state.concentration_source_id != 77:
+		_fail("Saved ritual concentration was not synchronized to CombatantState.")
+		return
+	spells.end_concentration(wizard)
+	if spells.has_detect_magic(wizard, 501):
+		_fail("Ending concentration did not remove the concentration-bound Detect Magic effect.")
 		return
 
 	var comprehend: Dictionary = spells.get_spell_definition("comprehend_languages")
