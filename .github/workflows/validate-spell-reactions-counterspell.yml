@@ -64,4 +64,18 @@ jobs:
 
       - name: Smoke test paused mobile reaction prompt
         shell: bash
-        run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_spell_reaction_prompt.gd
+        run: |
+          set +e
+          ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_spell_reaction_prompt.gd 2>&1 | tee counterspell-runtime-smoke.log
+          status=${PIPESTATUS[0]}
+          echo "godot_exit_status=${status}" | tee -a counterspell-runtime-smoke.log
+          exit "${status}"
+
+      - name: Upload Counterspell smoke diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: counterspell-runtime-smoke
+          path: counterspell-runtime-smoke.log
+          if-no-files-found: error
+          retention-days: 7
