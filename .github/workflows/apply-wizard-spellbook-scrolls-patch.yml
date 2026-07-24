@@ -1,0 +1,33 @@
+name: Apply Wizard spellbook scrolls patch
+
+on:
+  push:
+    branches:
+      - feature/wizard-spellbook-scrolls
+    paths:
+      - ".github/patch_triggers/wizard_spellbook_scrolls_patch.txt"
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/wizard-spellbook-scrolls
+          fetch-depth: 0
+
+      - name: Apply deterministic patch
+        run: python tools/maintenance/apply_wizard_spellbook_scrolls_patch.py
+
+      - name: Commit integrated files
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/models/player_character.gd scripts/core/game_state.gd data/abilities/abilities.json data/items/items.json scripts/systems/class_data_system.gd scripts/systems/spellcasting_system.gd scripts/ui/inventory_panel.gd tests/test_spellcasting_and_rituals.gd
+          git commit -m "feat: integrate Wizard spellbook scrolls and save migration"
+          git push origin HEAD:feature/wizard-spellbook-scrolls
