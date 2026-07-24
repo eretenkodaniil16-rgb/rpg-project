@@ -80,8 +80,8 @@ func _run() -> void:
 	if prompt == null or construct == null or player == null or turns == null:
 		_fail("Reaction prompt, rune construct, player, or turn system was not constructed.")
 		return
-	var cast_button: Button = prompt.get_node_or_null("MarginContainer/PanelContainer/VBoxContainer/CounterspellButton") as Button
-	var skip_button: Button = prompt.get_node_or_null("MarginContainer/PanelContainer/VBoxContainer/SkipReactionButton") as Button
+	var cast_button: Button = prompt.find_child("CounterspellButton", true, false) as Button
+	var skip_button: Button = prompt.find_child("SkipReactionButton", true, false) as Button
 	if cast_button == null or skip_button == null:
 		_fail("Mobile Counterspell and Skip buttons were not present in the runtime prompt.")
 		return
