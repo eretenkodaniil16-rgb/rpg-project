@@ -1,0 +1,33 @@
+name: Apply spell area review fixes
+
+on:
+  push:
+    branches:
+      - feature/spell-targeting-areas
+    paths:
+      - ".github/patch_triggers/spell_area_review_fixes.txt"
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/spell-targeting-areas
+          fetch-depth: 0
+
+      - name: Apply deterministic patch
+        run: python tools/maintenance/apply_spell_area_review_fixes.py
+
+      - name: Commit reviewed runtime
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/game/game_srd_combat.gd
+          git commit -m "fix: make spell area confirmation atomic"
+          git push origin HEAD:feature/spell-targeting-areas
