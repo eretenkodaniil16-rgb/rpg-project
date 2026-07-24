@@ -29,7 +29,8 @@ func get_area_cells(
 	grid: BattleGrid,
 	caster_cell: Vector2i,
 	aim_cell: Vector2i,
-	area: Dictionary
+	area: Dictionary,
+	direction_hint: Vector2 = Vector2.ZERO
 ) -> Array[Vector2i]:
 	var result: Array[Vector2i] = []
 	if grid == null or not is_area_definition(area):
@@ -38,8 +39,10 @@ func get_area_cells(
 	var origin_cell: Vector2i = get_origin_cell(caster_cell, aim_cell, area)
 	if not grid.is_cell_valid(origin_cell):
 		return result
-	var direction_delta: Vector2i = aim_cell - caster_cell if origin_mode == ORIGIN_POINT else aim_cell - origin_cell
-	var direction := Vector2(direction_delta)
+	var direction: Vector2 = direction_hint
+	if direction.length_squared() <= 0.0001:
+		var direction_delta: Vector2i = aim_cell - caster_cell if origin_mode == ORIGIN_POINT else aim_cell - origin_cell
+		direction = Vector2(direction_delta)
 	if direction.length_squared() <= 0.0001:
 		direction = Vector2.RIGHT
 	direction = direction.normalized()
