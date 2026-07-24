@@ -1,0 +1,65 @@
+name: Validate Wizard spellbook scrolls
+
+on:
+  pull_request:
+    paths:
+      - "data/abilities/abilities.json"
+      - "data/items/items.json"
+      - "scripts/models/player_character.gd"
+      - "scripts/core/game_state.gd"
+      - "scripts/systems/wizard_spellbook_system.gd"
+      - "scripts/systems/spellcasting_system.gd"
+      - "scripts/systems/class_data_system.gd"
+      - "scripts/ui/inventory_panel.gd"
+      - "tests/test_wizard_spellbook_scrolls.gd"
+      - "tests/smoke_wizard_spellbook_scroll_ui.gd"
+      - "tests/test_spellcasting_and_rituals.gd"
+  push:
+    branches:
+      - feature/wizard-spellbook-scrolls
+    paths:
+      - "data/abilities/abilities.json"
+      - "data/items/items.json"
+      - "scripts/models/player_character.gd"
+      - "scripts/core/game_state.gd"
+      - "scripts/systems/wizard_spellbook_system.gd"
+      - "scripts/systems/spellcasting_system.gd"
+      - "scripts/systems/class_data_system.gd"
+      - "scripts/ui/inventory_panel.gd"
+      - "tests/test_wizard_spellbook_scrolls.gd"
+      - "tests/smoke_wizard_spellbook_scroll_ui.gd"
+      - "tests/test_spellcasting_and_rituals.gd"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Godot 4.7.1 Standard
+        shell: bash
+        run: |
+          curl --location --fail --retry 3 --output godot.zip "https://downloads.godotengine.org/?flavor=stable&platform=linux.64&slug=linux.x86_64.zip&version=4.7.1"
+          unzip -q godot.zip
+          chmod +x Godot_v4.7.1-stable_linux.x86_64
+
+      - name: Import project
+        shell: bash
+        run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --editor --path "$GITHUB_WORKSPACE" --quit
+
+      - name: Validate existing spellcasting and rituals
+        shell: bash
+        run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_spellcasting_and_rituals.gd
+
+      - name: Validate spellbook rules scroll checks and save migration
+        shell: bash
+        run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_wizard_spellbook_scrolls.gd
+
+      - name: Smoke test inventory scroll transcription UI
+        shell: bash
+        run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_wizard_spellbook_scroll_ui.gd
