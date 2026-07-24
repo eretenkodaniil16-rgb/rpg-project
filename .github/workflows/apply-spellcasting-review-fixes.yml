@@ -1,0 +1,37 @@
+name: Apply spellcasting review fixes
+
+on:
+  push:
+    branches:
+      - feature/spellcasting-rituals
+    paths:
+      - ".github/patch_triggers/spellcasting_review_fixes.txt"
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/spellcasting-rituals
+          fetch-depth: 0
+
+      - name: Apply deterministic patch
+        run: python tools/maintenance/apply_spellcasting_review_fixes.py
+
+      - name: Commit patched files
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/systems/spellcasting_system.gd scripts/game/game_final_v017.gd tests/test_spellcasting_and_rituals.gd
+          if git diff --cached --quiet; then
+            echo "No spellcasting changes to commit."
+            exit 0
+          fi
+          git commit -m "fix: close spellcasting concentration and preparation gaps"
+          git push origin HEAD:feature/spellcasting-rituals
