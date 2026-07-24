@@ -1,4 +1,4 @@
-name: Apply spell targeting areas patch
+name: Finalize spell targeting areas patch
 
 on:
   pull_request:
@@ -11,7 +11,7 @@ permissions:
   contents: write
 
 jobs:
-  apply:
+  finalize:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout branch
@@ -20,61 +20,28 @@ jobs:
           ref: feature/spell-targeting-areas
           fetch-depth: 0
 
-      - name: Apply deterministic patch
-        id: patch
-        continue-on-error: true
-        shell: bash
+      - name: Use the caster class ability for Burning Hands
         run: |
-          set -o pipefail
-          if grep -q "SPELL_AREA_COLOR" scripts/game/battle_grid.gd; then
-            echo "Area patch is already applied." | tee patch.log
-            exit 0
-          fi
           python - <<'PY'
+          import json
           from pathlib import Path
-          path = Path("tools/maintenance/apply_spell_targeting_areas_patch.py")
-          text = path.read_text(encoding="utf-8")
-          old = '''game = replace_once(
-              game,
-              "if GameState.input_locked or _any_overlay_visible() or _attack_in_progress or _enemy_turn_running:\\n",
-              "if GameState.input_locked or _any_overlay_visible() or _attack_in_progress or _enemy_turn_running or _spell_area_targeting_active:\\n",
-              "attack guard",
-          )'''
-          new = '''game = replace_once(
-              game,
-              "func _request_attack() -> void:\\n\\tif GameState.input_locked or _any_overlay_visible() or _attack_in_progress or _enemy_turn_running:\\n",
-              "func _request_attack() -> void:\\n\\tif GameState.input_locked or _any_overlay_visible() or _attack_in_progress or _enemy_turn_running or _spell_area_targeting_active:\\n",
-              "attack guard",
-          )'''
-          if text.count(old) != 1:
-              raise RuntimeError(f"Unable to disambiguate attack guard: {text.count(old)} matches")
-          path.write_text(text.replace(old, new, 1), encoding="utf-8")
+          path = Path("data/abilities/abilities.json")
+          data = json.loads(path.read_text(encoding="utf-8"))
+          spell = data.get("burning_hands", {})
+          spell.pop("ability", None)
+          data["burning_hands"] = spell
+          path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
           PY
-          python tools/maintenance/apply_spell_targeting_areas_patch.py 2>&1 | tee patch.log
 
-      - name: Upload patch diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: spell-area-patch-diagnostics
-          path: patch.log
-          if-no-files-found: error
-          retention-days: 7
-
-      - name: Commit patched files
-        if: steps.patch.outcome == 'success'
+      - name: Commit correction
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add scripts/systems/spell_area_system.gd scripts/game/battle_grid.gd scripts/systems/class_ability_system.gd scripts/systems/spellcasting_system.gd scripts/game/game_srd_combat.gd data/abilities/abilities.json data/classes/classes.json
+          git add data/abilities/abilities.json
           if git diff --cached --quiet; then
-            echo "No area changes to commit."
+            echo "No correction required."
             exit 0
           fi
-          git commit -m "feat: implement spell area targeting and multi-target resolution"
+          git commit -m "fix: use class spellcasting ability for area spells"
           git push origin HEAD:feature/spell-targeting-areas
-
-      - name: Fail when patch failed
-        if: steps.patch.outcome != 'success'
-        run: exit 1
