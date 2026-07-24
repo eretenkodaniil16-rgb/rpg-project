@@ -669,7 +669,6 @@
     "school": "Воплощение",
     "target": "area",
     "effect": "area_saving_throw_spell",
-    "ability": "intelligence",
     "save_ability": "dexterity",
     "damage_dice": [
       3,
