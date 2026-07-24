@@ -464,7 +464,12 @@
         "slot_maximums": {
           "1": 2
         },
-        "slot_recovery": "long_rest"
+        "slot_recovery": "long_rest",
+        "level_spells": {
+          "5": [
+            "counterspell"
+          ]
+        }
       },
       "armor_training": []
     },
@@ -511,7 +516,12 @@
           "1": 1
         },
         "slot_resource_prefix": "pact_slots",
-        "slot_recovery": "short_rest"
+        "slot_recovery": "short_rest",
+        "level_spells": {
+          "5": [
+            "counterspell"
+          ]
+        }
       },
       "armor_training": [
         "light"
@@ -568,7 +578,12 @@
         "slot_maximums": {
           "1": 2
         },
-        "slot_recovery": "long_rest"
+        "slot_recovery": "long_rest",
+        "level_spells": {
+          "5": [
+            "counterspell"
+          ]
+        }
       },
       "armor_training": []
     }

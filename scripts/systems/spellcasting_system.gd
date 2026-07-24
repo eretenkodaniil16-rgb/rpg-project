@@ -39,6 +39,14 @@ func ensure_character(character: PlayerCharacter, refill_slots: bool = false) ->
 			changed = true
 		for spell_id: String in _string_array(profile.get("starting_spells", [])):
 			changed = _append_unique(character.known_features, spell_id) or changed
+		var level_spells_value: Variant = profile.get("level_spells", {})
+		if level_spells_value is Dictionary:
+			for required_level_value: Variant in (level_spells_value as Dictionary).keys():
+				var required_level: int = maxi(int(str(required_level_value)), 1)
+				if character.level < required_level:
+					continue
+				for spell_id: String in _string_array((level_spells_value as Dictionary).get(required_level_value, [])):
+					changed = _append_unique(character.known_features, spell_id) or changed
 		var had_prepared_state: bool = character.class_resources.has(PREPARED_SPELLS_STATE_KEY)
 		var profile_prepared: Array[String] = get_prepared_spell_ids(character)
 		if not had_prepared_state:

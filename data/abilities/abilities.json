@@ -697,5 +697,24 @@
     },
     "description": "Тонкий веер пламени охватывает 15-футовый конус. Каждая цель совершает спасбросок Ловкости; при успехе получает половину урона.",
     "button": "ГОРЯЩИЕ РУКИ"
+  },
+  "counterspell": {
+    "id": "counterspell",
+    "name": "Контрзаклинание",
+    "kind": "reaction",
+    "is_spell": true,
+    "spell_level": 3,
+    "school": "Ограждение",
+    "target": "spell_cast_attempt",
+    "effect": "counterspell",
+    "range_ft": 60,
+    "casting_time_text": "Реакция",
+    "casting_time_kind": "reaction",
+    "reaction_trigger": "visible_creature_casts_observable_spell",
+    "components": [
+      "s"
+    ],
+    "description": "Реакция на видимое сотворение заклинания в пределах 60 футов. Заклинатель совершает спасбросок Телосложения против Сл ваших заклинаний. При провале его заклинание рассеивается, действие теряется, а исходная ячейка не расходуется.",
+    "button": "КОНТРЗАКЛИНАНИЕ"
   }
 }
