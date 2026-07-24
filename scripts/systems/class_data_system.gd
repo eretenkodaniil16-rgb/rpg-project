@@ -14,6 +14,7 @@ var _dice: DiceRoller = DiceRoller.new()
 var _race_data: RaceDataSystem = RaceDataSystem.new()
 var _origin_data: OriginDataSystem = OriginDataSystem.new()
 var _origin_feats: OriginFeatSystem = OriginFeatSystem.new()
+var _spellcasting: SpellcastingSystem = SpellcastingSystem.new()
 
 
 func _init() -> void:
@@ -33,10 +34,11 @@ func ensure_starting_loadout(character: PlayerCharacter) -> bool:
 	character.initialize_hit_dice(int(class_data.get("hit_die", 8)))
 	if character.starter_loadout_granted:
 		_origin_feats.initialize_character(character, false)
-		var migrated_equipment: bool = _grant_origin_equipment(character, state)
-		if migrated_equipment:
+		var spell_migrated: bool = _spellcasting.ensure_character(character, false)
+		var equipment_migrated: bool = _grant_origin_equipment(character, state)
+		if spell_migrated or equipment_migrated:
 			state.call("save_game")
-		return migrated_equipment
+		return spell_migrated or equipment_migrated
 	var items_value: Variant = class_data.get("starting_items", {})
 	if items_value is Dictionary:
 		for item_id_value: Variant in (items_value as Dictionary).keys():
@@ -55,6 +57,7 @@ func ensure_starting_loadout(character: PlayerCharacter) -> bool:
 	character.signature_ability_id = str(class_data.get("signature_ability", ""))
 	_initialize_signature_resource(character)
 	_origin_feats.initialize_character(character, true)
+	_spellcasting.ensure_character(character, true)
 	_grant_origin_equipment(character, state)
 	if character.character_class_id == "rogue":
 		character.active_effects["sneak_attack_ready"] = true
@@ -201,21 +204,23 @@ func short_rest(character: PlayerCharacter, roll_override: int = -1) -> Dictiona
 		spent_hit_die = true
 	_recharge_short_rest_features(character)
 	_race_data.recharge_short_rest_resources(character)
+	_spellcasting.recover_after_rest(character, false)
 	_save_state()
 	if spent_hit_die:
 		return {
 			"success": true,
-			"message": "Короткий отдых: d%d выпало %d, восстановлено %d здоровья. Расовые ресурсы короткого отдыха восстановлены." % [character.hit_die_size, roll, character.current_health - before],
+			"message": "Короткий отдых: d%d выпало %d, восстановлено %d здоровья. Ресурсы короткого отдыха восстановлены." % [character.hit_die_size, roll, character.current_health - before],
 			"healing": character.current_health - before,
 			"roll": roll,
-			"spent_hit_die": true
+			"spent_hit_die": true,
+			"duration_hours": 1
 		}
-	var message: String = "Короткий отдых завершён без траты Кости Хитов. Расовые ресурсы короткого отдыха восстановлены."
+	var message: String = "Короткий отдых завершён без траты Кости Хитов. Ресурсы короткого отдыха восстановлены."
 	if character.current_health < character.maximum_health:
 		message += " Свободных Костей Хитов не осталось."
 	else:
 		message += " Здоровье уже было полным."
-	return {"success": true, "message": message, "healing": 0, "roll": 0, "spent_hit_die": false}
+	return {"success": true, "message": message, "healing": 0, "roll": 0, "spent_hit_die": false, "duration_hours": 1}
 
 
 func long_rest(character: PlayerCharacter) -> Dictionary:
@@ -227,18 +232,25 @@ func long_rest(character: PlayerCharacter) -> Dictionary:
 	character.hit_dice_current = character.hit_dice_maximum
 	character.restore_class_resources()
 	_origin_feats.initialize_character(character, true)
+	_spellcasting.recover_after_rest(character, true)
 	if character.character_class_id == "rogue":
 		character.active_effects["sneak_attack_ready"] = true
 	_save_state()
 	return {
 		"success": true,
-		"message": "Долгий отдых (%d ч.) восстановил здоровье, Кости Хитов и расовые/классовые ресурсы." % character.long_rest_hours,
+		"message": "Долгий отдых (%d ч.) восстановил здоровье, Кости Хитов, ячейки и прочие ресурсы." % character.long_rest_hours,
 		"healing": character.current_health - before,
 		"duration_hours": character.long_rest_hours
 	}
 
 
 func get_resource_text(character: PlayerCharacter, ability: Dictionary) -> String:
+	if _spellcasting.is_spell_definition(ability):
+		var spell_level: int = maxi(int(ability.get("spell_level", 0)), 0)
+		if spell_level == 0:
+			return "Без ячейки"
+		var spell_key: String = _spellcasting.active_resource_key(character, ability)
+		return "%d / %d" % [character.get_resource(spell_key), character.get_resource_maximum(spell_key)]
 	var resource_key: String = str(ability.get("resource_key", "unlimited"))
 	if resource_key == "unlimited" or resource_key.is_empty():
 		return "Без ограничений"

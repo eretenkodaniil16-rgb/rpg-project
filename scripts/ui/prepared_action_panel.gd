@@ -4,27 +4,29 @@ extends AbilityPanel
 const PREPARED_ABILITY_FLAG: String = "prepared_ability_id"
 
 var _prepared_ability_id: String = ""
+var _spellcasting: SpellcastingSystem = SpellcastingSystem.new()
 
 
 func refresh() -> void:
 	if _character == null:
 		return
+	_spellcasting.ensure_character(_character, false)
 	_prepared_ability_id = _resolve_prepared_ability_id()
 	var ability: Dictionary = _class_data.get_ability_definition(_prepared_ability_id)
 	if ability.is_empty():
 		_ability_button.text = "НЕТ ПОДГОТОВЛЕННОГО ДЕЙСТВИЯ"
 		_ability_button.disabled = true
 		_resource_label.text = "Откройте: Персонаж → Заклинания и способности"
-		_message_label.text = "Подготовьте активное заклинание или способность"
+		_message_label.text = "Назначьте активное заклинание или способность"
 		return
 	_ability_button.text = str(ability.get("button", ability.get("name", "ПРИМЕНИТЬ"))).to_upper()
-	_ability_button.disabled = str(ability.get("kind", "")) != "active"
+	_ability_button.disabled = str(ability.get("kind", "")) != "active" or not _is_preparable(_prepared_ability_id)
 	_resource_label.text = "%s · %s" % [
 		str(ability.get("name", "Подготовленное действие")),
-		_class_data.get_resource_text(_character, ability)
+		_resource_text(ability)
 	]
 	_ability_button.tooltip_text = str(ability.get("description", ""))
-	_message_label.text = "Подготовленное заклинание или способность"
+	_message_label.text = "Быстрая кнопка заклинания или способности"
 
 
 func get_prepared_ability_id() -> String:
@@ -36,7 +38,7 @@ func _on_ability_pressed() -> void:
 		return
 	_prepared_ability_id = _resolve_prepared_ability_id()
 	if _prepared_ability_id.is_empty():
-		set_message("Сначала подготовьте заклинание или способность.", false)
+		set_message("Сначала назначьте заклинание или способность на быструю кнопку.", false)
 		return
 	ability_requested.emit(_prepared_ability_id)
 
@@ -72,7 +74,21 @@ func _is_preparable(ability_id: String) -> bool:
 	if ability_id.is_empty():
 		return false
 	var ability: Dictionary = _class_data.get_ability_definition(ability_id)
-	return not ability.is_empty() and str(ability.get("kind", "")) == "active"
+	if ability.is_empty() or str(ability.get("kind", "")) != "active":
+		return false
+	if _spellcasting.is_spell_definition(ability):
+		return _spellcasting.is_prepared(_character, ability_id)
+	return true
+
+
+func _resource_text(ability: Dictionary) -> String:
+	if not _spellcasting.is_spell_definition(ability):
+		return _class_data.get_resource_text(_character, ability)
+	var level: int = maxi(int(ability.get("spell_level", 0)), 0)
+	if level == 0:
+		return "Без ячейки"
+	var resource_key: String = _spellcasting.active_resource_key(_character, ability)
+	return "%d / %d" % [_character.get_resource(resource_key), _character.get_resource_maximum(resource_key)]
 
 
 func _store_prepared_id(ability_id: String) -> void:

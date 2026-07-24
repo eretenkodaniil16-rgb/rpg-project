@@ -40,6 +40,16 @@ func _refresh_character() -> void:
 	experience_bar.show_percentage = false
 	overview.add_child(experience_bar)
 	overview.add_child(_label("Опыт: %d/%d · всего %d" % [experience_progress, experience_required, _hero.experience], 17))
+	overview.add_child(_label("Время мира: %s" % _world_time.format_current(_game_state()), 16))
+
+	var spell_profile: Dictionary = _spellcasting.get_spellcasting_profile(_hero.character_class_id)
+	if not spell_profile.is_empty() or not _spellcasting.get_known_spell_ids(_hero).is_empty():
+		var attack_bonus: int = _spellcasting.get_spell_attack_bonus(_hero)
+		overview.add_child(_label("Магия: атака %s · Сл %d" % ["+%d" % attack_bonus if attack_bonus >= 0 else str(attack_bonus), _spellcasting.get_spell_save_dc(_hero)], 16))
+	var concentration_id: String = _spellcasting.get_concentration_spell_id(_hero)
+	if not concentration_id.is_empty():
+		var concentration_spell: Dictionary = _class_data.get_ability_definition(concentration_id)
+		overview.add_child(_label("Концентрация: %s" % str(concentration_spell.get("name", concentration_id)), 16))
 
 	_character_box.add_child(HSeparator.new())
 	var names: Dictionary = {
@@ -123,7 +133,8 @@ func _character_initials(value: String) -> String:
 func _refresh_inventory() -> void:
 	_clear(_inventory_box)
 	_selected_inventory_entry.clear()
-	var entries: Array = GameState.get_inventory_entries()
+	var state: Node = _game_state()
+	var entries: Array = state.call("get_inventory_entries") as Array if state != null else []
 	if entries.is_empty():
 		_inventory_box.add_child(_label("Инвентарь пуст.", 19))
 		return
@@ -176,7 +187,7 @@ func _inventory_stats(entry: Dictionary) -> String:
 	match str(entry.get("type", "")):
 		"weapon":
 			var dice: Array = entry.get("damage_dice", [1, 1]) as Array
-			return "\nУрон: %dd%d %s" % [int(dice[0]), int(dice[1]), str(entry.get("damage_type", "физический"))]
+			return "\nУрон: %dк%d %s" % [int(dice[0]), int(dice[1]), str(entry.get("damage_type", "физический"))]
 		"armor":
 			return "\nБазовый КД: %d" % int(entry.get("base_ac", 10))
 		"shield":

@@ -41,6 +41,36 @@ jobs:
         shell: bash
         run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_origin_feats_and_initiative.gd
 
+      - name: Validate spellcasting and rituals
+        shell: bash
+        run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_spellcasting_and_rituals.gd
+
+      - name: Smoke test spellcasting and ritual UI
+        id: spell_ui
+        continue-on-error: true
+        shell: bash
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/build/spell-ui"
+          set +e
+          ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_spellcasting_ritual_ui.gd 2>&1 | tee "$GITHUB_WORKSPACE/build/spell-ui/spell-ui.log"
+          spell_ui_status=${PIPESTATUS[0]}
+          echo "$spell_ui_status" > "$GITHUB_WORKSPACE/build/spell-ui/status.txt"
+          exit "$spell_ui_status"
+
+      - name: Upload spellcasting UI diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: spellcasting-ui-diagnostics
+          path: build/spell-ui/
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Fail when spellcasting UI smoke test failed
+        if: steps.spell_ui.outcome != 'success'
+        shell: bash
+        run: exit 1
+
       - name: Validate press-and-drag scrolling
         shell: bash
         run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_touch_scroll_manager.gd

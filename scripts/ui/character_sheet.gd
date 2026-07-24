@@ -35,7 +35,9 @@ func open_sheet(character: PlayerCharacter) -> void:
 	_rest_result.text = "Короткий отдых длится 1 час; долгий — 8 часов."
 	_refresh()
 	_sync_grid_toggle()
-	GameState.input_locked = true
+	var state: Node = _game_state()
+	if state != null:
+		state.set("input_locked", true)
 	show()
 	_close_button.grab_focus()
 
@@ -44,7 +46,9 @@ func close_sheet() -> void:
 	if not visible:
 		return
 	hide()
-	GameState.input_locked = false
+	var state: Node = _game_state()
+	if state != null:
+		state.set("input_locked", false)
 	closed.emit()
 
 
@@ -194,9 +198,10 @@ func _refresh() -> void:
 		_add_cell(str(ABILITY_NAMES[ability_id]), HORIZONTAL_ALIGNMENT_LEFT)
 		_add_cell(str(_character.get_ability_score(ability_id)), HORIZONTAL_ALIGNMENT_CENTER)
 		_add_cell(_format_modifier(_character.get_ability_modifier(ability_id)), HORIZONTAL_ALIGNMENT_CENTER)
-	var weapon: Dictionary = GameState.get_item_definition(_character.equipped_weapon_id)
-	var armor: Dictionary = GameState.get_item_definition(_character.equipped_armor_id)
-	var shield: Dictionary = GameState.get_item_definition(_character.equipped_shield_id)
+	var state: Node = _game_state()
+	var weapon: Dictionary = state.call("get_item_definition", _character.equipped_weapon_id) as Dictionary if state != null else {}
+	var armor: Dictionary = state.call("get_item_definition", _character.equipped_armor_id) as Dictionary if state != null else {}
+	var shield: Dictionary = state.call("get_item_definition", _character.equipped_shield_id) as Dictionary if state != null else {}
 	_equipment_label.text = "Оружие: %s\nДоспех: %s\nЩит: %s" % [
 		str(weapon.get("name", "Без оружия")), str(armor.get("name", "Нет")), str(shield.get("name", "Нет"))
 	]
@@ -256,6 +261,11 @@ func _sync_grid_toggle() -> void:
 		return
 	var enabled: bool = bool(battle_grid.call("is_grid_enabled"))
 	_grid_toggle_button.text = "СЕТКА: %s · 1 КЛЕТКА = 5 ФУТОВ" % ("ВКЛ" if enabled else "ВЫКЛ")
+
+
+func _game_state() -> Node:
+	var tree: SceneTree = get_tree()
+	return tree.root.get_node_or_null("GameState") if tree != null else null
 
 
 func _add_cell(text_value: String, alignment: HorizontalAlignment) -> void:

@@ -15,7 +15,8 @@
       "primary_abilities": ["charisma"], "saving_throws": ["dexterity", "charisma"],
       "starting_items": {"leather_armor": 1, "dagger": 2, "lute": 1, "entertainer_pack": 1, "gold_coin": 19},
       "equipment": {"weapon": "dagger", "armor": "leather_armor", "shield": ""},
-      "features": ["bardic_inspiration", "spellcasting_bard"], "signature_ability": "bardic_inspiration"
+      "features": ["bardic_inspiration", "spellcasting_bard"], "signature_ability": "bardic_inspiration",
+      "spellcasting": {"ability":"charisma","prepared_limit":4,"starting_spells":["comprehend_languages"],"starting_prepared":["comprehend_languages"],"slot_maximums":{"1":2},"slot_recovery":"long_rest"}
     },
     {
       "id": "cleric", "name": "Жрец", "role": "Защита, исцеление и божественная магия",
@@ -23,7 +24,8 @@
       "primary_abilities": ["wisdom"], "saving_throws": ["wisdom", "charisma"],
       "starting_items": {"chain_shirt": 1, "shield": 1, "mace": 1, "holy_symbol": 1, "priest_pack": 1, "gold_coin": 7},
       "equipment": {"weapon": "mace", "armor": "chain_shirt", "shield": "shield"},
-      "features": ["spellcasting_cleric", "divine_order"], "signature_ability": "cure_wounds"
+      "features": ["spellcasting_cleric", "divine_order"], "signature_ability": "cure_wounds",
+      "spellcasting": {"ability":"wisdom","prepared_limit":4,"starting_spells":["sacred_flame","cure_wounds","detect_magic"],"starting_prepared":["cure_wounds","detect_magic"],"slot_maximums":{"1":2},"slot_recovery":"long_rest"}
     },
     {
       "id": "druid", "name": "Друид", "role": "Природная магия и контроль",
@@ -31,7 +33,8 @@
       "primary_abilities": ["wisdom"], "saving_throws": ["intelligence", "wisdom"],
       "starting_items": {"leather_armor": 1, "shield": 1, "sickle": 1, "quarterstaff_focus": 1, "explorer_pack": 1, "herbalism_kit": 1, "gold_coin": 9},
       "equipment": {"weapon": "quarterstaff_focus", "armor": "leather_armor", "shield": "shield"},
-      "features": ["spellcasting_druid", "druidic", "primal_order"], "signature_ability": "produce_flame"
+      "features": ["spellcasting_druid", "druidic", "primal_order"], "signature_ability": "produce_flame",
+      "spellcasting": {"ability":"wisdom","prepared_limit":4,"starting_spells":["produce_flame","detect_magic"],"starting_prepared":["detect_magic"],"slot_maximums":{"1":2},"slot_recovery":"long_rest"}
     },
     {
       "id": "fighter", "name": "Воин", "role": "Мастер оружия и тактики",
@@ -55,7 +58,8 @@
       "primary_abilities": ["strength", "charisma"], "saving_throws": ["wisdom", "charisma"],
       "starting_items": {"chain_mail": 1, "shield": 1, "longsword": 1, "javelin": 6, "holy_symbol": 1, "priest_pack": 1, "gold_coin": 9},
       "equipment": {"weapon": "longsword", "armor": "chain_mail", "shield": "shield"},
-      "features": ["lay_on_hands", "spellcasting_paladin", "weapon_mastery"], "signature_ability": "lay_on_hands"
+      "features": ["lay_on_hands", "spellcasting_paladin", "weapon_mastery"], "signature_ability": "lay_on_hands",
+      "spellcasting": {"ability":"charisma","prepared_limit":2,"starting_spells":["detect_magic"],"starting_prepared":["detect_magic"],"slot_maximums":{"1":2},"slot_recovery":"long_rest"}
     },
     {
       "id": "ranger", "name": "Следопыт", "role": "Разведчик, охотник и стрелок",
@@ -65,7 +69,8 @@
       "equipment": {"weapon": "longbow", "armor": "studded_leather", "shield": ""},
       "features": ["favored_enemy", "spellcasting_ranger", "weapon_mastery"],
       "movement_traits": ["ignore_nonmagical_difficult_terrain"],
-      "signature_ability": "hunters_mark"
+      "signature_ability": "hunters_mark",
+      "spellcasting": {"ability":"wisdom","prepared_limit":2,"starting_spells":["hunters_mark","detect_magic"],"starting_prepared":["detect_magic"],"slot_maximums":{"1":2},"slot_recovery":"long_rest"}
     },
     {
       "id": "rogue", "name": "Плут", "role": "Скрытность, ловушки и точечный урон",
@@ -81,7 +86,8 @@
       "primary_abilities": ["charisma"], "saving_throws": ["constitution", "charisma"],
       "starting_items": {"spear": 1, "dagger": 2, "arcane_focus_crystal": 1, "dungeoneer_pack": 1, "gold_coin": 28},
       "equipment": {"weapon": "spear", "armor": "", "shield": ""},
-      "features": ["spellcasting_sorcerer", "innate_sorcery"], "signature_ability": "sorcerous_burst"
+      "features": ["spellcasting_sorcerer", "innate_sorcery"], "signature_ability": "sorcerous_burst",
+      "spellcasting": {"ability":"charisma","prepared_limit":2,"starting_spells":["sorcerous_burst"],"starting_prepared":[],"slot_maximums":{"1":2},"slot_recovery":"long_rest"}
     },
     {
       "id": "warlock", "name": "Колдун", "role": "Магия договора и устойчивые способности",
@@ -89,7 +95,8 @@
       "primary_abilities": ["charisma"], "saving_throws": ["wisdom", "charisma"],
       "starting_items": {"leather_armor": 1, "sickle": 1, "dagger": 2, "arcane_focus_orb": 1, "occult_book": 1, "scholar_pack": 1, "gold_coin": 15},
       "equipment": {"weapon": "sickle", "armor": "leather_armor", "shield": ""},
-      "features": ["pact_magic", "eldritch_invocations"], "signature_ability": "eldritch_blast"
+      "features": ["pact_magic", "eldritch_invocations"], "signature_ability": "eldritch_blast",
+      "spellcasting": {"ability":"charisma","prepared_limit":2,"starting_spells":["eldritch_blast"],"starting_prepared":[],"slot_maximums":{"1":1},"slot_resource_prefix":"pact_slots","slot_recovery":"short_rest"}
     },
     {
       "id": "wizard", "name": "Волшебник", "role": "Широкий выбор изученной магии",
@@ -97,7 +104,8 @@
       "primary_abilities": ["intelligence"], "saving_throws": ["intelligence", "wisdom"],
       "starting_items": {"dagger": 2, "quarterstaff_focus": 1, "robe": 1, "spellbook": 1, "scholar_pack": 1, "gold_coin": 5},
       "equipment": {"weapon": "quarterstaff_focus", "armor": "", "shield": ""},
-      "features": ["spellcasting_wizard", "ritual_adept", "arcane_recovery"], "signature_ability": "magic_missile"
+      "features": ["spellcasting_wizard", "ritual_adept", "arcane_recovery"], "signature_ability": "magic_missile",
+      "spellcasting": {"ability":"intelligence","prepared_limit":4,"starting_spells":["fire_bolt","magic_missile","detect_magic","comprehend_languages"],"starting_prepared":["magic_missile","detect_magic","comprehend_languages"],"slot_maximums":{"1":2},"slot_recovery":"long_rest"}
     }
   ]
 }
