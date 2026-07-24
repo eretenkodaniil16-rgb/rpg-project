@@ -19,6 +19,8 @@ var _pending_area_cells: Array[Vector2i] = []
 var _pending_area_origin_cell: Vector2i = Vector2i.ZERO
 var _pending_area_origin_world: Vector2 = Vector2.ZERO
 var _pending_area_aim_cell: Vector2i = Vector2i.ZERO
+var _pending_area_direction: Vector2 = Vector2.RIGHT
+var _spell_area_confirmation_in_progress: bool = false
 var _spell_area_confirm_button: Button
 var _spell_area_cancel_button: Button
 
@@ -112,6 +114,9 @@ func _begin_spell_area_targeting(ability: Dictionary) -> void:
 		return
 	_pending_area_spell = ability.duplicate(true)
 	_spell_area_targeting_active = true
+	_spell_area_confirmation_in_progress = false
+	_spell_area_confirm_button.disabled = false
+	_spell_area_cancel_button.disabled = false
 	_spell_area_confirm_button.show()
 	_spell_area_cancel_button.show()
 	var area: Dictionary = ability.get("area", {}) as Dictionary
@@ -130,11 +135,12 @@ func _set_spell_area_aim_world(world_position: Vector2) -> void:
 	if grid == null:
 		return
 	var area: Dictionary = _pending_area_spell.get("area", {}) as Dictionary
+	var origin_mode: String = str(area.get("origin", "point"))
 	var caster_cell: Vector2i = grid.world_to_cell(player.global_position)
 	var aim_cell: Vector2i = grid.world_to_cell(world_position)
 	if not grid.is_cell_valid(aim_cell):
 		return
-	if str(area.get("origin", "point")) != "self":
+	if origin_mode != "self":
 		var maximum_range: int = maxi(int(_pending_area_spell.get("range_ft", 0)), 0)
 		if maximum_range > 0 and DistanceSystem.distance_feet(player.global_position, grid.cell_to_world_center(aim_cell)) > maximum_range:
 			show_combat_message("Точка происхождения находится дальше %d футов." % maximum_range, false)
@@ -145,13 +151,21 @@ func _set_spell_area_aim_world(world_position: Vector2) -> void:
 			_combat_environment
 		)
 		aim_cell = grid.world_to_cell(resolved_world)
-	if aim_cell == caster_cell:
+	if aim_cell == caster_cell and origin_mode == "self":
 		var fallback_world: Vector2 = player.global_position + _get_player_facing_direction() * grid.get_cell_size()
 		aim_cell = grid.world_to_cell(fallback_world)
+	var direction_world: Vector2 = grid.cell_to_world_center(aim_cell) - player.global_position
+	_pending_area_direction = direction_world.normalized() if direction_world.length_squared() > 0.0001 else _get_player_facing_direction()
 	_pending_area_aim_cell = aim_cell
 	_pending_area_origin_cell = _spell_area_system.get_origin_cell(caster_cell, aim_cell, area)
 	_pending_area_origin_world = grid.cell_to_world_center(_pending_area_origin_cell)
-	var cells: Array[Vector2i] = _spell_area_system.get_area_cells(grid, caster_cell, aim_cell, area)
+	var cells: Array[Vector2i] = _spell_area_system.get_area_cells(
+		grid,
+		caster_cell,
+		aim_cell,
+		area,
+		_pending_area_direction
+	)
 	_pending_area_cells = _spell_area_system.filter_cells_by_total_cover(grid, cells, _pending_area_origin_world, _combat_environment)
 	grid.set_spell_area_preview(_pending_area_cells, _pending_area_origin_cell)
 	var target_count: int = _collect_pending_area_targets().size()
@@ -172,7 +186,7 @@ func _collect_pending_area_targets() -> Array[Node]:
 
 
 func _confirm_spell_area() -> void:
-	if not _spell_area_targeting_active or _pending_area_spell.is_empty():
+	if not _spell_area_targeting_active or _pending_area_spell.is_empty() or _spell_area_confirmation_in_progress:
 		return
 	if _turn_system.active and not _turn_system.is_player_turn(player):
 		_ability_panel.set_message("Область можно применить только на своём ходу.", false)
@@ -198,6 +212,9 @@ func _confirm_spell_area() -> void:
 			"total_cover": false
 		})
 	var spell_name: String = str(_pending_area_spell.get("name", "Заклинание"))
+	_spell_area_confirmation_in_progress = true
+	_spell_area_confirm_button.disabled = true
+	_spell_area_cancel_button.disabled = true
 	var cast_result: Dictionary = _ability_system.perform_area_spell(
 		GameState.player_character,
 		_pending_area_spell,
@@ -205,8 +222,12 @@ func _confirm_spell_area() -> void:
 		casting_context
 	)
 	if not bool(cast_result.get("success", false)):
+		_spell_area_confirmation_in_progress = false
+		_spell_area_confirm_button.disabled = false
+		_spell_area_cancel_button.disabled = false
 		_ability_panel.set_message(str(cast_result.get("message", "Заклинание не сработало.")), false)
 		return
+	_spell_area_targeting_active = false
 	_set_combat_busy(true)
 	player.play_attack_animation(grid_cell_world(_pending_area_aim_cell))
 	await get_tree().create_timer(0.24).timeout
@@ -251,11 +272,14 @@ func grid_cell_world(cell: Vector2i) -> Vector2:
 
 func _cancel_spell_area_targeting() -> void:
 	_spell_area_targeting_active = false
+	_spell_area_confirmation_in_progress = false
 	_pending_area_spell.clear()
 	_pending_area_cells.clear()
 	if _spell_area_confirm_button != null:
+		_spell_area_confirm_button.disabled = false
 		_spell_area_confirm_button.hide()
 	if _spell_area_cancel_button != null:
+		_spell_area_cancel_button.disabled = false
 		_spell_area_cancel_button.hide()
 	var grid: BattleGrid = _get_battle_grid()
 	if grid != null:
