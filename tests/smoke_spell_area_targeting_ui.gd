@@ -97,6 +97,38 @@ func _run() -> void:
 		_fail("Advancing combat did not clear area targeting state.")
 		return
 
+	var point_spell: Dictionary = burning_hands.duplicate(true)
+	point_spell["area"] = {"shape": "sphere", "origin": "point", "radius_ft": 5}
+	point_spell["range_ft"] = 30
+	game.set("_pending_area_spell", point_spell)
+	game.set("_spell_area_targeting_active", true)
+	game.call("_set_spell_area_aim_world", player.global_position)
+	var expected_origin: Vector2i = grid.world_to_cell(player.global_position)
+	var actual_origin: Vector2i = game.get("_pending_area_origin_cell") as Vector2i
+	if actual_origin != expected_origin:
+		_fail("A point-origin area selected in the caster cell was displaced to a neighboring cell.")
+		return
+	game.call("_cancel_spell_area_targeting")
+
+	game.call("_begin_spell_area_targeting", burning_hands)
+	await process_frame
+	var slots_before: int = wizard.get_resource("spell_slots_1")
+	if slots_before <= 0:
+		_fail("Wizard had no level-one slot for double-confirmation regression test.")
+		return
+	game.call("_confirm_spell_area")
+	if not confirm_button.disabled:
+		_fail("Area confirmation button was not disabled before the casting animation await.")
+		return
+	game.call("_confirm_spell_area")
+	await create_timer(0.6).timeout
+	if wizard.get_resource("spell_slots_1") != slots_before - 1:
+		_fail("A rapid double confirmation consumed more than one spell slot.")
+		return
+	if confirm_button.visible or cancel_button.visible or grid.is_spell_area_preview_active():
+		_fail("Completed area casting did not clear controls and preview.")
+		return
+
 	game.call("_begin_spell_area_targeting", burning_hands)
 	await process_frame
 	game.call("_cancel_spell_area_targeting")
@@ -107,5 +139,5 @@ func _run() -> void:
 
 	_finished = true
 	game.queue_free()
-	print("Spell area targeting UI and lifecycle cleanup smoke test passed.")
+	print("Spell area targeting UI, point origin, atomic confirmation, and lifecycle cleanup smoke test passed.")
 	quit(0)
