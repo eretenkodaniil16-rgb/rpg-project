@@ -455,9 +455,12 @@
         "ability": "charisma",
         "prepared_limit": 2,
         "starting_spells": [
-          "sorcerous_burst"
+          "sorcerous_burst",
+          "burning_hands"
         ],
-        "starting_prepared": [],
+        "starting_prepared": [
+          "burning_hands"
+        ],
         "slot_maximums": {
           "1": 2
         },
@@ -553,12 +556,14 @@
           "fire_bolt",
           "magic_missile",
           "detect_magic",
-          "comprehend_languages"
+          "comprehend_languages",
+          "burning_hands"
         ],
         "starting_prepared": [
           "magic_missile",
           "detect_magic",
-          "comprehend_languages"
+          "comprehend_languages",
+          "burning_hands"
         ],
         "slot_maximums": {
           "1": 2

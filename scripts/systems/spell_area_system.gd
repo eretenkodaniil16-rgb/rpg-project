@@ -152,7 +152,7 @@ func _cell_is_inside(
 			return maxi(absi(cell.x - origin_cell.x), absi(cell.y - origin_cell.y)) <= radius_cells
 		SHAPE_CONE:
 			var length_cells: int = _feet_to_cells(int(area.get("length_ft", 5)))
-			return forward_distance > 0.0 and forward_distance <= float(length_cells) + 0.5 and lateral_distance <= forward_distance * 0.5 + 0.5
+			return forward_distance > 0.0 and forward_distance <= float(length_cells) + 0.5 and lateral_distance <= forward_distance * 0.5
 		SHAPE_LINE:
 			var line_length_cells: int = _feet_to_cells(int(area.get("length_ft", 5)))
 			var width_cells: int = maxi(_feet_to_cells(int(area.get("width_ft", 5))), 1)
