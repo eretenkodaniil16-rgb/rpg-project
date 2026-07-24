@@ -86,8 +86,12 @@ func _run() -> void:
 	if not spellbook.is_in_spellbook(wizard, "caustic_pulse") or "caustic_pulse" not in wizard.known_features:
 		_fail("Copied formula was not synchronized to the book and known spell list.")
 		return
+	var unprepared_for_space: Dictionary = spellcasting.unprepare_spell(wizard, "burning_hands")
+	if not bool(unprepared_for_space.get("success", false)):
+		_fail("Could not free a preparation slot before preparing the copied spell.")
+		return
 	if not bool(spellcasting.prepare_spell(wizard, "caustic_pulse").get("success", false)):
-		_fail("Copied Wizard spell could not be prepared.")
+		_fail("Copied Wizard spell could not be prepared after freeing a preparation slot.")
 		return
 	var duplicate_gold: int = int(state.call("get_item_count", "gold_coin"))
 	state.call("add_item", "spell_scroll_caustic_pulse", 1, false)
