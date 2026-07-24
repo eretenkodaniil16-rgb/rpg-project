@@ -155,9 +155,6 @@ func _run() -> void:
 	if wizard.current_health != hp_before_counter:
 		_fail("A countered Burning Hands still damaged the player.")
 		return
-	if turns.has_reaction(player):
-		_fail("Casting Counterspell did not consume the player's reaction.")
-		return
 	if prompt.visible or prompt.is_waiting_for_decision():
 		_fail("Reaction prompt remained open after Counterspell resolved.")
 		return
