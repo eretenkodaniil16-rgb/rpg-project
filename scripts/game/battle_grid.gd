@@ -8,6 +8,9 @@ const PLAYER_CELL_COLOR: Color = Color(0.22, 0.62, 1.0, 0.14)
 const TARGET_CELL_COLOR: Color = Color(1.0, 0.34, 0.24, 0.16)
 const ACTIVE_CELL_COLOR: Color = Color(0.42, 1.0, 0.46, 0.18)
 const MEASURE_COLOR: Color = Color(1.0, 0.72, 0.28, 0.92)
+const SPELL_AREA_COLOR: Color = Color(1.0, 0.32, 0.12, 0.28)
+const SPELL_ORIGIN_COLOR: Color = Color(1.0, 0.82, 0.22, 0.48)
+const INVALID_SPELL_CELL: Vector2i = Vector2i(-99999, -99999)
 
 @export var field_rect: Rect2 = Rect2(45.0, 45.0, 1190.0, 630.0)
 @export var cell_size: float = DistanceSystem.PIXELS_PER_5_FEET
@@ -22,6 +25,9 @@ var _distance_label: Label
 var _last_player_position: Vector2 = Vector2.INF
 var _last_target_position: Vector2 = Vector2.INF
 var _last_active_position: Vector2 = Vector2.INF
+var _spell_area_cells: Array[Vector2i] = []
+var _spell_area_origin_cell: Vector2i = INVALID_SPELL_CELL
+var _spell_area_preview_active: bool = false
 
 
 func _ready() -> void:
@@ -69,6 +75,28 @@ func get_field_rect() -> Rect2:
 func set_active_actor(actor: Node) -> void:
 	_active_actor = actor as Node2D if actor is Node2D and is_instance_valid(actor) else null
 	queue_redraw()
+
+
+func set_spell_area_preview(cells: Array[Vector2i], origin_cell: Vector2i) -> void:
+	_spell_area_cells = cells.duplicate()
+	_spell_area_origin_cell = origin_cell
+	_spell_area_preview_active = true
+	queue_redraw()
+
+
+func clear_spell_area_preview() -> void:
+	_spell_area_cells.clear()
+	_spell_area_origin_cell = INVALID_SPELL_CELL
+	_spell_area_preview_active = false
+	queue_redraw()
+
+
+func is_spell_area_preview_active() -> bool:
+	return _spell_area_preview_active
+
+
+func get_spell_area_preview_cells() -> Array[Vector2i]:
+	return _spell_area_cells.duplicate()
 
 
 func world_to_cell(world_position: Vector2) -> Vector2i:
@@ -150,6 +178,11 @@ func _draw() -> void:
 			true
 		)
 	draw_rect(field_rect, BORDER_COLOR, false, 2.0)
+	if _spell_area_preview_active:
+		for spell_cell: Vector2i in _spell_area_cells:
+			_draw_cell_highlight(cell_to_world_center(spell_cell), SPELL_AREA_COLOR)
+		if is_cell_valid(_spell_area_origin_cell):
+			_draw_cell_highlight(cell_to_world_center(_spell_area_origin_cell), SPELL_ORIGIN_COLOR)
 	if is_instance_valid(_active_actor):
 		_draw_cell_highlight(_active_actor.global_position, ACTIVE_CELL_COLOR)
 	if is_instance_valid(_player):

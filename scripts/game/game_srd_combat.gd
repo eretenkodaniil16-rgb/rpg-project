@@ -11,6 +11,18 @@ var _combat_environment: CombatEnvironment
 var _srd_combat_ui: SrdCombatUI
 var _death_save_running: bool = false
 var _srd_dice: DiceRoller = DiceRoller.new()
+var _spell_area_system: SpellAreaSystem = SpellAreaSystem.new()
+var _spell_area_runtime: SpellcastingSystem = SpellcastingSystem.new()
+var _spell_area_targeting_active: bool = false
+var _pending_area_spell: Dictionary = {}
+var _pending_area_cells: Array[Vector2i] = []
+var _pending_area_origin_cell: Vector2i = Vector2i.ZERO
+var _pending_area_origin_world: Vector2 = Vector2.ZERO
+var _pending_area_aim_cell: Vector2i = Vector2i.ZERO
+var _pending_area_direction: Vector2 = Vector2.RIGHT
+var _spell_area_confirmation_in_progress: bool = false
+var _spell_area_confirm_button: Button
+var _spell_area_cancel_button: Button
 
 
 func _ready() -> void:
@@ -29,12 +41,255 @@ func _ready() -> void:
 	_srd_combat_ui.escape_grapple_requested.connect(_on_escape_grapple_requested)
 	_srd_combat_ui.ready_attack_requested.connect(_on_ready_attack_requested)
 	_srd_combat_ui.hide_requested.connect(_on_hide_requested)
+	_build_spell_area_controls()
 	_state_for(player)
 	_refresh_srd_interface()
 
 
+func _unhandled_input(event: InputEvent) -> void:
+	if not _spell_area_targeting_active:
+		super._unhandled_input(event)
+		return
+	if event is InputEventKey:
+		var key_event := event as InputEventKey
+		if key_event.pressed and not key_event.echo:
+			if key_event.keycode in [KEY_ESCAPE, KEY_BACKSPACE]:
+				_cancel_spell_area_targeting()
+				get_viewport().set_input_as_handled()
+				return
+			if key_event.keycode in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE]:
+				_confirm_spell_area()
+				get_viewport().set_input_as_handled()
+				return
+	var screen_position: Vector2 = Vector2.INF
+	if event is InputEventMouseButton and (event as InputEventMouseButton).pressed and (event as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
+		screen_position = (event as InputEventMouseButton).position
+	elif event is InputEventScreenTouch and (event as InputEventScreenTouch).pressed:
+		screen_position = (event as InputEventScreenTouch).position
+	if screen_position != Vector2.INF:
+		var world_position: Vector2 = get_viewport().get_canvas_transform().affine_inverse() * screen_position
+		_set_spell_area_aim_world(world_position)
+		get_viewport().set_input_as_handled()
+
+
+func _build_spell_area_controls() -> void:
+	var interface: CanvasLayer = $Interface
+	_spell_area_confirm_button = Button.new()
+	_spell_area_confirm_button.name = "SpellAreaConfirmButton"
+	_spell_area_confirm_button.text = "СОТВОРИТЬ ОБЛАСТЬ"
+	_spell_area_confirm_button.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	_spell_area_confirm_button.offset_left = 400.0
+	_spell_area_confirm_button.offset_top = -94.0
+	_spell_area_confirm_button.offset_right = 700.0
+	_spell_area_confirm_button.offset_bottom = -22.0
+	_spell_area_confirm_button.add_theme_font_size_override("font_size", 19)
+	_spell_area_confirm_button.pressed.connect(_confirm_spell_area)
+	_spell_area_confirm_button.hide()
+	interface.add_child(_spell_area_confirm_button)
+	_spell_area_cancel_button = Button.new()
+	_spell_area_cancel_button.name = "SpellAreaCancelButton"
+	_spell_area_cancel_button.text = "ОТМЕНА"
+	_spell_area_cancel_button.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	_spell_area_cancel_button.offset_left = 714.0
+	_spell_area_cancel_button.offset_top = -94.0
+	_spell_area_cancel_button.offset_right = 894.0
+	_spell_area_cancel_button.offset_bottom = -22.0
+	_spell_area_cancel_button.add_theme_font_size_override("font_size", 18)
+	_spell_area_cancel_button.pressed.connect(_cancel_spell_area_targeting)
+	_spell_area_cancel_button.hide()
+	interface.add_child(_spell_area_cancel_button)
+
+
+func _is_area_spell(ability: Dictionary) -> bool:
+	var area_value: Variant = ability.get("area", {})
+	return str(ability.get("effect", "")) == "area_saving_throw_spell" and area_value is Dictionary and _spell_area_system.is_area_definition(area_value as Dictionary)
+
+
+func _begin_spell_area_targeting(ability: Dictionary) -> void:
+	if not _is_area_spell(ability):
+		return
+	var casting_context: Dictionary = _build_spellcasting_context()
+	if not _spell_area_runtime.can_cast_spell(GameState.player_character, ability, false, _turn_system.active, 0, casting_context):
+		_ability_panel.set_message("Заклинание не подготовлено, нет ячейки или недоступны компоненты.", false)
+		return
+	_pending_area_spell = ability.duplicate(true)
+	_spell_area_targeting_active = true
+	_spell_area_confirmation_in_progress = false
+	_spell_area_confirm_button.disabled = false
+	_spell_area_cancel_button.disabled = false
+	_spell_area_confirm_button.show()
+	_spell_area_cancel_button.show()
+	var area: Dictionary = ability.get("area", {}) as Dictionary
+	var distance_feet: int = maxi(int(area.get("length_ft", area.get("radius_ft", area.get("size_ft", 15)))), 5)
+	var initial_world: Vector2 = player.global_position + _get_player_facing_direction() * DistanceSystem.feet_to_pixels(distance_feet)
+	if _target_is_valid(_selected_target):
+		initial_world = (_selected_target as Node2D).global_position
+	_set_spell_area_aim_world(initial_world)
+	show_combat_message("Выберите направление или точку области. Подтвердите отдельной кнопкой.", true)
+
+
+func _set_spell_area_aim_world(world_position: Vector2) -> void:
+	if not _spell_area_targeting_active or _pending_area_spell.is_empty():
+		return
+	var grid: BattleGrid = _get_battle_grid()
+	if grid == null:
+		return
+	var area: Dictionary = _pending_area_spell.get("area", {}) as Dictionary
+	var origin_mode: String = str(area.get("origin", "point"))
+	var caster_cell: Vector2i = grid.world_to_cell(player.global_position)
+	var aim_cell: Vector2i = grid.world_to_cell(world_position)
+	if not grid.is_cell_valid(aim_cell):
+		return
+	if origin_mode != "self":
+		var maximum_range: int = maxi(int(_pending_area_spell.get("range_ft", 0)), 0)
+		if maximum_range > 0 and DistanceSystem.distance_feet(player.global_position, grid.cell_to_world_center(aim_cell)) > maximum_range:
+			show_combat_message("Точка происхождения находится дальше %d футов." % maximum_range, false)
+			return
+		var resolved_world: Vector2 = _spell_area_system.resolve_point_of_origin(
+			player.global_position,
+			grid.cell_to_world_center(aim_cell),
+			_combat_environment
+		)
+		aim_cell = grid.world_to_cell(resolved_world)
+	if aim_cell == caster_cell and origin_mode == "self":
+		var fallback_world: Vector2 = player.global_position + _get_player_facing_direction() * grid.get_cell_size()
+		aim_cell = grid.world_to_cell(fallback_world)
+	var direction_world: Vector2 = grid.cell_to_world_center(aim_cell) - player.global_position
+	_pending_area_direction = direction_world.normalized() if direction_world.length_squared() > 0.0001 else _get_player_facing_direction()
+	_pending_area_aim_cell = aim_cell
+	_pending_area_origin_cell = _spell_area_system.get_origin_cell(caster_cell, aim_cell, area)
+	_pending_area_origin_world = grid.cell_to_world_center(_pending_area_origin_cell)
+	var cells: Array[Vector2i] = _spell_area_system.get_area_cells(
+		grid,
+		caster_cell,
+		aim_cell,
+		area,
+		_pending_area_direction
+	)
+	_pending_area_cells = _spell_area_system.filter_cells_by_total_cover(grid, cells, _pending_area_origin_world, _combat_environment)
+	grid.set_spell_area_preview(_pending_area_cells, _pending_area_origin_cell)
+	var target_count: int = _collect_pending_area_targets().size()
+	_spell_area_confirm_button.text = "СОТВОРИТЬ · ЦЕЛЕЙ: %d" % target_count
+
+
+func _collect_pending_area_targets() -> Array[Node]:
+	var grid: BattleGrid = _get_battle_grid()
+	if grid == null:
+		return []
+	return _spell_area_system.collect_targets(
+		grid,
+		_pending_area_cells,
+		_available_targets(),
+		_pending_area_origin_world,
+		_combat_environment
+	)
+
+
+func _confirm_spell_area() -> void:
+	if not _spell_area_targeting_active or _pending_area_spell.is_empty() or _spell_area_confirmation_in_progress:
+		return
+	if _turn_system.active and not _turn_system.is_player_turn(player):
+		_ability_panel.set_message("Область можно применить только на своём ходу.", false)
+		return
+	var casting_context: Dictionary = _build_spellcasting_context()
+	if not _spell_area_runtime.can_cast_spell(GameState.player_character, _pending_area_spell, false, _turn_system.active, 0, casting_context):
+		_ability_panel.set_message("Заклинание недоступно: проверьте ячейку, подготовку и компоненты.", false)
+		return
+	if _turn_system.active and not _turn_system.consume_action():
+		_ability_panel.set_message("Действие на этом ходу уже использовано.", false)
+		return
+	var targets: Array[Node] = _collect_pending_area_targets()
+	var target_contexts: Array = []
+	var save_ability: String = str(_pending_area_spell.get("save_ability", "dexterity"))
+	for target: Node in targets:
+		if not _target_is_valid(target):
+			continue
+		target_contexts.append({
+			"target": target,
+			"target_name": _target_name(target),
+			"defender_state": _state_for(target),
+			"target_save_modifier": int(target.call("get_saving_throw_modifier", save_ability)) if target.has_method("get_saving_throw_modifier") else 0,
+			"total_cover": false
+		})
+	var spell_name: String = str(_pending_area_spell.get("name", "Заклинание"))
+	_spell_area_confirmation_in_progress = true
+	_spell_area_confirm_button.disabled = true
+	_spell_area_cancel_button.disabled = true
+	var cast_result: Dictionary = _ability_system.perform_area_spell(
+		GameState.player_character,
+		_pending_area_spell,
+		target_contexts,
+		casting_context
+	)
+	if not bool(cast_result.get("success", false)):
+		_spell_area_confirmation_in_progress = false
+		_spell_area_confirm_button.disabled = false
+		_spell_area_cancel_button.disabled = false
+		_ability_panel.set_message(str(cast_result.get("message", "Заклинание не сработало.")), false)
+		return
+	_spell_area_targeting_active = false
+	_set_combat_busy(true)
+	player.play_attack_animation(grid_cell_world(_pending_area_aim_cell))
+	await get_tree().create_timer(0.24).timeout
+	var total_damage: int = 0
+	var applied_targets: int = 0
+	var resolutions_value: Variant = cast_result.get("resolutions", [])
+	if resolutions_value is Array:
+		for resolution_value: Variant in resolutions_value:
+			if not resolution_value is Dictionary:
+				continue
+			var resolution: Dictionary = resolution_value as Dictionary
+			var target: Node = resolution.get("target") as Node
+			var result: AttackResult = resolution.get("result") as AttackResult
+			if not is_instance_valid(target) or result == null:
+				continue
+			_apply_mitigation_to_result(result, _state_for(target))
+			total_damage += result.damage
+			applied_targets += 1
+			target.call("receive_player_attack", result, false)
+			if target.has_method("get_current_health") and int(target.call("get_current_health")) <= 0:
+				_release_grapples_for(target)
+	_set_combat_busy(false)
+	_ability_panel.set_message("%s: целей %d, суммарный урон %d." % [spell_name, applied_targets, total_damage], true)
+	GameState.save_game()
+	_update_status()
+	_sync_exploration_hud_visibility()
+	var combat_trigger: Node = null
+	for target: Node in targets:
+		if _target_is_valid(target):
+			combat_trigger = target
+			break
+	_cancel_spell_area_targeting()
+	if not _turn_system.active and is_instance_valid(combat_trigger):
+		_start_turn_based_combat(combat_trigger)
+	_after_player_action()
+
+
+func grid_cell_world(cell: Vector2i) -> Vector2:
+	var grid: BattleGrid = _get_battle_grid()
+	return grid.cell_to_world_center(cell) if grid != null and grid.is_cell_valid(cell) else player.global_position
+
+
+func _cancel_spell_area_targeting() -> void:
+	_spell_area_targeting_active = false
+	_spell_area_confirmation_in_progress = false
+	_pending_area_spell.clear()
+	_pending_area_cells.clear()
+	if _spell_area_confirm_button != null:
+		_spell_area_confirm_button.disabled = false
+		_spell_area_confirm_button.hide()
+	if _spell_area_cancel_button != null:
+		_spell_area_cancel_button.disabled = false
+		_spell_area_cancel_button.hide()
+	var grid: BattleGrid = _get_battle_grid()
+	if grid != null:
+		grid.clear_spell_area_preview()
+
+
 func _process(delta: float) -> void:
 	super._process(delta)
+	if _spell_area_targeting_active and (GameState.input_locked or _any_overlay_visible()):
+		_cancel_spell_area_targeting()
 	_sync_player_damage_traits()
 	_refresh_srd_interface()
 
@@ -80,7 +335,7 @@ func _start_turn_based_combat(trigger_target: Node) -> void:
 
 
 func _request_attack() -> void:
-	if GameState.input_locked or _any_overlay_visible() or _attack_in_progress or _enemy_turn_running:
+	if GameState.input_locked or _any_overlay_visible() or _attack_in_progress or _enemy_turn_running or _spell_area_targeting_active:
 		return
 	if _turn_system.active and not _turn_system.is_player_turn(player):
 		show_combat_message("Атаковать можно только на своём ходу.", false)
@@ -209,11 +464,19 @@ func _on_ability_requested(ability_id: String) -> void:
 	if ability.is_empty():
 		_ability_panel.set_message("Способность не найдена.", false)
 		return
+	if _spell_area_targeting_active:
+		if ability_id == str(_pending_area_spell.get("id", "")):
+			_confirm_spell_area()
+			return
+		_cancel_spell_area_targeting()
 	if _turn_system.active and not _turn_system.is_player_turn(player):
 		_ability_panel.set_message("Способность можно применить только на своём ходу.", false)
 		return
 	if not _srd_rules.can_take_action(_player_combat_state):
 		_ability_panel.set_message("Текущее состояние не позволяет применять способности.", false)
+		return
+	if _is_area_spell(ability):
+		_begin_spell_area_targeting(ability)
 		return
 
 	var target_type: String = str(ability.get("target", "self"))
@@ -288,7 +551,7 @@ func _on_ability_requested(ability_id: String) -> void:
 func request_combat_move(step: Vector2i) -> void:
 	if not _turn_system.active or not _turn_system.is_player_turn(player):
 		return
-	if GameState.input_locked or _any_overlay_visible() or _attack_in_progress or _enemy_turn_running:
+	if GameState.input_locked or _any_overlay_visible() or _attack_in_progress or _enemy_turn_running or _spell_area_targeting_active:
 		return
 	if step == Vector2i.ZERO:
 		return
@@ -351,6 +614,8 @@ func _begin_current_turn() -> void:
 
 
 func _advance_combat_turn() -> void:
+	if _spell_area_targeting_active:
+		_cancel_spell_area_targeting()
 	if _turn_system.active:
 		var previous: Node = _turn_system.current_actor()
 		if is_instance_valid(previous):

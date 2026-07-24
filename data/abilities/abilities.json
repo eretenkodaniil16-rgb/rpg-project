@@ -659,5 +659,43 @@
       ],
       "damage_bonus_per_level": 1
     }
+  },
+  "burning_hands": {
+    "id": "burning_hands",
+    "name": "Горящие руки",
+    "kind": "active",
+    "is_spell": true,
+    "spell_level": 1,
+    "school": "Воплощение",
+    "target": "area",
+    "effect": "area_saving_throw_spell",
+    "save_ability": "dexterity",
+    "damage_dice": [
+      3,
+      6
+    ],
+    "damage_type": "fire",
+    "save_for_half": true,
+    "range_ft": 0,
+    "casting_time_text": "1 действие",
+    "components": [
+      "v",
+      "s"
+    ],
+    "area": {
+      "shape": "cone",
+      "origin": "self",
+      "length_ft": 15,
+      "include_origin": false,
+      "target_filter": "creatures"
+    },
+    "upcast": {
+      "damage_dice_per_level": [
+        1,
+        6
+      ]
+    },
+    "description": "Тонкий веер пламени охватывает 15-футовый конус. Каждая цель совершает спасбросок Ловкости; при успехе получает половину урона.",
+    "button": "ГОРЯЩИЕ РУКИ"
   }
 }

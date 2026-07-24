@@ -185,6 +185,96 @@ func perform_offensive_ability(
 	return result
 
 
+func perform_area_spell(
+	character: PlayerCharacter,
+	ability: Dictionary,
+	target_contexts: Array,
+	casting_context: Dictionary = {},
+	damage_rolls_override: Array[int] = []
+) -> Dictionary:
+	if character == null or str(ability.get("effect", "")) != "area_saving_throw_spell":
+		return _failure("Для этой способности не создан исполнитель области.")
+	var payment: Dictionary = _spellcasting.consume_spell_cost_detailed(
+		character,
+		ability,
+		int(casting_context.get("slot_level", 0)),
+		casting_context
+	)
+	if not bool(payment.get("success", false)):
+		return _failure(str(payment.get("message", "Заклинание недоступно.")))
+	var slot_level: int = int(payment.get("slot_level", int(ability.get("spell_level", 0))))
+	var damage_dice: Array[int] = _damage_dice_for_level(ability, character.level)
+	damage_dice = _spellcasting.scale_dice_for_slot(ability, damage_dice, slot_level, "damage")
+	var shared_damage: int = _roll_damage(damage_dice[0], damage_dice[1], damage_rolls_override)
+	shared_damage += _spellcasting.damage_bonus_for_slot(ability, slot_level)
+	var ability_id: String = _spellcasting.get_spellcasting_ability(character, ability)
+	if ability_id.is_empty():
+		ability_id = str(ability.get("ability", "intelligence"))
+	var save_ability: String = str(ability.get("save_ability", "dexterity"))
+	var spell_dc: int = int(ability.get("save_dc", 8 + CombatSystem.proficiency_bonus_for_level(character.level) + character.get_ability_modifier(ability_id)))
+	var save_for_half: bool = bool(ability.get("save_for_half", false))
+	var resolutions: Array[Dictionary] = []
+	var seen_targets: Dictionary = {}
+	for value: Variant in target_contexts:
+		if not value is Dictionary:
+			continue
+		var target_context: Dictionary = value as Dictionary
+		if bool(target_context.get("total_cover", false)):
+			continue
+		var target: Node = target_context.get("target") as Node
+		if not is_instance_valid(target):
+			continue
+		var target_id: int = target.get_instance_id()
+		if seen_targets.has(target_id):
+			continue
+		seen_targets[target_id] = true
+		var save_overrides: Array[int] = []
+		var overrides_value: Variant = target_context.get("save_rolls_override", [])
+		if overrides_value is Array:
+			for override_value: Variant in overrides_value:
+				save_overrides.append(int(override_value))
+		var defender_state: CombatantState = target_context.get("defender_state") as CombatantState
+		var save_result: Dictionary = _srd_rules.resolve_saving_throw(
+			save_ability,
+			int(target_context.get("target_save_modifier", 0)),
+			spell_dc,
+			defender_state,
+			false,
+			false,
+			save_overrides,
+			{"magical": true}
+		)
+		var successful_save: bool = bool(save_result.get("success", false))
+		var result := AttackResult.new()
+		result.attack_name = str(ability.get("name", "Заклинание области"))
+		result.target_name = str(target_context.get("target_name", target.name))
+		result.damage_type = _srd_rules.normalize_damage_type(str(ability.get("damage_type", "force")))
+		result.is_spell = true
+		result.automatic_hit = true
+		result.hit = not successful_save or save_for_half
+		result.natural_roll = int(save_result.get("natural", 0))
+		result.total = int(save_result.get("total", 0))
+		result.damage = floori(float(shared_damage) / 2.0) if successful_save and save_for_half else (0 if successful_save else shared_damage)
+		result.damage_before_mitigation = result.damage
+		result.note = "%s: спасбросок %s %d против Сл %d — %s." % [
+			result.target_name,
+			save_ability,
+			result.total,
+			spell_dc,
+			"успех" if successful_save else "провал"
+		]
+		resolutions.append({"target": target, "result": result, "save": save_result})
+	return {
+		"success": true,
+		"message": "%s: область затронула целей — %d." % [str(ability.get("name", "Заклинание")), resolutions.size()],
+		"slot_level": slot_level,
+		"resource_key": str(payment.get("resource_key", "")),
+		"targets_count": resolutions.size(),
+		"shared_damage": shared_damage,
+		"resolutions": resolutions
+	}
+
+
 func consume_bardic_inspiration(character: PlayerCharacter) -> int:
 	var die_sides: int = int(character.active_effects.get("bardic_inspiration_die", 0))
 	if die_sides <= 0:

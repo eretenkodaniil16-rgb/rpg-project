@@ -477,6 +477,10 @@ func describe_spell(character: PlayerCharacter, spell: Dictionary) -> String:
 	var level_text: String = "Заговор" if level == 0 else "Уровень %d" % level
 	var casting_text: String = str(spell.get("casting_time_text", "1 действие"))
 	var range_text: String = "На себя" if str(spell.get("target", "")) == "self" else "%d футов" % maxi(int(spell.get("range_ft", 0)), 0)
+	var area_value: Variant = spell.get("area", {})
+	if area_value is Dictionary and SpellAreaSystem.new().is_area_definition(area_value as Dictionary):
+		var origin_text: String = "От себя" if str((area_value as Dictionary).get("origin", "point")) == "self" else range_text
+		range_text = "%s · %s" % [origin_text, SpellAreaSystem.new().area_label(area_value as Dictionary)]
 	var tags: Array[String] = []
 	if bool(spell.get("concentration", false)):
 		tags.append("Концентрация")
