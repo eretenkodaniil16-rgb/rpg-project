@@ -44,10 +44,14 @@ func _run() -> void:
 	state.call("add_item", "gold_coin", 100, false)
 	state.call("add_item", "spell_scroll_caustic_pulse", 1, false)
 
-	var panel := InventoryPanel.new()
+	var panel_scene: PackedScene = load("res://scenes/ui/inventory_panel.tscn") as PackedScene
+	if panel_scene == null:
+		_fail("Production InventoryPanel scene could not be loaded.")
+		return
+	var panel: Node = panel_scene.instantiate()
 	root.add_child(panel)
 	await process_frame
-	panel.open_inventory()
+	panel.call("open_inventory")
 	await process_frame
 	var entry: Dictionary = state.call("get_item_definition", "spell_scroll_caustic_pulse") as Dictionary
 	entry["quantity"] = 1
