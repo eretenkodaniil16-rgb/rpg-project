@@ -7,12 +7,12 @@ var _spellcasting: SpellcastingSystem = SpellcastingSystem.new()
 var _world_time: WorldTimeSystem = WorldTimeSystem.new()
 
 
-func use_self_ability(character: PlayerCharacter, ability: Dictionary) -> Dictionary:
+func use_self_ability(character: PlayerCharacter, ability: Dictionary, casting_context: Dictionary = {}) -> Dictionary:
 	var effect: String = str(ability.get("effect", ""))
 	if effect in ["utility_detect_magic", "utility_comprehend_languages"]:
 		var state: Node = _get_game_state()
 		var current_minutes: int = _world_time.get_minutes(state)
-		return _spellcasting.cast_utility_spell(character, ability, current_minutes, false)
+		return _spellcasting.cast_utility_spell(character, ability, current_minutes, false, casting_context)
 	if effect in ["rage", "bardic_inspiration", "racial_inspiration", "adrenaline_rush"] and not _consume_ability_resource(character, ability, 1):
 		return _failure("Заряды способности закончились.")
 	match effect:
@@ -35,25 +35,29 @@ func use_self_ability(character: PlayerCharacter, ability: Dictionary) -> Dictio
 				"temporary_hit_points": temporary_hit_points
 			}
 		"heal_2d8_wisdom":
-			return _heal_with_dice(character, ability, 2, 8, character.get_ability_modifier("wisdom"))
+			return _heal_with_dice(character, ability, 2, 8, character.get_ability_modifier("wisdom"), casting_context)
 		"heal_1d10_level":
-			return _heal_with_dice(character, ability, 1, 10, character.level)
+			return _heal_with_dice(character, ability, 1, 10, character.level, casting_context)
 		"origin_heal":
 			var healing_pair: Array[int] = _int_pair(ability.get("healing_dice", [1, 8]) as Array, [1, 8])
 			var ability_id: String = str(ability.get("ability", "wisdom"))
-			return _heal_with_dice(character, ability, healing_pair[0], healing_pair[1], character.get_ability_modifier(ability_id))
+			return _heal_with_dice(character, ability, healing_pair[0], healing_pair[1], character.get_ability_modifier(ability_id), casting_context)
 		"lay_on_hands":
 			return _use_lay_on_hands(character, ability)
 		_:
 			return _failure("Эта особенность действует пассивно и не требует активации.")
 
 
-func apply_target_ability(character: PlayerCharacter, ability: Dictionary) -> Dictionary:
+func apply_target_ability(character: PlayerCharacter, ability: Dictionary, casting_context: Dictionary = {}) -> Dictionary:
 	var effect: String = str(ability.get("effect", ""))
 	if effect != "hunters_mark":
 		return _failure("Способность не может быть применена к этой цели.")
-	if not _consume_ability_resource(character, ability, 1):
-		return _failure("Свободные применения Метки охотника закончились.")
+	if _spellcasting.is_spell_definition(ability):
+		var payment: Dictionary = _spellcasting.consume_spell_cost_detailed(character, ability, int(casting_context.get("slot_level", 0)), casting_context)
+		if not bool(payment.get("success", false)):
+			return _failure(str(payment.get("message", "Заклинание недоступно.")))
+	elif not _consume_ability_resource(character, ability, 1):
+		return _failure("Ресурс способности закончился.")
 	character.active_effects["hunters_mark_hits"] = 3
 	if bool(ability.get("concentration", false)):
 		_spellcasting.begin_concentration(character, str(ability.get("id", "hunters_mark")))
@@ -86,12 +90,20 @@ func perform_offensive_ability(
 		result.automatic_miss = true
 		result.note = "Цель находится за полным укрытием."
 		return result
-	if not _consume_ability_resource(character, ability, 1):
-		result.note = "Заклинание не подготовлено или не осталось ячеек подходящего уровня."
+	var cast_slot_level: int = maxi(int(ability.get("spell_level", 0)), 0)
+	if _spellcasting.is_spell_definition(ability):
+		var payment: Dictionary = _spellcasting.consume_spell_cost_detailed(character, ability, int(attack_context.get("slot_level", 0)), attack_context)
+		if not bool(payment.get("success", false)):
+			result.note = str(payment.get("message", "Заклинание недоступно."))
+			return result
+		cast_slot_level = int(payment.get("slot_level", cast_slot_level))
+	elif not _consume_ability_resource(character, ability, 1):
+		result.note = "Ресурс способности закончился."
 		return result
 	if bool(ability.get("concentration", false)):
 		_spellcasting.begin_concentration(character, str(ability.get("id", "")))
 	var damage_dice: Array[int] = _damage_dice_for_level(ability, character.level)
+	damage_dice = _spellcasting.scale_dice_for_slot(ability, damage_dice, cast_slot_level, "damage")
 	var dice_count: int = maxi(damage_dice[0] if damage_dice.size() > 0 else 1, 1)
 	var die_sides: int = maxi(damage_dice[1] if damage_dice.size() > 1 else 6, 2)
 	if bool(attack_context.get("target_wounded", false)) and int(ability.get("wounded_damage_die", 0)) > 0:
@@ -102,7 +114,7 @@ func perform_offensive_ability(
 		result.hit = true
 		result.natural_roll = 0
 		result.total = 0
-		result.damage = _roll_damage(dice_count, die_sides, damage_rolls_override) + int(ability.get("damage_bonus", 0))
+		result.damage = _roll_damage(dice_count, die_sides, damage_rolls_override) + _spellcasting.damage_bonus_for_slot(ability, cast_slot_level)
 		result.damage_before_mitigation = result.damage
 		return result
 	if effect == "saving_throw_spell":
@@ -114,7 +126,7 @@ func perform_offensive_ability(
 		var defender_state: CombatantState = attack_context.get("defender_state") as CombatantState
 		var save_modifier: int = int(attack_context.get("target_save_modifier", 0))
 		var save_result: Dictionary = _srd_rules.resolve_saving_throw(save_ability, save_modifier, spell_dc, defender_state, false, false, [], {"magical": result.is_spell})
-		var rolled_damage: int = _roll_damage(dice_count, die_sides, damage_rolls_override) + int(ability.get("damage_bonus", 0))
+		var rolled_damage: int = _roll_damage(dice_count, die_sides, damage_rolls_override) + _spellcasting.damage_bonus_for_slot(ability, cast_slot_level)
 		result.automatic_hit = true
 		result.hit = not bool(save_result.get("success", false)) or bool(ability.get("save_for_half", false))
 		result.natural_roll = int(save_result.get("natural", 0))
@@ -230,16 +242,23 @@ func _int_pair(value: Array, fallback: Array[int]) -> Array[int]:
 	return [maxi(int(value[0]), 1), maxi(int(value[1]), 2)]
 
 
-func _heal_with_dice(character: PlayerCharacter, ability: Dictionary, count: int, sides: int, bonus: int) -> Dictionary:
+func _heal_with_dice(character: PlayerCharacter, ability: Dictionary, count: int, sides: int, bonus: int, casting_context: Dictionary = {}) -> Dictionary:
 	if character.current_health >= character.maximum_health:
 		return _failure("Здоровье уже полностью восстановлено.")
-	if not _consume_ability_resource(character, ability, 1):
-		return _failure("Заклинание не подготовлено или не осталось ячеек либо применений.")
-	var amount: int = maxi(0, _roll_damage(count, sides, []) + bonus)
+	var slot_level: int = maxi(int(ability.get("spell_level", 0)), 0)
+	if _spellcasting.is_spell_definition(ability):
+		var payment: Dictionary = _spellcasting.consume_spell_cost_detailed(character, ability, 0, casting_context)
+		if not bool(payment.get("success", false)):
+			return _failure(str(payment.get("message", "Заклинание недоступно.")))
+		slot_level = int(payment.get("slot_level", slot_level))
+	elif not _consume_ability_resource(character, ability, 1):
+		return _failure("Ресурс способности закончился.")
+	var healing_dice: Array[int] = _spellcasting.scale_dice_for_slot(ability, [count, sides], slot_level, "healing")
+	var amount: int = maxi(0, _roll_damage(healing_dice[0], healing_dice[1], []) + bonus)
 	var before: int = character.current_health
 	character.current_health = mini(character.maximum_health, character.current_health + amount)
 	var restored: int = character.current_health - before
-	return {"success": true, "message": "Восстановлено %d здоровья." % restored, "healing": restored}
+	return {"success": true, "message": "Восстановлено %d здоровья ячейкой %d уровня." % [restored, slot_level], "healing": restored, "slot_level": slot_level}
 
 
 func _use_lay_on_hands(character: PlayerCharacter, ability: Dictionary) -> Dictionary:

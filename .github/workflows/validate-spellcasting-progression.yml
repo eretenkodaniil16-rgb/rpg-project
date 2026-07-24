@@ -1,0 +1,69 @@
+name: Validate spellcasting progression
+
+on:
+  pull_request:
+    paths:
+      - "data/rules/spellcasting_progression.json"
+      - "data/abilities/abilities.json"
+      - "data/classes/classes.json"
+      - "data/items/items.json"
+      - "scripts/systems/spellcasting_progression_system.gd"
+      - "scripts/systems/spellcasting_system.gd"
+      - "scripts/systems/class_ability_system.gd"
+      - "scripts/systems/class_data_system.gd"
+      - "scripts/systems/turn_based_combat_system.gd"
+      - "scripts/game/game_srd_combat.gd"
+      - "scripts/ui/character_hub.gd"
+      - "tests/test_spellcasting_progression_components.gd"
+      - "tests/smoke_spellcasting_ritual_ui.gd"
+  push:
+    branches:
+      - feature/spellcasting-progression-components
+    paths:
+      - "data/rules/spellcasting_progression.json"
+      - "data/abilities/abilities.json"
+      - "data/classes/classes.json"
+      - "data/items/items.json"
+      - "scripts/systems/spellcasting_progression_system.gd"
+      - "scripts/systems/spellcasting_system.gd"
+      - "scripts/systems/class_ability_system.gd"
+      - "scripts/systems/class_data_system.gd"
+      - "scripts/systems/turn_based_combat_system.gd"
+      - "scripts/game/game_srd_combat.gd"
+      - "scripts/ui/character_hub.gd"
+      - "tests/test_spellcasting_progression_components.gd"
+      - "tests/smoke_spellcasting_ritual_ui.gd"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Godot 4.7.1 Standard
+        shell: bash
+        run: |
+          curl --location --fail --retry 3 --output godot.zip "https://downloads.godotengine.org/?flavor=stable&platform=linux.64&slug=linux.x86_64.zip&version=4.7.1"
+          unzip -q godot.zip
+          chmod +x Godot_v4.7.1-stable_linux.x86_64
+
+      - name: Import project
+        shell: bash
+        run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --editor --path "$GITHUB_WORKSPACE" --quit
+
+      - name: Validate existing spellcasting and rituals
+        shell: bash
+        run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_spellcasting_and_rituals.gd
+
+      - name: Validate progression, upcasting and components
+        shell: bash
+        run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_spellcasting_progression_components.gd
+
+      - name: Smoke test slot selection and ritual UI
+        shell: bash
+        run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_spellcasting_ritual_ui.gd

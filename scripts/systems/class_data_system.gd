@@ -190,6 +190,72 @@ func get_armor_class(character: PlayerCharacter) -> int:
 	return maxi(armor_class, 0)
 
 
+func get_spellcasting_context(
+	character: PlayerCharacter,
+	combat_state: CombatantState = null,
+	turn_token: String = ""
+) -> Dictionary:
+	if character == null:
+		return {}
+	var state: Node = _get_game_state()
+	var class_definition: Dictionary = get_class_definition(character.character_class_id)
+	var weapon: Dictionary = {}
+	var armor: Dictionary = {}
+	var shield: Dictionary = {}
+	var inventory_entries: Array = []
+	if state != null:
+		weapon = state.call("get_item_definition", character.equipped_weapon_id) as Dictionary
+		armor = state.call("get_item_definition", character.equipped_armor_id) as Dictionary
+		shield = state.call("get_item_definition", character.equipped_shield_id) as Dictionary
+		inventory_entries = state.call("get_inventory_entries") as Array
+
+	var armor_category: String = str(armor.get("armor_category", "clothing"))
+	var armor_training: Array[String] = _string_array(class_definition.get("armor_training", []))
+	var armor_trained: bool = armor.is_empty() or armor_category == "clothing" or armor_category in armor_training
+	var occupied_hands: int = 0
+	if not weapon.is_empty():
+		# Two-handed weapons need two hands to attack, but only one to hold while casting.
+		occupied_hands += 1
+	if not shield.is_empty():
+		occupied_hands += 1
+	var free_hands: int = maxi(2 - occupied_hands, 0)
+	var weapon_properties: Array[String] = _string_array(weapon.get("properties", []))
+	var focus_in_hand: bool = bool(weapon.get("spellcasting_focus", false)) or "focus" in weapon_properties
+	var has_component_pouch: bool = false
+	var has_inventory_focus: bool = false
+	var has_required_material: bool = true
+	for value: Variant in inventory_entries:
+		if not value is Dictionary:
+			continue
+		var item: Dictionary = value as Dictionary
+		if bool(item.get("component_pouch", false)):
+			has_component_pouch = true
+		if bool(item.get("spellcasting_focus", false)):
+			has_inventory_focus = true
+	# A holy symbol may be displayed on a shield; other loose foci require a hand.
+	var shield_symbol_focus: bool = not shield.is_empty() and state != null and bool(state.call("has_item", "holy_symbol"))
+	if shield_symbol_focus:
+		focus_in_hand = true
+	elif not focus_in_hand and has_inventory_focus and free_hands > 0:
+		focus_in_hand = true
+		free_hands -= 1
+	var can_speak: bool = not bool(character.active_effects.get("silenced", false)) and not bool(character.active_effects.get("gagged", false))
+	if combat_state != null and (combat_state.has_condition("unconscious") or combat_state.has_condition("incapacitated")):
+		can_speak = false
+	return {
+		"can_speak": can_speak,
+		"armor_trained": armor_trained,
+		"free_hands": free_hands,
+		"focus_in_hand": focus_in_hand,
+		"has_component_pouch": has_component_pouch,
+		"has_required_material": has_required_material,
+		"turn_token": turn_token,
+		"equipped_weapon_id": character.equipped_weapon_id,
+		"equipped_armor_id": character.equipped_armor_id,
+		"equipped_shield_id": character.equipped_shield_id
+	}
+
+
 func short_rest(character: PlayerCharacter, roll_override: int = -1) -> Dictionary:
 	if character.current_health <= 0:
 		return {"success": false, "message": "Нельзя отдыхать без сознания.", "healing": 0}
@@ -344,3 +410,11 @@ func _load_json(path: String) -> Dictionary:
 		return {}
 	var parsed: Variant = JSON.parse_string(file.get_as_text())
 	return parsed as Dictionary if parsed is Dictionary else {}
+
+
+static func _string_array(value: Variant) -> Array[String]:
+	var result: Array[String] = []
+	if value is Array:
+		for item: Variant in value:
+			result.append(str(item))
+	return result
