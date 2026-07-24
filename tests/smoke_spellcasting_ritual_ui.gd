@@ -31,6 +31,7 @@ func _run() -> void:
 	wizard.character_name = "Ритуалист"
 	wizard.character_class_id = "wizard"
 	wizard.character_class_name = "Волшебник"
+	wizard.level = 5
 	wizard.race_name = "Человек"
 	wizard.abilities["intelligence"] = 16
 	wizard.base_abilities["intelligence"] = 16
@@ -48,9 +49,10 @@ func _run() -> void:
 
 	var ritual_button: Button = hub.get("_ritual") as Button
 	var spell_prepare_button: Button = hub.get("_spell_prepare") as Button
+	var slot_level_selector: OptionButton = hub.get("_slot_level") as OptionButton
 	var quick_button: Button = hub.get("_prepare") as Button
-	if ritual_button == null or spell_prepare_button == null or quick_button == null:
-		_fail("Spell preparation, ritual or quick-action button was not built.")
+	if ritual_button == null or spell_prepare_button == null or slot_level_selector == null or quick_button == null:
+		_fail("Spell preparation, slot level, ritual or quick-action control was not built.")
 		return
 
 	print("spell-ui checkpoint 4: select ritual")
@@ -70,6 +72,22 @@ func _run() -> void:
 	await process_frame
 	if not spell_prepare_button.is_visible_in_tree():
 		_fail("Level-one spell preparation control was not visible.")
+		return
+	if not slot_level_selector.is_visible_in_tree() or slot_level_selector.item_count != 3:
+		_fail("Level-five Wizard did not receive three selectable spell-slot levels.")
+		return
+	var level_two_index: int = -1
+	for index: int in range(slot_level_selector.item_count):
+		if int(slot_level_selector.get_item_metadata(index)) == 2:
+			level_two_index = index
+			break
+	if level_two_index < 0:
+		_fail("Level-two spell slot was absent from the selector.")
+		return
+	hub.call("_slot_level_selected", level_two_index)
+	await process_frame
+	if SpellcastingSystem.new().get_selected_slot_level(wizard, "magic_missile") != 2:
+		_fail("Selected spell-slot level was not persisted on the character.")
 		return
 
 	print("spell-ui checkpoint 6: inspect character summary")

@@ -14,6 +14,7 @@ var _powers_box: VBoxContainer
 var _details: Label
 var _prepare: Button
 var _spell_prepare: Button
+var _slot_level: OptionButton
 var _ritual: Button
 var _selected_power: String = ""
 var _spellcasting: SpellcastingSystem = SpellcastingSystem.new()
@@ -135,6 +136,12 @@ func _build_powers_tab() -> void:
 	_spell_prepare.pressed.connect(_toggle_spell_prepared)
 	_spell_prepare.hide()
 	right.add_child(_spell_prepare)
+	_slot_level = OptionButton.new()
+	_slot_level.name = "SpellSlotLevel"
+	_slot_level.custom_minimum_size = Vector2(0.0, 52.0)
+	_slot_level.item_selected.connect(_slot_level_selected)
+	_slot_level.hide()
+	right.add_child(_slot_level)
 	_ritual = Button.new()
 	_ritual.text = "СОТВОРИТЬ КАК РИТУАЛ"
 	_ritual.custom_minimum_size = Vector2(0.0, 56.0)
@@ -215,6 +222,7 @@ func _refresh_powers() -> void:
 	else:
 		_prepare.hide()
 		_spell_prepare.hide()
+		_slot_level.hide()
 		_ritual.hide()
 
 
@@ -236,11 +244,14 @@ func _select_power(ability: Dictionary) -> void:
 
 func _refresh_spell_buttons(ability: Dictionary) -> void:
 	_spell_prepare.hide()
+	_slot_level.hide()
 	_ritual.hide()
 	if not _is_spell(ability):
 		return
 	var spell_level: int = maxi(int(ability.get("spell_level", 0)), 0)
 	var always_prepared: bool = spell_level == 0 or bool(ability.get("always_prepared", false))
+	if spell_level > 0:
+		_refresh_slot_level_selector(ability, spell_level)
 	if spell_level > 0 and not always_prepared:
 		_spell_prepare.show()
 		var prepared: bool = _spellcasting.is_prepared(_hero, _selected_power)
@@ -249,6 +260,44 @@ func _refresh_spell_buttons(ability: Dictionary) -> void:
 		_ritual.show()
 		_ritual.disabled = not _spellcasting.can_cast_spell(_hero, ability, true, _is_combat_active())
 		_ritual.text = "РИТУАЛ НЕДОСТУПЕН" if _ritual.disabled else "СОТВОРИТЬ КАК РИТУАЛ"
+
+
+func _refresh_slot_level_selector(ability: Dictionary, spell_level: int) -> void:
+	var levels: Array[int] = _spellcasting.get_available_slot_levels(_hero, spell_level, false)
+	if levels.is_empty():
+		return
+	var selected_level: int = _spellcasting.get_selected_slot_level(_hero, _selected_power)
+	if selected_level not in levels:
+		selected_level = levels[0]
+		_spellcasting.set_selected_slot_level(_hero, _selected_power, selected_level)
+	_slot_level.set_block_signals(true)
+	_slot_level.clear()
+	var selected_index: int = 0
+	for index: int in range(levels.size()):
+		var level: int = levels[index]
+		var resource_key: String = _spellcasting.slot_resource_key(_hero, level)
+		_slot_level.add_item("ЯЧЕЙКА %d УРОВНЯ · %d/%d" % [level, _hero.get_resource(resource_key), _hero.get_resource_maximum(resource_key)])
+		_slot_level.set_item_metadata(index, level)
+		if level == selected_level:
+			selected_index = index
+	_slot_level.select(selected_index)
+	_slot_level.set_block_signals(false)
+	_slot_level.show()
+
+
+func _slot_level_selected(index: int) -> void:
+	if _hero == null or _selected_power.is_empty() or index < 0 or index >= _slot_level.item_count:
+		return
+	var level: int = int(_slot_level.get_item_metadata(index))
+	var response: Dictionary = _spellcasting.set_selected_slot_level(_hero, _selected_power, level)
+	if not bool(response.get("success", false)):
+		_details.text = str(response.get("message", "Уровень ячейки недоступен."))
+		return
+	var state: Node = _game_state()
+	if state != null:
+		state.call("save_game")
+	var ability: Dictionary = _class_data.get_ability_definition(_selected_power)
+	_select_power(ability)
 
 
 func _prepare_selected() -> void:
