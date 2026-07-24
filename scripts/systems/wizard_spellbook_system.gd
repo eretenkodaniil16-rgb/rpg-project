@@ -32,27 +32,30 @@ func ensure_character(character: PlayerCharacter) -> bool:
 	if character == null or character.character_class_id != WIZARD_CLASS_ID:
 		return false
 	var changed: bool = false
+	var profile: Dictionary = _spellcasting_profile(WIZARD_CLASS_ID)
 	if not character.spellbook_initialized:
-		var candidates: Array[String] = []
+		var initial_candidates: Array[String] = []
 		for spell_id: String in character.known_features:
-			_append_unique(candidates, spell_id)
-		var profile: Dictionary = _spellcasting_profile(WIZARD_CLASS_ID)
+			_append_unique(initial_candidates, spell_id)
 		for spell_id: String in _string_array(profile.get("starting_spells", [])):
-			_append_unique(candidates, spell_id)
-		var level_spells_value: Variant = profile.get("level_spells", {})
-		if level_spells_value is Dictionary:
-			for required_level_value: Variant in (level_spells_value as Dictionary).keys():
-				if character.level < maxi(int(str(required_level_value)), 1):
-					continue
-				for spell_id: String in _string_array((level_spells_value as Dictionary).get(required_level_value, [])):
-					_append_unique(candidates, spell_id)
-		for spell_id: String in candidates:
+			_append_unique(initial_candidates, spell_id)
+		for spell_id: String in initial_candidates:
 			var spell: Dictionary = get_spell_definition(spell_id)
 			if int(spell.get("spell_level", 0)) <= 0 or not is_wizard_spell(spell):
 				continue
 			changed = _append_unique(character.spellbook_spell_ids, spell_id) or changed
 		character.spellbook_initialized = true
 		changed = true
+	var level_spells_value: Variant = profile.get("level_spells", {})
+	if level_spells_value is Dictionary:
+		for required_level_value: Variant in (level_spells_value as Dictionary).keys():
+			if character.level < maxi(int(str(required_level_value)), 1):
+				continue
+			for spell_id: String in _string_array((level_spells_value as Dictionary).get(required_level_value, [])):
+				var level_spell: Dictionary = get_spell_definition(spell_id)
+				if int(level_spell.get("spell_level", 0)) <= 0 or not is_wizard_spell(level_spell):
+					continue
+				changed = _append_unique(character.spellbook_spell_ids, spell_id) or changed
 	for spell_id: String in character.spellbook_spell_ids.duplicate():
 		var spell: Dictionary = get_spell_definition(spell_id)
 		if spell.is_empty() or int(spell.get("spell_level", 0)) <= 0 or not is_wizard_spell(spell):
