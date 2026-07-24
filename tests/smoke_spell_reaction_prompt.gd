@@ -98,7 +98,8 @@ func _run() -> void:
 	var wizard_slots_before_skip: int = wizard.get_resource("spell_slots_3")
 	var hp_before_skip: int = wizard.current_health
 	game.call_deferred("_run_enemy_turn", construct)
-	if not await _wait_for_prompt(prompt):
+	var first_prompt_opened: bool = await _wait_for_prompt(prompt)
+	if not first_prompt_opened:
 		_fail("Enemy spellcasting did not open the Counterspell decision prompt.")
 		return
 	if cast_button.text != "КОНТРЗАКЛИНАНИЕ" or skip_button.text != "ПРОПУСТИТЬ":
@@ -109,7 +110,8 @@ func _run() -> void:
 		_fail("Enemy casting was not paused before the reaction decision.")
 		return
 	prompt.skip_reaction()
-	if not await _wait_for_enemy_turn(game, false):
+	var first_turn_finished: bool = await _wait_for_enemy_turn(game, false)
+	if not first_turn_finished:
 		_fail("Enemy turn did not resume after skipping Counterspell.")
 		return
 	if construct.get_combat_spell_slot_count(1) != enemy_slots_before_skip - 1:
@@ -131,7 +133,8 @@ func _run() -> void:
 	var wizard_slots_before_counter: int = wizard.get_resource("spell_slots_3")
 	var hp_before_counter: int = wizard.current_health
 	game.call_deferred("_run_enemy_turn", construct)
-	if not await _wait_for_prompt(prompt):
+	var second_prompt_opened: bool = await _wait_for_prompt(prompt)
+	if not second_prompt_opened:
 		_fail("Second enemy casting did not reopen the Counterspell decision prompt.")
 		return
 	await create_timer(0.2).timeout
@@ -139,7 +142,8 @@ func _run() -> void:
 		_fail("Second enemy casting advanced before the player answered the reaction prompt.")
 		return
 	prompt.choose_counterspell()
-	if not await _wait_for_enemy_turn(game, false):
+	var second_turn_finished: bool = await _wait_for_enemy_turn(game, false)
+	if not second_turn_finished:
 		_fail("Enemy turn did not finish after resolving Counterspell.")
 		return
 	if construct.get_combat_spell_slot_count(1) != enemy_slots_before_counter:
