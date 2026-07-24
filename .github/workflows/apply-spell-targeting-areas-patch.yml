@@ -1,11 +1,11 @@
 name: Apply spell targeting areas patch
 
 on:
-  push:
+  pull_request:
     branches:
-      - feature/spell-targeting-areas
+      - feature/spellcasting-progression-components
     paths:
-      - ".github/patch_triggers/spell_targeting_areas_patch.txt"
+      - ".github/workflows/apply-spell-targeting-areas-patch.yml"
 
 permissions:
   contents: write
@@ -21,7 +21,12 @@ jobs:
           fetch-depth: 0
 
       - name: Apply deterministic patch
-        run: python tools/maintenance/apply_spell_targeting_areas_patch.py
+        run: |
+          if grep -q "SPELL_AREA_COLOR" scripts/game/battle_grid.gd; then
+            echo "Area patch is already applied."
+            exit 0
+          fi
+          python tools/maintenance/apply_spell_targeting_areas_patch.py
 
       - name: Commit patched files
         shell: bash
@@ -29,5 +34,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add scripts/systems/spell_area_system.gd scripts/game/battle_grid.gd scripts/systems/class_ability_system.gd scripts/systems/spellcasting_system.gd scripts/game/game_srd_combat.gd data/abilities/abilities.json data/classes/classes.json
+          if git diff --cached --quiet; then
+            echo "No area changes to commit."
+            exit 0
+          fi
           git commit -m "feat: implement spell area targeting and multi-target resolution"
           git push origin HEAD:feature/spell-targeting-areas
