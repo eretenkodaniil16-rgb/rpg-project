@@ -1,0 +1,33 @@
+name: Apply Counterspell data patch
+
+on:
+  push:
+    branches:
+      - feature/spell-reactions-counterspell
+    paths:
+      - ".github/patch_triggers/counterspell_data_patch.txt"
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/spell-reactions-counterspell
+          fetch-depth: 0
+
+      - name: Apply deterministic patch
+        run: python tools/maintenance/apply_counterspell_data_patch.py
+
+      - name: Commit patched files
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/abilities/abilities.json data/classes/classes.json scripts/systems/spellcasting_system.gd
+          git commit -m "feat: add Counterspell data and level unlocks"
+          git push origin HEAD:feature/spell-reactions-counterspell
