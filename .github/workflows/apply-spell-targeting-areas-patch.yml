@@ -1,0 +1,33 @@
+name: Apply spell targeting areas patch
+
+on:
+  push:
+    branches:
+      - feature/spell-targeting-areas
+    paths:
+      - ".github/patch_triggers/spell_targeting_areas_patch.txt"
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/spell-targeting-areas
+          fetch-depth: 0
+
+      - name: Apply deterministic patch
+        run: python tools/maintenance/apply_spell_targeting_areas_patch.py
+
+      - name: Commit patched files
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/systems/spell_area_system.gd scripts/game/battle_grid.gd scripts/systems/class_ability_system.gd scripts/systems/spellcasting_system.gd scripts/game/game_srd_combat.gd data/abilities/abilities.json data/classes/classes.json
+          git commit -m "feat: implement spell area targeting and multi-target resolution"
+          git push origin HEAD:feature/spell-targeting-areas
