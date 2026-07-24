@@ -81,12 +81,12 @@ func _run() -> void:
 	if spells.can_cast_spell(wizard, detect_magic, false, false):
 		_fail("Unprepared Wizard ritual remained castable as a normal spell.")
 		return
-	if not spells.can_cast_spell(wizard, detect_magic, true, false):
+	if not spells.can_cast_spell(wizard, detect_magic, true, false, 0, {"has_spellbook": true}):
 		_fail("Wizard Ritual Adept could not cast a known spellbook ritual without preparing it.")
 		return
 
 	var slot_before_ritual: int = wizard.get_resource("spell_slots_1")
-	var ritual_result: Dictionary = spells.cast_ritual(wizard, "detect_magic", 480, false)
+	var ritual_result: Dictionary = spells.cast_ritual(wizard, "detect_magic", 480, false, {"has_spellbook": true})
 	if not bool(ritual_result.get("success", false)) or int(ritual_result.get("advance_minutes", 0)) != 10:
 		_fail("Detect Magic ritual did not complete in ten extra minutes.")
 		return
@@ -99,7 +99,7 @@ func _run() -> void:
 	if spells.get_concentration_spell_id(wizard) != "detect_magic":
 		_fail("Detect Magic did not start concentration.")
 		return
-	if bool(spells.cast_ritual(wizard, "detect_magic", 500, true).get("success", false)):
+	if bool(spells.cast_ritual(wizard, "detect_magic", 500, true, {"has_spellbook": true}).get("success", false)):
 		_fail("Ritual casting was allowed during combat.")
 		return
 	spells.cleanup_expired_effects(wizard, 500)

@@ -16,6 +16,7 @@ const COMPREHEND_LANGUAGES_UNTIL_KEY: String = "comprehend_languages_until_minut
 var _abilities: Dictionary = {}
 var _classes: Dictionary = {}
 var _progression: SpellcastingProgressionSystem = SpellcastingProgressionSystem.new()
+var _spellbook: WizardSpellbookSystem = WizardSpellbookSystem.new()
 
 
 func _init() -> void:
@@ -58,6 +59,7 @@ func ensure_character(character: PlayerCharacter, refill_slots: bool = false) ->
 		changed = changed or not had_prepared_state
 		var maximums: Dictionary = _slot_maximums(character, profile)
 		changed = _sync_slot_resources(character, profile, maximums, refill_slots) or changed
+	changed = _spellbook.ensure_character(character) or changed
 	for feature_id: String in character.known_features.duplicate():
 		var spell: Dictionary = get_spell_definition(feature_id)
 		if spell.is_empty() or not bool(spell.get("always_prepared", false)):
@@ -171,6 +173,8 @@ func prepare_spell(character: PlayerCharacter, spell_id: String) -> Dictionary:
 		return _failure("Заклинание не изучено.")
 	if int(spell.get("spell_level", 0)) == 0 or bool(spell.get("always_prepared", false)):
 		return _success("Это заклинание всегда подготовлено.")
+	if character.character_class_id == "wizard" and not _spellbook.is_in_spellbook(character, spell_id):
+		return _failure("Заклинание отсутствует в книге Волшебника.")
 	var prepared: Array[String] = get_prepared_spell_ids(character)
 	if spell_id in prepared:
 		return _success("Заклинание уже подготовлено.")
@@ -208,7 +212,12 @@ func can_cast_spell(character: PlayerCharacter, spell: Dictionary, as_ritual: bo
 	var level: int = maxi(int(spell.get("spell_level", 0)), 0)
 	var prepared: bool = is_prepared(character, spell_id)
 	if as_ritual:
-		var wizard_ritual_adept: bool = character.character_class_id == "wizard" and "ritual_adept" in character.known_features
+		var wizard_ritual_adept: bool = (
+			character.character_class_id == "wizard"
+			and "ritual_adept" in character.known_features
+			and _spellbook.is_in_spellbook(character, spell_id)
+			and bool(casting_context.get("has_spellbook", false))
+		)
 		return level > 0 and bool(spell.get("ritual", false)) and not in_combat and (prepared or wizard_ritual_adept)
 	if not prepared:
 		return false

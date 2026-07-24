@@ -84,6 +84,8 @@ var equipped_weapon_id: String = ""
 var equipped_armor_id: String = ""
 var equipped_shield_id: String = ""
 var known_features: Array[String] = []
+var spellbook_spell_ids: Array[String] = []
+var spellbook_initialized: bool = false
 var signature_ability_id: String = ""
 var class_resources: Dictionary = {}
 var class_resource_maximums: Dictionary = {}
@@ -238,6 +240,8 @@ func to_dict() -> Dictionary:
 		"equipped_armor_id": equipped_armor_id,
 		"equipped_shield_id": equipped_shield_id,
 		"known_features": known_features.duplicate(),
+		"spellbook_spell_ids": spellbook_spell_ids.duplicate(),
+		"spellbook_initialized": spellbook_initialized,
 		"signature_ability_id": signature_ability_id,
 		"class_resources": class_resources.duplicate(true),
 		"class_resource_maximums": class_resource_maximums.duplicate(true),
@@ -310,7 +314,9 @@ static func from_dict(data: Dictionary) -> PlayerCharacter:
 	character.equipped_weapon_id = str(data.get("equipped_weapon_id", ""))
 	character.equipped_armor_id = str(data.get("equipped_armor_id", ""))
 	character.equipped_shield_id = str(data.get("equipped_shield_id", ""))
-	character.known_features = _string_array(data.get("known_features", []))
+	character.known_features = _unique_string_array(data.get("known_features", []))
+	character.spellbook_spell_ids = _unique_string_array(data.get("spellbook_spell_ids", []))
+	character.spellbook_initialized = bool(data.get("spellbook_initialized", false))
 	character.signature_ability_id = str(data.get("signature_ability_id", ""))
 	var resources_value: Variant = data.get("class_resources", {})
 	character.class_resources = (resources_value as Dictionary).duplicate(true) if resources_value is Dictionary else {}

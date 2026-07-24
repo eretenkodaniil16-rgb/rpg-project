@@ -43,7 +43,10 @@
       "v",
       "s"
     ],
-    "button": "ОБНАРУЖЕНИЕ МАГИИ"
+    "button": "ОБНАРУЖЕНИЕ МАГИИ",
+    "spell_lists": [
+      "wizard"
+    ]
   },
   "comprehend_languages": {
     "id": "comprehend_languages",
@@ -67,7 +70,10 @@
       "m"
     ],
     "material": "щепоть сажи и соли",
-    "button": "ПОНИМАНИЕ ЯЗЫКОВ"
+    "button": "ПОНИМАНИЕ ЯЗЫКОВ",
+    "spell_lists": [
+      "wizard"
+    ]
   },
   "sacred_flame": {
     "id": "sacred_flame",
@@ -222,7 +228,10 @@
       "v",
       "s"
     ],
-    "button": "ОГНЕННЫЙ СНАРЯД"
+    "button": "ОГНЕННЫЙ СНАРЯД",
+    "spell_lists": [
+      "wizard"
+    ]
   },
   "poison_spray": {
     "id": "poison_spray",
@@ -263,7 +272,10 @@
       "v",
       "s"
     ],
-    "button": "ЯДОВИТЫЕ БРЫЗГИ"
+    "button": "ЯДОВИТЫЕ БРЫЗГИ",
+    "spell_lists": [
+      "wizard"
+    ]
   },
   "origin_magic_missile": {
     "id": "origin_magic_missile",
@@ -619,7 +631,7 @@
     "id": "ritual_adept",
     "name": "Мастер ритуалов",
     "kind": "passive",
-    "description": "Подготовленное заклинание с тегом «Ритуал» можно сотворить на 10 минут дольше без расхода ячейки."
+    "description": "Волшебник может сотворять ритуальное заклинание из своей физической книги без подготовки, увеличивая время сотворения на 10 минут."
   },
   "arcane_recovery": {
     "id": "arcane_recovery",
@@ -658,7 +670,10 @@
         4
       ],
       "damage_bonus_per_level": 1
-    }
+    },
+    "spell_lists": [
+      "wizard"
+    ]
   },
   "burning_hands": {
     "id": "burning_hands",
@@ -696,7 +711,10 @@
       ]
     },
     "description": "Тонкий веер пламени охватывает 15-футовый конус. Каждая цель совершает спасбросок Ловкости; при успехе получает половину урона.",
-    "button": "ГОРЯЩИЕ РУКИ"
+    "button": "ГОРЯЩИЕ РУКИ",
+    "spell_lists": [
+      "wizard"
+    ]
   },
   "counterspell": {
     "id": "counterspell",
@@ -715,6 +733,46 @@
       "s"
     ],
     "description": "Реакция на видимое сотворение заклинания в пределах 60 футов. Заклинатель совершает спасбросок Телосложения против Сл ваших заклинаний. При провале его заклинание рассеивается, действие теряется, а исходная ячейка не расходуется.",
-    "button": "КОНТРЗАКЛИНАНИЕ"
+    "button": "КОНТРЗАКЛИНАНИЕ",
+    "spell_lists": [
+      "wizard"
+    ]
+  },
+  "caustic_pulse": {
+    "id": "caustic_pulse",
+    "name": "Едкий импульс",
+    "kind": "active",
+    "is_spell": true,
+    "spell_level": 1,
+    "school": "Воплощение",
+    "spell_lists": [
+      "wizard"
+    ],
+    "rules_origin": "game_adaptation",
+    "target": "enemy",
+    "resource_key": "spell_slots_1",
+    "description": "Оригинальное заклинание проекта: дальняя магическая атака сгустком едкой энергии, наносящая 2к6 урона кислотой.",
+    "effect": "spell_attack",
+    "ability": "intelligence",
+    "damage_dice": [
+      2,
+      6
+    ],
+    "damage_type": "acid",
+    "range_ft": 90,
+    "casting_time_text": "1 действие",
+    "components": [
+      "v",
+      "s",
+      "m"
+    ],
+    "material": "капля кислого раствора",
+    "button": "ЕДКИЙ ИМПУЛЬС",
+    "upcast": {
+      "damage_dice_per_level": [
+        1,
+        6
+      ]
+    }
   }
 }
