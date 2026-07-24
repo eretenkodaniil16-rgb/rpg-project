@@ -79,13 +79,33 @@ func _run() -> void:
 		_fail("Changing the aim direction removed the area preview.")
 		return
 
+	game_state.set("input_locked", true)
+	await process_frame
+	game_state.set("input_locked", false)
+	if confirm_button.visible or cancel_button.visible or grid.is_spell_area_preview_active():
+		_fail("Opening another input-locking interface did not clear area targeting.")
+		return
+
+	game.call("_begin_spell_area_targeting", burning_hands)
+	await process_frame
+	if not grid.is_spell_area_preview_active():
+		_fail("Area targeting could not be started again after overlay cleanup.")
+		return
+	game.call("_advance_combat_turn")
+	await process_frame
+	if confirm_button.visible or cancel_button.visible or grid.is_spell_area_preview_active():
+		_fail("Advancing combat did not clear area targeting state.")
+		return
+
+	game.call("_begin_spell_area_targeting", burning_hands)
+	await process_frame
 	game.call("_cancel_spell_area_targeting")
 	await process_frame
 	if confirm_button.visible or cancel_button.visible or grid.is_spell_area_preview_active():
-		_fail("Cancelling area targeting did not clear controls and preview.")
+		_fail("Explicit cancellation did not clear controls and preview.")
 		return
 
 	_finished = true
 	game.queue_free()
-	print("Spell area targeting UI smoke test passed.")
+	print("Spell area targeting UI and lifecycle cleanup smoke test passed.")
 	quit(0)
