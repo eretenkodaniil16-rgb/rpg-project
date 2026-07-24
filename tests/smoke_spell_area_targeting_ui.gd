@@ -104,7 +104,7 @@ func _run() -> void:
 	game.set("_spell_area_targeting_active", true)
 	game.call("_set_spell_area_aim_world", player.global_position)
 	var expected_origin: Vector2i = grid.world_to_cell(player.global_position)
-	var actual_origin: Vector2i = game.get("_pending_area_origin_cell") as Vector2i
+	var actual_origin: Vector2i = game.get("_pending_area_origin_cell")
 	if actual_origin != expected_origin:
 		_fail("A point-origin area selected in the caster cell was displaced to a neighboring cell.")
 		return
