@@ -34,10 +34,12 @@ func get_area_cells(
 	var result: Array[Vector2i] = []
 	if grid == null or not is_area_definition(area):
 		return result
+	var origin_mode: String = str(area.get("origin", ORIGIN_POINT))
 	var origin_cell: Vector2i = get_origin_cell(caster_cell, aim_cell, area)
 	if not grid.is_cell_valid(origin_cell):
 		return result
-	var direction: Vector2 = Vector2(aim_cell - origin_cell)
+	var direction_delta: Vector2i = aim_cell - caster_cell if origin_mode == ORIGIN_POINT else aim_cell - origin_cell
+	var direction := Vector2(direction_delta)
 	if direction.length_squared() <= 0.0001:
 		direction = Vector2.RIGHT
 	direction = direction.normalized()
@@ -67,8 +69,7 @@ func filter_cells_by_total_cover(
 	if grid == null:
 		return result
 	for cell: Vector2i in cells:
-		var cell_world: Vector2 = grid.cell_to_world_center(cell)
-		if environment == null or not environment.has_method("has_line_of_sight") or bool(environment.call("has_line_of_sight", origin_world, cell_world)):
+		if _cell_has_clear_path(grid, cell, origin_world, environment):
 			result.append(cell)
 	return result
 
@@ -87,9 +88,10 @@ func collect_targets(
 		if not is_instance_valid(candidate) or not candidate is Node2D:
 			continue
 		var target := candidate as Node2D
-		if grid.world_to_cell(target.global_position) not in cells:
+		var target_cell: Vector2i = grid.world_to_cell(target.global_position)
+		if target_cell not in cells:
 			continue
-		if environment != null and environment.has_method("has_line_of_sight") and not bool(environment.call("has_line_of_sight", origin_world, target.global_position)):
+		if not _cell_has_clear_path(grid, target_cell, origin_world, environment):
 			continue
 		if candidate not in result:
 			result.append(candidate)
@@ -164,6 +166,33 @@ func _cell_is_inside(
 			return false
 
 
+func _cell_has_clear_path(
+	grid: BattleGrid,
+	cell: Vector2i,
+	origin_world: Vector2,
+	environment: Node
+) -> bool:
+	if environment == null or not environment.has_method("has_line_of_sight"):
+		return true
+	var center: Vector2 = grid.cell_to_world_center(cell)
+	var inset: float = grid.get_cell_size() * 0.4
+	var sample_offsets: Array[Vector2] = [
+		Vector2.ZERO,
+		Vector2(inset, 0.0),
+		Vector2(-inset, 0.0),
+		Vector2(0.0, inset),
+		Vector2(0.0, -inset),
+		Vector2(inset, inset),
+		Vector2(inset, -inset),
+		Vector2(-inset, inset),
+		Vector2(-inset, -inset)
+	]
+	for offset: Vector2 in sample_offsets:
+		if bool(environment.call("has_line_of_sight", origin_world, center + offset)):
+			return true
+	return false
+
+
 func _maximum_extent_cells(area: Dictionary) -> int:
 	var shape: String = str(area.get("shape", ""))
 	match shape:
@@ -185,7 +214,7 @@ func _primary_distance_feet(area: Dictionary) -> int:
 
 
 func _default_include_origin(shape: String) -> bool:
-	return shape in [SHAPE_SPHERE, SHAPE_CYLINDER, SHAPE_LINE]
+	return shape in [SHAPE_SPHERE, SHAPE_CYLINDER]
 
 
 func _feet_to_cells(feet: int) -> int:
