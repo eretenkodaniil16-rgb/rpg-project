@@ -99,6 +99,73 @@ func _run() -> void:
 		_fail("A slotted spell was not allowed on the next turn.")
 		return
 
+	var game_state: Node = root.get_node_or_null("GameState")
+	if game_state == null:
+		_fail("GameState was unavailable for production casting-context tests.")
+		return
+	game_state.call("new_game")
+	game_state.set("player_character", wizard)
+	game_state.call("add_item", "quarterstaff_focus", 1, false)
+	game_state.call("add_item", "robe", 1, false)
+	wizard.equipped_weapon_id = "quarterstaff_focus"
+	wizard.equipped_armor_id = "robe"
+	wizard.equipped_shield_id = ""
+	var class_data := ClassDataSystem.new()
+	var production_context: Dictionary = class_data.get_spellcasting_context(wizard)
+	if not bool(production_context.get("focus_in_hand", false)) or int(production_context.get("free_hands", 0)) != 1 or not bool(production_context.get("armor_trained", false)):
+		_fail("Production casting context did not derive the equipped focus, hand count, and clothing state.")
+		return
+	game_state.call("add_item", "chain_mail", 1, false)
+	wizard.equipped_armor_id = "chain_mail"
+	production_context = class_data.get_spellcasting_context(wizard)
+	if bool(production_context.get("armor_trained", true)):
+		_fail("Wizard casting context incorrectly treated heavy armor as trained.")
+		return
+	wizard.equipped_armor_id = "robe"
+	wizard.active_effects["silenced"] = true
+	production_context = class_data.get_spellcasting_context(wizard)
+	if bool(production_context.get("can_speak", true)):
+		_fail("Silenced character retained verbal component access.")
+		return
+	wizard.active_effects.erase("silenced")
+
+	var turn_system := TurnBasedCombatSystem.new()
+	var player_node := Node.new()
+	player_node.name = "Caster"
+	var opponent_node := Node.new()
+	opponent_node.name = "Opponent"
+	root.add_child(player_node)
+	root.add_child(opponent_node)
+	turn_system.start_combat(player_node, [opponent_node], 0, {player_node.get_instance_id(): 20, opponent_node.get_instance_id(): 1})
+	var first_turn_token: String = turn_system.current_turn_token()
+	if first_turn_token.is_empty() or turn_system.current_turn_token() != first_turn_token:
+		_fail("TurnBasedCombatSystem did not expose a stable token for the active turn.")
+		return
+	turn_system.advance_turn()
+	if turn_system.current_turn_token() == first_turn_token:
+		_fail("Turn token did not change after advancing combat.")
+		return
+	player_node.queue_free()
+	opponent_node.queue_free()
+
+	var origin_spell: Dictionary = spells.get_spell_definition("origin_magic_missile")
+	if "origin_magic_missile" not in wizard.known_features:
+		wizard.known_features.append("origin_magic_missile")
+	wizard.set_resource("magic_initiate_wizard_1", 0, 1)
+	wizard.class_resources.erase("_slot_spell_turn_token")
+	var fallback_before: int = wizard.get_resource("spell_slots_1")
+	var fallback_payment: Dictionary = spells.consume_spell_cost_detailed(wizard, origin_spell, 1, {"turn_token": "fallback_turn"})
+	if not bool(fallback_payment.get("success", false)) or not bool(fallback_payment.get("expended_slot", false)):
+		_fail("Magic Initiate fallback was not treated as a real spell-slot expenditure.")
+		return
+	if wizard.get_resource("spell_slots_1") != fallback_before - 1:
+		_fail("Magic Initiate fallback did not consume the mapped spell slot.")
+		return
+	var fallback_second: Dictionary = spells.consume_spell_cost_detailed(wizard, origin_spell, 1, {"turn_token": "fallback_turn"})
+	if bool(fallback_second.get("success", false)):
+		_fail("Magic Initiate fallback bypassed the one-slot-per-turn rule.")
+		return
+
 	var warlock := PlayerCharacter.new()
 	warlock.character_class_id = "warlock"
 	warlock.character_class_name = "Колдун"
@@ -109,6 +176,13 @@ func _run() -> void:
 		return
 	if spells.slot_resource_key(warlock, 1) != "pact_slots_3":
 		_fail("A lower-level Warlock spell did not resolve to the current Pact slot level.")
+		return
+	if "origin_magic_missile" not in warlock.known_features:
+		warlock.known_features.append("origin_magic_missile")
+	warlock.set_resource("magic_initiate_wizard_1", 0, 1)
+	var pact_fallback: Dictionary = spells.consume_spell_cost_detailed(warlock, origin_spell, 0, {"turn_token": "warlock_turn"})
+	if not bool(pact_fallback.get("success", false)) or int(pact_fallback.get("slot_level", 0)) != 3 or str(pact_fallback.get("resource_key", "")) != "pact_slots_3":
+		_fail("Magic Initiate fallback did not use and upcast through the current Pact slot.")
 		return
 	warlock.consume_resource("pact_slots_3", 2)
 	spells.recover_after_rest(warlock, false)

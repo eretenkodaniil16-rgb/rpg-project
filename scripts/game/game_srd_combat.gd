@@ -159,7 +159,7 @@ func _perform_srd_weapon_attack(target: Node, weapon: Dictionary, ammo_id: Strin
 
 func _build_srd_attack_context(target: Node, distance: int) -> Dictionary:
 	var cover: Dictionary = _get_cover_to_target(target)
-	return {
+	var context: Dictionary = {
 		"target_name": _target_name(target),
 		"distance_feet": distance,
 		"disadvantage": false,
@@ -173,6 +173,13 @@ func _build_srd_attack_context(target: Node, distance: int) -> Dictionary:
 		"defender_state": _state_for(target),
 		"target_save_modifier": int(target.call("get_saving_throw_modifier", "dexterity")) if target.has_method("get_saving_throw_modifier") else 0
 	}
+	context.merge(_build_spellcasting_context(), true)
+	return context
+
+
+func _build_spellcasting_context() -> Dictionary:
+	var turn_token: String = _turn_system.current_turn_token() if _turn_system != null else ""
+	return _class_data.get_spellcasting_context(GameState.player_character, _player_combat_state, turn_token)
 
 
 func _apply_mitigation_to_result(result: AttackResult, state: CombatantState) -> void:
@@ -210,6 +217,7 @@ func _on_ability_requested(ability_id: String) -> void:
 		return
 
 	var target_type: String = str(ability.get("target", "self"))
+	var casting_context: Dictionary = _build_spellcasting_context()
 	var can_attempt: bool = _ability_attempt_is_valid(ability)
 	if _turn_system.active and can_attempt:
 		var action_kind: String = _ability_action_kind(ability_id, ability)
@@ -224,7 +232,7 @@ func _on_ability_requested(ability_id: String) -> void:
 	var response: Dictionary = {}
 	var trigger_target: Node = null
 	if target_type == "self":
-		response = _ability_system.use_self_ability(GameState.player_character, ability)
+		response = _ability_system.use_self_ability(GameState.player_character, ability, casting_context)
 		if bool(response.get("success", false)) and int(response.get("healing", 0)) > 0 and GameState.player_character.current_health > 0:
 			_player_combat_state.recover_from_zero_hit_points()
 	else:
@@ -239,7 +247,7 @@ func _on_ability_requested(ability_id: String) -> void:
 		var distance: int = DistanceSystem.distance_feet(player.global_position, target_position)
 		var effect: String = str(ability.get("effect", ""))
 		if effect == "hunters_mark":
-			response = _ability_system.apply_target_ability(GameState.player_character, ability)
+			response = _ability_system.apply_target_ability(GameState.player_character, ability, casting_context)
 			if bool(response.get("success", false)):
 				_player_combat_state.set_concentration(ability_id, player.get_instance_id())
 		elif effect in ["spell_attack", "auto_hit_spell", "saving_throw_spell"]:

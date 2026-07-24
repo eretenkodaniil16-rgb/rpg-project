@@ -242,10 +242,10 @@ func slot_resource_key(character: PlayerCharacter, level: int) -> String:
 	return "%s_%d" % [prefix, maxi(level, 1)]
 
 
-func cast_ritual(character: PlayerCharacter, spell_id: String, current_world_minutes: int, in_combat: bool = false) -> Dictionary:
+func cast_ritual(character: PlayerCharacter, spell_id: String, current_world_minutes: int, in_combat: bool = false, casting_context: Dictionary = {}) -> Dictionary:
 	var spell: Dictionary = get_spell_definition(spell_id)
-	if not can_cast_spell(character, spell, true, in_combat):
-		return _failure("Ритуал недоступен: нужен известный Ritual-спелл; обычно он должен быть подготовлен. Волшебник с Мастером ритуалов может читать его из книги без подготовки. В бою ритуалы запрещены.")
+	if not can_cast_spell(character, spell, true, in_combat, 0, casting_context):
+		return _failure("Ритуал недоступен: проверьте подготовку, компоненты и отсутствие боя.")
 	var casting_minutes: int = ritual_casting_minutes(spell)
 	var completion_minute: int = maxi(current_world_minutes, 0) + casting_minutes
 	var effect_result: Dictionary = _apply_utility_effect(character, spell, completion_minute)
@@ -262,14 +262,16 @@ func cast_ritual(character: PlayerCharacter, spell_id: String, current_world_min
 	}
 
 
-func cast_utility_spell(character: PlayerCharacter, spell: Dictionary, current_world_minutes: int, in_combat: bool = false) -> Dictionary:
-	if not can_cast_spell(character, spell, false, in_combat):
-		return _failure("Заклинание не подготовлено или нет доступной ячейки.")
-	if not consume_spell_cost(character, spell):
-		return _failure("Не удалось израсходовать ячейку заклинания.")
+func cast_utility_spell(character: PlayerCharacter, spell: Dictionary, current_world_minutes: int, in_combat: bool = false, casting_context: Dictionary = {}) -> Dictionary:
+	if not can_cast_spell(character, spell, false, in_combat, 0, casting_context):
+		return _failure("Заклинание не подготовлено, не хватает компонентов или нет доступной ячейки.")
+	var payment: Dictionary = consume_spell_cost_detailed(character, spell, 0, casting_context)
+	if not bool(payment.get("success", false)):
+		return payment
 	var result: Dictionary = _apply_utility_effect(character, spell, maxi(current_world_minutes, 0))
 	if bool(result.get("success", false)) and bool(spell.get("concentration", false)):
 		begin_concentration(character, str(spell.get("id", "")))
+	result["slot_level"] = int(payment.get("slot_level", int(spell.get("spell_level", 0))))
 	return result
 
 
@@ -287,6 +289,8 @@ func consume_spell_cost_detailed(character: PlayerCharacter, spell: Dictionary, 
 		if not character.consume_resource(special_key, 1):
 			return _failure("Не удалось израсходовать бесплатное применение.")
 		return {"success": true, "message": "Использовано специальное применение.", "slot_level": level, "resource_key": special_key, "expended_slot": false}
+	if _has_special_resource_contract(spell) and str(spell.get("fallback_resource_key", "")).is_empty():
+		return _failure("Специальные применения закончились.")
 	if _turn_slot_rule_blocked(character, casting_context):
 		return _failure("На этом ходу уже была потрачена ячейка на другое заклинание.")
 	var selected_level: int = resolve_slot_level(character, spell, slot_level)
@@ -587,13 +591,7 @@ func _available_special_resource_key(character: PlayerCharacter, spell: Dictiona
 	if not _has_special_resource_contract(spell):
 		return ""
 	var resource_key: String = str(spell.get("resource_key", ""))
-	if character.get_resource(resource_key) > 0:
-		return resource_key
-	var fallback_key: String = str(spell.get("fallback_resource_key", ""))
-	if fallback_key.is_empty():
-		return ""
-	var mapped: String = _mapped_resource_key(character, fallback_key)
-	return mapped if character.get_resource(mapped) > 0 else ""
+	return resource_key if character.get_resource(resource_key) > 0 else ""
 
 
 func _turn_slot_rule_blocked(character: PlayerCharacter, casting_context: Dictionary) -> bool:

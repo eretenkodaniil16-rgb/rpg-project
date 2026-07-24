@@ -71,6 +71,13 @@ func current_entry() -> Dictionary:
 	return entries[current_index]
 
 
+func current_turn_token() -> String:
+	var actor: Node = current_actor()
+	if not active or not is_instance_valid(actor):
+		return ""
+	return "%d:%d:%d" % [round_number, current_index, actor.get_instance_id()]
+
+
 func is_player_turn(player: Node) -> bool:
 	return active and current_actor() == player
 

@@ -335,7 +335,8 @@ func _cast_selected_ritual() -> void:
 		return
 	var state: Node = _game_state()
 	var current_minutes: int = _world_time.get_minutes(state)
-	var response: Dictionary = _spellcasting.cast_ritual(_hero, _selected_power, current_minutes, _is_combat_active())
+	var casting_context: Dictionary = _class_data.get_spellcasting_context(_hero)
+	var response: Dictionary = _spellcasting.cast_ritual(_hero, _selected_power, current_minutes, _is_combat_active(), casting_context)
 	if bool(response.get("success", false)):
 		_world_time.advance(state, int(response.get("advance_minutes", 0)), false)
 		_spellcasting.cleanup_expired_effects(_hero, _world_time.get_minutes(state))
