@@ -1,0 +1,33 @@
+name: Apply spell slot UI patch
+
+on:
+  push:
+    branches:
+      - feature/spellcasting-progression-components
+    paths:
+      - ".github/patch_triggers/spell_slot_ui_patch.txt"
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/spellcasting-progression-components
+          fetch-depth: 0
+
+      - name: Apply deterministic patch
+        run: python tools/maintenance/apply_spell_slot_ui_patch.py
+
+      - name: Commit patched files
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/ui/character_hub.gd tests/smoke_spellcasting_ritual_ui.gd
+          git commit -m "feat: add spell slot level selector"
+          git push origin HEAD:feature/spellcasting-progression-components
