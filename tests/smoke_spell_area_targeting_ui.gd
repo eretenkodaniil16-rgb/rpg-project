@@ -55,7 +55,7 @@ func _run() -> void:
 
 	var confirm_button: Button = game.get("_spell_area_confirm_button") as Button
 	var cancel_button: Button = game.get("_spell_area_cancel_button") as Button
-	var grid: BattleGrid = root.get_first_node_in_group("battle_grid") as BattleGrid
+	var grid: BattleGrid = get_first_node_in_group("battle_grid") as BattleGrid
 	if confirm_button == null or cancel_button == null or grid == null:
 		_fail("Spell-area confirmation controls or BattleGrid were not constructed.")
 		return
@@ -69,7 +69,7 @@ func _run() -> void:
 		_fail("Area confirmation did not display the current target count.")
 		return
 
-	var player: Node2D = root.get_first_node_in_group("player") as Node2D
+	var player: Node2D = get_first_node_in_group("player") as Node2D
 	if player == null:
 		_fail("Player node was unavailable to update the targeting direction.")
 		return
