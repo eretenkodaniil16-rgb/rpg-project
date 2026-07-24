@@ -5,20 +5,30 @@ on:
     paths:
       - "data/abilities/abilities.json"
       - "data/classes/classes.json"
+      - "scenes/game/game.tscn"
       - "scripts/data/spell_cast_attempt.gd"
+      - "scripts/game/game_spell_reactions_runtime.gd"
+      - "scripts/game/rune_training_construct.gd"
       - "scripts/systems/spell_reaction_system.gd"
       - "scripts/systems/spellcasting_system.gd"
+      - "scripts/ui/spell_reaction_prompt.gd"
       - "tests/test_spell_reactions_counterspell.gd"
+      - "tests/smoke_spell_reaction_prompt.gd"
   push:
     branches:
       - feature/spell-reactions-counterspell
     paths:
       - "data/abilities/abilities.json"
       - "data/classes/classes.json"
+      - "scenes/game/game.tscn"
       - "scripts/data/spell_cast_attempt.gd"
+      - "scripts/game/game_spell_reactions_runtime.gd"
+      - "scripts/game/rune_training_construct.gd"
       - "scripts/systems/spell_reaction_system.gd"
       - "scripts/systems/spellcasting_system.gd"
+      - "scripts/ui/spell_reaction_prompt.gd"
       - "tests/test_spell_reactions_counterspell.gd"
+      - "tests/smoke_spell_reaction_prompt.gd"
 
 permissions:
   contents: read
@@ -26,7 +36,7 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 15
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -51,3 +61,7 @@ jobs:
       - name: Validate Counterspell reaction rules
         shell: bash
         run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_spell_reactions_counterspell.gd
+
+      - name: Smoke test paused mobile reaction prompt
+        shell: bash
+        run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_spell_reaction_prompt.gd
