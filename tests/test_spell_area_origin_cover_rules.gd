@@ -42,20 +42,32 @@ func _run() -> void:
 		_fail("Self-origin line lost its forward footprint.")
 		return
 
+	var remote_origin := Vector2i(4, 4)
 	var remote_line: Array[Vector2i] = areas.get_area_cells(
 		grid,
 		caster_cell,
-		Vector2i(4, 4),
-		{"shape": "line", "origin": "point", "length_ft": 15, "width_ft": 5}
+		remote_origin,
+		{"shape": "line", "origin": "point", "length_ft": 15, "width_ft": 5},
+		Vector2.UP
 	)
-	if Vector2i(4, 4) in remote_line:
+	if remote_origin in remote_line:
 		_fail("Remote line included its point of origin by default.")
 		return
-	if Vector2i(5, 4) not in remote_line or Vector2i(7, 4) not in remote_line:
-		_fail("Remote line did not continue away from the caster through its selected origin.")
+	if Vector2i(4, 3) not in remote_line or Vector2i(4, 1) not in remote_line:
+		_fail("Remote line ignored its explicit direction hint.")
 		return
-	if Vector2i(3, 4) in remote_line:
-		_fail("Remote line extended behind its selected point of origin.")
+	if Vector2i(5, 4) in remote_line or Vector2i(4, 5) in remote_line:
+		_fail("Remote line extended sideways or behind its explicit direction.")
+		return
+
+	var point_sphere: Array[Vector2i] = areas.get_area_cells(
+		grid,
+		caster_cell,
+		caster_cell,
+		{"shape": "sphere", "origin": "point", "radius_ft": 5}
+	)
+	if caster_cell not in point_sphere or Vector2i(3, 4) not in point_sphere:
+		_fail("A point-origin sphere centered on the caster cell was displaced.")
 		return
 
 	var environment := CenterBlockedEnvironment.new()
@@ -72,5 +84,5 @@ func _run() -> void:
 		_fail("A cell with blocked center but visible edges was incorrectly treated as Total Cover.")
 		return
 
-	print("Spell area origin exclusion, remote direction, and all-lines Total Cover rules passed.")
+	print("Spell area origin exclusion, explicit remote direction, point origin, and all-lines Total Cover rules passed.")
 	quit(0)
