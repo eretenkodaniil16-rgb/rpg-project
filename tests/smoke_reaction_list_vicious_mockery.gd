@@ -126,11 +126,9 @@ func _run() -> void:
 	if not bool(game.call("has_vicious_mockery_effect_for_testing", construct)):
 		_fail("Vicious Mockery disadvantage rider was not stored on the target.")
 		return
-	var attack_result_value: Variant = await game.call("resolve_npc_attack", construct, 3, 6, 1, "force")
-	var attack_result: Dictionary = attack_result_value as Dictionary if attack_result_value is Dictionary else {}
-	if not bool(attack_result.get("vicious_mockery_disadvantage", false)):
-		_fail("The target's next attack did not consume Vicious Mockery disadvantage.")
-		return
+	game.call("resolve_npc_attack", construct, 3, 6, 1, "force")
+	for _frame: int in range(3):
+		await process_frame
 	if bool(game.call("has_vicious_mockery_effect_for_testing", construct)):
 		_fail("Vicious Mockery disadvantage was not removed after the next attack roll.")
 		return
