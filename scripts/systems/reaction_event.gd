@@ -75,6 +75,28 @@ func complete_resolution(reactor_id: String, option_id: String, result: Dictiona
 	status = Status.RESOLVED if stop_processing else Status.OPEN
 
 
+func record_runtime_outcome(
+	reactor_id: String,
+	option_id: String,
+	outcome: Dictionary
+) -> void:
+	var stop_chain: bool = (
+		bool(outcome.get("stop_reaction_chain", false))
+		or bool(outcome.get("event_invalidated", false))
+		or bool(outcome.get("target_invalid", false))
+	)
+	history.append({
+		"reactor_id": reactor_id,
+		"option_id": option_id,
+		"state": "runtime_completed",
+		"outcome": outcome.duplicate(true),
+		"stop_chain": stop_chain
+	})
+	if stop_chain:
+		stop_processing = true
+		status = Status.RESOLVED
+
+
 func mark_skipped(reactor_id: String, controller_id: String = "") -> void:
 	processed_reactor_ids[reactor_id] = true
 	history.append({
