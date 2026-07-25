@@ -17,10 +17,10 @@ func _fail(message: String) -> void:
 func _watchdog() -> void:
 	await create_timer(45.0).timeout
 	if not _finished:
-		_fail("Spell reaction prompt smoke test timed out after 45 seconds.")
+		_fail("Generic spell reaction prompt smoke test timed out after 45 seconds.")
 
 
-func _wait_for_prompt(prompt: SpellReactionPrompt) -> bool:
+func _wait_for_prompt(prompt: ReactionChoicePrompt) -> bool:
 	for _frame: int in range(240):
 		if prompt != null and prompt.is_waiting_for_decision() and prompt.is_visible_in_tree():
 			return true
@@ -73,17 +73,12 @@ func _run() -> void:
 	for _frame: int in range(12):
 		await process_frame
 
-	var prompt: SpellReactionPrompt = game.call("get_spell_reaction_prompt_for_testing") as SpellReactionPrompt
+	var prompt: ReactionChoicePrompt = game.call("get_reaction_choice_prompt_for_testing") as ReactionChoicePrompt
 	var construct: RuneTrainingConstruct = game.call("get_rune_training_construct_for_testing") as RuneTrainingConstruct
 	var player: Node2D = get_first_node_in_group("player") as Node2D
 	var turns: TurnBasedCombatSystem = game.get("_turn_system") as TurnBasedCombatSystem
 	if prompt == null or construct == null or player == null or turns == null:
-		_fail("Reaction prompt, rune construct, player, or turn system was not constructed.")
-		return
-	var cast_button: Button = prompt.find_child("CounterspellButton", true, false) as Button
-	var skip_button: Button = prompt.find_child("SkipReactionButton", true, false) as Button
-	if cast_button == null or skip_button == null:
-		_fail("Mobile Counterspell and Skip buttons were not present in the runtime prompt.")
+		_fail("Generic reaction prompt, rune construct, player, or turn system was not constructed.")
 		return
 
 	construct.global_position = player.global_position + Vector2.RIGHT * DistanceSystem.feet_to_pixels(10)
@@ -100,10 +95,15 @@ func _run() -> void:
 	game.call_deferred("_run_enemy_turn", construct)
 	var first_prompt_opened: bool = await _wait_for_prompt(prompt)
 	if not first_prompt_opened:
-		_fail("Enemy spellcasting did not open the Counterspell decision prompt.")
+		_fail("Enemy spellcasting did not open the generic reaction list.")
 		return
-	if cast_button.text != "КОНТРЗАКЛИНАНИЕ" or skip_button.text != "ПРОПУСТИТЬ":
-		_fail("Reaction prompt mobile button labels were incorrect.")
+	if prompt.get_option_count() != 1 or ReactionOpportunitySystem.OPTION_COUNTERSPELL not in prompt.get_option_ids():
+		_fail("Generic reaction list did not contain the available Counterspell option.")
+		return
+	var cast_button: Button = prompt.find_child("ReactionOption_counterspell", true, false) as Button
+	var skip_button: Button = prompt.find_child("SkipReactionButton", true, false) as Button
+	if cast_button == null or skip_button == null or cast_button.text != "КОНТРЗАКЛИНАНИЕ" or skip_button.text != "ПРОПУСТИТЬ РЕАКЦИЮ":
+		_fail("Generic reaction list mobile controls were incorrect.")
 		return
 	await create_timer(0.2).timeout
 	if construct.get_combat_spell_slot_count(1) != enemy_slots_before_skip or wizard.current_health != hp_before_skip:
@@ -135,13 +135,9 @@ func _run() -> void:
 	game.call_deferred("_run_enemy_turn", construct)
 	var second_prompt_opened: bool = await _wait_for_prompt(prompt)
 	if not second_prompt_opened:
-		_fail("Second enemy casting did not reopen the Counterspell decision prompt.")
+		_fail("Second enemy casting did not reopen the generic reaction list.")
 		return
-	await create_timer(0.2).timeout
-	if construct.get_combat_spell_slot_count(1) != enemy_slots_before_counter or wizard.current_health != hp_before_counter:
-		_fail("Second enemy casting advanced before the player answered the reaction prompt.")
-		return
-	prompt.choose_counterspell()
+	prompt.choose_option(ReactionOpportunitySystem.OPTION_COUNTERSPELL)
 	var second_turn_finished: bool = await _wait_for_enemy_turn(game, false)
 	if not second_turn_finished:
 		_fail("Enemy turn did not finish after resolving Counterspell.")
@@ -159,10 +155,10 @@ func _run() -> void:
 		_fail("The enemy turn did not advance to the player or reset the reaction at the start of that turn.")
 		return
 	if prompt.visible or prompt.is_waiting_for_decision():
-		_fail("Reaction prompt remained open after Counterspell resolved.")
+		_fail("Generic reaction prompt remained open after Counterspell resolved.")
 		return
 
 	_finished = true
 	game.queue_free()
-	print("Mobile Counterspell prompt pauses enemy casting, Skip resumes it, Counterspell preserves the enemy slot, and the reaction resets on the player's next turn.")
+	print("Generic reaction list pauses enemy casting, supports Skip and Counterspell, preserves the enemy slot, and resets the reaction on the player's next turn.")
 	quit(0)
