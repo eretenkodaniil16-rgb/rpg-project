@@ -5,11 +5,13 @@ on:
     paths:
       - "scenes/game/game.tscn"
       - "scripts/game/game_reaction_opportunities_runtime.gd"
+      - "scripts/game/game_all_reaction_prompts_runtime.gd"
       - "scripts/systems/reaction_opportunity_system.gd"
       - "scripts/systems/vicious_mockery_system.gd"
       - "scripts/ui/reaction_choice_prompt.gd"
       - "tests/test_vicious_mockery_reaction_opportunities.gd"
       - "tests/smoke_reaction_list_vicious_mockery.gd"
+      - "tests/smoke_readied_reaction_prompt.gd"
       - "tests/smoke_spell_reaction_prompt.gd"
   push:
     branches:
@@ -17,11 +19,13 @@ on:
     paths:
       - "scenes/game/game.tscn"
       - "scripts/game/game_reaction_opportunities_runtime.gd"
+      - "scripts/game/game_all_reaction_prompts_runtime.gd"
       - "scripts/systems/reaction_opportunity_system.gd"
       - "scripts/systems/vicious_mockery_system.gd"
       - "scripts/ui/reaction_choice_prompt.gd"
       - "tests/test_vicious_mockery_reaction_opportunities.gd"
       - "tests/smoke_reaction_list_vicious_mockery.gd"
+      - "tests/smoke_readied_reaction_prompt.gd"
       - "tests/smoke_spell_reaction_prompt.gd"
 
 permissions:
@@ -53,6 +57,10 @@ jobs:
       - name: Validate migrated Counterspell reaction list
         shell: bash
         run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_spell_reaction_prompt.gd
+
+      - name: Validate readied-action reaction prompt
+        shell: bash
+        run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_readied_reaction_prompt.gd
 
       - name: Smoke test multi-option reaction list and Vicious Mockery runtime
         shell: bash
