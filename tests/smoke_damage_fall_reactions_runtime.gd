@@ -114,7 +114,9 @@ func _run() -> void:
 		warlock.get_ability_modifier("dexterity"),
 		{player.get_instance_id(): 20, construct.get_instance_id(): 1}
 	)
-	game.call("set_hellish_rebuke_testing_overrides", [1], [10, 10])
+	var hellish_save_rolls: Array[int] = [1]
+	var hellish_damage_rolls: Array[int] = [10, 10]
+	game.call("set_hellish_rebuke_testing_overrides", hellish_save_rolls, hellish_damage_rolls)
 	var hp_before_damage: int = warlock.current_health
 	var construct_hp_before: int = construct.get_current_health()
 	var slots_before: int = warlock.get_resource("pact_slots_1")
@@ -167,7 +169,8 @@ func _run() -> void:
 		{player.get_instance_id(): 20, construct.get_instance_id(): 1}
 	)
 	var hp_before_fall: int = monk.current_health
-	game.call_deferred("resolve_player_fall_for_testing", 40, [6, 6, 6, 6])
+	var fall_damage_rolls: Array[int] = [6, 6, 6, 6]
+	game.call_deferred("resolve_player_fall_for_testing", 40, fall_damage_rolls)
 	if not await _wait_for_prompt(prompt):
 		_fail("Potential falling damage did not open the universal reaction prompt for Slow Fall.")
 		return
