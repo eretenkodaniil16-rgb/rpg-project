@@ -1,0 +1,87 @@
+name: Validate multi-reactor reactions
+
+on:
+  pull_request:
+    paths:
+      - "scenes/game/game.tscn"
+      - "scripts/game/game_multi_reactor_reactions_runtime.gd"
+      - "scripts/systems/reaction_event.gd"
+      - "scripts/systems/reaction_candidate.gd"
+      - "scripts/systems/reaction_coordinator.gd"
+      - "tests/test_multi_reactor_reaction_coordinator.gd"
+      - "tests/smoke_spell_reaction_prompt.gd"
+      - "tests/smoke_damage_fall_reactions_runtime.gd"
+      - "tests/smoke_defensive_reactions_runtime.gd"
+      - ".github/workflows/validate-multi-reactor-reactions.yml"
+  push:
+    branches:
+      - feature/multi-reactor-reaction-coordinator
+    paths:
+      - "scenes/game/game.tscn"
+      - "scripts/game/game_multi_reactor_reactions_runtime.gd"
+      - "scripts/systems/reaction_event.gd"
+      - "scripts/systems/reaction_candidate.gd"
+      - "scripts/systems/reaction_coordinator.gd"
+      - "tests/test_multi_reactor_reaction_coordinator.gd"
+      - "tests/smoke_spell_reaction_prompt.gd"
+      - "tests/smoke_damage_fall_reactions_runtime.gd"
+      - "tests/smoke_defensive_reactions_runtime.gd"
+      - ".github/workflows/validate-multi-reactor-reactions.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Godot 4.7.1 Standard
+        shell: bash
+        run: |
+          curl --location --fail --retry 3 --output godot.zip "https://downloads.godotengine.org/?flavor=stable&platform=linux.64&slug=linux.x86_64.zip&version=4.7.1"
+          unzip -q godot.zip
+          chmod +x Godot_v4.7.1-stable_linux.x86_64
+
+      - name: Import project and reject parser errors
+        shell: bash
+        run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --editor --path "$GITHUB_WORKSPACE" --quit
+
+      - name: Validate coordinator and inherited reaction runtimes
+        shell: bash
+        run: |
+          set +e
+          : > multi-reactor-reactions.log
+          tests=(
+            "res://tests/test_multi_reactor_reaction_coordinator.gd"
+            "res://tests/smoke_spell_reaction_prompt.gd"
+            "res://tests/test_damage_fall_reactions_hellish_rebuke_slow_fall.gd"
+            "res://tests/smoke_damage_fall_reactions_runtime.gd"
+            "res://tests/test_defensive_reactions_shield_absorb_elements.gd"
+            "res://tests/smoke_defensive_reactions_runtime.gd"
+            "res://tests/smoke_reaction_list_vicious_mockery.gd"
+          )
+          status=0
+          for test_script in "${tests[@]}"; do
+            echo "===== ${test_script} =====" | tee -a multi-reactor-reactions.log
+            ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script "${test_script}" 2>&1 | tee -a multi-reactor-reactions.log
+            current=${PIPESTATUS[0]}
+            if [ "${current}" -ne 0 ]; then
+              status=${current}
+              break
+            fi
+          done
+          echo "godot_exit_status=${status}" | tee -a multi-reactor-reactions.log
+          exit "${status}"
+
+      - name: Upload multi-reactor diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: multi-reactor-reactions
+          path: multi-reactor-reactions.log
+          if-no-files-found: warn
+          retention-days: 7
