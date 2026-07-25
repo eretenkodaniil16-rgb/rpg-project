@@ -37,7 +37,7 @@ func _make_wizard(level: int = 3) -> PlayerCharacter:
 	return character
 
 
-func _base_casting_context() -> Dictionary:
+func _base_casting_context(turn_token: String = "enemy:1") -> Dictionary:
 	return {
 		"can_speak": true,
 		"armor_trained": true,
@@ -45,7 +45,7 @@ func _base_casting_context() -> Dictionary:
 		"focus_in_hand": true,
 		"has_component_pouch": true,
 		"has_required_material": true,
-		"turn_token": "enemy:1"
+		"turn_token": turn_token
 	}
 
 
@@ -63,12 +63,13 @@ func _run() -> void:
 	var shield_context: Dictionary = {
 		"reactor": wizard,
 		"reaction_available": true,
+		"trigger_id": ReactionOpportunitySystem.TRIGGER_ATTACK_ROLL_HIT,
 		"attack_hit": true,
 		"attack_total": 15,
 		"natural_roll": 12,
 		"current_ac": 13,
 		"shield_already_active": false,
-		"casting_context": _base_casting_context()
+		"casting_context": _base_casting_context("enemy:1")
 	}
 	var shield_options: Array[Dictionary] = opportunities.collect_options(
 		ReactionOpportunitySystem.TRIGGER_ATTACK_ROLL_HIT,
@@ -81,15 +82,16 @@ func _run() -> void:
 
 	var slots_before_shield: int = wizard.get_resource("spell_slots_1")
 	var shield_result: Dictionary = opportunities.resolve_defensive_option(ReactionOpportunitySystem.OPTION_SHIELD, shield_context)
-	_expect(bool(shield_result.get("resolved", false)), "Shield failed to resolve.")
+	_expect(bool(shield_result.get("resolved", false)), "Shield failed to resolve: %s" % str(shield_result.get("message", "")))
 	_expect(bool(shield_result.get("consume_reaction", false)), "Shield did not request reaction consumption.")
 	_expect(int(shield_result.get("armor_class_bonus", 0)) == 5, "Shield did not grant +5 AC.")
 	_expect(wizard.get_resource("spell_slots_1") == slots_before_shield - 1, "Shield did not spend exactly one spell slot.")
 
 	spellcasting.ensure_character(wizard, true)
 	var magic_missile_context: Dictionary = shield_context.duplicate(true)
+	magic_missile_context["trigger_id"] = ReactionOpportunitySystem.TRIGGER_MAGIC_MISSILE_TARGETED
 	magic_missile_context.erase("attack_hit")
-	magic_missile_context["casting_context"] = _base_casting_context()
+	magic_missile_context["casting_context"] = _base_casting_context("enemy:missile")
 	var missile_options: Array[Dictionary] = opportunities.collect_options(
 		ReactionOpportunitySystem.TRIGGER_MAGIC_MISSILE_TARGETED,
 		magic_missile_context
@@ -108,10 +110,11 @@ func _run() -> void:
 	var absorb_context: Dictionary = {
 		"reactor": wizard,
 		"reaction_available": true,
+		"trigger_id": ReactionOpportunitySystem.TRIGGER_ELEMENTAL_DAMAGE_TAKEN,
 		"incoming_damage": 17,
 		"damage_type": "fire",
 		"same_absorption_active": false,
-		"casting_context": _base_casting_context()
+		"casting_context": _base_casting_context("enemy:2")
 	}
 	var absorb_options: Array[Dictionary] = opportunities.collect_options(
 		ReactionOpportunitySystem.TRIGGER_ELEMENTAL_DAMAGE_TAKEN,
@@ -120,7 +123,7 @@ func _run() -> void:
 	_expect(absorb_options.size() == 1, "Fire damage did not offer Absorb Elements.")
 	var level_two_slots_before: int = wizard.get_resource("spell_slots_2")
 	var absorb_result: Dictionary = opportunities.resolve_defensive_option(ReactionOpportunitySystem.OPTION_ABSORB_ELEMENTS, absorb_context)
-	_expect(bool(absorb_result.get("resolved", false)), "Absorb Elements failed to resolve.")
+	_expect(bool(absorb_result.get("resolved", false)), "Absorb Elements failed to resolve: %s" % str(absorb_result.get("message", "")))
 	_expect(str(absorb_result.get("damage_type", "")) == "fire", "Absorb Elements stored the wrong damage type.")
 	_expect(int(absorb_result.get("bonus_dice_count", 0)) == 2, "A level-two Absorb Elements did not charge 2d6 bonus damage.")
 	_expect(wizard.get_resource("spell_slots_2") == level_two_slots_before - 1, "Upcast Absorb Elements did not spend one level-two slot.")
@@ -137,7 +140,7 @@ func _run() -> void:
 
 	spellcasting.ensure_character(wizard, true)
 	var occupied_hands_context: Dictionary = shield_context.duplicate(true)
-	var blocked_casting_context: Dictionary = _base_casting_context()
+	var blocked_casting_context: Dictionary = _base_casting_context("enemy:hands")
 	blocked_casting_context["free_hands"] = 0
 	blocked_casting_context["focus_in_hand"] = false
 	occupied_hands_context["casting_context"] = blocked_casting_context
