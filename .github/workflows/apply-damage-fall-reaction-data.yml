@@ -1,0 +1,38 @@
+name: Apply damage and fall reaction data
+
+on:
+  push:
+    branches:
+      - feature/damage-fall-reactions-hellish-rebuke-slow-fall
+    paths:
+      - ".github/workflows/apply-damage-fall-reaction-data.yml"
+      - ".github/patch_triggers/damage_fall_reaction_data.txt"
+      - "tools/maintenance/apply_damage_fall_reaction_data.py"
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/damage-fall-reactions-hellish-rebuke-slow-fall
+          fetch-depth: 0
+
+      - name: Apply data patch
+        run: python3 tools/maintenance/apply_damage_fall_reaction_data.py
+
+      - name: Commit data and remove temporary patch files
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/apply-damage-fall-reaction-data.yml
+          git rm .github/patch_triggers/damage_fall_reaction_data.txt
+          git rm tools/maintenance/apply_damage_fall_reaction_data.py
+          git add data/abilities/abilities.json data/classes/classes.json
+          git commit -m "feat: добавить данные Адского возмездия и Медленного падения"
+          git push origin HEAD:feature/damage-fall-reactions-hellish-rebuke-slow-fall
