@@ -1,1 +1,0 @@
-Apply tools/maintenance/apply_defensive_reaction_spell_data.py once on this feature branch.
