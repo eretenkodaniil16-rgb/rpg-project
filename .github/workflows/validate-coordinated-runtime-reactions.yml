@@ -1,0 +1,87 @@
+name: Validate coordinated runtime reactions
+
+on:
+  pull_request:
+    paths:
+      - "scenes/game/game.tscn"
+      - "scripts/game/game_coordinated_reaction_runtime.gd"
+      - "scripts/systems/reaction_event.gd"
+      - "scripts/systems/reaction_coordinator.gd"
+      - "tests/test_coordinated_reaction_migration.gd"
+      - "tests/test_multi_reactor_reaction_coordinator.gd"
+      - "tests/smoke_spell_reaction_prompt.gd"
+      - "tests/smoke_defensive_reactions_runtime.gd"
+      - "tests/smoke_damage_fall_reactions_runtime.gd"
+      - "tests/smoke_reaction_list_vicious_mockery.gd"
+      - ".github/workflows/validate-coordinated-runtime-reactions.yml"
+  push:
+    branches:
+      - feature/coordinated-defensive-runtime-reactions
+    paths:
+      - "scenes/game/game.tscn"
+      - "scripts/game/game_coordinated_reaction_runtime.gd"
+      - "scripts/systems/reaction_event.gd"
+      - "scripts/systems/reaction_coordinator.gd"
+      - "tests/test_coordinated_reaction_migration.gd"
+      - "tests/test_multi_reactor_reaction_coordinator.gd"
+      - "tests/smoke_spell_reaction_prompt.gd"
+      - "tests/smoke_defensive_reactions_runtime.gd"
+      - "tests/smoke_damage_fall_reactions_runtime.gd"
+      - "tests/smoke_reaction_list_vicious_mockery.gd"
+      - ".github/workflows/validate-coordinated-runtime-reactions.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Godot 4.7.1 Standard
+        shell: bash
+        run: |
+          curl --location --fail --retry 3 --output godot.zip "https://downloads.godotengine.org/?flavor=stable&platform=linux.64&slug=linux.x86_64.zip&version=4.7.1"
+          unzip -q godot.zip
+          chmod +x Godot_v4.7.1-stable_linux.x86_64
+
+      - name: Import project and reject parser errors
+        shell: bash
+        run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --editor --path "$GITHUB_WORKSPACE" --quit
+
+      - name: Validate coordinated migration and inherited runtimes
+        shell: bash
+        run: |
+          set +e
+          status=0
+          tests=(
+            tests/test_coordinated_reaction_migration.gd
+            tests/test_multi_reactor_reaction_coordinator.gd
+            tests/smoke_spell_reaction_prompt.gd
+            tests/smoke_defensive_reactions_runtime.gd
+            tests/smoke_damage_fall_reactions_runtime.gd
+            tests/smoke_reaction_list_vicious_mockery.gd
+          )
+          : > coordinated-runtime-reactions.log
+          for test_script in "${tests[@]}"; do
+            echo "===== ${test_script} =====" | tee -a coordinated-runtime-reactions.log
+            ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script "res://${test_script}" 2>&1 | tee -a coordinated-runtime-reactions.log
+            test_status=${PIPESTATUS[0]}
+            echo "exit_status=${test_status}" | tee -a coordinated-runtime-reactions.log
+            if [ "${test_status}" -ne 0 ]; then
+              status=${test_status}
+            fi
+          done
+          exit "${status}"
+
+      - name: Upload coordinated runtime diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coordinated-runtime-reactions
+          path: coordinated-runtime-reactions.log
+          if-no-files-found: warn
+          retention-days: 7
