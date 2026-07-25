@@ -7,15 +7,20 @@ const TRIGGER_READIED_ACTION: String = "readied_action_triggered"
 const TRIGGER_ATTACK_ROLL_HIT: String = DefensiveReactionSystem.TRIGGER_ATTACK_ROLL_HIT
 const TRIGGER_MAGIC_MISSILE_TARGETED: String = DefensiveReactionSystem.TRIGGER_MAGIC_MISSILE_TARGETED
 const TRIGGER_ELEMENTAL_DAMAGE_TAKEN: String = DefensiveReactionSystem.TRIGGER_ELEMENTAL_DAMAGE_TAKEN
+const TRIGGER_CREATURE_DAMAGE_RECEIVED: String = DamageFallReactionSystem.TRIGGER_CREATURE_DAMAGE_RECEIVED
+const TRIGGER_FALL_DAMAGE_PENDING: String = DamageFallReactionSystem.TRIGGER_FALL_DAMAGE_PENDING
 
 const OPTION_COUNTERSPELL: String = "counterspell"
 const OPTION_OPPORTUNITY_ATTACK: String = "opportunity_attack"
 const OPTION_READIED_ATTACK: String = "readied_attack"
 const OPTION_SHIELD: String = "shield_spell"
 const OPTION_ABSORB_ELEMENTS: String = "absorb_elements"
+const OPTION_HELLISH_REBUKE: String = "hellish_rebuke"
+const OPTION_SLOW_FALL: String = "slow_fall"
 
 var _spell_reactions: SpellReactionSystem = SpellReactionSystem.new()
 var _defensive_reactions: DefensiveReactionSystem = DefensiveReactionSystem.new()
+var _damage_fall_reactions: DamageFallReactionSystem = DamageFallReactionSystem.new()
 
 
 func collect_options(trigger_id: String, context: Dictionary) -> Array[Dictionary]:
@@ -32,6 +37,10 @@ func collect_options(trigger_id: String, context: Dictionary) -> Array[Dictionar
 			return _collect_shield_options(TRIGGER_MAGIC_MISSILE_TARGETED, context)
 		TRIGGER_ELEMENTAL_DAMAGE_TAKEN:
 			return _collect_absorb_elements_options(context)
+		TRIGGER_CREATURE_DAMAGE_RECEIVED:
+			return _collect_hellish_rebuke_options(context)
+		TRIGGER_FALL_DAMAGE_PENDING:
+			return _collect_slow_fall_options(context)
 		_:
 			return []
 
@@ -66,6 +75,16 @@ func resolve_defensive_option(option_id: String, context: Dictionary) -> Diction
 			return _defensive_reactions.resolve_absorb_elements(context.get("reactor") as PlayerCharacter, context)
 		_:
 			return _unresolved("Выбранная реакция не относится к защите от атаки или урона.")
+
+
+func resolve_damage_fall_option(option_id: String, context: Dictionary) -> Dictionary:
+	match option_id:
+		OPTION_HELLISH_REBUKE:
+			return _damage_fall_reactions.resolve_hellish_rebuke(context.get("reactor") as PlayerCharacter, context)
+		OPTION_SLOW_FALL:
+			return _damage_fall_reactions.resolve_slow_fall(context.get("reactor") as PlayerCharacter, context)
+		_:
+			return _unresolved("Выбранная реакция не относится к полученному урону или падению.")
 
 
 func _collect_spell_cast_options(context: Dictionary) -> Array[Dictionary]:
@@ -139,6 +158,45 @@ func _collect_absorb_elements_options(context: Dictionary) -> Array[Dictionary]:
 		],
 		"resource_text": "Реакция · ячейка %d уровня" % int(offer.get("slot_level", 1)),
 		"priority": 85,
+		"offer": offer
+	}]
+
+
+func _collect_hellish_rebuke_options(context: Dictionary) -> Array[Dictionary]:
+	var evaluation_context: Dictionary = context.duplicate(true)
+	evaluation_context["trigger_id"] = TRIGGER_CREATURE_DAMAGE_RECEIVED
+	var reactor: PlayerCharacter = evaluation_context.get("reactor") as PlayerCharacter
+	var offer: Dictionary = _damage_fall_reactions.evaluate_hellish_rebuke(reactor, evaluation_context)
+	if not bool(offer.get("available", false)):
+		return []
+	return [{
+		"id": OPTION_HELLISH_REBUKE,
+		"label": "АДСКОЕ ВОЗМЕЗДИЕ",
+		"name": "Адское возмездие",
+		"description": "Существо, которое только что нанесло вам урон, совершит спасбросок Ловкости и получит %dк10 огненного урона, половину при успехе." % int(offer.get("damage_dice_count", 2)),
+		"resource_text": "Реакция · ячейка %d уровня" % int(offer.get("slot_level", 1)),
+		"priority": 90,
+		"offer": offer
+	}]
+
+
+func _collect_slow_fall_options(context: Dictionary) -> Array[Dictionary]:
+	var evaluation_context: Dictionary = context.duplicate(true)
+	evaluation_context["trigger_id"] = TRIGGER_FALL_DAMAGE_PENDING
+	var reactor: PlayerCharacter = evaluation_context.get("reactor") as PlayerCharacter
+	var offer: Dictionary = _damage_fall_reactions.evaluate_slow_fall(reactor, evaluation_context)
+	if not bool(offer.get("available", false)):
+		return []
+	return [{
+		"id": OPTION_SLOW_FALL,
+		"label": "МЕДЛЕННОЕ ПАДЕНИЕ",
+		"name": "Медленное падение",
+		"description": "Уменьшить ожидаемый урон от падения с %d до %d." % [
+			int(offer.get("pending_fall_damage", 0)),
+			int(offer.get("final_damage", 0))
+		],
+		"resource_text": "Реакция",
+		"priority": 92,
 		"offer": offer
 	}]
 
