@@ -1,0 +1,85 @@
+name: Validate defensive reactions
+
+on:
+  pull_request:
+    paths:
+      - "data/abilities/abilities.json"
+      - "data/classes/classes.json"
+      - "scenes/game/game.tscn"
+      - "scripts/game/game_defensive_reactions_runtime.gd"
+      - "scripts/game/game_defensive_reactions_complete_runtime.gd"
+      - "scripts/systems/defensive_reaction_system.gd"
+      - "scripts/systems/reaction_opportunity_system.gd"
+      - "tests/test_defensive_reactions_shield_absorb_elements.gd"
+      - "tests/smoke_defensive_reactions_runtime.gd"
+      - "tests/smoke_spell_reaction_prompt.gd"
+      - "tests/smoke_reaction_list_vicious_mockery.gd"
+      - ".github/workflows/validate-defensive-reactions.yml"
+  push:
+    branches:
+      - feature/defensive-reactions-shield-absorb-elements
+    paths:
+      - "data/abilities/abilities.json"
+      - "data/classes/classes.json"
+      - "scenes/game/game.tscn"
+      - "scripts/game/game_defensive_reactions_runtime.gd"
+      - "scripts/game/game_defensive_reactions_complete_runtime.gd"
+      - "scripts/systems/defensive_reaction_system.gd"
+      - "scripts/systems/reaction_opportunity_system.gd"
+      - "tests/test_defensive_reactions_shield_absorb_elements.gd"
+      - "tests/smoke_defensive_reactions_runtime.gd"
+      - "tests/smoke_spell_reaction_prompt.gd"
+      - "tests/smoke_reaction_list_vicious_mockery.gd"
+      - ".github/workflows/validate-defensive-reactions.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Godot 4.7.1 Standard
+        shell: bash
+        run: |
+          curl --location --fail --retry 3 --output godot.zip "https://downloads.godotengine.org/?flavor=stable&platform=linux.64&slug=linux.x86_64.zip&version=4.7.1"
+          unzip -q godot.zip
+          chmod +x Godot_v4.7.1-stable_linux.x86_64
+
+      - name: Import project and reject parser errors
+        shell: bash
+        run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --editor --path "$GITHUB_WORKSPACE" --quit
+
+      - name: Validate Shield and Absorb Elements rules
+        shell: bash
+        run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_defensive_reactions_shield_absorb_elements.gd
+
+      - name: Validate inherited Counterspell reaction list
+        shell: bash
+        run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_spell_reaction_prompt.gd
+
+      - name: Validate inherited multi-option reaction list and Vicious Mockery
+        shell: bash
+        run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_reaction_list_vicious_mockery.gd
+
+      - name: Smoke test defensive reaction runtime
+        shell: bash
+        run: |
+          set +e
+          ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_defensive_reactions_runtime.gd 2>&1 | tee defensive-reactions-runtime.log
+          status=${PIPESTATUS[0]}
+          echo "godot_exit_status=${status}" | tee -a defensive-reactions-runtime.log
+          exit "${status}"
+
+      - name: Upload defensive reaction diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: defensive-reactions-runtime
+          path: defensive-reactions-runtime.log
+          if-no-files-found: warn
+          retention-days: 7
