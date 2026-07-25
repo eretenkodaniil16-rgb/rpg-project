@@ -265,7 +265,12 @@
         "unarmored_defense_monk"
       ],
       "signature_ability": "martial_arts",
-      "armor_training": []
+      "armor_training": [],
+      "level_features": {
+        "4": [
+          "slow_fall"
+        ]
+      }
     },
     {
       "id": "paladin",
@@ -513,7 +518,8 @@
         "ability": "charisma",
         "prepared_limit": 2,
         "starting_spells": [
-          "eldritch_blast"
+          "eldritch_blast",
+          "hellish_rebuke"
         ],
         "starting_prepared": [],
         "slot_maximums": {

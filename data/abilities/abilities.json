@@ -776,5 +776,51 @@
     },
     "description": "Реакция при получении урона кислотой, холодом, огнём, электричеством или звуком. Даёт сопротивление этому типу до начала следующего хода и добавляет 1к6 этого типа к первому попаданию рукопашной атакой на следующем ходу.",
     "button": "ПОГЛОЩЕНИЕ СТИХИЙ"
+  },
+  "hellish_rebuke": {
+    "id": "hellish_rebuke",
+    "name": "Адское возмездие",
+    "kind": "reaction",
+    "is_spell": true,
+    "spell_level": 1,
+    "school": "Воплощение",
+    "target": "creature_that_damaged_self",
+    "effect": "hellish_rebuke_reaction",
+    "resource_key": "pact_slots_1",
+    "ability": "charisma",
+    "save_ability": "dexterity",
+    "damage_dice": [
+      2,
+      10
+    ],
+    "damage_type": "fire",
+    "range_ft": 60,
+    "casting_time_text": "Реакция",
+    "casting_time_kind": "reaction",
+    "reaction_trigger": "creature_damage_received",
+    "components": [
+      "v",
+      "s"
+    ],
+    "upcast": {
+      "damage_dice_per_level": [
+        1,
+        10
+      ]
+    },
+    "description": "Реакция после получения урона от видимого существа в пределах 60 футов. Цель совершает спасбросок Ловкости, получая 2к10 огненного урона при провале или половину при успехе.",
+    "button": "АДСКОЕ ВОЗМЕЗДИЕ"
+  },
+  "slow_fall": {
+    "id": "slow_fall",
+    "name": "Медленное падение",
+    "kind": "reaction",
+    "class_id": "monk",
+    "required_level": 4,
+    "target": "self",
+    "effect": "slow_fall_reaction",
+    "reaction_trigger": "fall_damage_pending",
+    "description": "Монах 4 уровня или выше может реакцией уменьшить урон от падения на величину, равную пятикратному уровню монаха.",
+    "button": "МЕДЛЕННОЕ ПАДЕНИЕ"
   }
 }
