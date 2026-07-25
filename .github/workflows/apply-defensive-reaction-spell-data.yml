@@ -1,0 +1,38 @@
+name: Apply defensive reaction spell data
+
+on:
+  push:
+    branches:
+      - feature/defensive-reactions-shield-absorb-elements
+    paths:
+      - ".github/workflows/apply-defensive-reaction-spell-data.yml"
+      - ".github/patch_triggers/defensive_reactions_spell_data.txt"
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/defensive-reactions-shield-absorb-elements
+          fetch-depth: 0
+
+      - name: Apply spell data patch
+        run: python3 tools/maintenance/apply_defensive_reaction_spell_data.py
+
+      - name: Commit generated data
+        shell: bash
+        run: |
+          if git diff --quiet -- data/abilities/abilities.json data/classes/classes.json; then
+            echo "Spell data is already current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/abilities/abilities.json data/classes/classes.json
+          git commit -m "feat: добавить данные Щита и Поглощения стихий"
+          git push origin HEAD:feature/defensive-reactions-shield-absorb-elements
