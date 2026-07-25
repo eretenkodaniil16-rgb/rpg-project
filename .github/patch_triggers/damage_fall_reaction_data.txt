@@ -1,0 +1,1 @@
+Apply tools/maintenance/apply_damage_fall_reaction_data.py and remove temporary patch files in the same commit.
