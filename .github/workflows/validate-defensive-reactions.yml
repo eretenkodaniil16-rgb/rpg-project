@@ -54,32 +54,34 @@ jobs:
         shell: bash
         run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --editor --path "$GITHUB_WORKSPACE" --quit
 
-      - name: Validate Shield and Absorb Elements rules
-        shell: bash
-        run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_defensive_reactions_shield_absorb_elements.gd
-
-      - name: Validate inherited Counterspell reaction list
-        shell: bash
-        run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_spell_reaction_prompt.gd
-
-      - name: Validate inherited multi-option reaction list and Vicious Mockery
-        shell: bash
-        run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_reaction_list_vicious_mockery.gd
-
-      - name: Smoke test defensive reaction runtime
+      - name: Run defensive reaction validation suite
         shell: bash
         run: |
           set +e
-          ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_defensive_reactions_runtime.gd 2>&1 | tee defensive-reactions-runtime.log
-          status=${PIPESTATUS[0]}
-          echo "godot_exit_status=${status}" | tee -a defensive-reactions-runtime.log
-          exit "${status}"
+          : > defensive-reactions-suite.log
+          failed=0
+          run_test() {
+            label="$1"
+            script="$2"
+            echo "===== ${label} =====" | tee -a defensive-reactions-suite.log
+            ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script "${script}" 2>&1 | tee -a defensive-reactions-suite.log
+            status=${PIPESTATUS[0]}
+            echo "exit_status=${status}" | tee -a defensive-reactions-suite.log
+            if [ "${status}" -ne 0 ]; then
+              failed=1
+            fi
+          }
+          run_test "Shield and Absorb Elements rules" "res://tests/test_defensive_reactions_shield_absorb_elements.gd"
+          run_test "Inherited Counterspell reaction list" "res://tests/smoke_spell_reaction_prompt.gd"
+          run_test "Inherited universal reactions and Vicious Mockery" "res://tests/smoke_reaction_list_vicious_mockery.gd"
+          run_test "Defensive reaction runtime" "res://tests/smoke_defensive_reactions_runtime.gd"
+          exit "${failed}"
 
       - name: Upload defensive reaction diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: defensive-reactions-runtime
-          path: defensive-reactions-runtime.log
+          name: defensive-reactions-suite
+          path: defensive-reactions-suite.log
           if-no-files-found: warn
           retention-days: 7
