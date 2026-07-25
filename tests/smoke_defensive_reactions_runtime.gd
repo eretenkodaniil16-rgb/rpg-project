@@ -87,7 +87,7 @@ func _run() -> void:
 		player,
 		[construct],
 		wizard.get_ability_modifier("dexterity"),
-		{player.get_instance_id(): 20, construct.get_instance_id(): 1}
+		{player.get_instance_id(): 1, construct.get_instance_id(): 20}
 	)
 
 	var hp_before_shield: int = wizard.current_health
@@ -132,6 +132,10 @@ func _run() -> void:
 
 	game.call("_expire_shield_at_start_of_turn")
 	turns.force_current_actor_for_testing(player)
+	turns.advance_turn()
+	if turns.current_actor() != construct or not turns.has_reaction(player):
+		_fail("The next enemy turn did not restore the player's reaction.")
+		return
 	var hp_before_absorb: int = wizard.current_health
 	var slots_before_absorb: int = wizard.get_resource("spell_slots_1")
 	game.call_deferred("apply_elemental_damage_for_testing", 10, "fire", construct)
