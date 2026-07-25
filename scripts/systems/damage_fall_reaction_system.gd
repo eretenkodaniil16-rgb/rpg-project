@@ -48,6 +48,11 @@ func evaluate_hellish_rebuke(character: PlayerCharacter, context: Dictionary) ->
 	var spell: Dictionary = _spellcasting.get_spell_definition(HELLISH_REBUKE_SPELL_ID)
 	if spell.is_empty():
 		return _unavailable("Определение заклинания Адское возмездие отсутствует.")
+	# Обычные классовые и договорные ячейки определяются профилем персонажа.
+	# Поле resource_key в каталоге служит только описанием и не должно фиксировать
+	# Колдуна высокого уровня на pact_slots_1.
+	spell.erase("resource_key")
+	spell.erase("fallback_resource_key")
 	_spellcasting.ensure_character(character, false)
 	var casting_context: Dictionary = context.get("casting_context", {}) as Dictionary
 	var requested_slot_level: int = maxi(int(context.get("slot_level", 0)), 0)
