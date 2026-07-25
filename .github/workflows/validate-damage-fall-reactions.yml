@@ -54,40 +54,34 @@ jobs:
         shell: bash
         run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --editor --path "$GITHUB_WORKSPACE" --quit
 
-      - name: Validate damage and fall reaction rules
-        shell: bash
-        run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_damage_fall_reactions_hellish_rebuke_slow_fall.gd
-
-      - name: Validate inherited defensive reactions
-        shell: bash
-        run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_defensive_reactions_shield_absorb_elements.gd
-
-      - name: Validate inherited Counterspell reaction list
-        shell: bash
-        run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_spell_reaction_prompt.gd
-
-      - name: Validate inherited reaction list and Vicious Mockery
-        shell: bash
-        run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_reaction_list_vicious_mockery.gd
-
-      - name: Validate inherited defensive runtime
-        shell: bash
-        run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_defensive_reactions_runtime.gd
-
-      - name: Smoke test damage and fall runtime
+      - name: Run complete damage and fall reaction suite
         shell: bash
         run: |
           set +e
-          ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_damage_fall_reactions_runtime.gd 2>&1 | tee damage-fall-reactions-runtime.log
-          status=${PIPESTATUS[0]}
-          echo "godot_exit_status=${status}" | tee -a damage-fall-reactions-runtime.log
-          exit "${status}"
+          : > damage-fall-reactions-suite.log
+          overall=0
+          run_test() {
+            label="$1"
+            script="$2"
+            echo "===== ${label} =====" | tee -a damage-fall-reactions-suite.log
+            ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script "${script}" 2>&1 | tee -a damage-fall-reactions-suite.log
+            status=${PIPESTATUS[0]}
+            echo "exit_status=${status}" | tee -a damage-fall-reactions-suite.log
+            if [ "${status}" -ne 0 ]; then overall=1; fi
+          }
+          run_test "Damage and fall rules" "res://tests/test_damage_fall_reactions_hellish_rebuke_slow_fall.gd"
+          run_test "Defensive reaction rules" "res://tests/test_defensive_reactions_shield_absorb_elements.gd"
+          run_test "Counterspell runtime" "res://tests/smoke_spell_reaction_prompt.gd"
+          run_test "Reaction list and Vicious Mockery" "res://tests/smoke_reaction_list_vicious_mockery.gd"
+          run_test "Defensive reaction runtime" "res://tests/smoke_defensive_reactions_runtime.gd"
+          run_test "Damage and fall runtime" "res://tests/smoke_damage_fall_reactions_runtime.gd"
+          exit "${overall}"
 
       - name: Upload damage and fall diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: damage-fall-reactions-runtime
-          path: damage-fall-reactions-runtime.log
+          name: damage-fall-reactions-suite
+          path: damage-fall-reactions-suite.log
           if-no-files-found: warn
           retention-days: 7
