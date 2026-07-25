@@ -178,7 +178,8 @@
         "prepared_limit": 4,
         "starting_spells": [
           "produce_flame",
-          "detect_magic"
+          "detect_magic",
+          "absorb_elements"
         ],
         "starting_prepared": [
           "detect_magic"
@@ -365,7 +366,8 @@
         "prepared_limit": 2,
         "starting_spells": [
           "hunters_mark",
-          "detect_magic"
+          "detect_magic",
+          "absorb_elements"
         ],
         "starting_prepared": [
           "detect_magic"
@@ -456,7 +458,9 @@
         "prepared_limit": 2,
         "starting_spells": [
           "sorcerous_burst",
-          "burning_hands"
+          "burning_hands",
+          "shield_spell",
+          "absorb_elements"
         ],
         "starting_prepared": [
           "burning_hands"
@@ -567,7 +571,9 @@
           "magic_missile",
           "detect_magic",
           "comprehend_languages",
-          "burning_hands"
+          "burning_hands",
+          "shield_spell",
+          "absorb_elements"
         ],
         "starting_prepared": [
           "magic_missile",
