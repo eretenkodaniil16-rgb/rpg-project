@@ -4,12 +4,18 @@ extends RefCounted
 const TRIGGER_SPELL_CAST_STARTED: String = "spell_cast_started"
 const TRIGGER_ENEMY_LEAVES_REACH: String = "enemy_leaves_reach"
 const TRIGGER_READIED_ACTION: String = "readied_action_triggered"
+const TRIGGER_ATTACK_ROLL_HIT: String = DefensiveReactionSystem.TRIGGER_ATTACK_ROLL_HIT
+const TRIGGER_MAGIC_MISSILE_TARGETED: String = DefensiveReactionSystem.TRIGGER_MAGIC_MISSILE_TARGETED
+const TRIGGER_ELEMENTAL_DAMAGE_TAKEN: String = DefensiveReactionSystem.TRIGGER_ELEMENTAL_DAMAGE_TAKEN
 
 const OPTION_COUNTERSPELL: String = "counterspell"
 const OPTION_OPPORTUNITY_ATTACK: String = "opportunity_attack"
 const OPTION_READIED_ATTACK: String = "readied_attack"
+const OPTION_SHIELD: String = "shield_spell"
+const OPTION_ABSORB_ELEMENTS: String = "absorb_elements"
 
 var _spell_reactions: SpellReactionSystem = SpellReactionSystem.new()
+var _defensive_reactions: DefensiveReactionSystem = DefensiveReactionSystem.new()
 
 
 func collect_options(trigger_id: String, context: Dictionary) -> Array[Dictionary]:
@@ -20,6 +26,12 @@ func collect_options(trigger_id: String, context: Dictionary) -> Array[Dictionar
 			return _collect_opportunity_attack_options(context)
 		TRIGGER_READIED_ACTION:
 			return _collect_readied_action_options(context)
+		TRIGGER_ATTACK_ROLL_HIT:
+			return _collect_shield_options(TRIGGER_ATTACK_ROLL_HIT, context)
+		TRIGGER_MAGIC_MISSILE_TARGETED:
+			return _collect_shield_options(TRIGGER_MAGIC_MISSILE_TARGETED, context)
+		TRIGGER_ELEMENTAL_DAMAGE_TAKEN:
+			return _collect_absorb_elements_options(context)
 		_:
 			return []
 
@@ -44,6 +56,16 @@ func resolve_spell_cast_option(option_id: String, context: Dictionary) -> Dictio
 		casting_context,
 		save_roll_overrides
 	)
+
+
+func resolve_defensive_option(option_id: String, context: Dictionary) -> Dictionary:
+	match option_id:
+		OPTION_SHIELD:
+			return _defensive_reactions.resolve_shield(context.get("reactor") as PlayerCharacter, context)
+		OPTION_ABSORB_ELEMENTS:
+			return _defensive_reactions.resolve_absorb_elements(context.get("reactor") as PlayerCharacter, context)
+		_:
+			return _unresolved("Выбранная реакция не относится к защите от атаки или урона.")
 
 
 func _collect_spell_cast_options(context: Dictionary) -> Array[Dictionary]:
@@ -71,6 +93,52 @@ func _collect_spell_cast_options(context: Dictionary) -> Array[Dictionary]:
 		],
 		"resource_text": "Реакция · ячейка %d уровня" % int(offer.get("slot_level", 3)),
 		"priority": 100,
+		"offer": offer
+	}]
+
+
+func _collect_shield_options(trigger_id: String, context: Dictionary) -> Array[Dictionary]:
+	var evaluation_context: Dictionary = context.duplicate(true)
+	evaluation_context["trigger_id"] = trigger_id
+	var reactor: PlayerCharacter = evaluation_context.get("reactor") as PlayerCharacter
+	var offer: Dictionary = _defensive_reactions.evaluate_shield(reactor, evaluation_context)
+	if not bool(offer.get("available", false)):
+		return []
+	var prevents_text: String
+	if bool(offer.get("blocks_magic_missile", false)):
+		prevents_text = "Полностью блокирует урон Магической стрелы."
+	elif bool(offer.get("prevents_triggering_hit", false)):
+		prevents_text = "Повышение КД превратит это попадание в промах."
+	else:
+		prevents_text = "Эта атака всё ещё попадёт, но КД останется повышенным до начала следующего хода."
+	return [{
+		"id": OPTION_SHIELD,
+		"label": "ЩИТ",
+		"name": "Щит",
+		"description": "%s КД +5 до начала следующего хода." % prevents_text,
+		"resource_text": "Реакция · ячейка %d уровня" % int(offer.get("slot_level", 1)),
+		"priority": 95,
+		"offer": offer
+	}]
+
+
+func _collect_absorb_elements_options(context: Dictionary) -> Array[Dictionary]:
+	var evaluation_context: Dictionary = context.duplicate(true)
+	evaluation_context["trigger_id"] = TRIGGER_ELEMENTAL_DAMAGE_TAKEN
+	var reactor: PlayerCharacter = evaluation_context.get("reactor") as PlayerCharacter
+	var offer: Dictionary = _defensive_reactions.evaluate_absorb_elements(reactor, evaluation_context)
+	if not bool(offer.get("available", false)):
+		return []
+	return [{
+		"id": OPTION_ABSORB_ELEMENTS,
+		"label": "ПОГЛОЩЕНИЕ СТИХИЙ",
+		"name": "Поглощение стихий",
+		"description": "Получить сопротивление урону «%s» и зарядить %dк6 этого типа для следующего рукопашного попадания." % [
+			str(offer.get("damage_type", "стихийный")),
+			int(offer.get("bonus_dice_count", 1))
+		],
+		"resource_text": "Реакция · ячейка %d уровня" % int(offer.get("slot_level", 1)),
+		"priority": 85,
 		"offer": offer
 	}]
 

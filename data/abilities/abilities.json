@@ -716,5 +716,65 @@
     ],
     "description": "Реакция на видимое сотворение заклинания в пределах 60 футов. Заклинатель совершает спасбросок Телосложения против Сл ваших заклинаний. При провале его заклинание рассеивается, действие теряется, а исходная ячейка не расходуется.",
     "button": "КОНТРЗАКЛИНАНИЕ"
+  },
+  "shield_spell": {
+    "id": "shield_spell",
+    "name": "Щит",
+    "kind": "reaction",
+    "is_spell": true,
+    "spell_level": 1,
+    "school": "Ограждение",
+    "target": "self",
+    "effect": "shield_reaction",
+    "resource_key": "spell_slots_1",
+    "casting_time_text": "Реакция",
+    "casting_time_kind": "reaction",
+    "reaction_trigger": "hit_by_attack_roll_or_targeted_by_magic_missile",
+    "components": [
+      "v",
+      "s"
+    ],
+    "duration": "until_start_of_next_turn",
+    "armor_class_bonus": 5,
+    "blocks_magic_missile": true,
+    "description": "Реакция после попадания броском атаки или выбора целью Магической стрелы. До начала следующего хода КД повышается на 5, включая против вызвавшей реакцию атаки; Магическая стрела не наносит урон.",
+    "button": "ЩИТ"
+  },
+  "absorb_elements": {
+    "id": "absorb_elements",
+    "name": "Поглощение стихий",
+    "kind": "reaction",
+    "is_spell": true,
+    "spell_level": 1,
+    "school": "Ограждение",
+    "target": "self",
+    "effect": "absorb_elements_reaction",
+    "resource_key": "spell_slots_1",
+    "casting_time_text": "Реакция",
+    "casting_time_kind": "reaction",
+    "reaction_trigger": "take_elemental_damage",
+    "components": [
+      "s"
+    ],
+    "duration": "1 round",
+    "damage_types": [
+      "acid",
+      "cold",
+      "fire",
+      "lightning",
+      "thunder"
+    ],
+    "bonus_damage_dice": [
+      1,
+      6
+    ],
+    "upcast": {
+      "bonus_damage_dice_per_level": [
+        1,
+        6
+      ]
+    },
+    "description": "Реакция при получении урона кислотой, холодом, огнём, электричеством или звуком. Даёт сопротивление этому типу до начала следующего хода и добавляет 1к6 этого типа к первому попаданию рукопашной атакой на следующем ходу.",
+    "button": "ПОГЛОЩЕНИЕ СТИХИЙ"
   }
 }

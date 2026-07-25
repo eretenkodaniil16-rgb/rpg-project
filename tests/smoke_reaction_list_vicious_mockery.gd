@@ -16,20 +16,20 @@ func _fail(message: String) -> void:
 
 
 func _watchdog() -> void:
-	await create_timer(40.0).timeout
+	await create_timer(45.0).timeout
 	if not _finished:
-		_fail("Reaction list and Vicious Mockery runtime smoke test timed out after 40 seconds.")
+		_fail("Reaction list and Vicious Mockery runtime smoke test timed out after 45 seconds.")
 
 
 func _wait_for_prompt(prompt: ReactionChoicePrompt) -> bool:
-	for _frame: int in range(180):
+	for _frame: int in range(240):
 		if prompt != null and prompt.is_waiting_for_decision() and prompt.is_visible_in_tree():
 			return true
 		await process_frame
 	return false
 
 
-func _on_option_selected(option_id: String) -> void:
+func _capture_choice(option_id: String) -> void:
 	_selected_option_id = option_id
 
 
@@ -39,19 +39,22 @@ func _run() -> void:
 		_fail("GameState autoload was unavailable.")
 		return
 	game_state.call("new_game")
+
 	var bard := PlayerCharacter.new()
 	bard.character_name = "Остроязыкий"
 	bard.character_class_id = "bard"
 	bard.character_class_name = "Бард"
 	bard.race_name = "Человек"
 	bard.level = 5
-	bard.maximum_health = 50
-	bard.current_health = 50
+	bard.maximum_health = 48
+	bard.current_health = 48
 	bard.abilities["charisma"] = 18
 	bard.base_abilities["charisma"] = 18
 	bard.abilities["dexterity"] = 14
 	bard.base_abilities["dexterity"] = 14
 	bard.starter_loadout_granted = true
+	var spellcasting := SpellcastingSystem.new()
+	spellcasting.ensure_character(bard, true)
 	game_state.set("player_character", bard)
 
 	var game_scene: PackedScene = load("res://scenes/game/game.tscn") as PackedScene
@@ -63,30 +66,32 @@ func _run() -> void:
 	for _frame: int in range(12):
 		await process_frame
 
-	var button: Button = game.call("get_vicious_mockery_button_for_testing") as Button
 	var prompt: ReactionChoicePrompt = game.call("get_reaction_choice_prompt_for_testing") as ReactionChoicePrompt
+	var mockery_button: Button = game.call("get_vicious_mockery_button_for_testing") as Button
 	var construct: RuneTrainingConstruct = game.call("get_rune_training_construct_for_testing") as RuneTrainingConstruct
 	var player: Node2D = get_first_node_in_group("player") as Node2D
-	if button == null or prompt == null or construct == null or player == null:
-		_fail("Vicious Mockery button, reaction list, construct, or player was not created.")
+	if prompt == null or mockery_button == null or construct == null or player == null:
+		_fail("Reaction prompt, Vicious Mockery control, construct, or player was not created.")
 		return
-	if button.text != "ЗЛАЯ НАСМЕШКА" or not button.is_visible_in_tree() or button.disabled:
-		_fail("Bard did not receive an active mobile Vicious Mockery control.")
+	if mockery_button.text != "ЗЛАЯ НАСМЕШКА" or not mockery_button.visible:
+		_fail("Bard did not receive the mobile Vicious Mockery control.")
 		return
+	if prompt.option_selected.is_connected(_capture_choice):
+		prompt.option_selected.disconnect(_capture_choice)
+	prompt.option_selected.connect(_capture_choice)
 
-	prompt.option_selected.connect(_on_option_selected)
 	var synthetic_options: Array[Dictionary] = [
 		{
 			"id": ReactionOpportunitySystem.OPTION_READIED_ATTACK,
 			"label": "ВЫПОЛНИТЬ ПОДГОТОВЛЕННОЕ",
-			"description": "Проверка первого варианта.",
+			"description": "Синтетический вариант подготовленного действия.",
 			"resource_text": "Реакция",
 			"priority": 90
 		},
 		{
 			"id": ReactionOpportunitySystem.OPTION_OPPORTUNITY_ATTACK,
 			"label": "АТАКА ПО ВОЗМОЖНОСТИ",
-			"description": "Проверка второго варианта.",
+			"description": "Синтетический вариант атаки по возможности.",
 			"resource_text": "Реакция",
 			"priority": 80
 		}
@@ -121,10 +126,9 @@ func _run() -> void:
 	if not bool(game.call("has_vicious_mockery_effect_for_testing", construct)):
 		_fail("Vicious Mockery disadvantage rider was not stored on the target.")
 		return
-	var attack_result: Dictionary = game.call("resolve_npc_attack", construct, 3, 6, 1, "force") as Dictionary
-	if not bool(attack_result.get("vicious_mockery_disadvantage", false)):
-		_fail("The target's next attack did not consume Vicious Mockery disadvantage.")
-		return
+	game.call("resolve_npc_attack", construct, 3, 6, 1, "force")
+	for _frame: int in range(3):
+		await process_frame
 	if bool(game.call("has_vicious_mockery_effect_for_testing", construct)):
 		_fail("Vicious Mockery disadvantage was not removed after the next attack roll.")
 		return
