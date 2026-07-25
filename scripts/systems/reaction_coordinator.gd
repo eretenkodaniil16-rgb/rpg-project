@@ -30,7 +30,12 @@ func collect_options(event: ReactionEvent, candidates: Array[ReactionCandidate])
 	var option_id_counts: Dictionary = {}
 	var valid_candidate_count: int = 0
 	for candidate: ReactionCandidate in candidates:
-		if candidate == null or not candidate.is_valid() or not event.can_offer_to(candidate.reactor_id):
+		if (
+			candidate == null
+			or not candidate.is_valid()
+			or not event.can_offer_to(candidate.reactor_id)
+			or not _candidate_matches_event(candidate, event)
+		):
 			continue
 		valid_candidate_count += 1
 		var reaction_context: Dictionary = candidate.build_context(event.context)
@@ -196,6 +201,26 @@ func should_continue(event: ReactionEvent) -> bool:
 	return event != null and event.is_open() and not event.stop_processing
 
 
+func _candidate_matches_event(candidate: ReactionCandidate, event: ReactionEvent) -> bool:
+	var eligible_reactor_ids: Array[String] = _string_array(event.context.get("eligible_reactor_ids", []))
+	if not eligible_reactor_ids.is_empty() and candidate.reactor_id not in eligible_reactor_ids:
+		return false
+	var excluded_reactor_ids: Array[String] = _string_array(event.context.get("excluded_reactor_ids", []))
+	if candidate.reactor_id in excluded_reactor_ids:
+		return false
+	var eligible_actor_ids: Array[int] = _int_array(event.context.get("eligible_reactor_actor_ids", []))
+	if not eligible_actor_ids.is_empty():
+		if not is_instance_valid(candidate.actor) or candidate.actor.get_instance_id() not in eligible_actor_ids:
+			return false
+	var excluded_actor_ids: Array[int] = _int_array(event.context.get("excluded_reactor_actor_ids", []))
+	if is_instance_valid(candidate.actor) and candidate.actor.get_instance_id() in excluded_actor_ids:
+		return false
+	var eligible_teams: Array[String] = _string_array(event.context.get("eligible_reactor_team_ids", []))
+	if not eligible_teams.is_empty() and candidate.team_id not in eligible_teams:
+		return false
+	return true
+
+
 func _sort_display_options(options: Array[Dictionary]) -> Array[Dictionary]:
 	var result: Array[Dictionary] = options.duplicate(true)
 	result.sort_custom(func(left: Dictionary, right: Dictionary) -> bool:
@@ -218,6 +243,22 @@ func _dictionary_array(value: Variant) -> Array[Dictionary]:
 		for item: Variant in value as Array:
 			if item is Dictionary:
 				result.append(item as Dictionary)
+	return result
+
+
+func _string_array(value: Variant) -> Array[String]:
+	var result: Array[String] = []
+	if value is Array:
+		for item: Variant in value as Array:
+			result.append(str(item))
+	return result
+
+
+func _int_array(value: Variant) -> Array[int]:
+	var result: Array[int] = []
+	if value is Array:
+		for item: Variant in value as Array:
+			result.append(int(item))
 	return result
 
 
