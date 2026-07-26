@@ -214,8 +214,135 @@ HUMAN_WARRIOR_M01_HEAD_V01 = HeadProfile(
 )
 
 
+HUMAN_WARRIOR_M01_HEAD_V02 = HeadProfile(
+    character_id="human_warrior_m01",
+    revision="v02",
+    proxy_revision="v05",
+    head_base=EllipsoidPart(
+        "head_base",
+        (0.0, -0.08, 4.30),
+        (0.46, 0.37, 0.58),
+    ),
+    jaw=EllipsoidPart(
+        "head_jaw",
+        (0.0, -0.20, 4.06),
+        (0.38, 0.30, 0.33),
+    ),
+    ears=(
+        EllipsoidPart(
+            "head_ear_left",
+            (0.44, -0.03, 4.27),
+            (0.09, 0.08, 0.14),
+        ),
+        EllipsoidPart(
+            "head_ear_right",
+            (-0.44, -0.03, 4.27),
+            (0.09, 0.08, 0.14),
+        ),
+    ),
+    nose=NosePart(
+        location=(0.0, -0.51, 4.25),
+        radius_bottom=0.09,
+        radius_top=0.04,
+        depth=0.25,
+    ),
+    hair_cap=EllipsoidPart(
+        "hair_cap",
+        (0.0, 0.08, 4.68),
+        (0.51, 0.42, 0.34),
+    ),
+    hair_back_masses=(
+        EllipsoidPart(
+            "hair_back_mass",
+            (0.0, 0.30, 4.40),
+            (0.48, 0.24, 0.43),
+        ),
+        EllipsoidPart(
+            "hair_lock_crown_back",
+            (-0.05, 0.58, 4.83),
+            (0.18, 0.14, 0.22),
+        ),
+        EllipsoidPart(
+            "hair_back_left",
+            (0.36, 0.22, 4.30),
+            (0.15, 0.18, 0.39),
+        ),
+        EllipsoidPart(
+            "hair_back_right",
+            (-0.36, 0.22, 4.30),
+            (0.15, 0.18, 0.39),
+        ),
+    ),
+    hair_front_locks=(
+        EllipsoidPart(
+            "hair_lock_crown_front",
+            (0.05, -0.58, 4.83),
+            (0.18, 0.14, 0.22),
+        ),
+        EllipsoidPart(
+            "hair_lock_front_left",
+            (0.19, -0.40, 4.61),
+            (0.14, 0.10, 0.16),
+        ),
+        EllipsoidPart(
+            "hair_lock_front_center",
+            (-0.01, -0.43, 4.63),
+            (0.11, 0.09, 0.16),
+        ),
+        EllipsoidPart(
+            "hair_lock_front_right",
+            (-0.20, -0.39, 4.60),
+            (0.15, 0.10, 0.16),
+        ),
+    ),
+    hair_side_locks=(
+        EllipsoidPart(
+            "hair_lock_side_left",
+            (0.43, -0.01, 4.32),
+            (0.12, 0.16, 0.36),
+        ),
+        EllipsoidPart(
+            "hair_lock_side_right",
+            (-0.43, -0.01, 4.33),
+            (0.12, 0.16, 0.35),
+        ),
+    ),
+    brows=(
+        BoxPart(
+            "face_brow_left",
+            (0.14, -0.49, 4.42),
+            (0.18, 0.045, 0.045),
+            rotation_y_degrees=-8.0,
+        ),
+        BoxPart(
+            "face_brow_right",
+            (-0.14, -0.49, 4.42),
+            (0.18, 0.045, 0.045),
+            rotation_y_degrees=8.0,
+        ),
+    ),
+    eyes=(
+        BoxPart(
+            "face_eye_left",
+            (0.14, -0.505, 4.28),
+            (0.08, 0.04, 0.05),
+        ),
+        BoxPart(
+            "face_eye_right",
+            (-0.14, -0.505, 4.28),
+            (0.08, 0.04, 0.05),
+        ),
+    ),
+    mouth=BoxPart(
+        "face_mouth",
+        (0.0, -0.515, 4.04),
+        (0.18, 0.04, 0.04),
+    ),
+)
+
+
 def load_head_profile(character_id: str) -> HeadProfile:
-    if character_id != HUMAN_WARRIOR_M01_HEAD_V01.character_id:
+    if character_id != HUMAN_WARRIOR_M01_HEAD_V02.character_id:
         raise KeyError(f"No head profile for character_id={character_id}")
-    HUMAN_WARRIOR_M01_HEAD_V01.assert_valid()
-    return HUMAN_WARRIOR_M01_HEAD_V01
+    HUMAN_WARRIOR_M01_HEAD_V02.assert_valid()
+    return HUMAN_WARRIOR_M01_HEAD_V02
