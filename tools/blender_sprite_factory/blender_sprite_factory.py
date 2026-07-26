@@ -25,7 +25,13 @@ except ModuleNotFoundError as exc:
         "Используйте 02_RUN_BLENDER_SPRITE_PILOT.cmd."
     ) from exc
 
-from factory_config import FactoryConfig, MaterialSlot, load_factory_config, validate_required_files
+from factory_config import (
+    CONTACT_SHEET_BACKGROUND_HEX,
+    FactoryConfig,
+    MaterialSlot,
+    load_factory_config,
+    validate_required_files,
+)
 from pixel_geometry import alpha_bbox, anchor_rgba_to_baseline
 
 
@@ -933,24 +939,54 @@ def _write_contact_sheet(
     output_path: Path,
 ) -> Path:
     columns = 6
-    rows = 2
+    rows = 3
     tile_width = config.technical.canvas_width
     tile_height = config.technical.canvas_height
     width = columns * tile_width
     height = rows * tile_height
-    background = _hex_to_linear_rgb("#2A2924")
+    background = _hex_to_linear_rgb(CONTACT_SHEET_BACKGROUND_HEX)
     pixels = [
         component
         for _ in range(width * height)
         for component in (*background, 1.0)
     ]
 
-    idle = [item for item in artifacts if item.animation_id == "idle"]
-    walk = [item for item in artifacts if item.animation_id == "walk_down"]
-    rows_data = (idle, walk)
-    for row_index, row_artifacts in enumerate(rows_data):
-        for column_index, artifact in enumerate(row_artifacts):
-            image = bpy.data.images.load(str(artifact.output_path), check_existing=False)
+    idle_by_direction = {
+        item.direction: item
+        for item in artifacts
+        if item.animation_id == "idle"
+    }
+    idle_directions = ("down", "left", "right", "up")
+    missing_idle = [
+        direction for direction in idle_directions if direction not in idle_by_direction
+    ]
+    if missing_idle:
+        raise RuntimeError(
+            f"Contact sheet не получил idle-направления: {missing_idle}"
+        )
+    proxy_idle_paths = tuple(
+        idle_by_direction[direction].output_path for direction in idle_directions
+    )
+    approved_idle_paths = tuple(
+        config.idle_reference_root
+        / f"{config.character_id}_idle_{direction}.png"
+        for direction in idle_directions
+    )
+    walk_paths = tuple(
+        item.output_path
+        for item in sorted(
+            (
+                artifact
+                for artifact in artifacts
+                if artifact.animation_id == "walk_down"
+            ),
+            key=lambda artifact: artifact.frame_number,
+        )
+    )
+    rows_data = (proxy_idle_paths, approved_idle_paths, walk_paths)
+    for row_index, row_paths in enumerate(rows_data):
+        for column_index, image_path in enumerate(row_paths):
+            image = bpy.data.images.load(str(image_path), check_existing=False)
             try:
                 tile_pixels = tuple(image.pixels[:])
                 destination_row = rows - 1 - row_index
@@ -1006,6 +1042,14 @@ def _write_run_manifest(
         "contact_sheet": (
             contact_sheet.relative_to(run_dir).as_posix() if contact_sheet else None
         ),
+        "contact_sheet_review": {
+            "background_color": CONTACT_SHEET_BACKGROUND_HEX,
+            "rows_top_to_bottom": [
+                "proxy_idle",
+                "approved_idle_reference",
+                "proxy_walk_down",
+            ],
+        },
         "technical_contract": {
             "canvas_width": config.technical.canvas_width,
             "canvas_height": config.technical.canvas_height,

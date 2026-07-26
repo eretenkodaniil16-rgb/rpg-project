@@ -14,6 +14,7 @@ EXPECTED_DIRECTIONS = {
     "right": 90.0,
     "up": 180.0,
 }
+CONTACT_SHEET_BACKGROUND_HEX = "#53687A"
 
 
 @dataclass(frozen=True)
@@ -177,6 +178,12 @@ def load_factory_config(manifest_path: Path, repo_root: Path) -> FactoryConfig:
     )
     for color in quantization_palette:
         _validate_hex(color, "materials.quantization_palette")
+    if CONTACT_SHEET_BACKGROUND_HEX.upper() in {
+        color.upper() for color in quantization_palette
+    }:
+        raise ValueError(
+            "Фон contact sheet не должен совпадать с цветом палитры персонажа"
+        )
 
     return FactoryConfig(
         schema_version=schema_version,

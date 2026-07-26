@@ -3,7 +3,11 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
-from factory_config import load_factory_config, validate_required_files
+from factory_config import (
+    CONTACT_SHEET_BACKGROUND_HEX,
+    load_factory_config,
+    validate_required_files,
+)
 
 
 class FactoryConfigTests(unittest.TestCase):
@@ -59,6 +63,12 @@ class FactoryConfigTests(unittest.TestCase):
 
     def test_reference_pack_and_texture_slots_exist(self) -> None:
         self.assertEqual(validate_required_files(self.config), [])
+
+    def test_contact_sheet_background_cannot_hide_palette_pixels(self) -> None:
+        self.assertNotIn(
+            CONTACT_SHEET_BACKGROUND_HEX.upper(),
+            {color.upper() for color in self.config.quantization_palette},
+        )
 
     def test_blender_support_window_is_explicit(self) -> None:
         self.assertEqual(self.config.recommended_blender_lts, (5, 2))

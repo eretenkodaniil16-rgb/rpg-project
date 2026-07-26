@@ -36,6 +36,12 @@ class BlenderScriptContractTests(unittest.TestCase):
         self.assertNotIn("scale.x = -1", self.source)
         self.assertNotIn("scale[0] = -1", self.source)
 
+    def test_contact_sheet_compares_proxy_to_approved_idle(self) -> None:
+        self.assertIn("CONTACT_SHEET_BACKGROUND_HEX", self.source)
+        self.assertIn("rows = 3", self.source)
+        self.assertIn("approved_idle_paths", self.source)
+        self.assertIn('"approved_idle_reference"', self.source)
+
     def test_windows_powershell_launcher_is_ascii_safe(self) -> None:
         launcher = self.tool_root / "run_blender_sprite_pilot.ps1"
         self.assertTrue(
