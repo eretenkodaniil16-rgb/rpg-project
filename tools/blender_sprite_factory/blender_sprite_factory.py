@@ -32,6 +32,7 @@ from factory_config import (
     load_factory_config,
     validate_required_files,
 )
+from head_profile import HeadProfile, load_head_profile
 from pixel_geometry import alpha_bbox, anchor_rgba_to_baseline
 from silhouette_profile import SilhouetteProfile, load_silhouette_profile
 
@@ -63,9 +64,14 @@ class FramingCalibration:
 class BuildContext:
     config: FactoryConfig
     silhouette: SilhouetteProfile
+    head: HeadProfile
     rig: bpy.types.Object
     materials: dict[str, bpy.types.Material]
     module_collections: dict[str, bpy.types.Collection]
+
+    @property
+    def proxy_revision(self) -> str:
+        return self.head.proxy_revision
 
 
 def main() -> int:
@@ -91,7 +97,7 @@ def main() -> int:
     source_dir.mkdir()
     blend_path = (
         source_dir
-        / f"{config.character_id}_proxy_{context.silhouette.revision}.blend"
+        / f"{config.character_id}_proxy_{context.proxy_revision}.blend"
     )
     _set_idle_down(context)
     bpy.ops.wm.save_as_mainfile(filepath=str(blend_path), check_existing=False)
@@ -119,6 +125,7 @@ def main() -> int:
 def build_scene(config: FactoryConfig) -> BuildContext:
     _clear_scene()
     silhouette = load_silhouette_profile(config.character_id)
+    head = load_head_profile(config.character_id)
     scene = bpy.context.scene
     scene.name = f"{config.character_id}_sprite_factory"
     scene["character_id"] = config.character_id
@@ -130,6 +137,8 @@ def build_scene(config: FactoryConfig) -> BuildContext:
     scene["model_forward_axis"] = "-Y"
     scene["model_up_axis"] = "+Z"
     scene["silhouette_revision"] = silhouette.revision
+    scene["head_profile_revision"] = head.revision
+    scene["proxy_revision"] = head.proxy_revision
 
     root_collection = _new_collection("SPRITE_FACTORY")
     rig_collection = _new_collection("RIG", root_collection)
@@ -149,6 +158,7 @@ def build_scene(config: FactoryConfig) -> BuildContext:
     context = BuildContext(
         config=config,
         silhouette=silhouette,
+        head=head,
         rig=rig,
         materials=materials,
         module_collections=module_collections,
@@ -169,7 +179,7 @@ def build_scene(config: FactoryConfig) -> BuildContext:
 
 def render_pilot(context: BuildContext, run_dir: Path) -> list[FrameArtifact]:
     config = context.config
-    revision = context.silhouette.revision
+    revision = context.proxy_revision
     raw_dir = run_dir / "raw"
     frame_dir = run_dir / "frames"
     raw_dir.mkdir()
@@ -268,12 +278,13 @@ def _build_body(context: BuildContext) -> None:
 
 
 def _build_head_and_hair(context: BuildContext) -> None:
+    head = context.head
     _register(
         context,
         _ellipsoid(
-            "head_base",
-            (0.0, -0.02, 4.29),
-            (0.47, 0.42, 0.62),
+            head.head_base.name,
+            head.head_base.location,
+            head.head_base.scale,
             context.materials["skin"],
             segments=12,
             rings=8,
@@ -283,12 +294,39 @@ def _build_head_and_hair(context: BuildContext) -> None:
     )
     _register(
         context,
+        _ellipsoid(
+            head.jaw.name,
+            head.jaw.location,
+            head.jaw.scale,
+            context.materials["skin"],
+            segments=10,
+            rings=6,
+        ),
+        "head",
+        "head",
+    )
+    for ear in head.ears:
+        _register(
+            context,
+            _ellipsoid(
+                ear.name,
+                ear.location,
+                ear.scale,
+                context.materials["skin"],
+                segments=8,
+                rings=5,
+            ),
+            "head",
+            "head",
+        )
+    _register(
+        context,
         _frustum(
             "head_nose",
-            (0.0, -0.44, 4.25),
-            radius_bottom=0.09,
-            radius_top=0.035,
-            depth=0.25,
+            head.nose.location,
+            radius_bottom=head.nose.radius_bottom,
+            radius_top=head.nose.radius_top,
+            depth=head.nose.depth,
             vertices=4,
             material=context.materials["skin"],
             rotation=(math.radians(90.0), 0.0, 0.0),
@@ -299,9 +337,9 @@ def _build_head_and_hair(context: BuildContext) -> None:
     _register(
         context,
         _ellipsoid(
-            "hair_cap",
-            (0.0, 0.01, 4.61),
-            (0.53, 0.47, 0.42),
+            head.hair_cap.name,
+            head.hair_cap.location,
+            head.hair_cap.scale,
             context.materials["hair"],
             segments=12,
             rings=7,
@@ -309,25 +347,42 @@ def _build_head_and_hair(context: BuildContext) -> None:
         "hair",
         "head",
     )
-    locks = (
-        ("hair_lock_front_left", (0.19, -0.39, 4.39), (0.16, 0.12, 0.42)),
-        ("hair_lock_front_center", (-0.02, -0.43, 4.43), (0.15, 0.11, 0.35)),
-        ("hair_lock_front_right", (-0.22, -0.36, 4.39), (0.18, 0.13, 0.39)),
-        ("hair_lock_side_left", (0.42, -0.06, 4.33), (0.13, 0.16, 0.40)),
-        ("hair_lock_side_right", (-0.42, -0.05, 4.34), (0.13, 0.16, 0.39)),
+    hair_parts = (
+        head.hair_back_masses
+        + head.hair_front_locks
+        + head.hair_side_locks
     )
-    for name, location, scale in locks:
+    for hair_part in hair_parts:
         _register(
             context,
             _ellipsoid(
-                name,
-                location,
-                scale,
+                hair_part.name,
+                hair_part.location,
+                hair_part.scale,
                 context.materials["hair"],
                 segments=8,
                 rings=5,
             ),
             "hair",
+            "head",
+        )
+
+    for face_part in head.brows + head.eyes + (head.mouth,):
+        _register(
+            context,
+            _box(
+                face_part.name,
+                face_part.location,
+                face_part.dimensions,
+                context.materials["hair"],
+                0.0,
+                rotation=(
+                    0.0,
+                    math.radians(face_part.rotation_y_degrees),
+                    0.0,
+                ),
+            ),
+            "head",
             "head",
         )
 
@@ -1070,12 +1125,13 @@ def _write_run_manifest(
 ) -> Path:
     config = context.config
     silhouette_profile_path = SCRIPT_DIR / "silhouette_profile.py"
+    head_profile_path = SCRIPT_DIR / "head_profile.py"
     payload = {
         "schema_version": 1,
         "pipeline_id": "blender_sprite_factory",
         "stage": config.stage,
         "character_id": config.character_id,
-        "proxy_revision": context.silhouette.revision,
+        "proxy_revision": context.proxy_revision,
         "run_id": run_id,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "blender_version": bpy.app.version_string,
@@ -1085,6 +1141,11 @@ def _write_run_manifest(
             "path": config.relative_to_repo(silhouette_profile_path),
             "revision": context.silhouette.revision,
             "sha256": hashlib.sha256(silhouette_profile_path.read_bytes()).hexdigest(),
+        },
+        "head_profile": {
+            "path": config.relative_to_repo(head_profile_path),
+            "revision": context.head.revision,
+            "sha256": hashlib.sha256(head_profile_path.read_bytes()).hexdigest(),
         },
         "source_blend": blend_path.relative_to(run_dir).as_posix(),
         "contact_sheet": (

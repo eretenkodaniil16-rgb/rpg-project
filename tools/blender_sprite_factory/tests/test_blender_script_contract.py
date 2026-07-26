@@ -48,6 +48,13 @@ class BlenderScriptContractTests(unittest.TestCase):
         self.assertIn("context.silhouette.revision", self.source)
         self.assertIn('"silhouette_profile"', self.source)
 
+    def test_head_identity_is_versioned_separately_from_body_silhouette(self) -> None:
+        self.assertIn("load_head_profile", self.source)
+        self.assertIn('scene["head_profile_revision"]', self.source)
+        self.assertIn("context.head.revision", self.source)
+        self.assertIn("context.proxy_revision", self.source)
+        self.assertIn('"head_profile"', self.source)
+
     def test_windows_powershell_launcher_is_ascii_safe(self) -> None:
         launcher = self.tool_root / "run_blender_sprite_pilot.ps1"
         self.assertTrue(

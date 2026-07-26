@@ -4,6 +4,7 @@ import argparse
 from pathlib import Path
 
 from factory_config import load_factory_config, validate_required_files
+from head_profile import load_head_profile
 from silhouette_profile import load_silhouette_profile
 
 
@@ -13,6 +14,7 @@ def main() -> int:
     manifest = (repo_root / args.config).resolve()
     config = load_factory_config(manifest, repo_root)
     silhouette = load_silhouette_profile(config.character_id)
+    head = load_head_profile(config.character_id)
     missing = validate_required_files(config)
     if missing:
         formatted = "\n".join(f"- {config.relative_to_repo(path)}" for path in missing)
@@ -26,6 +28,8 @@ def main() -> int:
         f"baseline={config.technical.baseline_y}, "
         f"camera={config.camera['elevation_degrees']}deg, "
         f"silhouette={silhouette.revision}, "
+        f"head={head.revision}, "
+        f"proxy={head.proxy_revision}, "
         f"modules={len(config.required_modules)}, "
         f"bones={len(config.required_bones)}."
     )
