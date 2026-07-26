@@ -4,7 +4,12 @@ on:
   pull_request:
     paths:
       - "scenes/game/game.tscn"
+      - "scripts/game/game_reaction_opportunities_runtime.gd"
+      - "scripts/game/game_all_reaction_prompts_runtime.gd"
+      - "scripts/game/game_defensive_reactions_runtime.gd"
       - "scripts/game/game_multi_reactor_reactions_runtime.gd"
+      - "scripts/systems/spell_reaction_system.gd"
+      - "scripts/systems/reaction_opportunity_system.gd"
       - "scripts/systems/reaction_event.gd"
       - "scripts/systems/reaction_candidate.gd"
       - "scripts/systems/reaction_coordinator.gd"
@@ -12,13 +17,19 @@ on:
       - "tests/smoke_spell_reaction_prompt.gd"
       - "tests/smoke_damage_fall_reactions_runtime.gd"
       - "tests/smoke_defensive_reactions_runtime.gd"
+      - "tests/smoke_readied_reaction_prompt.gd"
       - ".github/workflows/validate-multi-reactor-reactions.yml"
   push:
     branches:
       - feature/multi-reactor-reaction-coordinator
     paths:
       - "scenes/game/game.tscn"
+      - "scripts/game/game_reaction_opportunities_runtime.gd"
+      - "scripts/game/game_all_reaction_prompts_runtime.gd"
+      - "scripts/game/game_defensive_reactions_runtime.gd"
       - "scripts/game/game_multi_reactor_reactions_runtime.gd"
+      - "scripts/systems/spell_reaction_system.gd"
+      - "scripts/systems/reaction_opportunity_system.gd"
       - "scripts/systems/reaction_event.gd"
       - "scripts/systems/reaction_candidate.gd"
       - "scripts/systems/reaction_coordinator.gd"
@@ -26,6 +37,7 @@ on:
       - "tests/smoke_spell_reaction_prompt.gd"
       - "tests/smoke_damage_fall_reactions_runtime.gd"
       - "tests/smoke_defensive_reactions_runtime.gd"
+      - "tests/smoke_readied_reaction_prompt.gd"
       - ".github/workflows/validate-multi-reactor-reactions.yml"
 
 permissions:
@@ -63,6 +75,7 @@ jobs:
             "res://tests/test_defensive_reactions_shield_absorb_elements.gd"
             "res://tests/smoke_defensive_reactions_runtime.gd"
             "res://tests/smoke_reaction_list_vicious_mockery.gd"
+            "res://tests/smoke_readied_reaction_prompt.gd"
           )
           status=0
           for test_script in "${tests[@]}"; do

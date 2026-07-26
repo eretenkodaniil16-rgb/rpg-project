@@ -316,35 +316,38 @@ func _roll_enemy_spell_damage(spell: Dictionary, slot_level: int) -> int:
 
 func _offer_shield_for_attack(attacker: Node, attack_total: int, natural_roll: int, current_ac: int) -> Dictionary:
 	var context: Dictionary = {
-		"reactor": GameState.player_character,
-		"reaction_available": _turn_system.has_reaction(player),
 		"trigger_id": ReactionOpportunitySystem.TRIGGER_ATTACK_ROLL_HIT,
 		"attack_hit": true,
 		"attack_total": attack_total,
 		"natural_roll": natural_roll,
 		"current_ac": current_ac,
 		"shield_already_active": _shield_active,
-		"casting_context": _build_spellcasting_context()
+		"casting_context": _build_spellcasting_context(),
+		"eligible_reactor_actor_ids": [player.get_instance_id()]
 	}
-	var options: Array[Dictionary] = _reaction_opportunities.sort_options(
-		_reaction_opportunities.collect_options(ReactionOpportunitySystem.TRIGGER_ATTACK_ROLL_HIT, context)
+	var session: Dictionary = _create_coordinated_reaction_session(
+		ReactionOpportunitySystem.TRIGGER_ATTACK_ROLL_HIT,
+		context,
+		attacker,
+		player
 	)
-	if options.is_empty() or _reaction_choice_prompt == null:
-		return {}
 	_defensive_resolution_in_progress = true
-	var chosen_id: String = await _reaction_choice_prompt.request_reaction(
+	var selection: Dictionary = await _request_next_coordinated_reaction(
 		"ПО ВАМ ПОПАЛИ",
 		"%s попадает с результатом %d против КД %d. Выберите доступную реакцию до броска урона." % [
 			_target_name(attacker),
 			attack_total,
 			current_ac
 		],
-		options
+		session
 	)
 	_defensive_resolution_in_progress = false
-	if chosen_id != ReactionOpportunitySystem.OPTION_SHIELD:
+	if selection.is_empty():
 		return {}
-	var result: Dictionary = _reaction_opportunities.resolve_defensive_option(chosen_id, context)
+	var result: Dictionary = _reaction_coordinator.resolve_selection(
+		selection.get("event") as ReactionEvent,
+		str(selection.get("selection_id", ""))
+	)
 	_apply_defensive_reaction_payment(result)
 	if bool(result.get("resolved", false)):
 		_activate_shield(int(result.get("armor_class_bonus", 5)))
@@ -353,28 +356,31 @@ func _offer_shield_for_attack(attacker: Node, attack_total: int, natural_roll: i
 
 func _offer_shield_for_magic_missile(attacker: Node, spell_name: String) -> Dictionary:
 	var context: Dictionary = {
-		"reactor": GameState.player_character,
-		"reaction_available": _turn_system.has_reaction(player),
 		"trigger_id": ReactionOpportunitySystem.TRIGGER_MAGIC_MISSILE_TARGETED,
 		"current_ac": _class_data.get_armor_class(GameState.player_character),
 		"shield_already_active": _shield_active,
-		"casting_context": _build_spellcasting_context()
+		"casting_context": _build_spellcasting_context(),
+		"eligible_reactor_actor_ids": [player.get_instance_id()]
 	}
-	var options: Array[Dictionary] = _reaction_opportunities.sort_options(
-		_reaction_opportunities.collect_options(ReactionOpportunitySystem.TRIGGER_MAGIC_MISSILE_TARGETED, context)
+	var session: Dictionary = _create_coordinated_reaction_session(
+		ReactionOpportunitySystem.TRIGGER_MAGIC_MISSILE_TARGETED,
+		context,
+		attacker,
+		player
 	)
-	if options.is_empty() or _reaction_choice_prompt == null:
-		return {}
 	_defensive_resolution_in_progress = true
-	var chosen_id: String = await _reaction_choice_prompt.request_reaction(
+	var selection: Dictionary = await _request_next_coordinated_reaction(
 		"МАГИЧЕСКАЯ СТРЕЛА НАЦЕЛЕНА НА ВАС",
 		"%s завершает «%s». Щит может полностью заблокировать все снаряды." % [_target_name(attacker), spell_name],
-		options
+		session
 	)
 	_defensive_resolution_in_progress = false
-	if chosen_id != ReactionOpportunitySystem.OPTION_SHIELD:
+	if selection.is_empty():
 		return {}
-	var result: Dictionary = _reaction_opportunities.resolve_defensive_option(chosen_id, context)
+	var result: Dictionary = _reaction_coordinator.resolve_selection(
+		selection.get("event") as ReactionEvent,
+		str(selection.get("selection_id", ""))
+	)
 	_apply_defensive_reaction_payment(result)
 	if bool(result.get("resolved", false)):
 		_activate_shield(int(result.get("armor_class_bonus", 5)))
@@ -384,33 +390,36 @@ func _offer_shield_for_magic_missile(attacker: Node, spell_name: String) -> Dict
 func _offer_absorb_elements(incoming_damage: int, damage_type: String, source: Node) -> Dictionary:
 	var normalized_type: String = _normalize_defensive_damage_type(damage_type)
 	var context: Dictionary = {
-		"reactor": GameState.player_character,
-		"reaction_available": _turn_system.has_reaction(player),
 		"trigger_id": ReactionOpportunitySystem.TRIGGER_ELEMENTAL_DAMAGE_TAKEN,
 		"incoming_damage": maxi(incoming_damage, 0),
 		"damage_type": normalized_type,
 		"same_absorption_active": _absorb_resistance_type == normalized_type and not normalized_type.is_empty(),
-		"casting_context": _build_spellcasting_context()
+		"casting_context": _build_spellcasting_context(),
+		"eligible_reactor_actor_ids": [player.get_instance_id()]
 	}
-	var options: Array[Dictionary] = _reaction_opportunities.sort_options(
-		_reaction_opportunities.collect_options(ReactionOpportunitySystem.TRIGGER_ELEMENTAL_DAMAGE_TAKEN, context)
+	var session: Dictionary = _create_coordinated_reaction_session(
+		ReactionOpportunitySystem.TRIGGER_ELEMENTAL_DAMAGE_TAKEN,
+		context,
+		source,
+		player
 	)
-	if options.is_empty() or _reaction_choice_prompt == null:
-		return {}
 	_defensive_resolution_in_progress = true
-	var chosen_id: String = await _reaction_choice_prompt.request_reaction(
+	var selection: Dictionary = await _request_next_coordinated_reaction(
 		"ВЫ ПОЛУЧАЕТЕ СТИХИЙНЫЙ УРОН",
 		"Источник %s должен нанести %d урона типа «%s». Реакция применяется до окончательного уменьшения HP." % [
 			_target_name(source) if source != null else "неизвестен",
 			incoming_damage,
 			normalized_type
 		],
-		options
+		session
 	)
 	_defensive_resolution_in_progress = false
-	if chosen_id != ReactionOpportunitySystem.OPTION_ABSORB_ELEMENTS:
+	if selection.is_empty():
 		return {}
-	var result: Dictionary = _reaction_opportunities.resolve_defensive_option(chosen_id, context)
+	var result: Dictionary = _reaction_coordinator.resolve_selection(
+		selection.get("event") as ReactionEvent,
+		str(selection.get("selection_id", ""))
+	)
 	_apply_defensive_reaction_payment(result)
 	if bool(result.get("resolved", false)):
 		_activate_absorb_elements(
@@ -422,8 +431,7 @@ func _offer_absorb_elements(incoming_damage: int, damage_type: String, source: N
 
 
 func _apply_defensive_reaction_payment(result: Dictionary) -> void:
-	if bool(result.get("consume_reaction", false)):
-		_turn_system.consume_reaction(player)
+	_consume_coordinated_reaction(result)
 	if not str(result.get("message", "")).is_empty():
 		show_combat_message(str(result.get("message", "Реакция разрешена.")), bool(result.get("resolved", false)))
 	GameState.save_game()

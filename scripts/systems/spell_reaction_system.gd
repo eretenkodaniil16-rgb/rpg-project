@@ -81,7 +81,8 @@ func resolve_counterspell(
 	can_see_caster: bool,
 	distance_feet: int,
 	casting_context: Dictionary = {},
-	save_roll_overrides: Array[int] = []
+	save_roll_overrides: Array[int] = [],
+	defer_failed_proceeds: bool = false
 ) -> Dictionary:
 	var offer: Dictionary = evaluate_counterspell(
 		reactor,
@@ -119,7 +120,7 @@ func resolve_counterspell(
 	var countered: bool = not bool(save_result.get("success", false))
 	if countered:
 		attempt.mark_countered(save_result)
-	else:
+	elif not defer_failed_proceeds:
 		attempt.mark_proceeds(save_result)
 	return {
 		"available": true,

@@ -30,7 +30,11 @@ func collect_options(event: ReactionEvent, candidates: Array[ReactionCandidate])
 	var option_id_counts: Dictionary = {}
 	var valid_candidate_count: int = 0
 	for candidate: ReactionCandidate in candidates:
-		if candidate == null or not candidate.is_valid() or not event.can_offer_to(candidate.reactor_id):
+		if (
+			candidate == null
+			or not candidate.is_valid()
+			or not event.can_offer_to_candidate(candidate)
+		):
 			continue
 		valid_candidate_count += 1
 		var reaction_context: Dictionary = candidate.build_context(event.context)
@@ -118,7 +122,11 @@ func get_selection_payload(event: ReactionEvent, selection_id: String) -> Dictio
 		return {}
 	var record: Dictionary = event_index[selection_id] as Dictionary
 	var candidate: ReactionCandidate = record.get("candidate") as ReactionCandidate
-	if candidate == null or not candidate.is_valid() or not event.can_offer_to(candidate.reactor_id):
+	if (
+		candidate == null
+		or not candidate.is_valid()
+		or not event.can_offer_to_candidate(candidate)
+	):
 		return {}
 	return {
 		"selection_id": selection_id,

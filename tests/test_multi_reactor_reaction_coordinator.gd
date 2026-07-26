@@ -172,6 +172,67 @@ func _run() -> void:
 		_fail("Reaction event history did not record selection and resolution.")
 		return
 
+	var fallback_first: PlayerCharacter = _make_wizard("Первый резервный контрмаг")
+	var fallback_second: PlayerCharacter = _make_wizard("Второй резервный контрмаг")
+	var fallback_attempt := SpellCastAttempt.new(burning_hands, caster, 1)
+	fallback_attempt.caster_constitution_modifier = 0
+	fallback_attempt.caster_state = CombatantState.new()
+	fallback_attempt.action_kind = "action"
+	fallback_attempt.original_resource_key = "enemy_spell_slots_1"
+	var fallback_event: ReactionEvent = coordinator.create_event(
+		ReactionOpportunitySystem.TRIGGER_SPELL_CAST_STARTED,
+		{
+			"attempt": fallback_attempt,
+			"defer_failed_counterspell_proceeds": true
+		},
+		caster,
+		first_actor,
+		"counterspell_fallback"
+	)
+	var fallback_first_candidate: ReactionCandidate = _candidate(
+		"fallback_first",
+		first_actor,
+		fallback_first,
+		"Первый резервный контрмаг",
+		18,
+		ReactionCandidate.CONTROLLER_PLAYER,
+		"enemy_turn_2"
+	)
+	fallback_first_candidate.context_overrides["save_roll_overrides"] = [20]
+	var fallback_second_candidate: ReactionCandidate = _candidate(
+		"fallback_second",
+		second_actor,
+		fallback_second,
+		"Второй резервный контрмаг",
+		12,
+		ReactionCandidate.CONTROLLER_PLAYER,
+		"enemy_turn_2"
+	)
+	fallback_second_candidate.context_overrides["save_roll_overrides"] = [1]
+	var fallback_candidates: Array[ReactionCandidate] = [
+		fallback_first_candidate,
+		fallback_second_candidate
+	]
+	var fallback_options: Array[Dictionary] = coordinator.collect_options(fallback_event, fallback_candidates)
+	var failed_first: Dictionary = coordinator.resolve_selection(
+		fallback_event,
+		str(fallback_options[0].get("id", ""))
+	)
+	if bool(failed_first.get("countered", false)) or fallback_attempt.resolved:
+		_fail("A failed first Counterspell prematurely resolved the original spell event.")
+		return
+	var remaining_options: Array[Dictionary] = coordinator.collect_options(fallback_event, fallback_candidates)
+	if remaining_options.size() != 1 or str(remaining_options[0].get("reactor_id", "")) != "fallback_second":
+		_fail("The second ally was not offered Counterspell after the first ally failed.")
+		return
+	var successful_second: Dictionary = coordinator.resolve_selection(
+		fallback_event,
+		str(remaining_options[0].get("id", ""))
+	)
+	if not bool(successful_second.get("countered", false)) or not fallback_event.stop_processing:
+		_fail("The second ally could not counter the spell after the first Counterspell failed.")
+		return
+
 	var opportunity_event: ReactionEvent = coordinator.create_event(
 		ReactionOpportunitySystem.TRIGGER_ENEMY_LEAVES_REACH,
 		{
@@ -219,5 +280,21 @@ func _run() -> void:
 		_fail("A single reactor no longer preserved the existing base option ID.")
 		return
 
-	print("Multi-reactor coordinator namespaces duplicate options, groups player-controlled allies into one prompt, orders AI deterministically, records history, stops invalidated events, and preserves single-reactor IDs.")
+	var filtered_event: ReactionEvent = coordinator.create_event(
+		ReactionOpportunitySystem.TRIGGER_ENEMY_LEAVES_REACH,
+		{
+			"target_leaves_reach": true,
+			"can_make_weapon_attack": true,
+			"eligible_reactor_actor_ids": [first_actor.get_instance_id()]
+		},
+		caster,
+		first_actor,
+		"target_filtered_reaction"
+	)
+	var filtered_options: Array[Dictionary] = coordinator.collect_options(filtered_event, martial_candidates)
+	if filtered_options.size() != 1 or str(filtered_options[0].get("reactor_id", "")) != "fighter_a":
+		_fail("Event-level target filtering offered a defensive reaction to an ineligible actor.")
+		return
+
+	print("Multi-reactor coordinator continues after a failed reaction, filters eligible targets, groups controllers, records history, and preserves single-reactor IDs.")
 	quit(0)

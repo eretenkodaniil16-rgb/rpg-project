@@ -43,6 +43,20 @@ func can_offer_to(reactor_id: String) -> bool:
 	return is_open() and not stop_processing and not processed_reactor_ids.has(reactor_id)
 
 
+func can_offer_to_candidate(candidate: ReactionCandidate) -> bool:
+	if candidate == null or not can_offer_to(candidate.reactor_id):
+		return false
+	var eligible_reactor_ids: Array = context.get("eligible_reactor_ids", []) as Array
+	if not eligible_reactor_ids.is_empty() and candidate.reactor_id not in eligible_reactor_ids:
+		return false
+	var eligible_actor_ids: Array = context.get("eligible_reactor_actor_ids", []) as Array
+	if eligible_actor_ids.is_empty():
+		return true
+	if candidate.actor == null or not is_instance_valid(candidate.actor):
+		return false
+	return candidate.actor.get_instance_id() in eligible_actor_ids
+
+
 func begin_resolution(reactor_id: String, option_id: String) -> bool:
 	if not can_offer_to(reactor_id):
 		return false

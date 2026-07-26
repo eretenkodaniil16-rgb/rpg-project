@@ -63,7 +63,8 @@ func resolve_spell_cast_option(option_id: String, context: Dictionary) -> Dictio
 		bool(context.get("can_see_caster", false)),
 		int(context.get("distance_feet", 0)),
 		casting_context,
-		save_roll_overrides
+		save_roll_overrides,
+		bool(context.get("defer_failed_counterspell_proceeds", false))
 	)
 
 
