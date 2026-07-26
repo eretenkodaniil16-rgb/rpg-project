@@ -33,6 +33,7 @@ from factory_config import (
     validate_required_files,
 )
 from pixel_geometry import alpha_bbox, anchor_rgba_to_baseline
+from silhouette_profile import SilhouetteProfile, load_silhouette_profile
 
 
 RUN_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
@@ -61,6 +62,7 @@ class FramingCalibration:
 @dataclass
 class BuildContext:
     config: FactoryConfig
+    silhouette: SilhouetteProfile
     rig: bpy.types.Object
     materials: dict[str, bpy.types.Material]
     module_collections: dict[str, bpy.types.Collection]
@@ -87,7 +89,10 @@ def main() -> int:
     context = build_scene(config)
     source_dir = run_dir / "source"
     source_dir.mkdir()
-    blend_path = source_dir / f"{config.character_id}_proxy_v01.blend"
+    blend_path = (
+        source_dir
+        / f"{config.character_id}_proxy_{context.silhouette.revision}.blend"
+    )
     _set_idle_down(context)
     bpy.ops.wm.save_as_mainfile(filepath=str(blend_path), check_existing=False)
 
@@ -113,6 +118,7 @@ def main() -> int:
 
 def build_scene(config: FactoryConfig) -> BuildContext:
     _clear_scene()
+    silhouette = load_silhouette_profile(config.character_id)
     scene = bpy.context.scene
     scene.name = f"{config.character_id}_sprite_factory"
     scene["character_id"] = config.character_id
@@ -123,6 +129,7 @@ def build_scene(config: FactoryConfig) -> BuildContext:
     scene["small_pauldron_physical_side"] = "right"
     scene["model_forward_axis"] = "-Y"
     scene["model_up_axis"] = "+Z"
+    scene["silhouette_revision"] = silhouette.revision
 
     root_collection = _new_collection("SPRITE_FACTORY")
     rig_collection = _new_collection("RIG", root_collection)
@@ -138,9 +145,10 @@ def build_scene(config: FactoryConfig) -> BuildContext:
         slot_id: _create_material(slot)
         for slot_id, slot in config.material_slots.items()
     }
-    rig = _create_rig(config, rig_collection)
+    rig = _create_rig(config, silhouette, rig_collection)
     context = BuildContext(
         config=config,
+        silhouette=silhouette,
         rig=rig,
         materials=materials,
         module_collections=module_collections,
@@ -161,6 +169,7 @@ def build_scene(config: FactoryConfig) -> BuildContext:
 
 def render_pilot(context: BuildContext, run_dir: Path) -> list[FrameArtifact]:
     config = context.config
+    revision = context.silhouette.revision
     raw_dir = run_dir / "raw"
     frame_dir = run_dir / "frames"
     raw_dir.mkdir()
@@ -179,7 +188,9 @@ def render_pilot(context: BuildContext, run_dir: Path) -> list[FrameArtifact]:
             frame_number=1,
             raw_dir=raw_dir,
             frame_dir=frame_dir,
-            output_name=f"{config.character_id}_idle_{direction}_proxy_v01.png",
+            output_name=(
+                f"{config.character_id}_idle_{direction}_proxy_{revision}.png"
+            ),
             fixed_scale=(down_calibration.scale if down_calibration else None),
             fixed_center_x=None,
         )
@@ -202,7 +213,8 @@ def render_pilot(context: BuildContext, run_dir: Path) -> list[FrameArtifact]:
             raw_dir=raw_dir,
             frame_dir=frame_dir,
             output_name=(
-                f"{config.character_id}_walk_down_f{int(frame_number):02d}_proxy_v01.png"
+                f"{config.character_id}_walk_down_f{int(frame_number):02d}"
+                f"_proxy_{revision}.png"
             ),
             fixed_scale=down_calibration.scale,
             fixed_center_x=down_calibration.source_center_x,
@@ -212,9 +224,16 @@ def render_pilot(context: BuildContext, run_dir: Path) -> list[FrameArtifact]:
 
 
 def _build_body(context: BuildContext) -> None:
+    silhouette = context.silhouette
     _register(
         context,
-        _box("body_pelvis", (0.0, 0.0, 2.10), (1.10, 0.62, 0.46), context.materials["leather_dark"], 0.08),
+        _box(
+            "body_pelvis",
+            (0.0, 0.0, 2.10),
+            silhouette.pelvis_dimensions,
+            context.materials["leather_dark"],
+            0.08,
+        ),
         "body_base",
         "pelvis",
     )
@@ -223,11 +242,12 @@ def _build_body(context: BuildContext) -> None:
         _frustum(
             "body_ribcage",
             (0.0, 0.0, 2.95),
-            radius_bottom=0.61,
-            radius_top=0.78,
-            depth=1.35,
+            radius_bottom=silhouette.ribcage_radius_bottom,
+            radius_top=silhouette.ribcage_radius_top,
+            depth=silhouette.ribcage_depth,
             vertices=8,
             material=context.materials["chainmail"],
+            scale=(1.0, silhouette.ribcage_depth_scale, 1.0),
         ),
         "body_base",
         "chest",
@@ -313,12 +333,13 @@ def _build_head_and_hair(context: BuildContext) -> None:
 
 
 def _build_armor(context: BuildContext) -> None:
+    silhouette = context.silhouette
     _register(
         context,
         _box(
             "armor_chest",
             (0.0, -0.18, 3.05),
-            (1.30, 0.44, 1.08),
+            silhouette.chest_armor_dimensions,
             context.materials["leather_mid"],
             0.10,
         ),
@@ -343,8 +364,8 @@ def _build_armor(context: BuildContext) -> None:
         _frustum(
             "chainmail_skirt",
             (0.0, 0.0, 1.78),
-            radius_bottom=0.67,
-            radius_top=0.50,
+            radius_bottom=silhouette.chainmail_skirt_radius_bottom,
+            radius_top=silhouette.chainmail_skirt_radius_top,
             depth=0.78,
             vertices=10,
             material=context.materials["chainmail"],
@@ -357,8 +378,8 @@ def _build_armor(context: BuildContext) -> None:
         _frustum(
             "belt",
             (0.0, -0.01, 2.28),
-            radius_bottom=0.61,
-            radius_top=0.61,
+            radius_bottom=silhouette.belt_radius,
+            radius_top=silhouette.belt_radius,
             depth=0.16,
             vertices=10,
             material=context.materials["leather_dark"],
@@ -396,16 +417,14 @@ def _build_armor(context: BuildContext) -> None:
 
 
 def _build_arms(context: BuildContext) -> None:
-    for side, sign in (("L", 1.0), ("R", -1.0)):
-        upper_start = (0.68 * sign, 0.0, 3.43)
-        elbow = (0.95 * sign, -0.02, 2.78)
-        wrist = (1.00 * sign, -0.15, 2.18)
-        hand = (1.00 * sign, -0.18, 1.96)
+    silhouette = context.silhouette
+    for side in ("L", "R"):
+        upper_start, elbow, wrist, hand, _ = silhouette.arm_points(side)
         upper = _cylinder_between(
             f"arm_upper_{side}",
             upper_start,
             elbow,
-            0.22,
+            silhouette.upper_arm_radius,
             8,
             context.materials["chainmail"],
         )
@@ -415,7 +434,7 @@ def _build_arms(context: BuildContext) -> None:
             f"arm_forearm_{side}",
             elbow,
             wrist,
-            0.20,
+            silhouette.forearm_radius,
             8,
             forearm_material,
         )
@@ -423,35 +442,29 @@ def _build_arms(context: BuildContext) -> None:
         glove = _ellipsoid(
             f"arm_hand_{side}",
             hand,
-            (0.20, 0.18, 0.23),
+            silhouette.hand_scale,
             context.materials["leather_dark"],
             segments=8,
             rings=5,
         )
         _register(context, glove, "arms", f"hand.{side}", side.lower())
 
-    for index, (location, scale) in enumerate(
-        (
-            ((0.76, 0.0, 3.50), (0.47, 0.44, 0.34)),
-            ((0.87, -0.02, 3.39), (0.43, 0.40, 0.28)),
-            ((0.95, -0.03, 3.29), (0.35, 0.35, 0.23)),
-        ),
-        start=1,
-    ):
+    for plate in silhouette.left_pauldron_plates:
         pauldron = _ellipsoid(
-            f"pauldron_left_plate_{index:02d}",
-            location,
-            scale,
+            plate.name,
+            plate.location,
+            plate.scale,
             context.materials["silver"],
             segments=10,
             rings=6,
         )
         _register(context, pauldron, "pauldron_left_large", "upper_arm.L", "left")
 
+    right_spec = silhouette.right_pauldron
     right_pauldron = _ellipsoid(
-        "pauldron_right_small",
-        (-0.76, 0.0, 3.43),
-        (0.37, 0.37, 0.28),
+        right_spec.name,
+        right_spec.location,
+        right_spec.scale,
         context.materials["dark_steel"],
         segments=10,
         rings=6,
@@ -466,15 +479,14 @@ def _build_arms(context: BuildContext) -> None:
 
 
 def _build_legs(context: BuildContext) -> None:
+    silhouette = context.silhouette
     for side, sign in (("L", 1.0), ("R", -1.0)):
-        hip = (0.34 * sign, 0.0, 2.03)
-        knee = (0.34 * sign, -0.01, 1.18)
-        ankle = (0.34 * sign, -0.04, 0.48)
+        hip, knee, ankle, boot_center, _ = silhouette.leg_points(side)
         thigh = _cylinder_between(
             f"leg_thigh_{side}",
             hip,
             knee,
-            0.25,
+            silhouette.thigh_radius,
             8,
             context.materials["leather_dark"],
         )
@@ -484,7 +496,7 @@ def _build_legs(context: BuildContext) -> None:
             f"leg_shin_{side}",
             knee,
             ankle,
-            0.23,
+            silhouette.shin_radius,
             8,
             shin_material,
         )
@@ -492,7 +504,7 @@ def _build_legs(context: BuildContext) -> None:
         knee_pad = _ellipsoid(
             f"leg_knee_{side}",
             knee,
-            (0.28, 0.24, 0.19),
+            silhouette.knee_scale,
             context.materials["silver"] if side == "L" else context.materials["dark_steel"],
             segments=8,
             rings=5,
@@ -500,32 +512,38 @@ def _build_legs(context: BuildContext) -> None:
         _register(context, knee_pad, "legs", f"shin.{side}", side.lower())
         boot = _box(
             f"boot_{side}",
-            (0.34 * sign, -0.18, 0.22),
-            (0.44, 0.72, 0.40),
+            boot_center,
+            silhouette.boot_dimensions,
             context.materials["boots"],
             0.07,
+            rotation=(
+                0.0,
+                0.0,
+                math.radians(silhouette.boot_outward_degrees * sign),
+            ),
         )
         _register(context, boot, "boots", f"foot.{side}", side.lower())
 
 
 def _build_accessories(context: BuildContext) -> None:
-    cloth_specs = (
-        ("L", 0.42, "cloth.L"),
-        ("C", 0.0, "cloth.C"),
-        ("R", -0.42, "cloth.R"),
-    )
-    for side, x_position, bone_name in cloth_specs:
+    for panel in context.silhouette.cloth_panels:
         cloth = _frustum(
-            f"back_cloth_{side}",
-            (x_position, 0.29, 1.55),
-            radius_bottom=0.24,
-            radius_top=0.34,
-            depth=1.62,
+            f"back_cloth_{panel.side}",
+            panel.location,
+            radius_bottom=panel.radius_bottom,
+            radius_top=panel.radius_top,
+            depth=panel.depth,
             vertices=3,
             material=context.materials["scarf"],
             rotation=(0.0, 0.0, math.radians(180.0)),
         )
-        _register(context, cloth, "back_cloth", bone_name, side.lower())
+        _register(
+            context,
+            cloth,
+            "back_cloth",
+            panel.bone_name,
+            panel.side.lower(),
+        )
 
     scabbard = _cylinder_between(
         "sword_scabbard",
@@ -573,7 +591,11 @@ def _build_accessories(context: BuildContext) -> None:
     _register(context, pouch_flap, "pouch", "pelvis", "right")
 
 
-def _create_rig(config: FactoryConfig, collection: bpy.types.Collection) -> bpy.types.Object:
+def _create_rig(
+    config: FactoryConfig,
+    silhouette: SilhouetteProfile,
+    collection: bpy.types.Collection,
+) -> bpy.types.Object:
     armature_data = bpy.data.armatures.new(f"{config.character_id}_rig")
     rig = bpy.data.objects.new(f"RIG_{config.character_id}", armature_data)
     collection.objects.link(rig)
@@ -586,6 +608,23 @@ def _create_rig(config: FactoryConfig, collection: bpy.types.Collection) -> bpy.
     bpy.context.view_layer.objects.active = rig
     rig.select_set(True)
     bpy.ops.object.mode_set(mode="EDIT")
+    left_arm = silhouette.arm_points("L")
+    right_arm = silhouette.arm_points("R")
+    left_leg = silhouette.leg_points("L")
+    right_leg = silhouette.leg_points("R")
+    cloth_bones = tuple(
+        (
+            panel.bone_name,
+            (panel.location[0], 0.21, 2.24),
+            (
+                panel.location[0],
+                panel.location[1],
+                panel.location[2] - panel.depth * 0.5,
+            ),
+            "pelvis",
+        )
+        for panel in silhouette.cloth_panels
+    )
     bone_specs = (
         ("root", (0.0, 0.0, 0.0), (0.0, 0.0, 0.35), None),
         ("pelvis", (0.0, 0.0, 1.75), (0.0, 0.0, 2.30), "root"),
@@ -593,22 +632,19 @@ def _create_rig(config: FactoryConfig, collection: bpy.types.Collection) -> bpy.
         ("chest", (0.0, 0.0, 2.88), (0.0, 0.0, 3.62), "spine"),
         ("neck", (0.0, 0.0, 3.60), (0.0, 0.0, 3.98), "chest"),
         ("head", (0.0, 0.0, 3.92), (0.0, 0.0, 4.72), "neck"),
-        ("upper_arm.L", (0.66, 0.0, 3.45), (0.96, -0.02, 2.79), "chest"),
-        ("forearm.L", (0.96, -0.02, 2.79), (1.00, -0.15, 2.18), "upper_arm.L"),
-        ("hand.L", (1.00, -0.15, 2.18), (1.00, -0.18, 1.91), "forearm.L"),
-        ("upper_arm.R", (-0.66, 0.0, 3.45), (-0.96, -0.02, 2.79), "chest"),
-        ("forearm.R", (-0.96, -0.02, 2.79), (-1.00, -0.15, 2.18), "upper_arm.R"),
-        ("hand.R", (-1.00, -0.15, 2.18), (-1.00, -0.18, 1.91), "forearm.R"),
-        ("thigh.L", (0.34, 0.0, 2.08), (0.34, -0.01, 1.18), "pelvis"),
-        ("shin.L", (0.34, -0.01, 1.18), (0.34, -0.04, 0.48), "thigh.L"),
-        ("foot.L", (0.34, -0.04, 0.48), (0.34, -0.44, 0.18), "shin.L"),
-        ("thigh.R", (-0.34, 0.0, 2.08), (-0.34, -0.01, 1.18), "pelvis"),
-        ("shin.R", (-0.34, -0.01, 1.18), (-0.34, -0.04, 0.48), "thigh.R"),
-        ("foot.R", (-0.34, -0.04, 0.48), (-0.34, -0.44, 0.18), "shin.R"),
-        ("cloth.L", (0.42, 0.21, 2.24), (0.42, 0.31, 0.75), "pelvis"),
-        ("cloth.C", (0.0, 0.21, 2.24), (0.0, 0.32, 0.68), "pelvis"),
-        ("cloth.R", (-0.42, 0.21, 2.24), (-0.42, 0.31, 0.75), "pelvis"),
-    )
+        ("upper_arm.L", left_arm[0], left_arm[1], "chest"),
+        ("forearm.L", left_arm[1], left_arm[2], "upper_arm.L"),
+        ("hand.L", left_arm[2], left_arm[4], "forearm.L"),
+        ("upper_arm.R", right_arm[0], right_arm[1], "chest"),
+        ("forearm.R", right_arm[1], right_arm[2], "upper_arm.R"),
+        ("hand.R", right_arm[2], right_arm[4], "forearm.R"),
+        ("thigh.L", left_leg[0], left_leg[1], "pelvis"),
+        ("shin.L", left_leg[1], left_leg[2], "thigh.L"),
+        ("foot.L", left_leg[2], left_leg[4], "shin.L"),
+        ("thigh.R", right_leg[0], right_leg[1], "pelvis"),
+        ("shin.R", right_leg[1], right_leg[2], "thigh.R"),
+        ("foot.R", right_leg[2], right_leg[4], "shin.R"),
+    ) + cloth_bones
     edit_bones: dict[str, bpy.types.EditBone] = {}
     for bone_name, head, tail, parent_name in bone_specs:
         bone = armature_data.edit_bones.new(bone_name)
@@ -1028,16 +1064,23 @@ def _write_run_manifest(
     contact_sheet: Path | None,
 ) -> Path:
     config = context.config
+    silhouette_profile_path = SCRIPT_DIR / "silhouette_profile.py"
     payload = {
         "schema_version": 1,
         "pipeline_id": "blender_sprite_factory",
         "stage": config.stage,
         "character_id": config.character_id,
+        "proxy_revision": context.silhouette.revision,
         "run_id": run_id,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "blender_version": bpy.app.version_string,
         "factory_config": config.relative_to_repo(config.manifest_path),
         "factory_config_sha256": hashlib.sha256(config.manifest_path.read_bytes()).hexdigest(),
+        "silhouette_profile": {
+            "path": config.relative_to_repo(silhouette_profile_path),
+            "revision": context.silhouette.revision,
+            "sha256": hashlib.sha256(silhouette_profile_path.read_bytes()).hexdigest(),
+        },
         "source_blend": blend_path.relative_to(run_dir).as_posix(),
         "contact_sheet": (
             contact_sheet.relative_to(run_dir).as_posix() if contact_sheet else None
@@ -1184,6 +1227,7 @@ def _frustum(
     vertices: int,
     material: bpy.types.Material,
     rotation: tuple[float, float, float] = (0.0, 0.0, 0.0),
+    scale: tuple[float, float, float] = (1.0, 1.0, 1.0),
 ) -> bpy.types.Object:
     bpy.ops.mesh.primitive_cone_add(
         vertices=vertices,
@@ -1196,6 +1240,9 @@ def _frustum(
     )
     obj = bpy.context.object
     obj.name = name
+    if scale != (1.0, 1.0, 1.0):
+        obj.scale = scale
+        bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
     _flat_shade(obj)
     _assign_material(obj, material)
     return obj

@@ -94,4 +94,4 @@ if ($LASTEXITCODE -ne 0) {
 $ResultRoot = Join-Path $RepoRoot "art\blender_pipeline_runs\human_warrior_m01\$RunId"
 Write-Host ""
 Write-Host "Completed: $ResultRoot"
-Write-Host "Review contact_sheet.png and source\human_warrior_m01_proxy_v01.blend."
+Write-Host "Review contact_sheet.png and the generated .blend file in source\."

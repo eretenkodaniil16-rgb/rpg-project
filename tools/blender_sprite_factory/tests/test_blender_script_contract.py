@@ -42,6 +42,12 @@ class BlenderScriptContractTests(unittest.TestCase):
         self.assertIn("approved_idle_paths", self.source)
         self.assertIn('"approved_idle_reference"', self.source)
 
+    def test_versioned_silhouette_profile_drives_scene_and_outputs(self) -> None:
+        self.assertIn("load_silhouette_profile", self.source)
+        self.assertIn('scene["silhouette_revision"]', self.source)
+        self.assertIn("context.silhouette.revision", self.source)
+        self.assertIn('"silhouette_profile"', self.source)
+
     def test_windows_powershell_launcher_is_ascii_safe(self) -> None:
         launcher = self.tool_root / "run_blender_sprite_pilot.ps1"
         self.assertTrue(
