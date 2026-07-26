@@ -32,6 +32,7 @@ class BlenderScriptContractTests(unittest.TestCase):
         self.assertIn('fixed_center_x=down_calibration.source_center_x', self.source)
         self.assertIn('if alpha < 0.5:', self.source)
         self.assertIn('output_pixels[destination_index + 3] = 1.0', self.source)
+        self.assertIn('anchor_rgba_to_baseline(', self.source)
         self.assertNotIn("scale.x = -1", self.source)
         self.assertNotIn("scale[0] = -1", self.source)
 

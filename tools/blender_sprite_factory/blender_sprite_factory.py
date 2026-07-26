@@ -26,6 +26,7 @@ except ModuleNotFoundError as exc:
     ) from exc
 
 from factory_config import FactoryConfig, MaterialSlot, load_factory_config, validate_required_files
+from pixel_geometry import alpha_bbox, anchor_rgba_to_baseline
 
 
 RUN_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
@@ -821,7 +822,7 @@ def _normalize_render(
         source_width, source_height = (int(value) for value in source.size)
         source_pixels = tuple(source.pixels[:])
         alpha_threshold = max(0.08, config.technical.alpha_threshold / 255.0)
-        bbox = _alpha_bbox(source_pixels, source_width, source_height, alpha_threshold)
+        bbox = alpha_bbox(source_pixels, source_width, source_height, alpha_threshold)
         if bbox is None:
             raise RuntimeError(f"Render не содержит видимого силуэта: {raw_path}")
         min_x, min_y, max_x, max_y = bbox
@@ -878,14 +879,18 @@ def _normalize_render(
                 output_pixels[destination_index + 2] = quantized[2]
                 output_pixels[destination_index + 3] = 1.0
 
-        normalized_bbox = _alpha_bbox(
-            tuple(output_pixels),
-            canvas_width,
-            canvas_height,
-            0.5,
-        )
-        if normalized_bbox is None:
-            raise RuntimeError(f"Нормализация удалила весь силуэт: {raw_path}")
+        try:
+            output_pixels, normalized_bbox = anchor_rgba_to_baseline(
+                output_pixels,
+                canvas_width,
+                canvas_height,
+                config.technical.baseline_y,
+                0.5,
+            )
+        except ValueError as exc:
+            raise RuntimeError(
+                f"Не удалось привязать силуэт к baseline: {raw_path}: {exc}"
+            ) from exc
         normalized_min_x, normalized_min_y, normalized_max_x, normalized_max_y = (
             normalized_bbox
         )
@@ -1336,30 +1341,6 @@ def _clear_scene() -> None:
     ):
         for datablock in tuple(data_collection):
             data_collection.remove(datablock)
-
-
-def _alpha_bbox(
-    pixels: tuple[float, ...],
-    width: int,
-    height: int,
-    threshold: float,
-) -> tuple[int, int, int, int] | None:
-    min_x = width
-    min_y = height
-    max_x = -1
-    max_y = -1
-    for y in range(height):
-        for x in range(width):
-            alpha = pixels[(y * width + x) * 4 + 3]
-            if alpha <= threshold:
-                continue
-            min_x = min(min_x, x)
-            min_y = min(min_y, y)
-            max_x = max(max_x, x)
-            max_y = max(max_y, y)
-    if max_x < 0:
-        return None
-    return min_x, min_y, max_x, max_y
 
 
 def _copy_tile(
