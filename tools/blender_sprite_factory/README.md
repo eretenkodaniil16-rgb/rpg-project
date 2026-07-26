@@ -80,14 +80,14 @@ API-ключ, платные сервисы и отдельный Python для 
 ```text
 art/blender_pipeline_runs/human_warrior_m01/<run_id>/
 ├── source/
-│   └── human_warrior_m01_proxy_v02.blend
+│   └── human_warrior_m01_proxy_v03.blend
 ├── raw/
 ├── frames/
-│   ├── human_warrior_m01_idle_down_proxy_v02.png
-│   ├── human_warrior_m01_idle_left_proxy_v02.png
-│   ├── human_warrior_m01_idle_right_proxy_v02.png
-│   ├── human_warrior_m01_idle_up_proxy_v02.png
-│   └── human_warrior_m01_walk_down_f01–f06_proxy_v02.png
+│   ├── human_warrior_m01_idle_down_proxy_v03.png
+│   ├── human_warrior_m01_idle_left_proxy_v03.png
+│   ├── human_warrior_m01_idle_right_proxy_v03.png
+│   ├── human_warrior_m01_idle_up_proxy_v03.png
+│   └── human_warrior_m01_walk_down_f01–f06_proxy_v03.png
 ├── contact_sheet.png
 └── run_manifest.json
 ```
@@ -131,18 +131,18 @@ contact_sheet.png
 ## Текущий профиль силуэта
 
 `silhouette_profile.py` содержит чистые типизированные параметры формы и не
-импортирует Blender. Ревизия `v02` исправляет только обнаруженные на первом
-трёхрядном contact sheet различия:
+импортирует Blender. Ревизия `v03` продолжает проверку только статического
+силуэта после реального рендера `v02`:
 
-- более узкий по глубине торс без цилиндрического бокового силуэта;
-- собранные ближе к корпусу наплечники и руки;
-- устойчивую стойку с разведёнными и немного смещёнными по глубине ногами;
-- развёрнутые наружу носки;
-- заднюю ткань, расширяющуюся к ногам.
+- сохраняет уже исправленные в `v02` торс, наплечники и руки;
+- немного шире разводит колени, голени и сапоги;
+- усиливает разницу ног по глубине для настоящих боковых ракурсов;
+- расширяет заднюю ткань книзу;
+- независимо увеличивает глубину ткани без лишнего расширения корпуса.
 
-Камера, рост кадра, baseline, голова, лицо, палитра, физические стороны
-экипировки и ключи `walk_down` этой ревизией не меняются. Номер и SHA-256
-профиля записываются в `run_manifest.json`.
+Камера, рост кадра, baseline, корпус, руки, голова, лицо, палитра, физические
+стороны экипировки и ключи `walk_down` этой ревизией не меняются. Номер и
+SHA-256 профиля записываются в `run_manifest.json`.
 
 ## Texture slots
 

@@ -536,6 +536,11 @@ def _build_accessories(context: BuildContext) -> None:
             vertices=3,
             material=context.materials["scarf"],
             rotation=(0.0, 0.0, math.radians(180.0)),
+            scale=(
+                panel.cross_section_scale[0],
+                panel.cross_section_scale[1],
+                1.0,
+            ),
         )
         _register(
             context,

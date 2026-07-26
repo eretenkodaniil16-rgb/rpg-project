@@ -23,6 +23,7 @@ class ClothPanel:
     radius_bottom: float
     radius_top: float
     depth: float
+    cross_section_scale: tuple[float, float]
     bone_name: str
 
 
@@ -133,11 +134,17 @@ class SilhouetteProfile:
             for panel in self.cloth_panels
         ):
             raise ValueError("Back cloth must flare toward the feet")
+        if any(
+            scale <= 0.0
+            for panel in self.cloth_panels
+            for scale in panel.cross_section_scale
+        ):
+            raise ValueError("Back cloth cross-section scales must be positive")
 
 
-HUMAN_WARRIOR_M01_SILHOUETTE_V02 = SilhouetteProfile(
+HUMAN_WARRIOR_M01_SILHOUETTE_V03 = SilhouetteProfile(
     character_id="human_warrior_m01",
-    revision="v02",
+    revision="v03",
     pelvis_dimensions=(1.18, 0.54, 0.46),
     ribcage_radius_bottom=0.60,
     ribcage_radius_top=0.72,
@@ -179,40 +186,43 @@ HUMAN_WARRIOR_M01_SILHOUETTE_V02 = SilhouetteProfile(
         (-0.72, -0.01, 3.43),
         (0.31, 0.31, 0.25),
     ),
-    leg_hip_x=0.40,
-    leg_knee_x=0.44,
-    leg_ankle_x=0.48,
-    boot_x=0.50,
-    left_leg_depth=-0.10,
-    right_leg_depth=0.08,
-    thigh_radius=0.26,
-    shin_radius=0.24,
-    knee_scale=(0.29, 0.25, 0.19),
-    boot_dimensions=(0.48, 0.72, 0.40),
-    boot_outward_degrees=7.0,
+    leg_hip_x=0.42,
+    leg_knee_x=0.49,
+    leg_ankle_x=0.55,
+    boot_x=0.58,
+    left_leg_depth=-0.16,
+    right_leg_depth=0.10,
+    thigh_radius=0.27,
+    shin_radius=0.25,
+    knee_scale=(0.30, 0.27, 0.19),
+    boot_dimensions=(0.52, 0.80, 0.40),
+    boot_outward_degrees=9.0,
     cloth_panels=(
         ClothPanel(
             "L",
-            (0.48, 0.31, 1.47),
-            radius_bottom=0.42,
-            radius_top=0.28,
+            (0.54, 0.36, 1.47),
+            radius_bottom=0.52,
+            radius_top=0.29,
             depth=1.74,
+            cross_section_scale=(1.0, 1.40),
             bone_name="cloth.L",
         ),
         ClothPanel(
             "C",
-            (0.0, 0.33, 1.42),
-            radius_bottom=0.43,
-            radius_top=0.30,
+            (0.0, 0.38, 1.42),
+            radius_bottom=0.48,
+            radius_top=0.31,
             depth=1.84,
+            cross_section_scale=(1.0, 1.35),
             bone_name="cloth.C",
         ),
         ClothPanel(
             "R",
-            (-0.48, 0.31, 1.47),
-            radius_bottom=0.42,
-            radius_top=0.28,
+            (-0.54, 0.36, 1.47),
+            radius_bottom=0.52,
+            radius_top=0.29,
             depth=1.74,
+            cross_section_scale=(1.0, 1.40),
             bone_name="cloth.R",
         ),
     ),
@@ -220,10 +230,10 @@ HUMAN_WARRIOR_M01_SILHOUETTE_V02 = SilhouetteProfile(
 
 
 def load_silhouette_profile(character_id: str) -> SilhouetteProfile:
-    if character_id != HUMAN_WARRIOR_M01_SILHOUETTE_V02.character_id:
+    if character_id != HUMAN_WARRIOR_M01_SILHOUETTE_V03.character_id:
         raise KeyError(f"No silhouette profile for character_id={character_id}")
-    HUMAN_WARRIOR_M01_SILHOUETTE_V02.assert_valid()
-    return HUMAN_WARRIOR_M01_SILHOUETTE_V02
+    HUMAN_WARRIOR_M01_SILHOUETTE_V03.assert_valid()
+    return HUMAN_WARRIOR_M01_SILHOUETTE_V03
 
 
 def _side_sign(side: PhysicalSide) -> float:

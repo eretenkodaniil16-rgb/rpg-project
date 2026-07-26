@@ -11,7 +11,7 @@ class SilhouetteProfileTests(unittest.TestCase):
         cls.profile = load_silhouette_profile("human_warrior_m01")
 
     def test_profile_is_versioned_and_self_validating(self) -> None:
-        self.assertEqual(self.profile.revision, "v02")
+        self.assertEqual(self.profile.revision, "v03")
         self.profile.assert_valid()
 
     def test_torso_is_shallower_without_narrowing_the_character_axis(self) -> None:
@@ -27,8 +27,9 @@ class SilhouetteProfileTests(unittest.TestCase):
         right = self.profile.leg_points("R")
         self.assertGreater(left[2][0], left[0][0])
         self.assertLess(right[2][0], right[0][0])
-        self.assertNotEqual(left[0][1], right[0][1])
-        self.assertGreater(self.profile.boot_outward_degrees, 0.0)
+        self.assertGreater(abs(left[0][1] - right[0][1]), 0.20)
+        self.assertGreater(self.profile.boot_x, 0.55)
+        self.assertGreater(self.profile.boot_outward_degrees, 7.0)
 
     def test_arms_bend_forward_and_stay_on_their_physical_sides(self) -> None:
         left = self.profile.arm_points("L")
@@ -54,6 +55,33 @@ class SilhouetteProfileTests(unittest.TestCase):
                 panel.radius_bottom > panel.radius_top
                 for panel in profile.cloth_panels
             )
+        )
+
+    def test_lower_cloth_expands_in_width_and_depth_for_true_side_views(self) -> None:
+        profile = self.profile
+        left_extent = max(
+            part.location[0] + part.scale[0]
+            for part in profile.left_pauldron_plates
+        )
+        cloth_width_extent = max(
+            abs(panel.location[0])
+            + panel.radius_bottom * panel.cross_section_scale[0]
+            for panel in profile.cloth_panels
+        )
+        self.assertGreater(cloth_width_extent, left_extent * 0.90)
+        self.assertTrue(
+            all(
+                panel.cross_section_scale[1] > panel.cross_section_scale[0]
+                for panel in profile.cloth_panels
+            )
+        )
+        self.assertGreater(
+            max(
+                panel.location[1]
+                + panel.radius_bottom * panel.cross_section_scale[1]
+                for panel in profile.cloth_panels
+            ),
+            1.0,
         )
 
     def test_unknown_character_cannot_reuse_this_body_profile_silently(self) -> None:
