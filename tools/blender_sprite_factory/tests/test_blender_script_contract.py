@@ -8,9 +8,8 @@ from pathlib import Path
 class BlenderScriptContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.script = (
-            Path(__file__).resolve().parents[1] / "blender_sprite_factory.py"
-        )
+        cls.tool_root = Path(__file__).resolve().parents[1]
+        cls.script = cls.tool_root / "blender_sprite_factory.py"
         cls.source = cls.script.read_text(encoding="utf-8")
         cls.tree = ast.parse(cls.source)
 
@@ -35,6 +34,13 @@ class BlenderScriptContractTests(unittest.TestCase):
         self.assertIn('output_pixels[destination_index + 3] = 1.0', self.source)
         self.assertNotIn("scale.x = -1", self.source)
         self.assertNotIn("scale[0] = -1", self.source)
+
+    def test_windows_powershell_launcher_is_ascii_safe(self) -> None:
+        launcher = self.tool_root / "run_blender_sprite_pilot.ps1"
+        self.assertTrue(
+            launcher.read_bytes().isascii(),
+            "Windows PowerShell 5.1 requires this launcher to remain ASCII-only",
+        )
 
 
 if __name__ == "__main__":
