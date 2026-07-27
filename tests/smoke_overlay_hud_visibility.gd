@@ -33,7 +33,7 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 
-	var hub: CharacterHub = game.find_child("CharacterHub", true, false) as CharacterHub
+	var hub: Control = game.find_child("CharacterHub", true, false) as Control
 	var mobile_controls: Control = game.get_node_or_null("Interface/MobileControls") as Control
 	var character_button: Button = game.find_child("CharacterButton", true, false) as Button
 	var target_button: Button = game.find_child("TargetButton", true, false) as Button
@@ -41,8 +41,17 @@ func _run() -> void:
 	var target_label: Label = game.find_child("TargetLabel", true, false) as Label
 	var prepared_panel: Control = game.find_child("PreparedActionPanel", true, false) as Control
 	var caretaker: Node = game.get_node_or_null("Caretaker")
-	if hub == null or mobile_controls == null or character_button == null or target_button == null or attack_button == null or target_label == null or prepared_panel == null or caretaker == null:
-		_fail("Required HUD, target, or Character Hub nodes are missing.")
+	var missing: Array[String] = []
+	if hub == null: missing.append("CharacterHub")
+	if mobile_controls == null: missing.append("MobileControls")
+	if character_button == null: missing.append("CharacterButton")
+	if target_button == null: missing.append("TargetButton")
+	if attack_button == null: missing.append("AttackButton")
+	if target_label == null: missing.append("TargetLabel")
+	if prepared_panel == null: missing.append("PreparedActionPanel")
+	if caretaker == null: missing.append("Caretaker")
+	if not missing.is_empty():
+		_fail("Required HUD nodes are missing: %s" % ", ".join(missing))
 		return
 	if target_label.visible:
 		_fail("Target distance must be hidden before manual target selection.")
@@ -72,7 +81,7 @@ func _run() -> void:
 			_fail("Exploration HUD remained visible over the inventory: %s" % item.name)
 			return
 
-	hub.close_sheet()
+	hub.call("close_sheet")
 	await process_frame
 	await process_frame
 	for item: CanvasItem in [mobile_controls, character_button, target_button, attack_button, target_label, prepared_panel]:
