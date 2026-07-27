@@ -32,6 +32,7 @@ const SKILL_NAMES: Dictionary = {
 
 var _race_data: RaceDataSystem = RaceDataSystem.new()
 var _origin_data: OriginDataSystem = OriginDataSystem.new()
+var _class_proficiencies: ClassProficiencySystem = ClassProficiencySystem.new()
 var _races: Array[Dictionary] = []
 var _backgrounds: Array[Dictionary] = []
 var _languages: Array[Dictionary] = []
@@ -39,6 +40,7 @@ var _selected_race_id: String = RaceDataSystem.DEFAULT_RACE_ID
 var _selected_background_id: String = OriginDataSystem.DEFAULT_BACKGROUND_ID
 var _background_ability_bonuses: Dictionary = {}
 var _selected_languages: Array[String] = []
+var _selected_class_skill_ids: Array[String] = []
 var _custom_creator_initialized: bool = false
 
 
@@ -247,6 +249,81 @@ func _build_origin_step() -> void:
 	box.add_child(_make_label(str(language_validation.get("message", "")), 16, Color(0.63, 0.88, 0.67, 1.0) if bool(language_validation.get("success", false)) else Color(1.0, 0.68, 0.38, 1.0)))
 
 
+func _append_class_proficiency_controls() -> void:
+	var selected_class: Dictionary = _get_selected_class()
+	if selected_class.is_empty():
+		return
+	_ensure_class_skill_selection()
+	var panel: PanelContainer = PanelContainer.new()
+	panel.name = "ClassTrainingPanel"
+	_content_container.add_child(panel)
+	var margin: MarginContainer = MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 20)
+	margin.add_theme_constant_override("margin_top", 18)
+	margin.add_theme_constant_override("margin_right", 20)
+	margin.add_theme_constant_override("margin_bottom", 18)
+	panel.add_child(margin)
+	var box: VBoxContainer = VBoxContainer.new()
+	box.add_theme_constant_override("separation", 10)
+	margin.add_child(box)
+	box.add_child(_make_label("Подготовка класса", 24, Color(1.0, 0.82, 0.38, 1.0)))
+	box.add_child(_make_label("Оружие: %s" % _display_weapon_training(selected_class.get("weapon_proficiencies", [])), 17))
+	box.add_child(_make_label("Доспехи: %s" % _display_armor_training(selected_class.get("armor_training", [])), 17))
+	var required: int = _class_proficiencies.get_skill_choice_count(selected_class)
+	box.add_child(_make_label("Выберите навыки класса · %d из %d" % [_selected_class_skill_ids.size(), required], 20, Color(0.72, 0.82, 1.0, 1.0)))
+	var unavailable: Array[String] = _background_skill_ids()
+	var options_grid: GridContainer = GridContainer.new()
+	options_grid.name = "ClassSkillGrid"
+	options_grid.columns = 2
+	options_grid.add_theme_constant_override("h_separation", 10)
+	options_grid.add_theme_constant_override("v_separation", 10)
+	box.add_child(options_grid)
+	for skill_id: String in _class_proficiencies.get_skill_options(selected_class):
+		var selected: bool = skill_id in _selected_class_skill_ids
+		var already_from_origin: bool = skill_id in unavailable
+		var button: Button = Button.new()
+		button.name = "ClassSkill_%s" % skill_id
+		button.custom_minimum_size = Vector2(0.0, 56.0)
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.toggle_mode = true
+		button.button_pressed = selected
+		button.text = ("%s " % ("✓" if selected else "○")) + str(SKILL_NAMES.get(skill_id, skill_id))
+		if already_from_origin:
+			button.text += " · из происхождения"
+		button.disabled = already_from_origin or (not selected and _selected_class_skill_ids.size() >= required)
+		button.add_theme_font_size_override("font_size", 17)
+		button.pressed.connect(_toggle_class_skill.bind(skill_id))
+		options_grid.add_child(button)
+	var validation: Dictionary = _class_skill_validation()
+	var validation_label: Label = _make_label(
+		str(validation.get("message", "")),
+		16,
+		Color(0.63, 0.88, 0.67, 1.0) if bool(validation.get("success", false)) else Color(1.0, 0.68, 0.38, 1.0)
+	)
+	validation_label.name = "ClassSkillValidation"
+	box.add_child(validation_label)
+
+
+func _toggle_class_skill(skill_id: String) -> void:
+	if skill_id in _background_skill_ids():
+		return
+	if skill_id in _selected_class_skill_ids:
+		_selected_class_skill_ids.erase(skill_id)
+	else:
+		var required: int = _class_proficiencies.get_skill_choice_count(_get_selected_class())
+		if _selected_class_skill_ids.size() >= required:
+			return
+		_selected_class_skill_ids.append(skill_id)
+	_show_step(5)
+
+
+func _append_class_training_summary(container: VBoxContainer, selected_class: Dictionary) -> void:
+	_ensure_class_skill_selection()
+	container.add_child(_make_label("Навыки класса: %s" % _display_skill_ids(_selected_class_skill_ids), 18))
+	container.add_child(_make_label("Владение оружием: %s" % _display_weapon_training(selected_class.get("weapon_proficiencies", [])), 18))
+	container.add_child(_make_label("Обучение доспехам: %s" % _display_armor_training(selected_class.get("armor_training", [])), 18))
+
+
 func _build_confirmation_step() -> void:
 	var selected_class: Dictionary = _get_selected_class()
 	var selected_race: Dictionary = _get_selected_race()
@@ -270,6 +347,7 @@ func _build_confirmation_step() -> void:
 	summary.add_child(_make_label("Здоровье: %d · скорость: %d футов · мастерство: +2" % [health, int(selected_race.get("speed_ft", 30))], 20))
 	summary.add_child(_make_label("Черта происхождения: %s" % str(selected_background.get("origin_feat_name", "—")), 18))
 	summary.add_child(_make_label("Навыки происхождения: %s" % _display_skill_ids(selected_background.get("skill_proficiencies", [])), 18))
+	_append_class_training_summary(summary, selected_class)
 	summary.add_child(_make_label("Языки: Общий, %s" % _display_language_ids(_selected_languages), 18))
 	var abilities_grid: GridContainer = GridContainer.new()
 	abilities_grid.columns = 3
@@ -291,8 +369,8 @@ func _build_confirmation_step() -> void:
 func _finish_creation() -> void:
 	var selected_class: Dictionary = _get_selected_class()
 	var selected_race: Dictionary = _get_selected_race()
-	if selected_class.is_empty() or selected_race.is_empty() or not _is_origin_configuration_valid():
-		_message_label.text = "Заполните вид, происхождение, языки, характеристики и класс персонажа."
+	if selected_class.is_empty() or selected_race.is_empty() or not _is_origin_configuration_valid() or not _is_class_skill_configuration_valid():
+		_message_label.text = "Заполните вид, происхождение, языки, характеристики, класс и классовые навыки персонажа."
 		return
 	var character: PlayerCharacter = PlayerCharacter.new()
 	character.character_name = _character_name
@@ -311,7 +389,15 @@ func _finish_creation() -> void:
 	if not bool(origin_result.get("success", false)):
 		_message_label.text = str(origin_result.get("message", "Не удалось применить происхождение."))
 		return
-	_origin_data.apply_class_proficiencies(character, selected_class)
+	var class_result: Dictionary = _class_proficiencies.apply_class_proficiencies(
+		character,
+		selected_class,
+		_selected_class_skill_ids,
+		false
+	)
+	if not bool(class_result.get("success", false)):
+		_message_label.text = str(class_result.get("message", "Не удалось применить владения класса."))
+		return
 	character.maximum_health = maxi(int(selected_class.get("hit_die", 8)) + character.get_ability_modifier("constitution"), 1)
 	character.current_health = character.maximum_health
 	_race_data.apply_race(character, _selected_race_id, false)
@@ -334,6 +420,9 @@ func _get_selected_race() -> Dictionary:
 func _select_background(background_id: String) -> void:
 	_selected_background_id = background_id
 	_background_ability_bonuses = _origin_data.default_ability_bonuses(background_id)
+	if not _selected_class_id.is_empty():
+		_selected_class_skill_ids.clear()
+		_ensure_class_skill_selection()
 	_show_step(4)
 
 
@@ -375,6 +464,7 @@ func _reset_rolls() -> void:
 	_assignments.clear()
 	_selected_score_index = -1
 	_selected_class_id = ""
+	_selected_class_skill_ids.clear()
 	_show_step(2)
 
 
@@ -399,7 +489,10 @@ func _on_ability_pressed(ability_id: String) -> void:
 
 
 func _select_class(class_id: String) -> void:
+	if class_id != _selected_class_id:
+		_selected_class_skill_ids.clear()
 	_selected_class_id = class_id
+	_ensure_class_skill_selection()
 	_show_step(5)
 
 
@@ -433,8 +526,8 @@ func _can_continue_current_step() -> bool:
 		2: return _rolls.size() == 6
 		3: return _assignments.size() == ABILITY_IDS.size()
 		4: return _is_origin_configuration_valid()
-		5: return not _selected_class_id.is_empty()
-		6: return _is_name_valid() and not _selected_race_id.is_empty() and _assignments.size() == ABILITY_IDS.size() and _is_origin_configuration_valid() and not _selected_class_id.is_empty()
+		5: return not _selected_class_id.is_empty() and _is_class_skill_configuration_valid()
+		6: return _is_name_valid() and not _selected_race_id.is_empty() and _assignments.size() == ABILITY_IDS.size() and _is_origin_configuration_valid() and not _selected_class_id.is_empty() and _is_class_skill_configuration_valid()
 	return false
 
 
@@ -449,12 +542,48 @@ func _validation_message_for_step() -> String:
 			if not bool(bonus_validation.get("success", false)):
 				return str(bonus_validation.get("message", "Распределите бонусы происхождения."))
 			return str(_origin_data.validate_languages(_selected_languages).get("message", "Выберите два языка."))
-		5: return "Выберите класс персонажа."
+		5:
+			if _selected_class_id.is_empty():
+				return "Выберите класс персонажа."
+			return str(_class_skill_validation().get("message", "Выберите классовые навыки."))
 	return "Не все данные заполнены."
 
 
 func _is_origin_configuration_valid() -> bool:
 	return bool(_origin_data.validate_ability_bonuses(_selected_background_id, _background_ability_bonuses, _base_abilities_dict()).get("success", false)) and bool(_origin_data.validate_languages(_selected_languages).get("success", false))
+
+
+func _ensure_class_skill_selection() -> void:
+	var selected_class: Dictionary = _get_selected_class()
+	if selected_class.is_empty():
+		_selected_class_skill_ids.clear()
+		return
+	if _selected_class_skill_ids.is_empty():
+		_selected_class_skill_ids = _class_proficiencies.get_default_skill_choices(selected_class, _background_skill_ids())
+
+
+func _class_skill_validation() -> Dictionary:
+	return _class_proficiencies.validate_skill_choices(
+		_get_selected_class(),
+		_selected_class_skill_ids,
+		_background_skill_ids()
+	)
+
+
+func _is_class_skill_configuration_valid() -> bool:
+	return bool(_class_skill_validation().get("success", false))
+
+
+func _background_skill_ids() -> Array[String]:
+	var result: Array[String] = []
+	var selected_background: Dictionary = _get_selected_background()
+	var value: Variant = selected_background.get("skill_proficiencies", [])
+	if value is Array:
+		for skill_value: Variant in value:
+			var skill_id: String = str(skill_value)
+			if not skill_id.is_empty() and skill_id not in result:
+				result.append(skill_id)
+	return result
 
 
 func _base_abilities_dict() -> Dictionary:
@@ -504,6 +633,36 @@ func _display_tool_ids(value: Variant) -> String:
 			var tool_id: String = str(item)
 			names.append(str(tool_names.get(tool_id, tool_id)))
 	return ", ".join(names)
+
+
+func _display_weapon_training(value: Variant) -> String:
+	var names: Array[String] = []
+	var training_names: Dictionary = {
+		ClassProficiencySystem.SIMPLE_WEAPONS: "простое оружие",
+		ClassProficiencySystem.MARTIAL_WEAPONS: "воинское оружие",
+		ClassProficiencySystem.MARTIAL_LIGHT_WEAPONS: "лёгкое воинское оружие",
+		ClassProficiencySystem.MARTIAL_FINESSE_OR_LIGHT_WEAPONS: "фехтовальное или лёгкое воинское оружие"
+	}
+	if value is Array:
+		for item: Variant in value:
+			var training_id: String = str(item)
+			names.append(str(training_names.get(training_id, training_id)))
+	return ", ".join(names) if not names.is_empty() else "нет"
+
+
+func _display_armor_training(value: Variant) -> String:
+	var names: Array[String] = []
+	var training_names: Dictionary = {
+		"light": "лёгкие доспехи",
+		"medium": "средние доспехи",
+		"heavy": "тяжёлые доспехи",
+		"shield": "щиты"
+	}
+	if value is Array:
+		for item: Variant in value:
+			var training_id: String = str(item)
+			names.append(str(training_names.get(training_id, training_id)))
+	return ", ".join(names) if not names.is_empty() else "нет"
 
 
 func _display_language_ids(language_ids: Array[String]) -> String:

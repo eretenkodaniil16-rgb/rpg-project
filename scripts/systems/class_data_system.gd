@@ -14,6 +14,7 @@ var _dice: DiceRoller = DiceRoller.new()
 var _race_data: RaceDataSystem = RaceDataSystem.new()
 var _origin_data: OriginDataSystem = OriginDataSystem.new()
 var _origin_feats: OriginFeatSystem = OriginFeatSystem.new()
+var _class_proficiencies: ClassProficiencySystem = ClassProficiencySystem.new()
 var _spellcasting: SpellcastingSystem = SpellcastingSystem.new()
 
 
@@ -30,15 +31,16 @@ func ensure_starting_loadout(character: PlayerCharacter) -> bool:
 	if class_data.is_empty():
 		return false
 	_origin_data.ensure_legacy_origin(character)
-	_origin_data.apply_class_proficiencies(character, class_data)
+	var proficiency_result: Dictionary = _class_proficiencies.ensure_character(character, class_data)
+	var proficiencies_migrated: bool = bool(proficiency_result.get("changed", false))
 	character.initialize_hit_dice(int(class_data.get("hit_die", 8)))
 	if character.starter_loadout_granted:
 		_origin_feats.initialize_character(character, false)
 		var spell_migrated: bool = _spellcasting.ensure_character(character, false)
 		var equipment_migrated: bool = _grant_origin_equipment(character, state)
-		if spell_migrated or equipment_migrated:
+		if proficiencies_migrated or spell_migrated or equipment_migrated:
 			state.call("save_game")
-		return spell_migrated or equipment_migrated
+		return proficiencies_migrated or spell_migrated or equipment_migrated
 	var items_value: Variant = class_data.get("starting_items", {})
 	if items_value is Dictionary:
 		for item_id_value: Variant in (items_value as Dictionary).keys():
@@ -164,6 +166,36 @@ func get_equipped_weapon(character: PlayerCharacter) -> Dictionary:
 	return state.call("get_item_definition", character.equipped_weapon_id) as Dictionary
 
 
+func get_equipment_training_state(character: PlayerCharacter) -> Dictionary:
+	if character == null:
+		return {}
+	var state: Node = _get_game_state()
+	var armor: Dictionary = {}
+	var shield: Dictionary = {}
+	if state != null:
+		armor = state.call("get_item_definition", character.equipped_armor_id) as Dictionary
+		shield = state.call("get_item_definition", character.equipped_shield_id) as Dictionary
+	var armor_category: String = str(armor.get("armor_category", "clothing"))
+	var wears_armor: bool = not armor.is_empty() and armor_category in ["light", "medium", "heavy"]
+	var armor_trained: bool = not wears_armor or character.has_armor_training(armor_category)
+	var shield_equipped: bool = not shield.is_empty()
+	var shield_trained: bool = not shield_equipped or character.has_armor_training("shield")
+	return {
+		"armor_category": armor_category,
+		"armor_trained": armor_trained,
+		"shield_equipped": shield_equipped,
+		"shield_trained": shield_trained,
+		"untrained_armor": wears_armor and not armor_trained,
+		"untrained_shield": shield_equipped and not shield_trained
+	}
+
+
+func has_untrained_armor_d20_disadvantage(character: PlayerCharacter, ability_id: String) -> bool:
+	if ability_id not in ["strength", "dexterity"]:
+		return false
+	return bool(get_equipment_training_state(character).get("untrained_armor", false))
+
+
 func get_armor_class(character: PlayerCharacter) -> int:
 	var state: Node = _get_game_state()
 	if state == null:
@@ -185,7 +217,7 @@ func get_armor_class(character: PlayerCharacter) -> int:
 		armor_class = int(armor.get("base_ac", 10)) + dexterity_bonus
 		if character.character_class_id == "fighter":
 			armor_class += 1
-	if not shield.is_empty():
+	if not shield.is_empty() and character.has_armor_training("shield"):
 		armor_class += int(shield.get("ac_bonus", 2))
 	return maxi(armor_class, 0)
 
@@ -198,20 +230,16 @@ func get_spellcasting_context(
 	if character == null:
 		return {}
 	var state: Node = _get_game_state()
-	var class_definition: Dictionary = get_class_definition(character.character_class_id)
 	var weapon: Dictionary = {}
-	var armor: Dictionary = {}
 	var shield: Dictionary = {}
 	var inventory_entries: Array = []
 	if state != null:
 		weapon = state.call("get_item_definition", character.equipped_weapon_id) as Dictionary
-		armor = state.call("get_item_definition", character.equipped_armor_id) as Dictionary
 		shield = state.call("get_item_definition", character.equipped_shield_id) as Dictionary
 		inventory_entries = state.call("get_inventory_entries") as Array
 
-	var armor_category: String = str(armor.get("armor_category", "clothing"))
-	var armor_training: Array[String] = _string_array(class_definition.get("armor_training", []))
-	var armor_trained: bool = armor.is_empty() or armor_category == "clothing" or armor_category in armor_training
+	var training_state: Dictionary = get_equipment_training_state(character)
+	var armor_trained: bool = bool(training_state.get("armor_trained", true))
 	var occupied_hands: int = 0
 	if not weapon.is_empty():
 		# Two-handed weapons need two hands to attack, but only one to hold while casting.
@@ -245,6 +273,8 @@ func get_spellcasting_context(
 	return {
 		"can_speak": can_speak,
 		"armor_trained": armor_trained,
+		"untrained_armor_d20_disadvantage": bool(training_state.get("untrained_armor", false)),
+		"shield_trained": bool(training_state.get("shield_trained", true)),
 		"free_hands": free_hands,
 		"focus_in_hand": focus_in_hand,
 		"has_component_pouch": has_component_pouch,

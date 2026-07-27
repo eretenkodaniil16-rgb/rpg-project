@@ -260,7 +260,7 @@ func _resolve_enemy_area_spell(actor: Node, spell: Dictionary, slot_level: int) 
 		save_dc,
 		_player_combat_state,
 		false,
-		false,
+		_player_has_untrained_armor_d20_disadvantage(save_ability),
 		[],
 		{"magical": true, "spell_id": str(spell.get("id", ""))}
 	)

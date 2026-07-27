@@ -99,6 +99,25 @@ func _run_smoke_test() -> void:
 	if not bool(creator.call("_can_continue_current_step")):
 		_fail("A selected class did not enable progression to confirmation.")
 		return
+	var class_training_panel: PanelContainer = creator.find_child("ClassTrainingPanel", true, false) as PanelContainer
+	var selected_class_skills: Array = creator.get("_selected_class_skill_ids") as Array
+	if class_training_panel == null or not class_training_panel.is_visible_in_tree():
+		_fail("Class skill and equipment training controls are not visible.")
+		return
+	if selected_class_skills.size() != 2 or "athletics" in selected_class_skills or "intimidation" in selected_class_skills:
+		_fail("Fighter class skills did not avoid Soldier background duplicates.")
+		return
+	var toggled_skill: String = str(selected_class_skills[0])
+	creator.call("_toggle_class_skill", toggled_skill)
+	await process_frame
+	if bool(creator.call("_can_continue_current_step")):
+		_fail("Incomplete class skill selection did not block confirmation.")
+		return
+	creator.call("_toggle_class_skill", toggled_skill)
+	await process_frame
+	if not bool(creator.call("_can_continue_current_step")):
+		_fail("Restored class skill selection did not re-enable confirmation.")
+		return
 
 	creator.call("_show_step", 6)
 	for _frame: int in range(2):

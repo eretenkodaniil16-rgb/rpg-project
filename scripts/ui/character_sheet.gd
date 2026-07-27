@@ -9,6 +9,14 @@ const ABILITY_NAMES: Dictionary = {
 	"strength":"Сила", "dexterity":"Ловкость", "constitution":"Телосложение",
 	"intelligence":"Интеллект", "wisdom":"Мудрость", "charisma":"Харизма"
 }
+const SKILL_NAMES: Dictionary = {
+	"acrobatics":"Акробатика", "animal_handling":"Уход за животными", "arcana":"Магия",
+	"athletics":"Атлетика", "deception":"Обман", "history":"История",
+	"insight":"Проницательность", "intimidation":"Запугивание", "investigation":"Анализ",
+	"medicine":"Медицина", "nature":"Природа", "perception":"Восприятие",
+	"performance":"Выступление", "persuasion":"Убеждение", "religion":"Религия",
+	"sleight_of_hand":"Ловкость рук", "stealth":"Скрытность", "survival":"Выживание"
+}
 
 var _class_data: ClassDataSystem = ClassDataSystem.new()
 var _character: PlayerCharacter
@@ -202,9 +210,20 @@ func _refresh() -> void:
 	var weapon: Dictionary = state.call("get_item_definition", _character.equipped_weapon_id) as Dictionary if state != null else {}
 	var armor: Dictionary = state.call("get_item_definition", _character.equipped_armor_id) as Dictionary if state != null else {}
 	var shield: Dictionary = state.call("get_item_definition", _character.equipped_shield_id) as Dictionary if state != null else {}
-	_equipment_label.text = "Оружие: %s\nДоспех: %s\nЩит: %s" % [
-		str(weapon.get("name", "Без оружия")), str(armor.get("name", "Нет")), str(shield.get("name", "Нет"))
+	var equipment_lines: Array[String] = [
+		"Оружие: %s" % str(weapon.get("name", "Без оружия")),
+		"Доспех: %s" % str(armor.get("name", "Нет")),
+		"Щит: %s" % str(shield.get("name", "Нет")),
+		"Навыки класса: %s" % _display_skill_ids(_character.class_skill_proficiencies)
 	]
+	if not weapon.is_empty() and not _character.is_proficient_with_weapon_definition(weapon):
+		equipment_lines.append("⚠ Нет владения оружием: бонус мастерства к атаке не действует.")
+	var training_state: Dictionary = _class_data.get_equipment_training_state(_character)
+	if bool(training_state.get("untrained_armor", false)):
+		equipment_lines.append("⚠ Нет обучения доспеху: помеха тестам Силы/Ловкости и запрет колдовства.")
+	if bool(training_state.get("untrained_shield", false)):
+		equipment_lines.append("⚠ Нет обучения щиту: его бонус КД не действует.")
+	_equipment_label.text = "\n".join(equipment_lines)
 	for child: Node in _features_box.get_children():
 		child.queue_free()
 	for feature_value: Variant in _class_data.get_feature_views(_character):
@@ -275,6 +294,13 @@ func _add_cell(text_value: String, alignment: HorizontalAlignment) -> void:
 	label.custom_minimum_size = Vector2(180 if alignment == HORIZONTAL_ALIGNMENT_LEFT else 100, 44)
 	label.add_theme_font_size_override("font_size", 20)
 	_grid.add_child(label)
+
+
+func _display_skill_ids(skill_ids: Array[String]) -> String:
+	var names: Array[String] = []
+	for skill_id: String in skill_ids:
+		names.append(str(SKILL_NAMES.get(skill_id, skill_id)))
+	return ", ".join(names) if not names.is_empty() else "нет"
 
 
 func _format_modifier(value: int) -> String:

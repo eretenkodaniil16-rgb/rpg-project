@@ -37,6 +37,10 @@ jobs:
         shell: bash
         run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_srd_origins_proficiencies.gd
 
+      - name: Validate class skills and equipment training
+        shell: bash
+        run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_class_proficiencies_and_training.gd
+
       - name: Validate origin feats and d20 initiative
         shell: bash
         run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_origin_feats_and_initiative.gd

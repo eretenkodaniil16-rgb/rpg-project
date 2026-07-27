@@ -4,6 +4,10 @@ extends RefCounted
 const DEFAULT_APPEARANCE_COLOR_HEX: String = "#4DA3E8"
 const DEFAULT_RACE_ID: String = "human"
 const DEFAULT_RULESET_ID: String = "srd_5_2_1"
+const SIMPLE_WEAPON_TRAINING: String = "simple_weapons"
+const MARTIAL_WEAPON_TRAINING: String = "martial_weapons"
+const MARTIAL_LIGHT_WEAPON_TRAINING: String = "martial_light_weapons"
+const MARTIAL_FINESSE_OR_LIGHT_WEAPON_TRAINING: String = "martial_finesse_or_light_weapons"
 const DEFAULT_ABILITIES: Dictionary = {
 	"strength": 10,
 	"dexterity": 10,
@@ -45,6 +49,7 @@ var background_ability_bonuses: Dictionary = {}
 var origin_feat_id: String = ""
 var origin_applied: bool = false
 var skill_proficiencies: Array[String] = []
+var class_skill_proficiencies: Array[String] = []
 var saving_throw_proficiencies: Array[String] = []
 var tool_proficiencies: Array[String] = []
 var weapon_proficiencies: Array[String] = []
@@ -139,6 +144,32 @@ func is_proficient_with_weapon(weapon_id_or_category: String) -> bool:
 	return weapon_id_or_category in weapon_proficiencies
 
 
+func is_proficient_with_weapon_definition(weapon: Dictionary) -> bool:
+	if weapon.is_empty():
+		return false
+	var weapon_id: String = str(weapon.get("id", ""))
+	var category_id: String = str(weapon.get("weapon_category", ""))
+	if weapon_id in weapon_proficiencies or category_id in weapon_proficiencies:
+		return true
+	# Legacy and test weapon definitions predate category tagging. Keep them usable;
+	# all catalog weapons are explicitly tagged and therefore use the strict rule.
+	if category_id.is_empty():
+		return true
+	var properties: Array[String] = _unique_string_array(weapon.get("properties", []))
+	if category_id == "simple":
+		return SIMPLE_WEAPON_TRAINING in weapon_proficiencies
+	if category_id != "martial":
+		return false
+	if MARTIAL_WEAPON_TRAINING in weapon_proficiencies:
+		return true
+	if MARTIAL_LIGHT_WEAPON_TRAINING in weapon_proficiencies and "light" in properties:
+		return true
+	return (
+		MARTIAL_FINESSE_OR_LIGHT_WEAPON_TRAINING in weapon_proficiencies
+		and ("finesse" in properties or "light" in properties)
+	)
+
+
 func has_armor_training(category_id: String) -> bool:
 	return category_id in armor_training
 
@@ -200,6 +231,7 @@ func to_dict() -> Dictionary:
 		"origin_feat_id": origin_feat_id,
 		"origin_applied": origin_applied,
 		"skill_proficiencies": skill_proficiencies.duplicate(),
+		"class_skill_proficiencies": class_skill_proficiencies.duplicate(),
 		"saving_throw_proficiencies": saving_throw_proficiencies.duplicate(),
 		"tool_proficiencies": tool_proficiencies.duplicate(),
 		"weapon_proficiencies": weapon_proficiencies.duplicate(),
@@ -261,6 +293,7 @@ static func from_dict(data: Dictionary) -> PlayerCharacter:
 	character.origin_feat_id = str(data.get("origin_feat_id", ""))
 	character.origin_applied = bool(data.get("origin_applied", false))
 	character.skill_proficiencies = _unique_string_array(data.get("skill_proficiencies", []))
+	character.class_skill_proficiencies = _unique_string_array(data.get("class_skill_proficiencies", []))
 	character.saving_throw_proficiencies = _unique_string_array(data.get("saving_throw_proficiencies", []))
 	character.tool_proficiencies = _unique_string_array(data.get("tool_proficiencies", []))
 	character.weapon_proficiencies = _unique_string_array(data.get("weapon_proficiencies", []))

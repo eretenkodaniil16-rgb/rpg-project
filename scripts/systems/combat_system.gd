@@ -42,8 +42,11 @@ func perform_basic_attack(
 	var ability_id: String = _attack_ability(character, weapon, is_unarmed, result.range_state)
 	result.ability_name = _ability_name(ability_id)
 	result.ability_modifier = character.get_ability_modifier(ability_id)
-	result.proficiency_bonus = proficiency_bonus_for_level(character.level)
+	var weapon_proficient: bool = is_unarmed or character.is_proficient_with_weapon_definition(weapon)
+	result.proficiency_bonus = proficiency_bonus_for_level(character.level) if weapon_proficient else 0
 	result.attack_bonus = result.ability_modifier + result.proficiency_bonus
+	if not weapon_proficient:
+		result.note = _append_note(result.note, "Нет владения этим оружием: бонус мастерства не добавлен.")
 	var attacker_state: CombatantState = attack_context.get("attacker_state") as CombatantState
 	var defender_state: CombatantState = attack_context.get("defender_state") as CombatantState
 	var adjustments: Dictionary = _srd_rules.attack_roll_adjustments(attacker_state, defender_state, result.distance_feet, bool(attack_context.get("attacker_can_see_defender", true)), bool(attack_context.get("defender_can_see_attacker", true)))
@@ -54,9 +57,15 @@ func perform_basic_attack(
 	var racial_advantage: bool = bool(character.active_effects.get("racial_advantage_next_d20", false))
 	var contextual_advantage: bool = bool(attack_context.get("advantage", false)) or racial_advantage
 	var legacy_ranged_disadvantage: bool = result.range_state != "melee" and bool(attack_context.get("disadvantage", false))
-	var contextual_disadvantage: bool = bool(attack_context.get("forced_disadvantage", false)) or legacy_ranged_disadvantage
+	var armor_disadvantage: bool = (
+		ability_id in ["strength", "dexterity"]
+		and bool(attack_context.get("untrained_armor_d20_disadvantage", false))
+	)
+	var contextual_disadvantage: bool = bool(attack_context.get("forced_disadvantage", false)) or legacy_ranged_disadvantage or armor_disadvantage
 	result.advantage = contextual_advantage or bool(adjustments.get("advantage", false))
 	result.disadvantage = contextual_disadvantage or bool(adjustments.get("disadvantage", false))
+	if armor_disadvantage:
+		result.note = _append_note(result.note, "Нет обучения надетому доспеху: атака с помехой.")
 	if result.range_state == "long" or (result.range_state != "melee" and bool(attack_context.get("ranged_threat", false))):
 		result.disadvantage = true
 	if result.advantage and result.disadvantage:
@@ -77,7 +86,7 @@ func perform_basic_attack(
 	result.critical = result.natural_roll == 20 or bool(adjustments.get("automatic_critical", false))
 	result.hit = not result.automatic_miss and (result.critical or result.total >= result.target_armor_class)
 	if result.cover_bonus > 0:
-		result.note = "Укрытие цели повышает КД на +%d." % result.cover_bonus
+		result.note = _append_note(result.note, "Укрытие цели повышает КД на +%d." % result.cover_bonus)
 	if not result.hit:
 		return result
 	var damage_dice: Array = weapon.get("damage_dice", [1, 1]) as Array if not is_unarmed else [1, 1]
