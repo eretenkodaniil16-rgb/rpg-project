@@ -79,11 +79,20 @@
   },
   "animations": {
     "idle": {
-      "frames": [1],
+      "frames": [
+        1
+      ],
       "fps": 1
     },
     "walk_down": {
-      "frames": [1, 2, 3, 4, 5, 6],
+      "frames": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
       "fps": 8
     }
   },
@@ -91,7 +100,7 @@
     "status": "pilot_derived_from_approved_master_not_final",
     "slots": {
       "skin": {
-        "base_color": "#D9BDBD",
+        "base_color": "#D2BABB",
         "texture": "skin.png",
         "roughness": 0.82
       },
@@ -154,10 +163,10 @@
       "#624B38",
       "#7C4924",
       "#84796C",
-      "#9C8888",
-      "#B69C9E",
-      "#D9BDBD",
-      "#E2CBC7"
+      "#978687",
+      "#B09B9D",
+      "#D2BABB",
+      "#DDC9C6"
     ]
   }
 }

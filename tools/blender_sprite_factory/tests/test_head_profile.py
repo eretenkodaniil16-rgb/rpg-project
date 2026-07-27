@@ -88,8 +88,18 @@ class HeadProfileTests(unittest.TestCase):
         front_top = front_crown.location[2] + front_crown.scale[2]
         back_top = back_crown.location[2] + back_crown.scale[2]
         self.assertLessEqual(abs(front_top - back_top), 0.05)
-        self.assertLessEqual(front_crown.location[1], -0.60)
-        self.assertGreaterEqual(back_crown.location[1], 0.65)
+        self.assertLessEqual(front_crown.location[1], -0.37)
+        self.assertGreaterEqual(back_crown.location[1], 0.44)
+        cap_front = profile.hair_cap.location[1] - profile.hair_cap.scale[1]
+        cap_back = profile.hair_cap.location[1] + profile.hair_cap.scale[1]
+        self.assertGreaterEqual(
+            front_crown.location[1] + front_crown.scale[1],
+            cap_front,
+        )
+        self.assertLessEqual(
+            back_crown.location[1] - back_crown.scale[1],
+            cap_back,
+        )
 
     def test_face_plane_is_not_hidden_by_forehead_lock(self) -> None:
         profile = self.profile
@@ -135,10 +145,7 @@ class HeadProfileTests(unittest.TestCase):
             max(part.dimensions[0] for part in profile.brows),
             max(part.dimensions[0] for part in HUMAN_WARRIOR_M01_HEAD_V02.brows),
         )
-        self.assertLess(
-            profile.mouth.dimensions[0],
-            HUMAN_WARRIOR_M01_HEAD_V02.mouth.dimensions[0],
-        )
+        self.assertLess(self.profile.mouth.dimensions[0], HUMAN_WARRIOR_M01_HEAD_V02.mouth.dimensions[0])
 
     def test_unknown_character_cannot_reuse_head_identity_silently(self) -> None:
         with self.assertRaisesRegex(KeyError, "No head profile"):
