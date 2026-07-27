@@ -428,8 +428,8 @@ HUMAN_WARRIOR_M01_HEAD_V03 = HeadProfile(
         ),
         EllipsoidPart(
             "hair_crown_front_ridge",
-            (0.00, -0.45, 5.02),
-            (0.28, 0.18, 0.20),
+            (0.00, -0.48, 4.84),
+            (0.34, 0.19, 0.34),
         ),
         EllipsoidPart(
             "hair_lock_front_left",
