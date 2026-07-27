@@ -64,6 +64,19 @@ func _refresh_character() -> void:
 		var modifier: int = _hero.get_ability_modifier(ability_id)
 		_character_box.add_child(_label("%s: %d (%s)" % [str(names[ability_id]), _hero.get_ability_score(ability_id), "+%d" % modifier if modifier >= 0 else str(modifier)], 18))
 
+	_character_box.add_child(HSeparator.new())
+	var field_title := Label.new()
+	field_title.text = "ПОЛЕ БОЯ"
+	field_title.add_theme_font_size_override("font_size", 21)
+	_character_box.add_child(field_title)
+	_grid_toggle_button = Button.new()
+	_grid_toggle_button.name = "GridToggleButton"
+	_grid_toggle_button.custom_minimum_size = Vector2(430.0, 54.0)
+	_grid_toggle_button.add_theme_font_size_override("font_size", 18)
+	_grid_toggle_button.pressed.connect(_on_grid_toggle_pressed)
+	_character_box.add_child(_grid_toggle_button)
+	_sync_grid_toggle()
+
 	var rest_row := HBoxContainer.new()
 	rest_row.add_theme_constant_override("separation", 10)
 	_character_box.add_child(rest_row)
