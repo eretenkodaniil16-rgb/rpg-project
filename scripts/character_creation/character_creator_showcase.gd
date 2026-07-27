@@ -135,7 +135,7 @@ func _build_class_step() -> void:
 	stats.add_child(_make_stat_block("ЗДОРОВЬЕ НА СТАРТЕ", str(_calculate_starting_health(selected_class) + int(_get_selected_race().get("hp_bonus_per_level", 0)))))
 	stats.add_child(_make_stat_block("СЛОЖНОСТЬ", _difficulty_text(int(ui_data.get("difficulty", 2)))))
 	stats.add_child(_make_stat_block("ЛУЧШАЯ ОСНОВНАЯ", str(_best_primary_score(selected_class))))
-	_add_showcase_caption("Лента классов использует единый стиль с выбором расы. Итоговые значения уже включают расовые бонусы.")
+	_add_showcase_caption("Лента классов использует единый стиль с выбором расы. Итоговые значения уже включают бонусы происхождения.")
 	var carousel: ScrollContainer = ScrollContainer.new()
 	carousel.name = "ClassCarousel"
 	carousel.custom_minimum_size = Vector2(0.0, 112.0)
@@ -157,11 +157,14 @@ func _build_class_step() -> void:
 			class_id == _selected_class_id,
 			_select_class.bind(class_id)
 		))
+	_append_class_proficiency_controls()
 
 
 func _build_confirmation_step() -> void:
 	var selected_class: Dictionary = _get_selected_class()
 	var selected_race: Dictionary = _get_selected_race()
+	var selected_background: Dictionary = _get_selected_background()
+	_ensure_class_skill_selection()
 	var accent: Color = Color.from_string(str(selected_race.get("color_hex", PlayerCharacter.DEFAULT_APPEARANCE_COLOR_HEX)), Color.WHITE)
 	var summary_panel: PanelContainer = PanelContainer.new()
 	summary_panel.add_theme_stylebox_override("panel", _make_showcase_panel_style(accent))
@@ -173,8 +176,15 @@ func _build_confirmation_step() -> void:
 	margin.add_child(summary)
 	summary.add_child(_make_label(_character_name, 32, Color.WHITE))
 	summary.add_child(_make_label("%s · %s · уровень 1" % [str(selected_race.get("name", "Раса")), str(selected_class.get("name", "Класс"))], 21, accent.lightened(0.28)))
+	summary.add_child(_make_label("Происхождение: %s · черта: %s" % [
+		str(selected_background.get("name", "Не выбрано")),
+		str(selected_background.get("origin_feat_name", "—"))
+	], 18))
 	var health: int = _calculate_starting_health(selected_class) + int(selected_race.get("hp_bonus_per_level", 0))
 	summary.add_child(_make_label("Здоровье: %d · скорость: %d футов" % [health, int(selected_race.get("speed_ft", 30))], 20))
+	summary.add_child(_make_label("Навыки происхождения: %s" % _display_skill_ids(selected_background.get("skill_proficiencies", [])), 18))
+	_append_class_training_summary(summary, selected_class)
+	summary.add_child(_make_label("Языки: Общий, %s" % _display_language_ids(_selected_languages), 18))
 	var abilities_grid: GridContainer = GridContainer.new()
 	abilities_grid.columns = 4
 	abilities_grid.add_theme_constant_override("h_separation", 16)
@@ -182,34 +192,17 @@ func _build_confirmation_step() -> void:
 	summary.add_child(abilities_grid)
 	for ability_id: String in ABILITY_IDS:
 		var base_score: int = _score_for_ability(ability_id)
-		var bonus: int = _racial_bonus_for(ability_id)
+		var bonus: int = int(_background_ability_bonuses.get(ability_id, 0))
 		var final_score: int = _final_score_for_ability(ability_id)
 		abilities_grid.add_child(_make_label(str(ABILITY_NAMES[ability_id]), 17))
 		abilities_grid.add_child(_make_label(str(base_score), 18, Color(0.72, 0.77, 0.84, 1.0)))
 		abilities_grid.add_child(_make_label(("+%d" % bonus) if bonus > 0 else "—", 18, accent.lightened(0.25)))
 		abilities_grid.add_child(_make_label("%d (%s)" % [final_score, _format_modifier(PlayerCharacter.modifier_for_score(final_score))], 19, Color.WHITE))
-	_add_paragraph("В таблице показаны: базовое распределённое значение, расовый бонус и итоговая характеристика. Максимум при создании — 20.", Color(0.68, 0.73, 0.82, 1.0))
+	_add_paragraph("В таблице показаны: базовое распределённое значение, бонус происхождения и итоговая характеристика. Максимум при создании — 20.", Color(0.68, 0.73, 0.82, 1.0))
 
 
 func _finish_creation() -> void:
-	var selected_class: Dictionary = _get_selected_class()
-	if selected_class.is_empty() or _get_selected_race().is_empty():
-		_message_label.text = "Выберите расу и класс персонажа."
-		return
-	var character: PlayerCharacter = PlayerCharacter.new()
-	character.character_name = _character_name
-	character.character_class_id = _selected_class_id
-	character.character_class_name = str(selected_class.get("name", ""))
-	for ability_id: String in ABILITY_IDS:
-		character.abilities[ability_id] = _final_score_for_ability(ability_id)
-	character.maximum_health = _calculate_starting_health(selected_class)
-	character.current_health = character.maximum_health
-	_race_data.apply_race(character, _selected_race_id, false)
-	GameState.begin_new_game(character)
-	if not GameState.save_game():
-		_message_label.text = "Не удалось сохранить созданного персонажа."
-		return
-	get_tree().change_scene_to_file(GAME_SCENE)
+	super._finish_creation()
 
 
 func _calculate_starting_health(class_data: Dictionary) -> int:
@@ -229,15 +222,8 @@ func _best_primary_score(class_data: Dictionary) -> int:
 	return best_score
 
 
-func _racial_bonus_for(ability_id: String) -> int:
-	var bonuses_value: Variant = _get_selected_race().get("ability_bonuses", {})
-	if not bonuses_value is Dictionary:
-		return 0
-	return maxi(int((bonuses_value as Dictionary).get(ability_id, 0)), 0)
-
-
 func _final_score_for_ability(ability_id: String) -> int:
-	return clampi(_score_for_ability(ability_id) + _racial_bonus_for(ability_id), 1, ABILITY_SCORE_CAP)
+	return clampi(_score_with_origin_bonus(ability_id), 1, ABILITY_SCORE_CAP)
 
 
 func _find_class(class_id: String) -> Dictionary:

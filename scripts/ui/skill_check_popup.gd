@@ -20,9 +20,20 @@ func show_result(result: SkillCheckResult) -> void:
 	_title_label.text = "ПРОВЕРКА: %s" % result.ability_name.to_upper()
 	var bonus_line: String = ""
 	if result.bonus != 0:
-		bonus_line = "\nДополнительный бонус: %s" % _format_modifier(result.bonus)
-	_details_label.text = "Бросок d20: %d\nМодификатор: %s%s\nИтого: %d\nСложность: %d — %s" % [
-		result.natural_roll,
+		bonus_line = "\n%s: %s" % [
+			"Владение и эффекты" if not result.skill_id.is_empty() else "Дополнительный бонус",
+			_format_modifier(result.bonus)
+		]
+	var roll_line: String = "Бросок d20: %d" % result.natural_roll
+	if result.advantage or result.disadvantage:
+		roll_line = "%s: %d и %d → %d" % [
+			"Преимущество" if result.advantage else "Помеха",
+			result.first_roll,
+			result.second_roll,
+			result.natural_roll
+		]
+	_details_label.text = "%s\nМодификатор: %s%s\nИтого: %d\nСложность: %d — %s" % [
+		roll_line,
 		_format_modifier(result.ability_modifier),
 		bonus_line,
 		result.total,

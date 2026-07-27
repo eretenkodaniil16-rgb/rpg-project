@@ -147,11 +147,7 @@ func apply_background(
 
 
 func apply_class_proficiencies(character: PlayerCharacter, class_data: Dictionary) -> void:
-	if character == null or class_data.is_empty():
-		return
-	for ability_id: String in _string_array(class_data.get("saving_throws", [])):
-		if ability_id not in character.saving_throw_proficiencies:
-			character.saving_throw_proficiencies.append(ability_id)
+	ClassProficiencySystem.new().ensure_character(character, class_data)
 
 
 func ensure_legacy_origin(character: PlayerCharacter) -> void:

@@ -152,11 +152,29 @@ func _equipment_stats(entry: Dictionary) -> String:
 	var type_id: String = str(entry.get("type", ""))
 	if type_id == "weapon":
 		var dice: Array = entry.get("damage_dice", [1, 1]) as Array
-		return "\nУрон: %dd%d %s" % [int(dice[0]), int(dice[1]), str(entry.get("damage_type", "физический"))]
+		var weapon_trained: bool = GameState.player_character.is_proficient_with_weapon_definition(entry)
+		return "\nУрон: %dd%d %s\nВладение: %s%s" % [
+			int(dice[0]),
+			int(dice[1]),
+			str(entry.get("damage_type", "физический")),
+			"есть" if weapon_trained else "нет",
+			"" if weapon_trained else " — бонус мастерства к атаке не добавляется"
+		]
 	if type_id == "armor":
-		return "\nБазовый КД: %d" % int(entry.get("base_ac", 10))
+		var armor_category: String = str(entry.get("armor_category", "clothing"))
+		var armor_trained: bool = armor_category == "clothing" or GameState.player_character.has_armor_training(armor_category)
+		return "\nБазовый КД: %d\nОбучение: %s%s" % [
+			int(entry.get("base_ac", 10)),
+			"есть" if armor_trained else "нет",
+			"" if armor_trained else " — помеха тестам Силы/Ловкости и запрет колдовства"
+		]
 	if type_id == "shield":
-		return "\nБонус КД: +%d" % int(entry.get("ac_bonus", 2))
+		var shield_trained: bool = GameState.player_character.has_armor_training("shield")
+		return "\nБонус КД: +%d\nОбучение: %s%s" % [
+			int(entry.get("ac_bonus", 2)),
+			"есть" if shield_trained else "нет",
+			"" if shield_trained else " — бонус КД не действует"
+		]
 	return ""
 
 

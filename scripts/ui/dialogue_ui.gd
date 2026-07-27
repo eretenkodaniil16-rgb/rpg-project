@@ -4,6 +4,7 @@ const CHECK_POPUP_SCENE: PackedScene = preload("res://scenes/ui/skill_check_popu
 const VISUAL_CONTROLLER_SCRIPT: Script = preload("res://scripts/ui/dialogue_visual_controller.gd")
 
 var _check_system: SkillCheckSystem = SkillCheckSystem.new()
+var _class_data: ClassDataSystem = ClassDataSystem.new()
 var _check_popup: SkillCheckPopup
 var _pending_checked_choice: Dictionary = {}
 var _visual_controller: DialogueVisualController
@@ -37,7 +38,34 @@ func _on_choice_pressed(choice_data: Dictionary) -> void:
 	var check_value: Variant = choice_data.get("check", {})
 	if check_value is Dictionary and not (check_value as Dictionary).is_empty():
 		var check_data := check_value as Dictionary
-		var result := _check_system.perform_check(GameState.player_character, str(check_data.get("ability", "")), int(check_data.get("difficulty", 10)), int(check_data.get("bonus", 0)))
+		var skill_id: String = str(check_data.get("skill", ""))
+		var ability_id: String = str(check_data.get("ability", ""))
+		if not skill_id.is_empty():
+			ability_id = GameState.player_character.get_skill_ability(skill_id)
+		var armor_disadvantage: bool = _class_data.has_untrained_armor_d20_disadvantage(GameState.player_character, ability_id)
+		var result: SkillCheckResult
+		if skill_id.is_empty():
+			result = _check_system.perform_check(
+				GameState.player_character,
+				ability_id,
+				int(check_data.get("difficulty", 10)),
+				int(check_data.get("bonus", 0)),
+				0,
+				0,
+				0,
+				armor_disadvantage
+			)
+		else:
+			result = _check_system.perform_skill_check(
+				GameState.player_character,
+				skill_id,
+				int(check_data.get("difficulty", 10)),
+				int(check_data.get("bonus", 0)),
+				0,
+				0,
+				0,
+				armor_disadvantage
+			)
 		get_tree().call_group("dice_presenter", "show_d20_roll", GameState.player_character.character_name, "Проверка: %s" % result.ability_name, result.natural_roll, result.total, result.success, result.natural_roll, 0)
 		_pending_checked_choice = choice_data.duplicate(true)
 		_clear_choices()

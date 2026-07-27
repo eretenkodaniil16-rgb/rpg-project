@@ -14,6 +14,25 @@
         "strength",
         "constitution"
       ],
+      "skill_training": {
+        "choice_count": 2,
+        "options": [
+          "animal_handling",
+          "athletics",
+          "intimidation",
+          "nature",
+          "perception",
+          "survival"
+        ],
+        "recommended": [
+          "athletics",
+          "perception"
+        ]
+      },
+      "weapon_proficiencies": [
+        "simple_weapons",
+        "martial_weapons"
+      ],
       "starting_items": {
         "greataxe": 1,
         "handaxe": 4,
@@ -49,6 +68,37 @@
       "saving_throws": [
         "dexterity",
         "charisma"
+      ],
+      "skill_training": {
+        "choice_count": 3,
+        "options": [
+          "acrobatics",
+          "animal_handling",
+          "arcana",
+          "athletics",
+          "deception",
+          "history",
+          "insight",
+          "intimidation",
+          "investigation",
+          "medicine",
+          "nature",
+          "perception",
+          "performance",
+          "persuasion",
+          "religion",
+          "sleight_of_hand",
+          "stealth",
+          "survival"
+        ],
+        "recommended": [
+          "performance",
+          "persuasion",
+          "deception"
+        ]
+      },
+      "weapon_proficiencies": [
+        "simple_weapons"
       ],
       "starting_items": {
         "leather_armor": 1,
@@ -97,6 +147,24 @@
       "saving_throws": [
         "wisdom",
         "charisma"
+      ],
+      "skill_training": {
+        "choice_count": 2,
+        "options": [
+          "history",
+          "insight",
+          "medicine",
+          "persuasion",
+          "religion"
+        ],
+        "recommended": [
+          "insight",
+          "religion"
+        ]
+      },
+      "weapon_proficiencies": [
+        "simple_weapons",
+        "martial_weapons"
       ],
       "starting_items": {
         "chain_shirt": 1,
@@ -153,6 +221,26 @@
         "intelligence",
         "wisdom"
       ],
+      "skill_training": {
+        "choice_count": 2,
+        "options": [
+          "animal_handling",
+          "arcana",
+          "insight",
+          "medicine",
+          "nature",
+          "perception",
+          "religion",
+          "survival"
+        ],
+        "recommended": [
+          "nature",
+          "perception"
+        ]
+      },
+      "weapon_proficiencies": [
+        "simple_weapons"
+      ],
       "starting_items": {
         "leather_armor": 1,
         "shield": 1,
@@ -208,6 +296,28 @@
         "strength",
         "constitution"
       ],
+      "skill_training": {
+        "choice_count": 2,
+        "options": [
+          "acrobatics",
+          "animal_handling",
+          "athletics",
+          "history",
+          "insight",
+          "intimidation",
+          "perception",
+          "persuasion",
+          "survival"
+        ],
+        "recommended": [
+          "athletics",
+          "perception"
+        ]
+      },
+      "weapon_proficiencies": [
+        "simple_weapons",
+        "martial_weapons"
+      ],
       "starting_items": {
         "chain_mail": 1,
         "greatsword": 1,
@@ -248,6 +358,25 @@
         "strength",
         "dexterity"
       ],
+      "skill_training": {
+        "choice_count": 2,
+        "options": [
+          "acrobatics",
+          "athletics",
+          "history",
+          "insight",
+          "religion",
+          "stealth"
+        ],
+        "recommended": [
+          "acrobatics",
+          "stealth"
+        ]
+      },
+      "weapon_proficiencies": [
+        "simple_weapons",
+        "martial_light_weapons"
+      ],
       "starting_items": {
         "spear": 1,
         "dagger": 5,
@@ -285,6 +414,25 @@
       "saving_throws": [
         "wisdom",
         "charisma"
+      ],
+      "skill_training": {
+        "choice_count": 2,
+        "options": [
+          "athletics",
+          "insight",
+          "intimidation",
+          "medicine",
+          "persuasion",
+          "religion"
+        ],
+        "recommended": [
+          "athletics",
+          "persuasion"
+        ]
+      },
+      "weapon_proficiencies": [
+        "simple_weapons",
+        "martial_weapons"
       ],
       "starting_items": {
         "chain_mail": 1,
@@ -340,6 +488,28 @@
       "saving_throws": [
         "strength",
         "dexterity"
+      ],
+      "skill_training": {
+        "choice_count": 3,
+        "options": [
+          "animal_handling",
+          "athletics",
+          "insight",
+          "investigation",
+          "nature",
+          "perception",
+          "stealth",
+          "survival"
+        ],
+        "recommended": [
+          "perception",
+          "stealth",
+          "survival"
+        ]
+      },
+      "weapon_proficiencies": [
+        "simple_weapons",
+        "martial_weapons"
       ],
       "starting_items": {
         "studded_leather": 1,
@@ -401,6 +571,31 @@
         "dexterity",
         "intelligence"
       ],
+      "skill_training": {
+        "choice_count": 4,
+        "options": [
+          "acrobatics",
+          "athletics",
+          "deception",
+          "insight",
+          "intimidation",
+          "investigation",
+          "perception",
+          "persuasion",
+          "sleight_of_hand",
+          "stealth"
+        ],
+        "recommended": [
+          "acrobatics",
+          "investigation",
+          "perception",
+          "stealth"
+        ]
+      },
+      "weapon_proficiencies": [
+        "simple_weapons",
+        "martial_finesse_or_light_weapons"
+      ],
       "starting_items": {
         "leather_armor": 1,
         "dagger": 2,
@@ -440,6 +635,24 @@
       "saving_throws": [
         "constitution",
         "charisma"
+      ],
+      "skill_training": {
+        "choice_count": 2,
+        "options": [
+          "arcana",
+          "deception",
+          "insight",
+          "intimidation",
+          "persuasion",
+          "religion"
+        ],
+        "recommended": [
+          "arcana",
+          "persuasion"
+        ]
+      },
+      "weapon_proficiencies": [
+        "simple_weapons"
       ],
       "starting_items": {
         "spear": 1,
@@ -495,6 +708,25 @@
         "wisdom",
         "charisma"
       ],
+      "skill_training": {
+        "choice_count": 2,
+        "options": [
+          "arcana",
+          "deception",
+          "history",
+          "intimidation",
+          "investigation",
+          "nature",
+          "religion"
+        ],
+        "recommended": [
+          "arcana",
+          "investigation"
+        ]
+      },
+      "weapon_proficiencies": [
+        "simple_weapons"
+      ],
       "starting_items": {
         "leather_armor": 1,
         "sickle": 1,
@@ -549,6 +781,25 @@
       "saving_throws": [
         "intelligence",
         "wisdom"
+      ],
+      "skill_training": {
+        "choice_count": 2,
+        "options": [
+          "arcana",
+          "history",
+          "insight",
+          "investigation",
+          "medicine",
+          "nature",
+          "religion"
+        ],
+        "recommended": [
+          "arcana",
+          "investigation"
+        ]
+      },
+      "weapon_proficiencies": [
+        "simple_weapons"
       ],
       "starting_items": {
         "dagger": 2,

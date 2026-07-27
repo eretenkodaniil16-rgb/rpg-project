@@ -437,6 +437,10 @@ func _build_spellcasting_context() -> Dictionary:
 	return _class_data.get_spellcasting_context(GameState.player_character, _player_combat_state, turn_token)
 
 
+func _player_has_untrained_armor_d20_disadvantage(ability_id: String) -> bool:
+	return _class_data.has_untrained_armor_d20_disadvantage(GameState.player_character, ability_id)
+
+
 func _apply_mitigation_to_result(result: AttackResult, state: CombatantState) -> void:
 	result.damage_before_mitigation = result.damage
 	var mitigation: Dictionary = _srd_rules.resolve_damage(result.damage, result.damage_type, state)
