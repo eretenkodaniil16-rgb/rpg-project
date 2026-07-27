@@ -67,15 +67,15 @@ func _run() -> void:
 		_fail("Grid measurement label does not match the combat distance: %s" % distance_label.text)
 		return
 
-	var sheet: Control = game.get_node_or_null("Interface/CharacterSheet") as Control
-	if sheet == null:
-		_fail("Character sheet is missing.")
+	var hub: Control = game.find_child("CharacterHub", true, false) as Control
+	if hub == null or not hub.has_method("open_tab"):
+		_fail("Character Hub is missing.")
 		return
-	sheet.call("open_sheet", character)
+	hub.call("open_tab", character, 0)
 	await process_frame
-	var toggle: Button = sheet.find_child("GridToggleButton", true, false) as Button
+	var toggle: Button = hub.find_child("GridToggleButton", true, false) as Button
 	if toggle == null:
-		_fail("Grid toggle is missing from the character sheet.")
+		_fail("Grid toggle is missing from the character tab.")
 		return
 	toggle.emit_signal("pressed")
 	await process_frame
@@ -87,9 +87,9 @@ func _run() -> void:
 	if not grid.visible:
 		_fail("Grid toggle did not restore the grid.")
 		return
-	sheet.call("close_sheet")
+	hub.call("close_sheet")
 
 	game.queue_free()
 	await process_frame
-	print("Battle grid smoke test passed.")
+	print("Battle grid and Character Hub toggle smoke test passed.")
 	quit(0)
