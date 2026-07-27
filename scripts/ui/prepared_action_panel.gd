@@ -34,7 +34,8 @@ func get_prepared_ability_id() -> String:
 
 
 func _on_ability_pressed() -> void:
-	if _character == null or GameState.input_locked:
+	var state: Node = _game_state()
+	if _character == null or (state != null and bool(state.get("input_locked"))):
 		return
 	_prepared_ability_id = _resolve_prepared_ability_id()
 	if _prepared_ability_id.is_empty():
@@ -44,7 +45,8 @@ func _on_ability_pressed() -> void:
 
 
 func _resolve_prepared_ability_id() -> String:
-	var saved_id: String = str(GameState.get_flag(PREPARED_ABILITY_FLAG, ""))
+	var state: Node = _game_state()
+	var saved_id: String = str(state.call("get_flag", PREPARED_ABILITY_FLAG, "")) if state != null else ""
 	if _is_preparable(saved_id):
 		return saved_id
 	var signature_id: String = _character.signature_ability_id
@@ -92,7 +94,13 @@ func _resource_text(ability: Dictionary) -> String:
 
 
 func _store_prepared_id(ability_id: String) -> void:
-	if str(GameState.get_flag(PREPARED_ABILITY_FLAG, "")) == ability_id:
+	var state: Node = _game_state()
+	if state == null or str(state.call("get_flag", PREPARED_ABILITY_FLAG, "")) == ability_id:
 		return
-	GameState.set_flag(PREPARED_ABILITY_FLAG, ability_id)
-	GameState.save_game()
+	state.call("set_flag", PREPARED_ABILITY_FLAG, ability_id)
+	state.call("save_game")
+
+
+func _game_state() -> Node:
+	var tree: SceneTree = Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null("GameState") if tree != null else null
