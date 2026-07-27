@@ -80,6 +80,12 @@ func _build_ui() -> void:
 
 
 func _on_ability_pressed() -> void:
-	if _character == null or GameState.input_locked:
+	var state: Node = _game_state()
+	if _character == null or (state != null and bool(state.get("input_locked"))):
 		return
 	ability_requested.emit(_character.signature_ability_id)
+
+
+func _game_state() -> Node:
+	var tree: SceneTree = Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null("GameState") if tree != null else null
