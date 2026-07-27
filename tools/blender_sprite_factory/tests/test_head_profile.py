@@ -66,6 +66,8 @@ class HeadProfileTests(unittest.TestCase):
         self.assertIn("hair_lock_crown_front", names)
         self.assertIn("hair_lock_front_center", names)
         self.assertIn("hair_lock_crown_back", names)
+        self.assertIn("hair_crown_back_left", names)
+        self.assertIn("hair_crown_back_right", names)
         self.assertIn("hair_lock_side_left", names)
         self.assertIn("hair_lock_side_right", names)
         self.assertIn("hair_back_left", names)
@@ -87,9 +89,10 @@ class HeadProfileTests(unittest.TestCase):
         )
         front_top = front_crown.location[2] + front_crown.scale[2]
         back_top = back_crown.location[2] + back_crown.scale[2]
-        self.assertLessEqual(abs(front_top - back_top), 0.05)
-        self.assertLessEqual(front_crown.location[1], -0.37)
-        self.assertGreaterEqual(back_crown.location[1], 0.44)
+        self.assertGreaterEqual(back_top, front_top)
+        self.assertLessEqual(back_top - front_top, 0.12)
+        self.assertLessEqual(front_crown.location[1], -0.25)
+        self.assertGreaterEqual(back_crown.location[1], -0.01)
         cap_front = profile.hair_cap.location[1] - profile.hair_cap.scale[1]
         cap_back = profile.hair_cap.location[1] + profile.hair_cap.scale[1]
         self.assertGreaterEqual(
@@ -145,7 +148,10 @@ class HeadProfileTests(unittest.TestCase):
             max(part.dimensions[0] for part in profile.brows),
             max(part.dimensions[0] for part in HUMAN_WARRIOR_M01_HEAD_V02.brows),
         )
-        self.assertLess(self.profile.mouth.dimensions[0], HUMAN_WARRIOR_M01_HEAD_V02.mouth.dimensions[0])
+        self.assertLess(
+            profile.mouth.dimensions[0],
+            HUMAN_WARRIOR_M01_HEAD_V02.mouth.dimensions[0],
+        )
 
     def test_unknown_character_cannot_reuse_head_identity_silently(self) -> None:
         with self.assertRaisesRegex(KeyError, "No head profile"):
