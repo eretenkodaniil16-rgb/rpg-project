@@ -68,3 +68,45 @@ jobs:
         run: |
           echo "Contract, scripts and textures are validated here."
           echo "A real Blender 5.2 LTS render is required before any frame can be approved."
+
+  render-proxy-v06:
+    if: github.event_name == 'pull_request' && github.head_ref == 'tools/blender-sprite-pilot'
+    runs-on: windows-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download and verify Blender 5.2.0 LTS
+        shell: powershell
+        run: |
+          $ErrorActionPreference = "Stop"
+          $archive = Join-Path $env:RUNNER_TEMP "blender-5.2.0-windows-x64.zip"
+          $extract = Join-Path $env:RUNNER_TEMP "blender-5.2.0"
+          curl.exe -L --fail --retry 3 --output $archive `
+            "https://download.blender.org/release/Blender5.2/blender-5.2.0-windows-x64.zip"
+          $actual = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+          $expected = "2d184b626c001692c362291911293b6a297179d618d95e9e9192c3a80318adc4"
+          if ($actual -ne $expected) {
+            throw "Blender archive SHA-256 mismatch: $actual"
+          }
+          Expand-Archive -LiteralPath $archive -DestinationPath $extract
+          $blender = Get-ChildItem -LiteralPath $extract -Filter "blender.exe" -File -Recurse |
+            Select-Object -First 1 -ExpandProperty FullName
+          if (-not $blender) {
+            throw "blender.exe was not found after extraction"
+          }
+          "BLENDER_EXE=$blender" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Run real Blender pilot through Windows launcher
+        shell: cmd
+        run: echo.|call 02_RUN_BLENDER_SPRITE_PILOT.cmd
+
+      - name: Upload proxy v06 run
+        uses: actions/upload-artifact@v4
+        with:
+          name: human_warrior_m01_proxy_v06_${{ github.run_id }}_${{ github.run_attempt }}
+          path: art/blender_pipeline_runs/human_warrior_m01/**
+          if-no-files-found: error
+          retention-days: 14

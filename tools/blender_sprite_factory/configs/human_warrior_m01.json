@@ -91,7 +91,7 @@
     "status": "pilot_derived_from_approved_master_not_final",
     "slots": {
       "skin": {
-        "base_color": "#CABFB2",
+        "base_color": "#D9BDBD",
         "texture": "skin.png",
         "roughness": 0.82
       },
@@ -154,7 +154,10 @@
       "#624B38",
       "#7C4924",
       "#84796C",
-      "#CABFB2"
+      "#9C8888",
+      "#B69C9E",
+      "#D9BDBD",
+      "#E2CBC7"
     ]
   }
 }

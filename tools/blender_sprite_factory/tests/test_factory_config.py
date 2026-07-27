@@ -70,6 +70,20 @@ class FactoryConfigTests(unittest.TestCase):
             {color.upper() for color in self.config.quantization_palette},
         )
 
+    def test_skin_palette_is_pale_cool_and_has_quantized_tones(self) -> None:
+        skin = self.config.material_slots["skin"]
+        self.assertEqual(skin.base_color.upper(), "#D9BDBD")
+        palette = {color.upper() for color in self.config.quantization_palette}
+        self.assertTrue(
+            {"#9C8888", "#B69C9E", "#D9BDBD", "#E2CBC7"}.issubset(palette)
+        )
+        red = int(skin.base_color[1:3], 16)
+        green = int(skin.base_color[3:5], 16)
+        blue = int(skin.base_color[5:7], 16)
+        self.assertEqual(green, blue)
+        self.assertGreater(red, green)
+        self.assertGreaterEqual(red, 0xD0)
+
     def test_blender_support_window_is_explicit(self) -> None:
         self.assertEqual(self.config.recommended_blender_lts, (5, 2))
         self.assertEqual(self.config.minimum_blender, (4, 5))
