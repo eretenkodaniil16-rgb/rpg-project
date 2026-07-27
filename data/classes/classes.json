@@ -5,109 +5,850 @@
       "id": "barbarian",
       "name": "Варвар",
       "role": "Стойкий боец ближнего боя",
-      "description": "Опирается на силу, выносливость и ярость. Лучше всего чувствует себя в ближнем бою и выдерживает большой урон.",
+      "description": "Опирается на силу, выносливость и ярость.",
       "hit_die": 12,
-      "primary_abilities": ["strength"],
-      "saving_throws": ["strength", "constitution"]
+      "primary_abilities": [
+        "strength"
+      ],
+      "saving_throws": [
+        "strength",
+        "constitution"
+      ],
+      "skill_training": {
+        "choice_count": 2,
+        "options": [
+          "animal_handling",
+          "athletics",
+          "intimidation",
+          "nature",
+          "perception",
+          "survival"
+        ],
+        "recommended": [
+          "athletics",
+          "perception"
+        ]
+      },
+      "weapon_proficiencies": [
+        "simple_weapons",
+        "martial_weapons"
+      ],
+      "starting_items": {
+        "greataxe": 1,
+        "handaxe": 4,
+        "explorer_pack": 1,
+        "gold_coin": 15
+      },
+      "equipment": {
+        "weapon": "greataxe",
+        "armor": "",
+        "shield": ""
+      },
+      "features": [
+        "rage",
+        "unarmored_defense",
+        "weapon_mastery"
+      ],
+      "signature_ability": "rage",
+      "armor_training": [
+        "light",
+        "medium",
+        "shield"
+      ]
     },
     {
       "id": "bard",
       "name": "Бард",
       "role": "Поддержка, переговоры и магия",
-      "description": "Универсальный герой, который влияет на людей, поддерживает союзников и использует магию через талант и харизму.",
+      "description": "Универсальный герой, влияющий на мир музыкой и харизмой.",
       "hit_die": 8,
-      "primary_abilities": ["charisma"],
-      "saving_throws": ["dexterity", "charisma"]
+      "primary_abilities": [
+        "charisma"
+      ],
+      "saving_throws": [
+        "dexterity",
+        "charisma"
+      ],
+      "skill_training": {
+        "choice_count": 3,
+        "options": [
+          "acrobatics",
+          "animal_handling",
+          "arcana",
+          "athletics",
+          "deception",
+          "history",
+          "insight",
+          "intimidation",
+          "investigation",
+          "medicine",
+          "nature",
+          "perception",
+          "performance",
+          "persuasion",
+          "religion",
+          "sleight_of_hand",
+          "stealth",
+          "survival"
+        ],
+        "recommended": [
+          "performance",
+          "persuasion",
+          "deception"
+        ]
+      },
+      "weapon_proficiencies": [
+        "simple_weapons"
+      ],
+      "starting_items": {
+        "leather_armor": 1,
+        "dagger": 2,
+        "lute": 1,
+        "entertainer_pack": 1,
+        "gold_coin": 19
+      },
+      "equipment": {
+        "weapon": "dagger",
+        "armor": "leather_armor",
+        "shield": ""
+      },
+      "features": [
+        "bardic_inspiration",
+        "spellcasting_bard"
+      ],
+      "signature_ability": "bardic_inspiration",
+      "spellcasting": {
+        "ability": "charisma",
+        "prepared_limit": 4,
+        "starting_spells": [
+          "comprehend_languages"
+        ],
+        "starting_prepared": [
+          "comprehend_languages"
+        ],
+        "slot_maximums": {
+          "1": 2
+        },
+        "slot_recovery": "long_rest"
+      },
+      "armor_training": [
+        "light"
+      ]
     },
     {
       "id": "cleric",
       "name": "Жрец",
       "role": "Защита, исцеление и божественная магия",
-      "description": "Использует мудрость и духовную силу, чтобы лечить, защищать и поражать противников божественными эффектами.",
+      "description": "Лечит, защищает и поражает противников божественной силой.",
       "hit_die": 8,
-      "primary_abilities": ["wisdom"],
-      "saving_throws": ["wisdom", "charisma"]
+      "primary_abilities": [
+        "wisdom"
+      ],
+      "saving_throws": [
+        "wisdom",
+        "charisma"
+      ],
+      "skill_training": {
+        "choice_count": 2,
+        "options": [
+          "history",
+          "insight",
+          "medicine",
+          "persuasion",
+          "religion"
+        ],
+        "recommended": [
+          "insight",
+          "religion"
+        ]
+      },
+      "weapon_proficiencies": [
+        "simple_weapons",
+        "martial_weapons"
+      ],
+      "starting_items": {
+        "chain_shirt": 1,
+        "shield": 1,
+        "mace": 1,
+        "holy_symbol": 1,
+        "priest_pack": 1,
+        "gold_coin": 7
+      },
+      "equipment": {
+        "weapon": "mace",
+        "armor": "chain_shirt",
+        "shield": "shield"
+      },
+      "features": [
+        "spellcasting_cleric",
+        "divine_order"
+      ],
+      "signature_ability": "cure_wounds",
+      "spellcasting": {
+        "ability": "wisdom",
+        "prepared_limit": 4,
+        "starting_spells": [
+          "sacred_flame",
+          "cure_wounds",
+          "detect_magic"
+        ],
+        "starting_prepared": [
+          "cure_wounds",
+          "detect_magic"
+        ],
+        "slot_maximums": {
+          "1": 2
+        },
+        "slot_recovery": "long_rest"
+      },
+      "armor_training": [
+        "light",
+        "medium",
+        "heavy",
+        "shield"
+      ]
     },
     {
       "id": "druid",
       "name": "Друид",
       "role": "Природная магия и контроль",
-      "description": "Связан с природой, управляет стихиями, поддерживает союзников и позднее сможет принимать звериные формы.",
+      "description": "Связан с природой, стихиями и древними обрядами.",
       "hit_die": 8,
-      "primary_abilities": ["wisdom"],
-      "saving_throws": ["intelligence", "wisdom"]
+      "primary_abilities": [
+        "wisdom"
+      ],
+      "saving_throws": [
+        "intelligence",
+        "wisdom"
+      ],
+      "skill_training": {
+        "choice_count": 2,
+        "options": [
+          "animal_handling",
+          "arcana",
+          "insight",
+          "medicine",
+          "nature",
+          "perception",
+          "religion",
+          "survival"
+        ],
+        "recommended": [
+          "nature",
+          "perception"
+        ]
+      },
+      "weapon_proficiencies": [
+        "simple_weapons"
+      ],
+      "starting_items": {
+        "leather_armor": 1,
+        "shield": 1,
+        "sickle": 1,
+        "quarterstaff_focus": 1,
+        "explorer_pack": 1,
+        "herbalism_kit": 1,
+        "gold_coin": 9
+      },
+      "equipment": {
+        "weapon": "quarterstaff_focus",
+        "armor": "leather_armor",
+        "shield": "shield"
+      },
+      "features": [
+        "spellcasting_druid",
+        "druidic",
+        "primal_order"
+      ],
+      "signature_ability": "produce_flame",
+      "spellcasting": {
+        "ability": "wisdom",
+        "prepared_limit": 4,
+        "starting_spells": [
+          "produce_flame",
+          "detect_magic",
+          "absorb_elements"
+        ],
+        "starting_prepared": [
+          "detect_magic"
+        ],
+        "slot_maximums": {
+          "1": 2
+        },
+        "slot_recovery": "long_rest"
+      },
+      "armor_training": [
+        "light",
+        "shield"
+      ]
     },
     {
       "id": "fighter",
       "name": "Воин",
       "role": "Мастер оружия и тактики",
-      "description": "Надёжный боевой класс с высокой стойкостью. Может развиваться через силу или ловкость и использовать разные виды оружия.",
+      "description": "Надёжный воитель с высокой стойкостью и широким выбором оружия.",
       "hit_die": 10,
-      "primary_abilities": ["strength", "dexterity"],
-      "saving_throws": ["strength", "constitution"]
+      "primary_abilities": [
+        "strength",
+        "dexterity"
+      ],
+      "saving_throws": [
+        "strength",
+        "constitution"
+      ],
+      "skill_training": {
+        "choice_count": 2,
+        "options": [
+          "acrobatics",
+          "animal_handling",
+          "athletics",
+          "history",
+          "insight",
+          "intimidation",
+          "perception",
+          "persuasion",
+          "survival"
+        ],
+        "recommended": [
+          "athletics",
+          "perception"
+        ]
+      },
+      "weapon_proficiencies": [
+        "simple_weapons",
+        "martial_weapons"
+      ],
+      "starting_items": {
+        "chain_mail": 1,
+        "greatsword": 1,
+        "flail": 1,
+        "javelin": 8,
+        "dungeoneer_pack": 1,
+        "gold_coin": 4
+      },
+      "equipment": {
+        "weapon": "greatsword",
+        "armor": "chain_mail",
+        "shield": ""
+      },
+      "features": [
+        "fighting_style_defense",
+        "second_wind",
+        "weapon_mastery"
+      ],
+      "signature_ability": "second_wind",
+      "armor_training": [
+        "light",
+        "medium",
+        "heavy",
+        "shield"
+      ]
     },
     {
       "id": "monk",
       "name": "Монах",
       "role": "Мобильный боец и мастер контроля",
-      "description": "Сражается скоростью, дисциплиной и точностью. Особенно зависит от ловкости и мудрости.",
+      "description": "Сражается скоростью, дисциплиной и точностью.",
       "hit_die": 8,
-      "primary_abilities": ["dexterity", "wisdom"],
-      "saving_throws": ["strength", "dexterity"]
+      "primary_abilities": [
+        "dexterity",
+        "wisdom"
+      ],
+      "saving_throws": [
+        "strength",
+        "dexterity"
+      ],
+      "skill_training": {
+        "choice_count": 2,
+        "options": [
+          "acrobatics",
+          "athletics",
+          "history",
+          "insight",
+          "religion",
+          "stealth"
+        ],
+        "recommended": [
+          "acrobatics",
+          "stealth"
+        ]
+      },
+      "weapon_proficiencies": [
+        "simple_weapons",
+        "martial_light_weapons"
+      ],
+      "starting_items": {
+        "spear": 1,
+        "dagger": 5,
+        "artisan_tools": 1,
+        "explorer_pack": 1,
+        "gold_coin": 11
+      },
+      "equipment": {
+        "weapon": "spear",
+        "armor": "",
+        "shield": ""
+      },
+      "features": [
+        "martial_arts",
+        "unarmored_defense_monk"
+      ],
+      "signature_ability": "martial_arts",
+      "armor_training": [],
+      "level_features": {
+        "4": [
+          "slow_fall"
+        ]
+      }
     },
     {
       "id": "paladin",
       "name": "Паладин",
       "role": "Бронированный защитник и лидер",
-      "description": "Сочетает тяжёлый ближний бой, защиту союзников и силу убеждений. Особенно ценит силу и харизму.",
+      "description": "Сочетает тяжёлый бой, исцеление и силу клятвы.",
       "hit_die": 10,
-      "primary_abilities": ["strength", "charisma"],
-      "saving_throws": ["wisdom", "charisma"]
+      "primary_abilities": [
+        "strength",
+        "charisma"
+      ],
+      "saving_throws": [
+        "wisdom",
+        "charisma"
+      ],
+      "skill_training": {
+        "choice_count": 2,
+        "options": [
+          "athletics",
+          "insight",
+          "intimidation",
+          "medicine",
+          "persuasion",
+          "religion"
+        ],
+        "recommended": [
+          "athletics",
+          "persuasion"
+        ]
+      },
+      "weapon_proficiencies": [
+        "simple_weapons",
+        "martial_weapons"
+      ],
+      "starting_items": {
+        "chain_mail": 1,
+        "shield": 1,
+        "longsword": 1,
+        "javelin": 6,
+        "holy_symbol": 1,
+        "priest_pack": 1,
+        "gold_coin": 9
+      },
+      "equipment": {
+        "weapon": "longsword",
+        "armor": "chain_mail",
+        "shield": "shield"
+      },
+      "features": [
+        "lay_on_hands",
+        "spellcasting_paladin",
+        "weapon_mastery"
+      ],
+      "signature_ability": "lay_on_hands",
+      "spellcasting": {
+        "ability": "charisma",
+        "prepared_limit": 2,
+        "starting_spells": [
+          "detect_magic"
+        ],
+        "starting_prepared": [
+          "detect_magic"
+        ],
+        "slot_maximums": {
+          "1": 2
+        },
+        "slot_recovery": "long_rest"
+      },
+      "armor_training": [
+        "light",
+        "medium",
+        "heavy",
+        "shield"
+      ]
     },
     {
       "id": "ranger",
       "name": "Следопыт",
       "role": "Разведчик, охотник и стрелок",
-      "description": "Хорош в исследовании, выслеживании и точных атаках. Основные качества — ловкость и мудрость.",
+      "description": "Хорош в исследовании, выслеживании и точных атаках.",
       "hit_die": 10,
-      "primary_abilities": ["dexterity", "wisdom"],
-      "saving_throws": ["strength", "dexterity"]
+      "primary_abilities": [
+        "dexterity",
+        "wisdom"
+      ],
+      "saving_throws": [
+        "strength",
+        "dexterity"
+      ],
+      "skill_training": {
+        "choice_count": 3,
+        "options": [
+          "animal_handling",
+          "athletics",
+          "insight",
+          "investigation",
+          "nature",
+          "perception",
+          "stealth",
+          "survival"
+        ],
+        "recommended": [
+          "perception",
+          "stealth",
+          "survival"
+        ]
+      },
+      "weapon_proficiencies": [
+        "simple_weapons",
+        "martial_weapons"
+      ],
+      "starting_items": {
+        "studded_leather": 1,
+        "scimitar": 1,
+        "shortsword": 1,
+        "longbow": 1,
+        "arrow": 20,
+        "quiver": 1,
+        "druidic_focus": 1,
+        "explorer_pack": 1,
+        "gold_coin": 7
+      },
+      "equipment": {
+        "weapon": "longbow",
+        "armor": "studded_leather",
+        "shield": ""
+      },
+      "features": [
+        "favored_enemy",
+        "spellcasting_ranger",
+        "weapon_mastery"
+      ],
+      "movement_traits": [
+        "ignore_nonmagical_difficult_terrain"
+      ],
+      "signature_ability": "hunters_mark",
+      "spellcasting": {
+        "ability": "wisdom",
+        "prepared_limit": 2,
+        "starting_spells": [
+          "hunters_mark",
+          "detect_magic",
+          "absorb_elements"
+        ],
+        "starting_prepared": [
+          "detect_magic"
+        ],
+        "slot_maximums": {
+          "1": 2
+        },
+        "slot_recovery": "long_rest"
+      },
+      "armor_training": [
+        "light",
+        "medium",
+        "shield"
+      ]
     },
     {
       "id": "rogue",
       "name": "Плут",
       "role": "Скрытность, ловушки и точечный урон",
-      "description": "Полагается на ловкость, хитрость и удачный момент. Полезен в исследовании и социальных ситуациях.",
+      "description": "Полагается на ловкость, хитрость и удачный момент.",
       "hit_die": 8,
-      "primary_abilities": ["dexterity"],
-      "saving_throws": ["dexterity", "intelligence"]
+      "primary_abilities": [
+        "dexterity"
+      ],
+      "saving_throws": [
+        "dexterity",
+        "intelligence"
+      ],
+      "skill_training": {
+        "choice_count": 4,
+        "options": [
+          "acrobatics",
+          "athletics",
+          "deception",
+          "insight",
+          "intimidation",
+          "investigation",
+          "perception",
+          "persuasion",
+          "sleight_of_hand",
+          "stealth"
+        ],
+        "recommended": [
+          "acrobatics",
+          "investigation",
+          "perception",
+          "stealth"
+        ]
+      },
+      "weapon_proficiencies": [
+        "simple_weapons",
+        "martial_finesse_or_light_weapons"
+      ],
+      "starting_items": {
+        "leather_armor": 1,
+        "dagger": 2,
+        "shortsword": 1,
+        "shortbow": 1,
+        "arrow": 20,
+        "quiver": 1,
+        "thieves_tools": 1,
+        "burglar_pack": 1,
+        "gold_coin": 8
+      },
+      "equipment": {
+        "weapon": "shortsword",
+        "armor": "leather_armor",
+        "shield": ""
+      },
+      "features": [
+        "expertise",
+        "sneak_attack",
+        "thieves_cant",
+        "weapon_mastery"
+      ],
+      "signature_ability": "sneak_attack",
+      "armor_training": [
+        "light"
+      ]
     },
     {
       "id": "sorcerer",
       "name": "Чародей",
       "role": "Врождённая атакующая магия",
-      "description": "Использует внутренний магический дар. Сила заклинаний зависит от харизмы, а запас здоровья остаётся небольшим.",
+      "description": "Использует внутренний магический дар и харизму.",
       "hit_die": 6,
-      "primary_abilities": ["charisma"],
-      "saving_throws": ["constitution", "charisma"]
+      "primary_abilities": [
+        "charisma"
+      ],
+      "saving_throws": [
+        "constitution",
+        "charisma"
+      ],
+      "skill_training": {
+        "choice_count": 2,
+        "options": [
+          "arcana",
+          "deception",
+          "insight",
+          "intimidation",
+          "persuasion",
+          "religion"
+        ],
+        "recommended": [
+          "arcana",
+          "persuasion"
+        ]
+      },
+      "weapon_proficiencies": [
+        "simple_weapons"
+      ],
+      "starting_items": {
+        "spear": 1,
+        "dagger": 2,
+        "arcane_focus_crystal": 1,
+        "dungeoneer_pack": 1,
+        "gold_coin": 28
+      },
+      "equipment": {
+        "weapon": "spear",
+        "armor": "",
+        "shield": ""
+      },
+      "features": [
+        "spellcasting_sorcerer",
+        "innate_sorcery"
+      ],
+      "signature_ability": "sorcerous_burst",
+      "spellcasting": {
+        "ability": "charisma",
+        "prepared_limit": 2,
+        "starting_spells": [
+          "sorcerous_burst",
+          "burning_hands",
+          "shield_spell",
+          "absorb_elements"
+        ],
+        "starting_prepared": [
+          "burning_hands"
+        ],
+        "slot_maximums": {
+          "1": 2
+        },
+        "slot_recovery": "long_rest",
+        "level_spells": {
+          "5": [
+            "counterspell"
+          ]
+        }
+      },
+      "armor_training": []
     },
     {
       "id": "warlock",
       "name": "Колдун",
       "role": "Магия договора и устойчивые способности",
-      "description": "Получает необычные силы через мистический договор. Харизма определяет эффективность большинства способностей.",
+      "description": "Получает необычные силы через мистический договор.",
       "hit_die": 8,
-      "primary_abilities": ["charisma"],
-      "saving_throws": ["wisdom", "charisma"]
+      "primary_abilities": [
+        "charisma"
+      ],
+      "saving_throws": [
+        "wisdom",
+        "charisma"
+      ],
+      "skill_training": {
+        "choice_count": 2,
+        "options": [
+          "arcana",
+          "deception",
+          "history",
+          "intimidation",
+          "investigation",
+          "nature",
+          "religion"
+        ],
+        "recommended": [
+          "arcana",
+          "investigation"
+        ]
+      },
+      "weapon_proficiencies": [
+        "simple_weapons"
+      ],
+      "starting_items": {
+        "leather_armor": 1,
+        "sickle": 1,
+        "dagger": 2,
+        "arcane_focus_orb": 1,
+        "occult_book": 1,
+        "scholar_pack": 1,
+        "gold_coin": 15
+      },
+      "equipment": {
+        "weapon": "sickle",
+        "armor": "leather_armor",
+        "shield": ""
+      },
+      "features": [
+        "pact_magic",
+        "eldritch_invocations"
+      ],
+      "signature_ability": "eldritch_blast",
+      "spellcasting": {
+        "ability": "charisma",
+        "prepared_limit": 2,
+        "starting_spells": [
+          "eldritch_blast",
+          "hellish_rebuke"
+        ],
+        "starting_prepared": [],
+        "slot_maximums": {
+          "1": 1
+        },
+        "slot_resource_prefix": "pact_slots",
+        "slot_recovery": "short_rest",
+        "level_spells": {
+          "5": [
+            "counterspell"
+          ]
+        }
+      },
+      "armor_training": [
+        "light"
+      ]
     },
     {
       "id": "wizard",
       "name": "Волшебник",
       "role": "Широкий выбор изученной магии",
-      "description": "Изучает заклинания и решает задачи знаниями. Сильно зависит от интеллекта и требует осторожности в бою.",
+      "description": "Изучает заклинания и решает задачи знаниями.",
       "hit_die": 6,
-      "primary_abilities": ["intelligence"],
-      "saving_throws": ["intelligence", "wisdom"]
+      "primary_abilities": [
+        "intelligence"
+      ],
+      "saving_throws": [
+        "intelligence",
+        "wisdom"
+      ],
+      "skill_training": {
+        "choice_count": 2,
+        "options": [
+          "arcana",
+          "history",
+          "insight",
+          "investigation",
+          "medicine",
+          "nature",
+          "religion"
+        ],
+        "recommended": [
+          "arcana",
+          "investigation"
+        ]
+      },
+      "weapon_proficiencies": [
+        "simple_weapons"
+      ],
+      "starting_items": {
+        "dagger": 2,
+        "quarterstaff_focus": 1,
+        "robe": 1,
+        "spellbook": 1,
+        "scholar_pack": 1,
+        "gold_coin": 5
+      },
+      "equipment": {
+        "weapon": "quarterstaff_focus",
+        "armor": "",
+        "shield": ""
+      },
+      "features": [
+        "spellcasting_wizard",
+        "ritual_adept",
+        "arcane_recovery"
+      ],
+      "signature_ability": "magic_missile",
+      "spellcasting": {
+        "ability": "intelligence",
+        "prepared_limit": 4,
+        "starting_spells": [
+          "fire_bolt",
+          "magic_missile",
+          "detect_magic",
+          "comprehend_languages",
+          "burning_hands",
+          "shield_spell",
+          "absorb_elements"
+        ],
+        "starting_prepared": [
+          "magic_missile",
+          "detect_magic",
+          "comprehend_languages",
+          "burning_hands"
+        ],
+        "slot_maximums": {
+          "1": 2
+        },
+        "slot_recovery": "long_rest",
+        "level_spells": {
+          "5": [
+            "counterspell"
+          ]
+        }
+      },
+      "armor_training": []
     }
   ]
 }

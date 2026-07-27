@@ -1,6 +1,7 @@
-class_name VirtualJoystick
 extends Control
 
+# Godot 4.7 provides a native VirtualJoystick class, so this project script
+# intentionally avoids registering the same global class name.
 signal vector_changed(direction: Vector2)
 
 @export_range(0.0, 0.5, 0.01) var dead_zone: float = 0.16

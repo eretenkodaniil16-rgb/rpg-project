@@ -1,0 +1,324 @@
+{
+  "schema_version": 1,
+  "ruleset_id": "srd_5_2_1",
+  "class_profiles": {
+    "bard": {
+      "ability_id": "charisma",
+      "cantrip_choice_count": 2,
+      "cantrip_options": [
+        "light",
+        "prestidigitation",
+        "starry_wisp",
+        "vicious_mockery"
+      ],
+      "spell_choice_count": 4,
+      "spell_options": [
+        "comprehend_languages",
+        "cure_wounds",
+        "detect_magic",
+        "healing_word",
+        "speak_with_animals",
+        "thunderwave"
+      ],
+      "prepared_choice_count": 4,
+      "recommended_cantrips": [
+        "vicious_mockery",
+        "light"
+      ],
+      "legacy_cantrip_ids": [
+        "vicious_mockery"
+      ],
+      "recommended_spells": [
+        "cure_wounds",
+        "detect_magic",
+        "healing_word",
+        "thunderwave"
+      ]
+    },
+    "cleric": {
+      "ability_id": "wisdom",
+      "cantrip_choice_count": 3,
+      "cantrip_options": [
+        "guidance",
+        "light",
+        "sacred_flame",
+        "toll_the_dead"
+      ],
+      "spell_choice_count": 4,
+      "spell_options": [
+        "cure_wounds",
+        "detect_magic",
+        "healing_word",
+        "inflict_wounds",
+        "shield_of_faith"
+      ],
+      "prepared_choice_count": 4,
+      "recommended_cantrips": [
+        "guidance",
+        "light",
+        "sacred_flame"
+      ],
+      "recommended_spells": [
+        "cure_wounds",
+        "detect_magic",
+        "healing_word",
+        "shield_of_faith"
+      ]
+    },
+    "druid": {
+      "ability_id": "wisdom",
+      "cantrip_choice_count": 2,
+      "cantrip_options": [
+        "guidance",
+        "poison_spray",
+        "produce_flame",
+        "starry_wisp"
+      ],
+      "spell_choice_count": 4,
+      "spell_options": [
+        "cure_wounds",
+        "detect_magic",
+        "healing_word",
+        "thunderwave"
+      ],
+      "prepared_choice_count": 4,
+      "always_known_ids": [
+        "speak_with_animals"
+      ],
+      "always_prepared_ids": [
+        "speak_with_animals"
+      ],
+      "recommended_cantrips": [
+        "produce_flame",
+        "guidance"
+      ],
+      "recommended_spells": [
+        "cure_wounds",
+        "detect_magic",
+        "healing_word",
+        "thunderwave"
+      ]
+    },
+    "paladin": {
+      "ability_id": "charisma",
+      "cantrip_choice_count": 0,
+      "cantrip_options": [],
+      "spell_choice_count": 2,
+      "spell_options": [
+        "cure_wounds",
+        "detect_magic",
+        "shield_of_faith"
+      ],
+      "prepared_choice_count": 2,
+      "recommended_cantrips": [],
+      "recommended_spells": [
+        "cure_wounds",
+        "shield_of_faith"
+      ]
+    },
+    "ranger": {
+      "ability_id": "wisdom",
+      "cantrip_choice_count": 0,
+      "cantrip_options": [],
+      "spell_choice_count": 2,
+      "spell_options": [
+        "cure_wounds",
+        "detect_magic",
+        "speak_with_animals"
+      ],
+      "prepared_choice_count": 2,
+      "always_known_ids": [
+        "hunters_mark"
+      ],
+      "always_prepared_ids": [
+        "hunters_mark"
+      ],
+      "recommended_cantrips": [],
+      "recommended_spells": [
+        "cure_wounds",
+        "detect_magic"
+      ]
+    },
+    "sorcerer": {
+      "ability_id": "charisma",
+      "cantrip_choice_count": 4,
+      "cantrip_options": [
+        "fire_bolt",
+        "light",
+        "poison_spray",
+        "prestidigitation",
+        "sorcerous_burst"
+      ],
+      "spell_choice_count": 2,
+      "spell_options": [
+        "burning_hands",
+        "comprehend_languages",
+        "detect_magic",
+        "magic_missile",
+        "ray_of_sickness",
+        "shield_spell",
+        "thunderwave"
+      ],
+      "prepared_choice_count": 2,
+      "recommended_cantrips": [
+        "fire_bolt",
+        "light",
+        "prestidigitation",
+        "sorcerous_burst"
+      ],
+      "recommended_spells": [
+        "burning_hands",
+        "shield_spell"
+      ]
+    },
+    "warlock": {
+      "ability_id": "charisma",
+      "cantrip_choice_count": 2,
+      "cantrip_options": [
+        "eldritch_blast",
+        "poison_spray",
+        "prestidigitation"
+      ],
+      "spell_choice_count": 2,
+      "spell_options": [
+        "comprehend_languages",
+        "detect_magic",
+        "hellish_rebuke",
+        "speak_with_animals"
+      ],
+      "prepared_choice_count": 2,
+      "recommended_cantrips": [
+        "eldritch_blast",
+        "prestidigitation"
+      ],
+      "recommended_spells": [
+        "hellish_rebuke",
+        "comprehend_languages"
+      ]
+    },
+    "wizard": {
+      "ability_id": "intelligence",
+      "cantrip_choice_count": 3,
+      "cantrip_options": [
+        "fire_bolt",
+        "light",
+        "poison_spray",
+        "prestidigitation"
+      ],
+      "spell_choice_count": 6,
+      "spell_options": [
+        "burning_hands",
+        "comprehend_languages",
+        "detect_magic",
+        "magic_missile",
+        "ray_of_sickness",
+        "shield_spell",
+        "thunderwave"
+      ],
+      "prepared_choice_count": 4,
+      "recommended_cantrips": [
+        "fire_bolt",
+        "light",
+        "prestidigitation"
+      ],
+      "recommended_spells": [
+        "burning_hands",
+        "comprehend_languages",
+        "detect_magic",
+        "magic_missile",
+        "shield_spell",
+        "thunderwave"
+      ],
+      "recommended_prepared": [
+        "burning_hands",
+        "detect_magic",
+        "magic_missile",
+        "shield_spell"
+      ]
+    }
+  },
+  "magic_initiate_profiles": {
+    "magic_initiate_cleric": {
+      "list_id": "cleric",
+      "default_ability_id": "wisdom",
+      "ability_options": [
+        "intelligence",
+        "wisdom",
+        "charisma"
+      ],
+      "cantrip_choice_count": 2,
+      "cantrip_options": [
+        "guidance",
+        "light",
+        "sacred_flame",
+        "toll_the_dead"
+      ],
+      "spell_choice_count": 1,
+      "spell_options": [
+        "cure_wounds",
+        "detect_magic",
+        "healing_word",
+        "inflict_wounds",
+        "shield_of_faith"
+      ],
+      "recommended_cantrips": [
+        "sacred_flame",
+        "light"
+      ],
+      "recommended_spells": [
+        "cure_wounds"
+      ],
+      "resource_key": "magic_initiate_cleric_1",
+      "fallback_resource_key": "spell_slots_1",
+      "legacy_cantrip_ids": [
+        "sacred_flame",
+        "toll_the_dead"
+      ],
+      "legacy_spell_ids": [
+        "origin_cure_wounds"
+      ]
+    },
+    "magic_initiate_wizard": {
+      "list_id": "wizard",
+      "default_ability_id": "intelligence",
+      "ability_options": [
+        "intelligence",
+        "wisdom",
+        "charisma"
+      ],
+      "cantrip_choice_count": 2,
+      "cantrip_options": [
+        "fire_bolt",
+        "light",
+        "poison_spray",
+        "prestidigitation"
+      ],
+      "spell_choice_count": 1,
+      "spell_options": [
+        "burning_hands",
+        "comprehend_languages",
+        "detect_magic",
+        "magic_missile",
+        "ray_of_sickness",
+        "shield_spell",
+        "thunderwave"
+      ],
+      "recommended_cantrips": [
+        "fire_bolt",
+        "light"
+      ],
+      "recommended_spells": [
+        "magic_missile"
+      ],
+      "resource_key": "magic_initiate_wizard_1",
+      "fallback_resource_key": "spell_slots_1",
+      "legacy_cantrip_ids": [
+        "fire_bolt",
+        "poison_spray"
+      ],
+      "legacy_spell_ids": [
+        "origin_magic_missile"
+      ]
+    }
+  }
+}

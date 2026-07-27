@@ -6,5 +6,6 @@ The SRD 5.2.1 material is available under the **Creative Commons Attribution 4.0
 
 - Source: https://www.dndbeyond.com/srd
 - License: https://creativecommons.org/licenses/by/4.0/
+- Project implementation matrix: `docs/SRD_RULES_MATRIX.md`
 
 The project, setting, characters, story, visual identity, text and original game content are independent creations and are not endorsed by or affiliated with Wizards of the Coast.

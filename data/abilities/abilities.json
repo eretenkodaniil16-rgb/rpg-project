@@ -1,0 +1,1128 @@
+{
+  "alert": {
+    "id": "alert",
+    "name": "Бдительный",
+    "kind": "passive",
+    "description": "Добавляет бонус мастерства к инициативе. После броска инициативы может обменяться местом с согласным союзником, который не недееспособен."
+  },
+  "savage_attacker": {
+    "id": "savage_attacker",
+    "name": "Свирепый атакующий",
+    "kind": "passive",
+    "description": "Один раз за ход при попадании оружием бросает кости урона оружия дважды и использует лучший результат."
+  },
+  "magic_initiate_cleric": {
+    "id": "magic_initiate_cleric",
+    "name": "Посвящённый в магию: жрец",
+    "kind": "passive",
+    "description": "Даёт два жреческих заговора и одно заклинание 1 уровня с бесплатным применением после долгого отдыха."
+  },
+  "magic_initiate_wizard": {
+    "id": "magic_initiate_wizard",
+    "name": "Посвящённый в магию: волшебник",
+    "kind": "passive",
+    "description": "Даёт два волшебных заговора и одно заклинание 1 уровня с бесплатным применением после долгого отдыха."
+  },
+  "detect_magic": {
+    "id": "detect_magic",
+    "name": "Обнаружение магии",
+    "kind": "active",
+    "is_spell": true,
+    "spell_level": 1,
+    "school": "Прорицание",
+    "target": "self",
+    "resource_key": "spell_slots_1",
+    "description": "На 10 минут позволяет ощущать присутствие магии в пределах 30 футов. Требует концентрации.",
+    "effect": "utility_detect_magic",
+    "ritual": true,
+    "concentration": true,
+    "duration_minutes": 10,
+    "casting_time_text": "1 действие",
+    "casting_time_minutes": 0,
+    "components": [
+      "v",
+      "s"
+    ],
+    "button": "ОБНАРУЖЕНИЕ МАГИИ"
+  },
+  "comprehend_languages": {
+    "id": "comprehend_languages",
+    "name": "Понимание языков",
+    "kind": "active",
+    "is_spell": true,
+    "spell_level": 1,
+    "school": "Прорицание",
+    "target": "self",
+    "resource_key": "spell_slots_1",
+    "description": "На 1 час позволяет понимать буквальный смысл услышанной речи и прочитанного текста.",
+    "effect": "utility_comprehend_languages",
+    "ritual": true,
+    "concentration": false,
+    "duration_minutes": 60,
+    "casting_time_text": "1 действие",
+    "casting_time_minutes": 0,
+    "components": [
+      "v",
+      "s",
+      "m"
+    ],
+    "material": "щепоть сажи и соли",
+    "button": "ПОНИМАНИЕ ЯЗЫКОВ"
+  },
+  "speak_with_animals": {
+    "id": "speak_with_animals",
+    "name": "Разговор с животными",
+    "kind": "active",
+    "is_spell": true,
+    "spell_level": 1,
+    "school": "Прорицание",
+    "target": "self",
+    "resource_key": "spell_slots_1",
+    "description": "На 10 минут позволяет понимать зверей и общаться с ними. Может быть сотворено как ритуал.",
+    "effect": "utility_speak_with_animals",
+    "ritual": true,
+    "concentration": false,
+    "duration_minutes": 10,
+    "casting_time_text": "1 действие",
+    "casting_time_minutes": 0,
+    "components": [
+      "v",
+      "s"
+    ],
+    "button": "РАЗГОВОР С ЖИВОТНЫМИ"
+  },
+  "light": {
+    "id": "light",
+    "name": "Свет",
+    "kind": "active",
+    "is_spell": true,
+    "spell_level": 0,
+    "school": "Воплощение",
+    "target": "self",
+    "resource_key": "unlimited",
+    "always_prepared": true,
+    "description": "Создаёт яркий свет на 20 футов и тусклый ещё на 20 футов на 1 час.",
+    "effect": "utility_light",
+    "duration_minutes": 60,
+    "casting_time_text": "1 действие",
+    "components": [
+      "v",
+      "m"
+    ],
+    "material": "светлячок или фосфоресцирующий мох",
+    "button": "СВЕТ"
+  },
+  "prestidigitation": {
+    "id": "prestidigitation",
+    "name": "Фокусы",
+    "kind": "active",
+    "is_spell": true,
+    "spell_level": 0,
+    "school": "Преобразование",
+    "target": "self",
+    "resource_key": "unlimited",
+    "always_prepared": true,
+    "description": "Создаёт небольшой безвредный магический эффект: искры, запах, очистку или метку.",
+    "effect": "utility_prestidigitation",
+    "casting_time_text": "1 действие",
+    "components": [
+      "v",
+      "s"
+    ],
+    "button": "ФОКУСЫ"
+  },
+  "guidance": {
+    "id": "guidance",
+    "name": "Указание",
+    "kind": "active",
+    "is_spell": true,
+    "spell_level": 0,
+    "school": "Прорицание",
+    "target": "self",
+    "resource_key": "unlimited",
+    "always_prepared": true,
+    "description": "До следующей проверки навыка добавляет 1к4 к её результату. Требует концентрации.",
+    "effect": "guidance",
+    "concentration": true,
+    "duration_minutes": 1,
+    "casting_time_text": "1 действие",
+    "components": [
+      "v",
+      "s"
+    ],
+    "button": "УКАЗАНИЕ"
+  },
+  "starry_wisp": {
+    "id": "starry_wisp",
+    "name": "Звёздный огонёк",
+    "kind": "active",
+    "is_spell": true,
+    "spell_level": 0,
+    "school": "Воплощение",
+    "target": "enemy",
+    "resource_key": "unlimited",
+    "always_prepared": true,
+    "description": "Дальняя магическая атака в пределах 60 футов наносит лучистый урон и раскрывает невидимую цель.",
+    "effect": "spell_attack",
+    "damage_dice": [
+      1,
+      8
+    ],
+    "damage_dice_progression": {
+      "5": [
+        2,
+        8
+      ],
+      "11": [
+        3,
+        8
+      ],
+      "17": [
+        4,
+        8
+      ]
+    },
+    "damage_type": "radiant",
+    "range_ft": 60,
+    "on_hit_remove_condition": "invisible",
+    "casting_time_text": "1 действие",
+    "components": [
+      "v",
+      "s"
+    ],
+    "button": "ЗВЁЗДНЫЙ ОГОНЁК"
+  },
+  "vicious_mockery": {
+    "id": "vicious_mockery",
+    "name": "Злая насмешка",
+    "kind": "passive",
+    "is_spell": true,
+    "spell_level": 0,
+    "school": "Очарование",
+    "target": "enemy",
+    "resource_key": "unlimited",
+    "always_prepared": true,
+    "description": "Спасбросок Мудрости; при провале цель получает психический урон и помеху на следующий бросок атаки.",
+    "effect": "vicious_mockery",
+    "save_ability": "wisdom",
+    "damage_dice": [
+      1,
+      6
+    ],
+    "damage_type": "psychic",
+    "range_ft": 60,
+    "casting_time_text": "1 действие",
+    "components": [
+      "v"
+    ],
+    "button": "ЗЛАЯ НАСМЕШКА"
+  },
+  "sacred_flame": {
+    "id": "sacred_flame",
+    "name": "Священное пламя",
+    "kind": "active",
+    "is_spell": true,
+    "spell_level": 0,
+    "school": "Воплощение",
+    "target": "enemy",
+    "resource_key": "unlimited",
+    "always_prepared": true,
+    "description": "Цель в пределах 60 футов совершает спасбросок Ловкости; при провале получает лучистый урон.",
+    "effect": "saving_throw_spell",
+    "ability": "wisdom",
+    "save_ability": "dexterity",
+    "damage_dice": [
+      1,
+      8
+    ],
+    "damage_dice_progression": {
+      "5": [
+        2,
+        8
+      ],
+      "11": [
+        3,
+        8
+      ],
+      "17": [
+        4,
+        8
+      ]
+    },
+    "damage_type": "radiant",
+    "range_ft": 60,
+    "casting_time_text": "1 действие",
+    "components": [
+      "v",
+      "s"
+    ],
+    "button": "СВЯЩЕННОЕ ПЛАМЯ"
+  },
+  "toll_the_dead": {
+    "id": "toll_the_dead",
+    "name": "Погребальный звон",
+    "kind": "active",
+    "is_spell": true,
+    "spell_level": 0,
+    "school": "Некромантия",
+    "target": "enemy",
+    "resource_key": "unlimited",
+    "always_prepared": true,
+    "description": "Цель в пределах 60 футов совершает спасбросок Мудрости; раненая цель получает урон к12 вместо к8.",
+    "effect": "saving_throw_spell",
+    "ability": "wisdom",
+    "save_ability": "wisdom",
+    "damage_dice": [
+      1,
+      8
+    ],
+    "wounded_damage_die": 12,
+    "damage_dice_progression": {
+      "5": [
+        2,
+        8
+      ],
+      "11": [
+        3,
+        8
+      ],
+      "17": [
+        4,
+        8
+      ]
+    },
+    "damage_type": "necrotic",
+    "range_ft": 60,
+    "casting_time_text": "1 действие",
+    "components": [
+      "v",
+      "s"
+    ],
+    "button": "ПОГРЕБАЛЬНЫЙ ЗВОН"
+  },
+  "origin_cure_wounds": {
+    "id": "origin_cure_wounds",
+    "name": "Лечение ран происхождения",
+    "kind": "active",
+    "is_spell": true,
+    "spell_level": 1,
+    "school": "Ограждение",
+    "target": "self",
+    "resource_key": "magic_initiate_cleric_1",
+    "fallback_resource_key": "spell_slots_1",
+    "max_uses": 1,
+    "always_prepared": true,
+    "description": "Восстанавливает 2к8 + модификатор Мудрости здоровья. Один раз бесплатно после долгого отдыха, затем может расходовать ячейку 1 уровня.",
+    "effect": "origin_heal",
+    "ability": "wisdom",
+    "healing_dice": [
+      2,
+      8
+    ],
+    "casting_time_text": "1 действие",
+    "components": [
+      "v",
+      "s"
+    ],
+    "button": "ЛЕЧЕНИЕ РАН",
+    "upcast": {
+      "healing_dice_per_level": [
+        1,
+        8
+      ]
+    }
+  },
+  "fire_bolt": {
+    "id": "fire_bolt",
+    "name": "Огненный снаряд",
+    "kind": "active",
+    "is_spell": true,
+    "spell_level": 0,
+    "school": "Воплощение",
+    "target": "enemy",
+    "resource_key": "unlimited",
+    "always_prepared": true,
+    "description": "Дальняя магическая атака в пределах 120 футов, наносящая огненный урон.",
+    "effect": "spell_attack",
+    "ability": "intelligence",
+    "damage_dice": [
+      1,
+      10
+    ],
+    "damage_dice_progression": {
+      "5": [
+        2,
+        10
+      ],
+      "11": [
+        3,
+        10
+      ],
+      "17": [
+        4,
+        10
+      ]
+    },
+    "damage_type": "fire",
+    "range_ft": 120,
+    "casting_time_text": "1 действие",
+    "components": [
+      "v",
+      "s"
+    ],
+    "button": "ОГНЕННЫЙ СНАРЯД"
+  },
+  "poison_spray": {
+    "id": "poison_spray",
+    "name": "Ядовитые брызги",
+    "kind": "active",
+    "is_spell": true,
+    "spell_level": 0,
+    "school": "Некромантия",
+    "target": "enemy",
+    "resource_key": "unlimited",
+    "always_prepared": true,
+    "description": "Цель в пределах 30 футов совершает спасбросок Телосложения; при провале получает урон ядом.",
+    "effect": "saving_throw_spell",
+    "ability": "intelligence",
+    "save_ability": "constitution",
+    "damage_dice": [
+      1,
+      12
+    ],
+    "damage_dice_progression": {
+      "5": [
+        2,
+        12
+      ],
+      "11": [
+        3,
+        12
+      ],
+      "17": [
+        4,
+        12
+      ]
+    },
+    "damage_type": "poison",
+    "range_ft": 30,
+    "casting_time_text": "1 действие",
+    "components": [
+      "v",
+      "s"
+    ],
+    "button": "ЯДОВИТЫЕ БРЫЗГИ"
+  },
+  "origin_magic_missile": {
+    "id": "origin_magic_missile",
+    "name": "Магическая стрела происхождения",
+    "kind": "active",
+    "is_spell": true,
+    "spell_level": 1,
+    "school": "Воплощение",
+    "target": "enemy",
+    "resource_key": "magic_initiate_wizard_1",
+    "fallback_resource_key": "spell_slots_1",
+    "max_uses": 1,
+    "always_prepared": true,
+    "description": "Автоматически поражает цель в пределах 120 футов и наносит 3к4 + 3 силового урона. Один раз бесплатно после долгого отдыха, затем может расходовать ячейку 1 уровня.",
+    "effect": "auto_hit_spell",
+    "ability": "intelligence",
+    "damage_dice": [
+      3,
+      4
+    ],
+    "damage_bonus": 3,
+    "damage_type": "force",
+    "range_ft": 120,
+    "casting_time_text": "1 действие",
+    "components": [
+      "v",
+      "s"
+    ],
+    "button": "МАГИЧЕСКАЯ СТРЕЛА",
+    "upcast": {
+      "damage_dice_per_level": [
+        1,
+        4
+      ],
+      "damage_bonus_per_level": 1
+    }
+  },
+  "rage": {
+    "id": "rage",
+    "name": "Ярость",
+    "kind": "active",
+    "target": "self",
+    "resource_key": "rage",
+    "max_uses": 2,
+    "description": "На три следующие атаки Силой добавляет +2 к урону.",
+    "effect": "rage",
+    "button": "ЯРОСТЬ"
+  },
+  "unarmored_defense": {
+    "id": "unarmored_defense",
+    "name": "Защита без доспехов",
+    "kind": "passive",
+    "description": "Без доспеха КД равен 10 + Ловкость + Телосложение."
+  },
+  "weapon_mastery": {
+    "id": "weapon_mastery",
+    "name": "Мастерство оружия",
+    "kind": "informational",
+    "description": "Персонаж обучен особым приёмам со стартовым оружием; отдельные свойства мастерства будут добавлены вместе с расширенным боем."
+  },
+  "bardic_inspiration": {
+    "id": "bardic_inspiration",
+    "name": "Вдохновение барда",
+    "kind": "active",
+    "target": "self",
+    "resource_key": "bardic_inspiration",
+    "max_uses_formula": "charisma_modifier_min_1",
+    "description": "Добавляет 1d6 к следующему броску d20 персонажа.",
+    "effect": "bardic_inspiration",
+    "button": "ВДОХНОВЕНИЕ"
+  },
+  "spellcasting_bard": {
+    "id": "spellcasting_bard",
+    "name": "Колдовство барда",
+    "kind": "informational",
+    "description": "Бард использует Харизму, подготавливает заклинания и расходует ячейки по уровням."
+  },
+  "spellcasting_cleric": {
+    "id": "spellcasting_cleric",
+    "name": "Божественное колдовство",
+    "kind": "informational",
+    "description": "Жрец использует Мудрость, подготавливает заклинания и может проводить подготовленные ритуалы."
+  },
+  "divine_order": {
+    "id": "divine_order",
+    "name": "Божественный порядок: Защитник",
+    "kind": "passive",
+    "description": "Обучение тяжёлой защите; текущий стартовый комплект уже учитывает защитную специализацию."
+  },
+  "cure_wounds": {
+    "id": "cure_wounds",
+    "name": "Лечение ран",
+    "kind": "active",
+    "is_spell": true,
+    "spell_level": 1,
+    "school": "Ограждение",
+    "target": "self",
+    "resource_key": "spell_slots_1",
+    "description": "Восстанавливает 2к8 + модификатор характеристики заклинателя здоровья.",
+    "effect": "heal_spell",
+    "healing_dice": [
+      2,
+      8
+    ],
+    "casting_time_text": "1 действие",
+    "components": [
+      "v",
+      "s"
+    ],
+    "button": "ЛЕЧЕНИЕ РАН",
+    "upcast": {
+      "healing_dice_per_level": [
+        1,
+        8
+      ]
+    }
+  },
+  "healing_word": {
+    "id": "healing_word",
+    "name": "Лечащее слово",
+    "kind": "active",
+    "is_spell": true,
+    "spell_level": 1,
+    "school": "Ограждение",
+    "target": "self",
+    "resource_key": "spell_slots_1",
+    "description": "Бонусным действием восстанавливает 2к4 + модификатор характеристики заклинателя здоровья.",
+    "effect": "heal_spell",
+    "healing_dice": [
+      2,
+      4
+    ],
+    "casting_time_text": "1 бонусное действие",
+    "casting_time_kind": "bonus_action",
+    "components": [
+      "v"
+    ],
+    "button": "ЛЕЧАЩЕЕ СЛОВО",
+    "upcast": {
+      "healing_dice_per_level": [
+        2,
+        4
+      ]
+    }
+  },
+  "inflict_wounds": {
+    "id": "inflict_wounds",
+    "name": "Нанесение ран",
+    "kind": "active",
+    "is_spell": true,
+    "spell_level": 1,
+    "school": "Некромантия",
+    "target": "enemy",
+    "resource_key": "spell_slots_1",
+    "description": "Цель в пределах 5 футов совершает спасбросок Телосложения, получая 2к10 некротического урона или половину при успехе.",
+    "effect": "saving_throw_spell",
+    "save_ability": "constitution",
+    "save_for_half": true,
+    "damage_dice": [
+      2,
+      10
+    ],
+    "damage_type": "necrotic",
+    "range_ft": 5,
+    "casting_time_text": "1 действие",
+    "components": [
+      "v",
+      "s"
+    ],
+    "button": "НАНЕСЕНИЕ РАН",
+    "upcast": {
+      "damage_dice_per_level": [
+        1,
+        10
+      ]
+    }
+  },
+  "shield_of_faith": {
+    "id": "shield_of_faith",
+    "name": "Щит веры",
+    "kind": "active",
+    "is_spell": true,
+    "spell_level": 1,
+    "school": "Ограждение",
+    "target": "self",
+    "resource_key": "spell_slots_1",
+    "description": "Бонусным действием даёт +2 к КД на 10 минут. Требует концентрации.",
+    "effect": "shield_of_faith",
+    "armor_class_bonus": 2,
+    "concentration": true,
+    "duration_minutes": 10,
+    "casting_time_text": "1 бонусное действие",
+    "casting_time_kind": "bonus_action",
+    "components": [
+      "v",
+      "s",
+      "m"
+    ],
+    "material": "молитвенный свиток",
+    "button": "ЩИТ ВЕРЫ"
+  },
+  "spellcasting_druid": {
+    "id": "spellcasting_druid",
+    "name": "Природное колдовство",
+    "kind": "informational",
+    "description": "Друид использует Мудрость, подготавливает заклинания и может проводить подготовленные ритуалы."
+  },
+  "druidic": {
+    "id": "druidic",
+    "name": "Друидический язык",
+    "kind": "informational",
+    "description": "Друид знает тайный язык своего круга и умеет распознавать скрытые природные послания."
+  },
+  "primal_order": {
+    "id": "primal_order",
+    "name": "Первобытный порядок: Маг",
+    "kind": "passive",
+    "description": "Усиленная связь с природным знанием; бонус навыков будет подключён после системы навыков."
+  },
+  "produce_flame": {
+    "id": "produce_flame",
+    "name": "Сотворение пламени",
+    "kind": "active",
+    "is_spell": true,
+    "spell_level": 0,
+    "school": "Воплощение",
+    "target": "enemy",
+    "resource_key": "unlimited",
+    "always_prepared": true,
+    "description": "Дальняя магическая атака на дистанции до 60 футов: 1к8 огненного урона.",
+    "effect": "spell_attack",
+    "ability": "wisdom",
+    "damage_dice": [
+      1,
+      8
+    ],
+    "damage_type": "fire",
+    "range_ft": 60,
+    "casting_time_text": "1 действие",
+    "components": [
+      "v",
+      "s"
+    ],
+    "button": "ПЛАМЯ"
+  },
+  "fighting_style_defense": {
+    "id": "fighting_style_defense",
+    "name": "Боевой стиль: Защита",
+    "kind": "passive",
+    "description": "Даёт +1 КД, пока на персонаже надет доспех."
+  },
+  "second_wind": {
+    "id": "second_wind",
+    "name": "Второе дыхание",
+    "kind": "active",
+    "target": "self",
+    "resource_key": "second_wind",
+    "max_uses": 2,
+    "description": "Восстанавливает 1d10 + уровень здоровья.",
+    "effect": "heal_1d10_level",
+    "button": "ВТОРОЕ ДЫХАНИЕ"
+  },
+  "martial_arts": {
+    "id": "martial_arts",
+    "name": "Боевые искусства",
+    "kind": "passive",
+    "description": "Безоружные атаки используют Ловкость и наносят 1d6 + модификатор Ловкости урона."
+  },
+  "unarmored_defense_monk": {
+    "id": "unarmored_defense_monk",
+    "name": "Защита без доспехов",
+    "kind": "passive",
+    "description": "Без доспеха и щита КД равен 10 + Ловкость + Мудрость."
+  },
+  "lay_on_hands": {
+    "id": "lay_on_hands",
+    "name": "Наложение рук",
+    "kind": "active",
+    "target": "self",
+    "resource_key": "lay_on_hands_pool",
+    "max_uses": 5,
+    "resource_is_pool": true,
+    "description": "Расходует запас исцеления, равный 5 на первом уровне.",
+    "effect": "lay_on_hands",
+    "button": "НАЛОЖЕНИЕ РУК"
+  },
+  "spellcasting_paladin": {
+    "id": "spellcasting_paladin",
+    "name": "Колдовство паладина",
+    "kind": "informational",
+    "description": "Паладин использует Харизму и подготавливает заклинания паладина."
+  },
+  "favored_enemy": {
+    "id": "favored_enemy",
+    "name": "Избранный враг",
+    "kind": "passive",
+    "description": "Следопыт умеет накладывать Метку охотника без расхода обычной ячейки."
+  },
+  "wilderness_guide": {
+    "id": "wilderness_guide",
+    "name": "Проводник бездорожья",
+    "kind": "passive",
+    "description": "Оригинальная особенность проекта: немагическая труднопроходимая местность не увеличивает стоимость перемещения Следопыта и не замедляет его вне боя."
+  },
+  "spellcasting_ranger": {
+    "id": "spellcasting_ranger",
+    "name": "Колдовство следопыта",
+    "kind": "informational",
+    "description": "Следопыт использует Мудрость и подготавливает природные заклинания."
+  },
+  "hunters_mark": {
+    "id": "hunters_mark",
+    "name": "Метка охотника",
+    "kind": "active",
+    "is_spell": true,
+    "spell_level": 1,
+    "school": "Прорицание",
+    "target": "enemy",
+    "resource_key": "hunters_mark",
+    "max_uses_formula": "wisdom_modifier_min_1",
+    "always_prepared": true,
+    "description": "Отмечает цель в пределах 90 футов: три следующих попадания наносят дополнительно 1к6 урона. Требует концентрации.",
+    "effect": "hunters_mark",
+    "ability": "wisdom",
+    "range_ft": 90,
+    "concentration": true,
+    "duration_minutes": 60,
+    "casting_time_text": "1 бонусное действие",
+    "components": [
+      "v"
+    ],
+    "button": "МЕТКА ОХОТНИКА"
+  },
+  "expertise": {
+    "id": "expertise",
+    "name": "Экспертиза",
+    "kind": "informational",
+    "description": "Плут получает удвоенный бонус мастерства в выбранных навыках после появления системы навыков."
+  },
+  "sneak_attack": {
+    "id": "sneak_attack",
+    "name": "Скрытая атака",
+    "kind": "passive",
+    "description": "Первое попадание по полностью восстановленной тренировочной цели наносит дополнительно 1d6 урона."
+  },
+  "thieves_cant": {
+    "id": "thieves_cant",
+    "name": "Воровской жаргон",
+    "kind": "informational",
+    "description": "Плут знает тайный язык преступного мира."
+  },
+  "spellcasting_sorcerer": {
+    "id": "spellcasting_sorcerer",
+    "name": "Врождённое колдовство",
+    "kind": "informational",
+    "description": "Чародей использует Харизму, знает ограниченный набор заклинаний и расходует ячейки."
+  },
+  "innate_sorcery": {
+    "id": "innate_sorcery",
+    "name": "Внутренняя магия",
+    "kind": "passive",
+    "description": "Магические атаки чародея получают +1 к броску; расширенное преимущество появится с полной магической системой."
+  },
+  "sorcerous_burst": {
+    "id": "sorcerous_burst",
+    "name": "Чародейский всплеск",
+    "kind": "active",
+    "is_spell": true,
+    "spell_level": 0,
+    "school": "Воплощение",
+    "target": "enemy",
+    "resource_key": "unlimited",
+    "always_prepared": true,
+    "description": "Магическая атака Харизмой на дистанции до 120 футов, наносящая 1к8 стихийного урона.",
+    "effect": "spell_attack",
+    "ability": "charisma",
+    "damage_dice": [
+      1,
+      8
+    ],
+    "damage_type": "force",
+    "attack_bonus": 1,
+    "range_ft": 120,
+    "casting_time_text": "1 действие",
+    "components": [
+      "v",
+      "s"
+    ],
+    "button": "ВСПЛЕСК"
+  },
+  "pact_magic": {
+    "id": "pact_magic",
+    "name": "Магия договора",
+    "kind": "informational",
+    "description": "Колдун использует Харизму и ячейки договора, восстанавливающиеся после короткого отдыха."
+  },
+  "eldritch_invocations": {
+    "id": "eldritch_invocations",
+    "name": "Таинственные воззвания",
+    "kind": "informational",
+    "description": "Выбор воззваний появится вместе с развитием класса."
+  },
+  "eldritch_blast": {
+    "id": "eldritch_blast",
+    "name": "Потусторонний разряд",
+    "kind": "active",
+    "is_spell": true,
+    "spell_level": 0,
+    "school": "Воплощение",
+    "target": "enemy",
+    "resource_key": "unlimited",
+    "always_prepared": true,
+    "description": "Магическая атака Харизмой на дистанции до 120 футов, наносящая 1к10 силового урона.",
+    "effect": "spell_attack",
+    "ability": "charisma",
+    "damage_dice": [
+      1,
+      10
+    ],
+    "damage_type": "force",
+    "range_ft": 120,
+    "casting_time_text": "1 действие",
+    "components": [
+      "v",
+      "s"
+    ],
+    "button": "РАЗРЯД"
+  },
+  "spellcasting_wizard": {
+    "id": "spellcasting_wizard",
+    "name": "Колдовство волшебника",
+    "kind": "informational",
+    "description": "Волшебник использует Интеллект, книгу заклинаний, подготовку и ячейки по уровням."
+  },
+  "ritual_adept": {
+    "id": "ritual_adept",
+    "name": "Мастер ритуалов",
+    "kind": "passive",
+    "description": "Подготовленное заклинание с тегом «Ритуал» можно сотворить на 10 минут дольше без расхода ячейки."
+  },
+  "arcane_recovery": {
+    "id": "arcane_recovery",
+    "name": "Магическое восстановление",
+    "kind": "passive",
+    "description": "Во время первого короткого отдыха после долгого отдыха волшебник восстанавливает одну ячейку 1 уровня."
+  },
+  "magic_missile": {
+    "id": "magic_missile",
+    "name": "Магическая стрела",
+    "kind": "active",
+    "is_spell": true,
+    "spell_level": 1,
+    "school": "Воплощение",
+    "target": "enemy",
+    "resource_key": "spell_slots_1",
+    "description": "Автоматически попадает по цели в пределах 120 футов и наносит 3к4 + 3 силового урона.",
+    "effect": "auto_hit_spell",
+    "ability": "intelligence",
+    "damage_dice": [
+      3,
+      4
+    ],
+    "damage_bonus": 3,
+    "damage_type": "force",
+    "range_ft": 120,
+    "casting_time_text": "1 действие",
+    "components": [
+      "v",
+      "s"
+    ],
+    "button": "МАГИЧЕСКАЯ СТРЕЛА",
+    "upcast": {
+      "damage_dice_per_level": [
+        1,
+        4
+      ],
+      "damage_bonus_per_level": 1
+    }
+  },
+  "ray_of_sickness": {
+    "id": "ray_of_sickness",
+    "name": "Луч болезни",
+    "kind": "active",
+    "is_spell": true,
+    "spell_level": 1,
+    "school": "Некромантия",
+    "target": "enemy",
+    "resource_key": "spell_slots_1",
+    "description": "Дальняя магическая атака в пределах 60 футов наносит 2к8 урона ядом и отравляет цель до конца следующего хода заклинателя.",
+    "effect": "spell_attack",
+    "damage_dice": [
+      2,
+      8
+    ],
+    "damage_type": "poison",
+    "range_ft": 60,
+    "on_hit_condition": "poisoned",
+    "on_hit_condition_rounds": 1,
+    "casting_time_text": "1 действие",
+    "components": [
+      "v",
+      "s"
+    ],
+    "button": "ЛУЧ БОЛЕЗНИ",
+    "upcast": {
+      "damage_dice_per_level": [
+        1,
+        8
+      ]
+    }
+  },
+  "thunderwave": {
+    "id": "thunderwave",
+    "name": "Волна грома",
+    "kind": "active",
+    "is_spell": true,
+    "spell_level": 1,
+    "school": "Воплощение",
+    "target": "area",
+    "effect": "area_saving_throw_spell",
+    "save_ability": "constitution",
+    "damage_dice": [
+      2,
+      8
+    ],
+    "damage_type": "thunder",
+    "save_for_half": true,
+    "push_feet_on_failed_save": 10,
+    "range_ft": 0,
+    "casting_time_text": "1 действие",
+    "components": [
+      "v",
+      "s"
+    ],
+    "area": {
+      "shape": "cube",
+      "origin": "self",
+      "size_ft": 15,
+      "include_origin": false,
+      "target_filter": "creatures"
+    },
+    "upcast": {
+      "damage_dice_per_level": [
+        1,
+        8
+      ]
+    },
+    "description": "Волна грома заполняет 15-футовый куб. При провале спасброска Телосложения цель получает полный урон и отталкивается на 10 футов; при успехе получает половину.",
+    "button": "ВОЛНА ГРОМА"
+  },
+  "burning_hands": {
+    "id": "burning_hands",
+    "name": "Горящие руки",
+    "kind": "active",
+    "is_spell": true,
+    "spell_level": 1,
+    "school": "Воплощение",
+    "target": "area",
+    "effect": "area_saving_throw_spell",
+    "save_ability": "dexterity",
+    "damage_dice": [
+      3,
+      6
+    ],
+    "damage_type": "fire",
+    "save_for_half": true,
+    "range_ft": 0,
+    "casting_time_text": "1 действие",
+    "components": [
+      "v",
+      "s"
+    ],
+    "area": {
+      "shape": "cone",
+      "origin": "self",
+      "length_ft": 15,
+      "include_origin": false,
+      "target_filter": "creatures"
+    },
+    "upcast": {
+      "damage_dice_per_level": [
+        1,
+        6
+      ]
+    },
+    "description": "Тонкий веер пламени охватывает 15-футовый конус. Каждая цель совершает спасбросок Ловкости; при успехе получает половину урона.",
+    "button": "ГОРЯЩИЕ РУКИ"
+  },
+  "counterspell": {
+    "id": "counterspell",
+    "name": "Контрзаклинание",
+    "kind": "reaction",
+    "is_spell": true,
+    "spell_level": 3,
+    "school": "Ограждение",
+    "target": "spell_cast_attempt",
+    "effect": "counterspell",
+    "range_ft": 60,
+    "casting_time_text": "Реакция",
+    "casting_time_kind": "reaction",
+    "reaction_trigger": "visible_creature_casts_observable_spell",
+    "components": [
+      "s"
+    ],
+    "description": "Реакция на видимое сотворение заклинания в пределах 60 футов. Заклинатель совершает спасбросок Телосложения против Сл ваших заклинаний. При провале его заклинание рассеивается, действие теряется, а исходная ячейка не расходуется.",
+    "button": "КОНТРЗАКЛИНАНИЕ"
+  },
+  "shield_spell": {
+    "id": "shield_spell",
+    "name": "Щит",
+    "kind": "reaction",
+    "is_spell": true,
+    "spell_level": 1,
+    "school": "Ограждение",
+    "target": "self",
+    "effect": "shield_reaction",
+    "resource_key": "spell_slots_1",
+    "casting_time_text": "Реакция",
+    "casting_time_kind": "reaction",
+    "reaction_trigger": "hit_by_attack_roll_or_targeted_by_magic_missile",
+    "components": [
+      "v",
+      "s"
+    ],
+    "duration": "until_start_of_next_turn",
+    "armor_class_bonus": 5,
+    "blocks_magic_missile": true,
+    "description": "Реакция после попадания броском атаки или выбора целью Магической стрелы. До начала следующего хода КД повышается на 5, включая против вызвавшей реакцию атаки; Магическая стрела не наносит урон.",
+    "button": "ЩИТ"
+  },
+  "absorb_elements": {
+    "id": "absorb_elements",
+    "name": "Поглощение стихий",
+    "kind": "reaction",
+    "is_spell": true,
+    "spell_level": 1,
+    "school": "Ограждение",
+    "target": "self",
+    "effect": "absorb_elements_reaction",
+    "resource_key": "spell_slots_1",
+    "casting_time_text": "Реакция",
+    "casting_time_kind": "reaction",
+    "reaction_trigger": "take_elemental_damage",
+    "components": [
+      "s"
+    ],
+    "duration": "1 round",
+    "damage_types": [
+      "acid",
+      "cold",
+      "fire",
+      "lightning",
+      "thunder"
+    ],
+    "bonus_damage_dice": [
+      1,
+      6
+    ],
+    "upcast": {
+      "bonus_damage_dice_per_level": [
+        1,
+        6
+      ]
+    },
+    "description": "Реакция при получении урона кислотой, холодом, огнём, электричеством или звуком. Даёт сопротивление этому типу до начала следующего хода и добавляет 1к6 этого типа к первому попаданию рукопашной атакой на следующем ходу.",
+    "button": "ПОГЛОЩЕНИЕ СТИХИЙ"
+  },
+  "hellish_rebuke": {
+    "id": "hellish_rebuke",
+    "name": "Адское возмездие",
+    "kind": "reaction",
+    "is_spell": true,
+    "spell_level": 1,
+    "school": "Воплощение",
+    "target": "creature_that_damaged_self",
+    "effect": "hellish_rebuke_reaction",
+    "resource_key": "pact_slots_1",
+    "ability": "charisma",
+    "save_ability": "dexterity",
+    "damage_dice": [
+      2,
+      10
+    ],
+    "damage_type": "fire",
+    "range_ft": 60,
+    "casting_time_text": "Реакция",
+    "casting_time_kind": "reaction",
+    "reaction_trigger": "creature_damage_received",
+    "components": [
+      "v",
+      "s"
+    ],
+    "upcast": {
+      "damage_dice_per_level": [
+        1,
+        10
+      ]
+    },
+    "description": "Реакция после получения урона от видимого существа в пределах 60 футов. Цель совершает спасбросок Ловкости, получая 2к10 огненного урона при провале или половину при успехе.",
+    "button": "АДСКОЕ ВОЗМЕЗДИЕ"
+  },
+  "slow_fall": {
+    "id": "slow_fall",
+    "name": "Медленное падение",
+    "kind": "reaction",
+    "class_id": "monk",
+    "required_level": 4,
+    "target": "self",
+    "effect": "slow_fall_reaction",
+    "reaction_trigger": "fall_damage_pending",
+    "description": "Монах 4 уровня или выше может реакцией уменьшить урон от падения на величину, равную пятикратному уровню монаха.",
+    "button": "МЕДЛЕННОЕ ПАДЕНИЕ"
+  }
+}

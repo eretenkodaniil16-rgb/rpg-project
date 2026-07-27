@@ -13,6 +13,7 @@ var _player: CharacterBody2D = null
 var _game_world: Node = null
 var _joystick_base: Panel = null
 var _joystick_knob: Panel = null
+var _jump_button: Button = null
 var _active_touch_index: int = -1
 var _initialized: bool = false
 
@@ -31,6 +32,12 @@ func _process(_delta: float) -> void:
 		_player = get_tree().get_first_node_in_group("player") as CharacterBody2D
 	if not is_instance_valid(_game_world):
 		_game_world = get_tree().get_first_node_in_group("game_world")
+	if is_instance_valid(_jump_button):
+		var combat_active: bool = false
+		if is_instance_valid(_game_world) and _game_world.has_method("is_turn_based_combat_active"):
+			combat_active = bool(_game_world.call("is_turn_based_combat_active"))
+		_jump_button.visible = not combat_active
+		_jump_button.disabled = GameState.input_locked
 
 
 func _input(event: InputEvent) -> void:
@@ -82,6 +89,10 @@ func get_joystick_output_for_testing() -> Vector2:
 	return _player.call("get_mobile_direction") as Vector2
 
 
+func get_jump_button_for_testing() -> Button:
+	return _jump_button
+
+
 func move_joystick_for_testing(normalized_direction: Vector2) -> void:
 	if not _initialized:
 		_initialize_mobile_controls()
@@ -102,6 +113,7 @@ func _initialize_mobile_controls() -> void:
 	_game_world = get_tree().get_first_node_in_group("game_world")
 	_configure_layout()
 	_build_joystick_visuals()
+	_build_jump_button()
 	interact_button.pressed.connect(_on_interact_pressed)
 	menu_button.pressed.connect(_on_menu_pressed)
 
@@ -128,8 +140,26 @@ func _configure_layout() -> void:
 			(child as CanvasItem).visible = false
 
 
+func _build_jump_button() -> void:
+	_jump_button = Button.new()
+	_jump_button.name = "MobileJumpButton"
+	_jump_button.text = "ПРЫЖОК"
+	_jump_button.anchor_left = 0.0
+	_jump_button.anchor_top = 1.0
+	_jump_button.anchor_right = 0.0
+	_jump_button.anchor_bottom = 1.0
+	_jump_button.offset_left = 300.0
+	_jump_button.offset_top = -154.0
+	_jump_button.offset_right = 462.0
+	_jump_button.offset_bottom = -82.0
+	_jump_button.add_theme_font_size_override("font_size", 18)
+	_jump_button.modulate = Color(1.0, 1.0, 1.0, 0.9)
+	_jump_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	_jump_button.pressed.connect(_on_jump_pressed)
+	add_child(_jump_button)
+
+
 func _build_joystick_visuals() -> void:
-	# Use real Panel nodes instead of custom _draw(), so Android always renders them.
 	_joystick_base = Panel.new()
 	_joystick_base.name = "JoystickBase"
 	_joystick_base.position = Vector2(
@@ -190,7 +220,6 @@ func _update_joystick(screen_position: Vector2) -> void:
 	if travel_radius <= 0.0:
 		_reset_joystick()
 		return
-
 	var raw_vector: Vector2 = (screen_position - center) / travel_radius
 	var visual_vector: Vector2 = raw_vector.limit_length(1.0)
 	var output_vector: Vector2 = _apply_dead_zone(visual_vector)
@@ -235,6 +264,11 @@ func _set_player_vector(direction: Vector2) -> void:
 func _on_interact_pressed() -> void:
 	if is_instance_valid(_player) and _player.has_method("request_interaction"):
 		_player.call("request_interaction")
+
+
+func _on_jump_pressed() -> void:
+	if is_instance_valid(_game_world) and _game_world.has_method("_on_exploration_jump_requested"):
+		_game_world.call("_on_exploration_jump_requested")
 
 
 func _on_menu_pressed() -> void:

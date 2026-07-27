@@ -1,102 +1,668 @@
 extends "res://scripts/character_creation/character_creator.gd"
 
-const COLOR_OPTIONS: Array = [
-	{"id": "azure", "name": "Лазурный", "hex": "#4DA3E8"},
-	{"id": "crimson", "name": "Красный", "hex": "#D95555"},
-	{"id": "emerald", "name": "Зелёный", "hex": "#4FB878"},
-	{"id": "violet", "name": "Фиолетовый", "hex": "#9368D8"},
-	{"id": "gold", "name": "Золотой", "hex": "#E0B84F"}
+const CREATION_STEPS: Array[String] = [
+	"Имя героя",
+	"Выбор расы",
+	"Броски характеристик",
+	"Распределение значений",
+	"Происхождение",
+	"Выбор класса",
+	"Заклинания",
+	"Подтверждение"
 ]
+const SKILL_NAMES: Dictionary = {
+	"acrobatics": "Акробатика",
+	"animal_handling": "Уход за животными",
+	"arcana": "Магия",
+	"athletics": "Атлетика",
+	"deception": "Обман",
+	"history": "История",
+	"insight": "Проницательность",
+	"intimidation": "Запугивание",
+	"investigation": "Анализ",
+	"medicine": "Медицина",
+	"nature": "Природа",
+	"perception": "Восприятие",
+	"performance": "Выступление",
+	"persuasion": "Убеждение",
+	"religion": "Религия",
+	"sleight_of_hand": "Ловкость рук",
+	"stealth": "Скрытность",
+	"survival": "Выживание"
+}
 
-var _selected_color_id: String = "azure"
+var _race_data: RaceDataSystem = RaceDataSystem.new()
+var _origin_data: OriginDataSystem = OriginDataSystem.new()
+var _class_proficiencies: ClassProficiencySystem = ClassProficiencySystem.new()
+var _spell_selection: SpellSelectionSystem = SpellSelectionSystem.new()
+var _races: Array[Dictionary] = []
+var _backgrounds: Array[Dictionary] = []
+var _languages: Array[Dictionary] = []
+var _selected_race_id: String = RaceDataSystem.DEFAULT_RACE_ID
+var _selected_background_id: String = OriginDataSystem.DEFAULT_BACKGROUND_ID
+var _background_ability_bonuses: Dictionary = {}
+var _selected_languages: Array[String] = []
+var _selected_class_skill_ids: Array[String] = []
+var _selected_spell_sources: Dictionary = {}
+var _custom_creator_initialized: bool = false
+
+
+func _ready() -> void:
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_initialize_custom_creator()
+
+
+func _initialize_custom_creator() -> void:
+	if _custom_creator_initialized:
+		return
+	_custom_creator_initialized = true
+	_build_layout()
+	_title_label.text = "Создание персонажа"
+	_progress_label.text = "Загрузка данных…"
+	_load_classes()
+	_races = _race_data.get_races()
+	_backgrounds = _origin_data.get_backgrounds()
+	_languages = _origin_data.get_standard_languages()
+	_background_ability_bonuses = _origin_data.default_ability_bonuses(_selected_background_id)
+	_selected_languages = _origin_data.default_languages()
+	_show_step(0)
+
+
+func _show_step(step_index: int) -> void:
+	_current_step = clampi(step_index, 0, CREATION_STEPS.size() - 1)
+	_clear_content()
+	_message_label.text = ""
+	_title_label.text = CREATION_STEPS[_current_step]
+	_progress_label.text = "Шаг %d из %d" % [_current_step + 1, CREATION_STEPS.size()]
+	match _current_step:
+		0: _build_name_step()
+		1: _build_race_step()
+		2: _build_roll_step()
+		3: _build_assignment_step()
+		4: _build_origin_step()
+		5: _build_class_step()
+		6: _build_spell_selection_step()
+		7: _build_confirmation_step()
+	_update_navigation()
 
 
 func _build_name_step() -> void:
-	super._build_name_step()
-	_add_paragraph("Выберите основной цвет персонажа. Он сохранится вместе с героем и будет отображаться в игре.", Color(0.68, 0.73, 0.82, 1.0))
+	_add_paragraph("Введите имя персонажа. Затем вы выберете вид, происхождение и класс по правилам SRD 5.2.1.")
+	var name_label: Label = _make_label("Имя", 20)
+	_content_container.add_child(name_label)
+	var name_input: LineEdit = LineEdit.new()
+	name_input.name = "CharacterNameInput"
+	name_input.custom_minimum_size = Vector2(0.0, 58.0)
+	name_input.placeholder_text = "От 2 до 20 символов"
+	name_input.max_length = 20
+	name_input.text = _character_name
+	name_input.add_theme_font_size_override("font_size", 22)
+	name_input.text_changed.connect(_on_name_changed)
+	_content_container.add_child(name_input)
+	if not OS.has_feature("mobile"):
+		name_input.call_deferred("grab_focus")
+	_add_paragraph("Имя будет отображаться в сохранении, интерфейсе и диалогах.", Color(0.68, 0.73, 0.82, 1.0))
 
-	var selected_color: Dictionary = _get_selected_color()
-	var preview_panel: PanelContainer = PanelContainer.new()
-	_content_container.add_child(preview_panel)
 
-	var preview_margin: MarginContainer = MarginContainer.new()
-	preview_margin.add_theme_constant_override("margin_left", 18)
-	preview_margin.add_theme_constant_override("margin_top", 14)
-	preview_margin.add_theme_constant_override("margin_right", 18)
-	preview_margin.add_theme_constant_override("margin_bottom", 14)
-	preview_panel.add_child(preview_margin)
+func _build_race_step() -> void:
+	_add_paragraph("Выберите вид персонажа. Вид определяет размер, скорость и врождённые особенности, но не повышает характеристики.")
+	if _races.is_empty():
+		_add_paragraph("Не удалось загрузить список видов.", Color(1.0, 0.4, 0.4, 1.0))
+		return
+	var race_grid: GridContainer = GridContainer.new()
+	race_grid.columns = 3
+	race_grid.add_theme_constant_override("h_separation", 12)
+	race_grid.add_theme_constant_override("v_separation", 12)
+	_content_container.add_child(race_grid)
+	for race: Dictionary in _races:
+		var race_id: String = str(race.get("id", "human"))
+		var color: Color = Color.from_string(str(race.get("color_hex", PlayerCharacter.DEFAULT_APPEARANCE_COLOR_HEX)), Color.WHITE)
+		var selected: bool = race_id == _selected_race_id
+		var card: Button = Button.new()
+		card.custom_minimum_size = Vector2(0.0, 82.0)
+		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		card.toggle_mode = true
+		card.button_pressed = selected
+		card.text = ("✓ " if selected else "") + str(race.get("name", race_id))
+		card.add_theme_font_size_override("font_size", 18)
+		var font_color: Color = Color(0.07, 0.08, 0.1, 1.0) if color.get_luminance() > 0.62 else Color.WHITE
+		card.add_theme_color_override("font_color", font_color)
+		card.add_theme_color_override("font_hover_color", font_color)
+		card.add_theme_stylebox_override("normal", _make_race_style(color, selected, false))
+		card.add_theme_stylebox_override("hover", _make_race_style(color, selected, true))
+		card.add_theme_stylebox_override("pressed", _make_race_style(color.darkened(0.08), true, false))
+		card.add_theme_stylebox_override("focus", _make_race_style(color, true, true))
+		card.pressed.connect(_select_race.bind(race_id))
+		race_grid.add_child(card)
+	var selected_race: Dictionary = _get_selected_race()
+	if selected_race.is_empty():
+		return
+	var details: PanelContainer = PanelContainer.new()
+	_content_container.add_child(details)
+	var margin: MarginContainer = MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 20)
+	margin.add_theme_constant_override("margin_top", 16)
+	margin.add_theme_constant_override("margin_right", 20)
+	margin.add_theme_constant_override("margin_bottom", 16)
+	details.add_child(margin)
+	var box: VBoxContainer = VBoxContainer.new()
+	box.add_theme_constant_override("separation", 7)
+	margin.add_child(box)
+	box.add_child(_make_label(str(selected_race.get("name", "")), 25, Color(1.0, 0.82, 0.38, 1.0)))
+	var description: Label = _make_label(str(selected_race.get("description", "")), 17)
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(description)
+	box.add_child(_make_label("Размер: %s · скорость: %d футов · тёмное зрение: %s" % [
+		"маленький" if str(selected_race.get("size", "medium")) == "small" else "средний",
+		int(selected_race.get("speed_ft", 30)),
+		("нет" if int(selected_race.get("darkvision_ft", 0)) <= 0 else "%d футов" % int(selected_race.get("darkvision_ft", 0)))
+	], 17, Color(0.72, 0.82, 1.0, 1.0)))
+	var traits_value: Variant = selected_race.get("traits", [])
+	if traits_value is Array:
+		for trait_value: Variant in traits_value:
+			if trait_value is Dictionary:
+				var trait_data: Dictionary = trait_value as Dictionary
+				var trait_label: Label = _make_label("• %s — %s" % [str(trait_data.get("name", "Особенность")), str(trait_data.get("description", ""))], 16)
+				trait_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+				box.add_child(trait_label)
 
-	var preview_row: HBoxContainer = HBoxContainer.new()
-	preview_row.add_theme_constant_override("separation", 18)
-	preview_margin.add_child(preview_row)
 
-	var preview: ColorRect = ColorRect.new()
-	preview.custom_minimum_size = Vector2(72.0, 72.0)
-	preview.color = Color.from_string(str(selected_color.get("hex", PlayerCharacter.DEFAULT_APPEARANCE_COLOR_HEX)), Color(0.3, 0.64, 0.91, 1.0))
-	preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	preview_row.add_child(preview)
+func _build_origin_step() -> void:
+	_add_paragraph("Происхождение даёт три очка характеристик, начальную черту, два навыка и владение инструментом. Общий язык известен автоматически; дополнительно выберите два стандартных языка.")
+	if _backgrounds.is_empty():
+		_add_paragraph("Не удалось загрузить происхождения.", Color(1.0, 0.4, 0.4, 1.0))
+		return
+	var background_grid: GridContainer = GridContainer.new()
+	background_grid.columns = 2
+	background_grid.add_theme_constant_override("h_separation", 12)
+	background_grid.add_theme_constant_override("v_separation", 12)
+	_content_container.add_child(background_grid)
+	for background: Dictionary in _backgrounds:
+		var background_id: String = str(background.get("id", ""))
+		var selected: bool = background_id == _selected_background_id
+		var card: Button = _make_button(("✓ " if selected else "") + str(background.get("name", background_id)), 0.0)
+		card.toggle_mode = true
+		card.button_pressed = selected
+		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		card.custom_minimum_size.y = 72.0
+		card.pressed.connect(_select_background.bind(background_id))
+		background_grid.add_child(card)
 
-	var preview_text: VBoxContainer = VBoxContainer.new()
-	preview_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	preview_row.add_child(preview_text)
-	preview_text.add_child(_make_label("Цвет героя: %s" % str(selected_color.get("name", "Лазурный")), 21))
-	preview_text.add_child(_make_label("Позже сюда можно будет добавить причёски, одежду и портреты.", 16, Color(0.68, 0.73, 0.82, 1.0)))
+	var selected_background: Dictionary = _get_selected_background()
+	if selected_background.is_empty():
+		return
+	var details: PanelContainer = PanelContainer.new()
+	_content_container.add_child(details)
+	var margin: MarginContainer = MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 20)
+	margin.add_theme_constant_override("margin_top", 16)
+	margin.add_theme_constant_override("margin_right", 20)
+	margin.add_theme_constant_override("margin_bottom", 16)
+	details.add_child(margin)
+	var box: VBoxContainer = VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+	margin.add_child(box)
+	box.add_child(_make_label(str(selected_background.get("name", "")), 25, Color(1.0, 0.82, 0.38, 1.0)))
+	var description: Label = _make_label(str(selected_background.get("description", "")), 17)
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(description)
+	box.add_child(_make_label("Начальная черта: %s" % str(selected_background.get("origin_feat_name", selected_background.get("origin_feat_id", "—"))), 18))
+	box.add_child(_make_label("Навыки: %s" % _display_skill_ids(selected_background.get("skill_proficiencies", [])), 18))
+	box.add_child(_make_label("Инструмент: %s" % _display_tool_ids(selected_background.get("tool_proficiencies", [])), 18))
 
-	var color_grid: GridContainer = GridContainer.new()
-	color_grid.columns = 5
-	color_grid.add_theme_constant_override("h_separation", 10)
-	color_grid.add_theme_constant_override("v_separation", 10)
-	_content_container.add_child(color_grid)
+	box.add_child(_make_label("Распределение характеристик", 21, Color(0.72, 0.82, 1.0, 1.0)))
+	var bonus_options: Variant = selected_background.get("ability_options", [])
+	if bonus_options is Array:
+		var bonus_row: HBoxContainer = HBoxContainer.new()
+		bonus_row.add_theme_constant_override("separation", 10)
+		box.add_child(bonus_row)
+		for ability_value: Variant in bonus_options:
+			var ability_id: String = str(ability_value)
+			var bonus: int = int(_background_ability_bonuses.get(ability_id, 0))
+			var base_score: int = _score_for_ability(ability_id)
+			var bonus_button: Button = _make_button("%s\n%d %+d = %d" % [
+				str(ABILITY_NAMES.get(ability_id, ability_id)),
+				base_score,
+				bonus,
+				base_score + bonus
+			], 190.0)
+			bonus_button.pressed.connect(_cycle_background_bonus.bind(ability_id))
+			bonus_row.add_child(bonus_button)
+	var bonus_validation: Dictionary = _origin_data.validate_ability_bonuses(_selected_background_id, _background_ability_bonuses, _base_abilities_dict())
+	box.add_child(_make_label(str(bonus_validation.get("message", "")), 16, Color(0.63, 0.88, 0.67, 1.0) if bool(bonus_validation.get("success", false)) else Color(1.0, 0.68, 0.38, 1.0)))
 
-	for color_value: Variant in COLOR_OPTIONS:
-		var color_data: Dictionary = color_value as Dictionary
-		var color_id: String = str(color_data.get("id", "azure"))
-		var color_name: String = str(color_data.get("name", color_id))
-		var color: Color = Color.from_string(str(color_data.get("hex", PlayerCharacter.DEFAULT_APPEARANCE_COLOR_HEX)), Color.WHITE)
-		var is_selected: bool = color_id == _selected_color_id
-		var button: Button = _make_button(("✓ " if is_selected else "") + color_name, 174.0)
+	box.add_child(_make_label("Дополнительные языки", 21, Color(0.72, 0.82, 1.0, 1.0)))
+	for slot_index: int in range(2):
+		var language_row: HBoxContainer = HBoxContainer.new()
+		language_row.add_theme_constant_override("separation", 12)
+		box.add_child(language_row)
+		language_row.add_child(_make_label("Язык %d" % (slot_index + 1), 18))
+		var picker: OptionButton = OptionButton.new()
+		picker.custom_minimum_size = Vector2(320.0, 54.0)
+		picker.add_theme_font_size_override("font_size", 18)
+		var selected_index: int = 0
+		for language_index: int in range(_languages.size()):
+			var language: Dictionary = _languages[language_index]
+			picker.add_item(str(language.get("name", language.get("id", ""))), language_index)
+			if slot_index < _selected_languages.size() and str(language.get("id", "")) == _selected_languages[slot_index]:
+				selected_index = language_index
+		picker.select(selected_index)
+		picker.item_selected.connect(_on_language_selected.bind(slot_index))
+		language_row.add_child(picker)
+	var language_validation: Dictionary = _origin_data.validate_languages(_selected_languages)
+	box.add_child(_make_label(str(language_validation.get("message", "")), 16, Color(0.63, 0.88, 0.67, 1.0) if bool(language_validation.get("success", false)) else Color(1.0, 0.68, 0.38, 1.0)))
+
+
+func _append_class_proficiency_controls() -> void:
+	var selected_class: Dictionary = _get_selected_class()
+	if selected_class.is_empty():
+		return
+	_ensure_class_skill_selection()
+	var panel: PanelContainer = PanelContainer.new()
+	panel.name = "ClassTrainingPanel"
+	_content_container.add_child(panel)
+	var margin: MarginContainer = MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 20)
+	margin.add_theme_constant_override("margin_top", 18)
+	margin.add_theme_constant_override("margin_right", 20)
+	margin.add_theme_constant_override("margin_bottom", 18)
+	panel.add_child(margin)
+	var box: VBoxContainer = VBoxContainer.new()
+	box.add_theme_constant_override("separation", 10)
+	margin.add_child(box)
+	box.add_child(_make_label("Подготовка класса", 24, Color(1.0, 0.82, 0.38, 1.0)))
+	box.add_child(_make_label("Оружие: %s" % _display_weapon_training(selected_class.get("weapon_proficiencies", [])), 17))
+	box.add_child(_make_label("Доспехи: %s" % _display_armor_training(selected_class.get("armor_training", [])), 17))
+	var required: int = _class_proficiencies.get_skill_choice_count(selected_class)
+	box.add_child(_make_label("Выберите навыки класса · %d из %d" % [_selected_class_skill_ids.size(), required], 20, Color(0.72, 0.82, 1.0, 1.0)))
+	var unavailable: Array[String] = _background_skill_ids()
+	var options_grid: GridContainer = GridContainer.new()
+	options_grid.name = "ClassSkillGrid"
+	options_grid.columns = 2
+	options_grid.add_theme_constant_override("h_separation", 10)
+	options_grid.add_theme_constant_override("v_separation", 10)
+	box.add_child(options_grid)
+	for skill_id: String in _class_proficiencies.get_skill_options(selected_class):
+		var selected: bool = skill_id in _selected_class_skill_ids
+		var already_from_origin: bool = skill_id in unavailable
+		var button: Button = Button.new()
+		button.name = "ClassSkill_%s" % skill_id
+		button.custom_minimum_size = Vector2(0.0, 56.0)
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.toggle_mode = true
+		button.button_pressed = selected
+		button.text = ("%s " % ("✓" if selected else "○")) + str(SKILL_NAMES.get(skill_id, skill_id))
+		if already_from_origin:
+			button.text += " · из происхождения"
+		button.disabled = already_from_origin or (not selected and _selected_class_skill_ids.size() >= required)
+		button.add_theme_font_size_override("font_size", 17)
+		button.pressed.connect(_toggle_class_skill.bind(skill_id))
+		options_grid.add_child(button)
+	var validation: Dictionary = _class_skill_validation()
+	var validation_label: Label = _make_label(
+		str(validation.get("message", "")),
+		16,
+		Color(0.63, 0.88, 0.67, 1.0) if bool(validation.get("success", false)) else Color(1.0, 0.68, 0.38, 1.0)
+	)
+	validation_label.name = "ClassSkillValidation"
+	box.add_child(validation_label)
+
+
+func _toggle_class_skill(skill_id: String) -> void:
+	if skill_id in _background_skill_ids():
+		return
+	if skill_id in _selected_class_skill_ids:
+		_selected_class_skill_ids.erase(skill_id)
+	else:
+		var required: int = _class_proficiencies.get_skill_choice_count(_get_selected_class())
+		if _selected_class_skill_ids.size() >= required:
+			return
+		_selected_class_skill_ids.append(skill_id)
+	_show_step(5)
+
+
+func _append_class_training_summary(container: VBoxContainer, selected_class: Dictionary) -> void:
+	_ensure_class_skill_selection()
+	container.add_child(_make_label("Навыки класса: %s" % _display_skill_ids(_selected_class_skill_ids), 18))
+	container.add_child(_make_label("Владение оружием: %s" % _display_weapon_training(selected_class.get("weapon_proficiencies", [])), 18))
+	container.add_child(_make_label("Обучение доспехам: %s" % _display_armor_training(selected_class.get("armor_training", [])), 18))
+
+
+func _build_spell_selection_step() -> void:
+	_ensure_spell_selection()
+	_add_paragraph("Выберите заговоры и заклинания 1 уровня. Источник хранится отдельно, поэтому классовая магия и Magic Initiate могут использовать разные характеристики.")
+	var has_choices: bool = false
+	var class_profile: Dictionary = _spell_selection.get_class_profile(_selected_class_id)
+	if not class_profile.is_empty():
+		has_choices = true
+		_append_spell_source_panel(
+			SpellSelectionSystem.SOURCE_CLASS,
+			"Заклинания класса",
+			class_profile
+		)
+	var origin_feat_id: String = _selected_origin_feat_id()
+	var feat_profile: Dictionary = _spell_selection.get_magic_initiate_profile(origin_feat_id)
+	if not feat_profile.is_empty():
+		has_choices = true
+		_append_spell_source_panel(
+			SpellSelectionSystem.SOURCE_MAGIC_INITIATE,
+			"Magic Initiate · %s" % str(feat_profile.get("list_id", "")).capitalize(),
+			feat_profile
+		)
+	if not has_choices:
+		var panel: PanelContainer = PanelContainer.new()
+		panel.name = "NoSpellChoicesPanel"
+		_content_container.add_child(panel)
+		var margin: MarginContainer = MarginContainer.new()
+		margin.add_theme_constant_override("margin_left", 20)
+		margin.add_theme_constant_override("margin_top", 18)
+		margin.add_theme_constant_override("margin_right", 20)
+		margin.add_theme_constant_override("margin_bottom", 18)
+		panel.add_child(margin)
+		margin.add_child(_make_label("У этого сочетания класса и происхождения нет выбора заклинаний на 1 уровне.", 18))
+	var validation: Dictionary = _spell_selection_validation()
+	var validation_label: Label = _make_label(
+		str(validation.get("message", "")),
+		17,
+		Color(0.63, 0.88, 0.67, 1.0) if bool(validation.get("success", false)) else Color(1.0, 0.68, 0.38, 1.0)
+	)
+	validation_label.name = "SpellSelectionValidation"
+	_content_container.add_child(validation_label)
+
+
+func _append_spell_source_panel(source_id: String, title: String, profile: Dictionary) -> void:
+	var source: Dictionary = _spell_source(source_id)
+	var panel: PanelContainer = PanelContainer.new()
+	panel.name = "SpellSource_%s" % source_id
+	_content_container.add_child(panel)
+	var margin: MarginContainer = MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 20)
+	margin.add_theme_constant_override("margin_top", 18)
+	margin.add_theme_constant_override("margin_right", 20)
+	margin.add_theme_constant_override("margin_bottom", 18)
+	panel.add_child(margin)
+	var box: VBoxContainer = VBoxContainer.new()
+	box.add_theme_constant_override("separation", 10)
+	margin.add_child(box)
+	box.add_child(_make_label(title, 24, Color(1.0, 0.82, 0.38, 1.0)))
+	if source_id == SpellSelectionSystem.SOURCE_MAGIC_INITIATE:
+		_append_magic_initiate_ability_picker(box, profile, source)
+	else:
+		var ability_id: String = str(source.get("ability_id", profile.get("ability_id", "")))
+		box.add_child(_make_label("Характеристика заклинаний: %s" % str(ABILITY_NAMES.get(ability_id, ability_id)), 17))
+	_append_spell_choice_section(
+		box,
+		source_id,
+		SpellSelectionSystem.CANTRIP_IDS_KEY,
+		"Заговоры",
+		_creator_string_array(profile.get("cantrip_options", [])),
+		maxi(int(profile.get("cantrip_choice_count", 0)), 0)
+	)
+	_append_spell_choice_section(
+		box,
+		source_id,
+		SpellSelectionSystem.SPELL_IDS_KEY,
+		"Заклинания 1 уровня",
+		_creator_string_array(profile.get("spell_options", [])),
+		maxi(int(profile.get("spell_choice_count", 0)), 0)
+	)
+	var prepared_count: int = maxi(int(profile.get("prepared_choice_count", profile.get("spell_choice_count", 0))), 0)
+	var spell_count: int = maxi(int(profile.get("spell_choice_count", 0)), 0)
+	if source_id == SpellSelectionSystem.SOURCE_CLASS and prepared_count < spell_count:
+		_append_spell_choice_section(
+			box,
+			source_id,
+			SpellSelectionSystem.PREPARED_IDS_KEY,
+			"Подготовлено на старте",
+			_creator_string_array(source.get(SpellSelectionSystem.SPELL_IDS_KEY, [])),
+			prepared_count
+		)
+	var always_known: Array[String] = _creator_string_array(source.get(SpellSelectionSystem.ALWAYS_KNOWN_IDS_KEY, []))
+	if not always_known.is_empty():
+		var names: Array[String] = []
+		for spell_id: String in always_known:
+			names.append(_spell_selection.get_spell_name(spell_id))
+		box.add_child(_make_label("Всегда доступно: %s" % ", ".join(names), 16, Color(0.72, 0.82, 1.0, 1.0)))
+
+
+func _append_magic_initiate_ability_picker(container: VBoxContainer, profile: Dictionary, source: Dictionary) -> void:
+	container.add_child(_make_label("Характеристика заклинаний Magic Initiate", 19, Color(0.72, 0.82, 1.0, 1.0)))
+	var picker: OptionButton = OptionButton.new()
+	picker.name = "MagicInitiateAbilityPicker"
+	picker.custom_minimum_size = Vector2(0.0, 56.0)
+	picker.add_theme_font_size_override("font_size", 18)
+	var options: Array[String] = _creator_string_array(profile.get("ability_options", []))
+	var selected_ability: String = str(source.get("ability_id", profile.get("default_ability_id", "wisdom")))
+	var selected_index: int = 0
+	for index: int in range(options.size()):
+		var ability_id: String = options[index]
+		picker.add_item(str(ABILITY_NAMES.get(ability_id, ability_id)), index)
+		picker.set_item_metadata(index, ability_id)
+		if ability_id == selected_ability:
+			selected_index = index
+	picker.select(selected_index)
+	picker.item_selected.connect(_on_magic_initiate_ability_selected.bind(picker))
+	container.add_child(picker)
+
+
+func _append_spell_choice_section(
+	container: VBoxContainer,
+	source_id: String,
+	field_key: String,
+	title: String,
+	options: Array[String],
+	required: int
+) -> void:
+	if required <= 0:
+		return
+	var source: Dictionary = _spell_source(source_id)
+	var selected_ids: Array[String] = _creator_string_array(source.get(field_key, []))
+	container.add_child(_make_label("%s · %d из %d" % [title, selected_ids.size(), required], 20, Color(0.72, 0.82, 1.0, 1.0)))
+	var grid: GridContainer = GridContainer.new()
+	grid.name = "SpellGrid_%s_%s" % [source_id, field_key]
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 10)
+	grid.add_theme_constant_override("v_separation", 10)
+	container.add_child(grid)
+	for spell_id: String in options:
+		var selected: bool = spell_id in selected_ids
+		var button: Button = Button.new()
+		button.name = "SpellChoice_%s_%s_%s" % [source_id, field_key, spell_id]
+		button.custom_minimum_size = Vector2(0.0, 58.0)
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.toggle_mode = true
+		button.button_pressed = selected
+		button.text = ("%s " % ("✓" if selected else "○")) + _spell_selection.get_spell_name(spell_id)
+		button.disabled = not selected and selected_ids.size() >= required
 		button.add_theme_font_size_override("font_size", 16)
-		button.add_theme_color_override("font_color", Color(0.08, 0.08, 0.1, 1.0) if color.get_luminance() > 0.62 else Color.WHITE)
-		button.add_theme_color_override("font_hover_color", Color(0.08, 0.08, 0.1, 1.0) if color.get_luminance() > 0.62 else Color.WHITE)
-		button.add_theme_stylebox_override("normal", _make_color_style(color, is_selected, false))
-		button.add_theme_stylebox_override("hover", _make_color_style(color, is_selected, true))
-		button.add_theme_stylebox_override("pressed", _make_color_style(color.darkened(0.08), true, false))
-		button.add_theme_stylebox_override("focus", _make_color_style(color, true, true))
-		button.pressed.connect(_select_color.bind(color_id))
-		color_grid.add_child(button)
+		button.pressed.connect(_toggle_spell_choice.bind(source_id, field_key, spell_id))
+		grid.add_child(button)
+
+
+func _toggle_spell_choice(source_id: String, field_key: String, spell_id: String) -> void:
+	var source: Dictionary = _spell_source(source_id)
+	if source.is_empty():
+		return
+	var profile: Dictionary = (
+		_spell_selection.get_class_profile(_selected_class_id)
+		if source_id == SpellSelectionSystem.SOURCE_CLASS
+		else _spell_selection.get_magic_initiate_profile(_selected_origin_feat_id())
+	)
+	var required: int = _spell_choice_count(profile, field_key)
+	var selected_ids: Array[String] = _creator_string_array(source.get(field_key, []))
+	if spell_id in selected_ids:
+		selected_ids.erase(spell_id)
+	elif selected_ids.size() < required:
+		selected_ids.append(spell_id)
+	source[field_key] = selected_ids
+	if field_key == SpellSelectionSystem.SPELL_IDS_KEY:
+		var prepared_count: int = maxi(int(profile.get("prepared_choice_count", profile.get("spell_choice_count", 0))), 0)
+		var spell_count: int = maxi(int(profile.get("spell_choice_count", 0)), 0)
+		if source_id == SpellSelectionSystem.SOURCE_MAGIC_INITIATE or prepared_count == spell_count:
+			source[SpellSelectionSystem.PREPARED_IDS_KEY] = selected_ids.duplicate()
+		else:
+			var prepared: Array[String] = _creator_string_array(source.get(SpellSelectionSystem.PREPARED_IDS_KEY, []))
+			for prepared_id: String in prepared.duplicate():
+				if prepared_id not in selected_ids:
+					prepared.erase(prepared_id)
+			source[SpellSelectionSystem.PREPARED_IDS_KEY] = prepared
+		if source_id == SpellSelectionSystem.SOURCE_MAGIC_INITIATE:
+			source[SpellSelectionSystem.ALWAYS_PREPARED_IDS_KEY] = selected_ids.duplicate()
+	_selected_spell_sources[source_id] = source
+	_show_step(6)
+
+
+func _on_magic_initiate_ability_selected(item_index: int, picker: OptionButton) -> void:
+	var source: Dictionary = _spell_source(SpellSelectionSystem.SOURCE_MAGIC_INITIATE)
+	if source.is_empty() or item_index < 0 or item_index >= picker.item_count:
+		return
+	source["ability_id"] = str(picker.get_item_metadata(item_index))
+	_selected_spell_sources[SpellSelectionSystem.SOURCE_MAGIC_INITIATE] = source
+	_show_step(6)
+
+
+func _spell_choice_count(profile: Dictionary, field_key: String) -> int:
+	match field_key:
+		SpellSelectionSystem.CANTRIP_IDS_KEY:
+			return maxi(int(profile.get("cantrip_choice_count", 0)), 0)
+		SpellSelectionSystem.SPELL_IDS_KEY:
+			return maxi(int(profile.get("spell_choice_count", 0)), 0)
+		SpellSelectionSystem.PREPARED_IDS_KEY:
+			return maxi(int(profile.get("prepared_choice_count", 0)), 0)
+	return 0
+
+
+func _ensure_spell_selection() -> void:
+	_selected_spell_sources = _spell_selection.reconcile_sources(
+		_selected_class_id,
+		_selected_origin_feat_id(),
+		_selected_spell_sources
+	)
+
+
+func _spell_selection_validation() -> Dictionary:
+	return _spell_selection.validate_sources(
+		_selected_class_id,
+		_selected_origin_feat_id(),
+		_selected_spell_sources
+	)
+
+
+func _is_spell_selection_valid() -> bool:
+	return bool(_spell_selection_validation().get("success", false))
+
+
+func _spell_source(source_id: String) -> Dictionary:
+	var value: Variant = _selected_spell_sources.get(source_id, {})
+	return (value as Dictionary).duplicate(true) if value is Dictionary else {}
+
+
+func _selected_origin_feat_id() -> String:
+	return str(_get_selected_background().get("origin_feat_id", ""))
+
+
+func _append_spell_selection_summary(container: VBoxContainer) -> void:
+	_ensure_spell_selection()
+	var summaries: Array[String] = _spell_selection.get_selection_summary(_selected_spell_sources)
+	if summaries.is_empty():
+		container.add_child(_make_label("Заклинания: нет выбора на 1 уровне", 18))
+		return
+	for summary: String in summaries:
+		container.add_child(_make_label(summary, 18))
+	var feat_source: Dictionary = _spell_source(SpellSelectionSystem.SOURCE_MAGIC_INITIATE)
+	if not feat_source.is_empty():
+		var ability_id: String = str(feat_source.get("ability_id", ""))
+		container.add_child(_make_label("Magic Initiate использует: %s" % str(ABILITY_NAMES.get(ability_id, ability_id)), 18))
 
 
 func _build_confirmation_step() -> void:
-	super._build_confirmation_step()
-	var selected_color: Dictionary = _get_selected_color()
-	var color_row: HBoxContainer = HBoxContainer.new()
-	color_row.add_theme_constant_override("separation", 14)
-	_content_container.add_child(color_row)
-
-	var swatch: ColorRect = ColorRect.new()
-	swatch.custom_minimum_size = Vector2(48.0, 48.0)
-	swatch.color = Color.from_string(str(selected_color.get("hex", PlayerCharacter.DEFAULT_APPEARANCE_COLOR_HEX)), Color(0.3, 0.64, 0.91, 1.0))
-	swatch.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	color_row.add_child(swatch)
-	color_row.add_child(_make_label("Выбранный цвет: %s" % str(selected_color.get("name", "Лазурный")), 19))
+	var selected_class: Dictionary = _get_selected_class()
+	var selected_race: Dictionary = _get_selected_race()
+	var selected_background: Dictionary = _get_selected_background()
+	var summary_panel: PanelContainer = PanelContainer.new()
+	_content_container.add_child(summary_panel)
+	var summary_margin: MarginContainer = MarginContainer.new()
+	summary_margin.add_theme_constant_override("margin_left", 26)
+	summary_margin.add_theme_constant_override("margin_top", 22)
+	summary_margin.add_theme_constant_override("margin_right", 26)
+	summary_margin.add_theme_constant_override("margin_bottom", 22)
+	summary_panel.add_child(summary_margin)
+	var summary: VBoxContainer = VBoxContainer.new()
+	summary.add_theme_constant_override("separation", 10)
+	summary_margin.add_child(summary)
+	summary.add_child(_make_label(_character_name, 30, Color(1.0, 0.82, 0.38, 1.0)))
+	summary.add_child(_make_label("Вид: %s" % str(selected_race.get("name", "Не выбран")), 21))
+	summary.add_child(_make_label("Происхождение: %s" % str(selected_background.get("name", "Не выбрано")), 21))
+	summary.add_child(_make_label("Класс: %s · уровень 1" % str(selected_class.get("name", "Не выбран")), 21))
+	var health: int = _calculate_starting_health(selected_class) + int(selected_race.get("hp_bonus_per_level", 0))
+	summary.add_child(_make_label("Здоровье: %d · скорость: %d футов · мастерство: +2" % [health, int(selected_race.get("speed_ft", 30))], 20))
+	summary.add_child(_make_label("Черта происхождения: %s" % str(selected_background.get("origin_feat_name", "—")), 18))
+	summary.add_child(_make_label("Навыки происхождения: %s" % _display_skill_ids(selected_background.get("skill_proficiencies", [])), 18))
+	_append_class_training_summary(summary, selected_class)
+	_append_spell_selection_summary(summary)
+	summary.add_child(_make_label("Языки: Общий, %s" % _display_language_ids(_selected_languages), 18))
+	var abilities_grid: GridContainer = GridContainer.new()
+	abilities_grid.columns = 3
+	abilities_grid.add_theme_constant_override("h_separation", 18)
+	abilities_grid.add_theme_constant_override("v_separation", 8)
+	summary.add_child(abilities_grid)
+	for ability_id: String in ABILITY_IDS:
+		var score: int = _score_with_origin_bonus(ability_id)
+		abilities_grid.add_child(_make_label(str(ABILITY_NAMES[ability_id]), 18))
+		var score_label: Label = _make_label(str(score), 20)
+		score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		abilities_grid.add_child(score_label)
+		var modifier_label: Label = _make_label(_format_modifier(PlayerCharacter.modifier_for_score(score)), 20, Color(0.72, 0.82, 1.0, 1.0))
+		modifier_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		abilities_grid.add_child(modifier_label)
+	_add_paragraph("После начала приключения имя, вид, происхождение, языки, характеристики, владения и класс будут записаны в сохранение.", Color(0.68, 0.73, 0.82, 1.0))
 
 
 func _finish_creation() -> void:
 	var selected_class: Dictionary = _get_selected_class()
-	if selected_class.is_empty():
-		_message_label.text = "Выберите класс персонажа."
+	var selected_race: Dictionary = _get_selected_race()
+	if (
+		selected_class.is_empty()
+		or selected_race.is_empty()
+		or not _is_origin_configuration_valid()
+		or not _is_class_skill_configuration_valid()
+		or not _is_spell_selection_valid()
+	):
+		_message_label.text = "Заполните вид, происхождение, языки, характеристики, класс, навыки и заклинания персонажа."
 		return
-
 	var character: PlayerCharacter = PlayerCharacter.new()
 	character.character_name = _character_name
 	character.character_class_id = _selected_class_id
 	character.character_class_name = str(selected_class.get("name", ""))
-	character.appearance_color_hex = str(_get_selected_color().get("hex", PlayerCharacter.DEFAULT_APPEARANCE_COLOR_HEX))
 	for ability_id: String in ABILITY_IDS:
-		character.abilities[ability_id] = _score_for_ability(ability_id)
-	character.maximum_health = _calculate_starting_health(selected_class)
+		var base_score: int = _score_for_ability(ability_id)
+		character.base_abilities[ability_id] = base_score
+		character.abilities[ability_id] = base_score
+	var origin_result: Dictionary = _origin_data.apply_background(
+		character,
+		_selected_background_id,
+		_background_ability_bonuses,
+		_selected_languages
+	)
+	if not bool(origin_result.get("success", false)):
+		_message_label.text = str(origin_result.get("message", "Не удалось применить происхождение."))
+		return
+	var class_result: Dictionary = _class_proficiencies.apply_class_proficiencies(
+		character,
+		selected_class,
+		_selected_class_skill_ids,
+		false
+	)
+	if not bool(class_result.get("success", false)):
+		_message_label.text = str(class_result.get("message", "Не удалось применить владения класса."))
+		return
+	var spell_result: Dictionary = _spell_selection.apply_sources(character, _selected_spell_sources)
+	if not bool(spell_result.get("success", false)):
+		_message_label.text = str(spell_result.get("message", "Не удалось сохранить выбор заклинаний."))
+		return
+	character.maximum_health = maxi(int(selected_class.get("hit_die", 8)) + character.get_ability_modifier("constitution"), 1)
 	character.current_health = character.maximum_health
-
+	_race_data.apply_race(character, _selected_race_id, false)
 	GameState.begin_new_game(character)
 	if not GameState.save_game():
 		_message_label.text = "Не удалось сохранить созданного персонажа."
@@ -104,30 +670,296 @@ func _finish_creation() -> void:
 	get_tree().change_scene_to_file(GAME_SCENE)
 
 
-func _select_color(color_id: String) -> void:
-	_selected_color_id = color_id
-	_show_step(0)
+func _select_race(race_id: String) -> void:
+	_selected_race_id = race_id
+	_show_step(1)
 
 
-func _get_selected_color() -> Dictionary:
-	for color_value: Variant in COLOR_OPTIONS:
-		var color_data: Dictionary = color_value as Dictionary
-		if str(color_data.get("id", "")) == _selected_color_id:
-			return color_data
-	return COLOR_OPTIONS[0] as Dictionary
+func _get_selected_race() -> Dictionary:
+	return _race_data.get_race(_selected_race_id)
 
 
-func _make_color_style(color: Color, selected: bool, hover: bool) -> StyleBoxFlat:
+func _select_background(background_id: String) -> void:
+	_selected_background_id = background_id
+	_background_ability_bonuses = _origin_data.default_ability_bonuses(background_id)
+	_selected_spell_sources.erase(SpellSelectionSystem.SOURCE_MAGIC_INITIATE)
+	if not _selected_class_id.is_empty():
+		_selected_class_skill_ids.clear()
+		_ensure_class_skill_selection()
+	_show_step(4)
+
+
+func _get_selected_background() -> Dictionary:
+	return _origin_data.get_background(_selected_background_id)
+
+
+func _cycle_background_bonus(ability_id: String) -> void:
+	var current: int = int(_background_ability_bonuses.get(ability_id, 0))
+	var updated: int = (current + 1) % 3
+	if updated == 0:
+		_background_ability_bonuses.erase(ability_id)
+	else:
+		_background_ability_bonuses[ability_id] = updated
+	_show_step(4)
+
+
+func _on_language_selected(item_index: int, slot_index: int) -> void:
+	if item_index < 0 or item_index >= _languages.size():
+		return
+	while _selected_languages.size() < 2:
+		_selected_languages.append("")
+	_selected_languages[slot_index] = str(_languages[item_index].get("id", ""))
+	_update_navigation()
+
+
+func _roll_next_ability_score() -> void:
+	if _rolls.size() >= 6:
+		return
+	var roll_data: Dictionary = _dice_roller.roll_ability_score()
+	_rolls.append(roll_data)
+	_scores.append(int(roll_data.get("total", 0)))
+	_show_step(2)
+
+
+func _reset_rolls() -> void:
+	_rolls.clear()
+	_scores.clear()
+	_assignments.clear()
+	_selected_score_index = -1
+	_selected_class_id = ""
+	_selected_class_skill_ids.clear()
+	_show_step(2)
+
+
+func _on_score_pressed(score_index: int) -> void:
+	if _is_score_assigned(score_index):
+		return
+	_selected_score_index = -1 if _selected_score_index == score_index else score_index
+	_show_step(3)
+
+
+func _on_ability_pressed(ability_id: String) -> void:
+	if _selected_score_index >= 0:
+		var previously_assigned_index: int = -1
+		if _assignments.has(ability_id):
+			previously_assigned_index = int(_assignments[ability_id])
+		_assignments[ability_id] = _selected_score_index
+		_selected_score_index = previously_assigned_index
+	elif _assignments.has(ability_id):
+		_selected_score_index = int(_assignments[ability_id])
+		_assignments.erase(ability_id)
+	_show_step(3)
+
+
+func _select_class(class_id: String) -> void:
+	if class_id != _selected_class_id:
+		_selected_class_skill_ids.clear()
+		_selected_spell_sources.erase(SpellSelectionSystem.SOURCE_CLASS)
+	_selected_class_id = class_id
+	_ensure_class_skill_selection()
+	_show_step(5)
+
+
+func _on_back_pressed() -> void:
+	if _current_step <= 0:
+		_return_to_menu()
+	else:
+		_show_step(_current_step - 1)
+
+
+func _on_next_pressed() -> void:
+	if not _can_continue_current_step():
+		_message_label.text = _validation_message_for_step()
+		return
+	if _current_step < CREATION_STEPS.size() - 1:
+		_show_step(_current_step + 1)
+	else:
+		_finish_creation()
+
+
+func _update_navigation() -> void:
+	_back_button.text = "В меню" if _current_step == 0 else "Назад"
+	_next_button.text = "Начать приключение" if _current_step == CREATION_STEPS.size() - 1 else "Продолжить"
+	_next_button.disabled = not _can_continue_current_step()
+
+
+func _can_continue_current_step() -> bool:
+	match _current_step:
+		0: return _is_name_valid()
+		1: return not _selected_race_id.is_empty()
+		2: return _rolls.size() == 6
+		3: return _assignments.size() == ABILITY_IDS.size()
+		4: return _is_origin_configuration_valid()
+		5: return not _selected_class_id.is_empty() and _is_class_skill_configuration_valid()
+		6: return _is_spell_selection_valid()
+		7: return _is_name_valid() and not _selected_race_id.is_empty() and _assignments.size() == ABILITY_IDS.size() and _is_origin_configuration_valid() and not _selected_class_id.is_empty() and _is_class_skill_configuration_valid() and _is_spell_selection_valid()
+	return false
+
+
+func _validation_message_for_step() -> String:
+	match _current_step:
+		0: return "Введите имя длиной от 2 до 20 символов."
+		1: return "Выберите вид персонажа."
+		2: return "Выполните все шесть бросков характеристик."
+		3: return "Распределите все шесть значений."
+		4:
+			var bonus_validation: Dictionary = _origin_data.validate_ability_bonuses(_selected_background_id, _background_ability_bonuses, _base_abilities_dict())
+			if not bool(bonus_validation.get("success", false)):
+				return str(bonus_validation.get("message", "Распределите бонусы происхождения."))
+			return str(_origin_data.validate_languages(_selected_languages).get("message", "Выберите два языка."))
+		5:
+			if _selected_class_id.is_empty():
+				return "Выберите класс персонажа."
+			return str(_class_skill_validation().get("message", "Выберите классовые навыки."))
+		6:
+			return str(_spell_selection_validation().get("message", "Завершите выбор заклинаний."))
+	return "Не все данные заполнены."
+
+
+func _is_origin_configuration_valid() -> bool:
+	return bool(_origin_data.validate_ability_bonuses(_selected_background_id, _background_ability_bonuses, _base_abilities_dict()).get("success", false)) and bool(_origin_data.validate_languages(_selected_languages).get("success", false))
+
+
+func _ensure_class_skill_selection() -> void:
+	var selected_class: Dictionary = _get_selected_class()
+	if selected_class.is_empty():
+		_selected_class_skill_ids.clear()
+		return
+	if _selected_class_skill_ids.is_empty():
+		_selected_class_skill_ids = _class_proficiencies.get_default_skill_choices(selected_class, _background_skill_ids())
+
+
+func _class_skill_validation() -> Dictionary:
+	return _class_proficiencies.validate_skill_choices(
+		_get_selected_class(),
+		_selected_class_skill_ids,
+		_background_skill_ids()
+	)
+
+
+func _is_class_skill_configuration_valid() -> bool:
+	return bool(_class_skill_validation().get("success", false))
+
+
+func _background_skill_ids() -> Array[String]:
+	var result: Array[String] = []
+	var selected_background: Dictionary = _get_selected_background()
+	var value: Variant = selected_background.get("skill_proficiencies", [])
+	if value is Array:
+		for skill_value: Variant in value:
+			var skill_id: String = str(skill_value)
+			if not skill_id.is_empty() and skill_id not in result:
+				result.append(skill_id)
+	return result
+
+
+func _base_abilities_dict() -> Dictionary:
+	var result: Dictionary = {}
+	for ability_id: String in ABILITY_IDS:
+		result[ability_id] = _score_for_ability(ability_id)
+	return result
+
+
+func _score_with_origin_bonus(ability_id: String) -> int:
+	return _score_for_ability(ability_id) + int(_background_ability_bonuses.get(ability_id, 0))
+
+
+func _calculate_starting_health(class_data: Dictionary) -> int:
+	if class_data.is_empty():
+		return 1
+	return maxi(int(class_data.get("hit_die", 8)) + PlayerCharacter.modifier_for_score(_score_with_origin_bonus("constitution")), 1)
+
+
+func _best_primary_score(class_data: Dictionary) -> int:
+	var best_score: int = 0
+	var primary_abilities: Variant = class_data.get("primary_abilities", [])
+	if primary_abilities is Array:
+		for ability_value: Variant in primary_abilities:
+			best_score = maxi(best_score, _score_with_origin_bonus(str(ability_value)))
+	return best_score
+
+
+func _display_skill_ids(value: Variant) -> String:
+	var names: Array[String] = []
+	if value is Array:
+		for item: Variant in value:
+			var skill_id: String = str(item)
+			names.append(str(SKILL_NAMES.get(skill_id, skill_id)))
+	return ", ".join(names)
+
+
+func _display_tool_ids(value: Variant) -> String:
+	var names: Array[String] = []
+	var tool_names: Dictionary = {
+		"calligraphers_supplies": "принадлежности каллиграфа",
+		"thieves_tools": "воровские инструменты",
+		"gaming_set_choice": "один игровой набор"
+	}
+	if value is Array:
+		for item: Variant in value:
+			var tool_id: String = str(item)
+			names.append(str(tool_names.get(tool_id, tool_id)))
+	return ", ".join(names)
+
+
+func _display_weapon_training(value: Variant) -> String:
+	var names: Array[String] = []
+	var training_names: Dictionary = {
+		ClassProficiencySystem.SIMPLE_WEAPONS: "простое оружие",
+		ClassProficiencySystem.MARTIAL_WEAPONS: "воинское оружие",
+		ClassProficiencySystem.MARTIAL_LIGHT_WEAPONS: "лёгкое воинское оружие",
+		ClassProficiencySystem.MARTIAL_FINESSE_OR_LIGHT_WEAPONS: "фехтовальное или лёгкое воинское оружие"
+	}
+	if value is Array:
+		for item: Variant in value:
+			var training_id: String = str(item)
+			names.append(str(training_names.get(training_id, training_id)))
+	return ", ".join(names) if not names.is_empty() else "нет"
+
+
+func _display_armor_training(value: Variant) -> String:
+	var names: Array[String] = []
+	var training_names: Dictionary = {
+		"light": "лёгкие доспехи",
+		"medium": "средние доспехи",
+		"heavy": "тяжёлые доспехи",
+		"shield": "щиты"
+	}
+	if value is Array:
+		for item: Variant in value:
+			var training_id: String = str(item)
+			names.append(str(training_names.get(training_id, training_id)))
+	return ", ".join(names) if not names.is_empty() else "нет"
+
+
+func _display_language_ids(language_ids: Array[String]) -> String:
+	var names: Array[String] = []
+	for language_id: String in language_ids:
+		for language: Dictionary in _languages:
+			if str(language.get("id", "")) == language_id:
+				names.append(str(language.get("name", language_id)))
+				break
+	return ", ".join(names)
+
+
+func _creator_string_array(value: Variant) -> Array[String]:
+	var result: Array[String] = []
+	if value is Array:
+		for item: Variant in value:
+			var text: String = str(item)
+			if not text.is_empty() and text not in result:
+				result.append(text)
+	return result
+
+
+func _make_race_style(color: Color, selected: bool, hover: bool) -> StyleBoxFlat:
 	var style: StyleBoxFlat = StyleBoxFlat.new()
 	style.bg_color = color.lightened(0.10) if hover else color
 	style.corner_radius_top_left = 10
 	style.corner_radius_top_right = 10
 	style.corner_radius_bottom_left = 10
 	style.corner_radius_bottom_right = 10
-	var border_width: int = 4 if selected else 1
-	style.border_width_left = border_width
-	style.border_width_top = border_width
-	style.border_width_right = border_width
-	style.border_width_bottom = border_width
+	var width: int = 4 if selected else 1
+	style.set_border_width_all(width)
 	style.border_color = Color.WHITE if selected else Color(1.0, 1.0, 1.0, 0.28)
 	return style

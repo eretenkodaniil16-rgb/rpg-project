@@ -1,0 +1,83 @@
+{
+  "ruleset_id": "srd_5_2_1",
+  "backgrounds": [
+    {
+      "id": "acolyte",
+      "name": "Послушник",
+      "description": "Годы служения при храме дали герою религиозные знания, понимание людей и основы божественной магии.",
+      "ability_options": ["intelligence", "wisdom", "charisma"],
+      "origin_feat_id": "magic_initiate_cleric",
+      "origin_feat_name": "Посвящённый в магию: жрец",
+      "skill_proficiencies": ["insight", "religion"],
+      "tool_proficiencies": ["calligraphers_supplies"],
+      "equipment_choice": "package_or_50_gp",
+      "equipment_package": [
+        {"item_id":"calligraphers_supplies","quantity":1},
+        {"item_id":"prayer_book","quantity":1},
+        {"item_id":"holy_symbol","quantity":1},
+        {"item_id":"parchment","quantity":10},
+        {"item_id":"robe","quantity":1},
+        {"item_id":"gold_coin","quantity":8}
+      ]
+    },
+    {
+      "id": "criminal",
+      "name": "Преступник",
+      "description": "Жизнь среди воров и взломщиков развила осторожность, ловкость рук и умение действовать незаметно.",
+      "ability_options": ["dexterity", "constitution", "intelligence"],
+      "origin_feat_id": "alert",
+      "origin_feat_name": "Бдительный",
+      "skill_proficiencies": ["sleight_of_hand", "stealth"],
+      "tool_proficiencies": ["thieves_tools"],
+      "equipment_choice": "package_or_50_gp",
+      "equipment_package": [
+        {"item_id":"dagger","quantity":2},
+        {"item_id":"thieves_tools","quantity":1},
+        {"item_id":"crowbar","quantity":1},
+        {"item_id":"pouch","quantity":2},
+        {"item_id":"travelers_clothes","quantity":1},
+        {"item_id":"gold_coin","quantity":16}
+      ]
+    },
+    {
+      "id": "sage",
+      "name": "Мудрец",
+      "description": "Долгие годы учёбы в библиотеках и монастырях дали знания истории, магии и исследовательскую дисциплину.",
+      "ability_options": ["constitution", "intelligence", "wisdom"],
+      "origin_feat_id": "magic_initiate_wizard",
+      "origin_feat_name": "Посвящённый в магию: волшебник",
+      "skill_proficiencies": ["arcana", "history"],
+      "tool_proficiencies": ["calligraphers_supplies"],
+      "equipment_choice": "package_or_50_gp",
+      "equipment_package": [
+        {"item_id":"quarterstaff","quantity":1},
+        {"item_id":"calligraphers_supplies","quantity":1},
+        {"item_id":"history_book","quantity":1},
+        {"item_id":"parchment","quantity":8},
+        {"item_id":"robe","quantity":1},
+        {"item_id":"gold_coin","quantity":8}
+      ]
+    },
+    {
+      "id": "soldier",
+      "name": "Солдат",
+      "description": "Военная подготовка развила физическую выносливость, дисциплину, атлетику и способность давить на противника.",
+      "ability_options": ["strength", "dexterity", "constitution"],
+      "origin_feat_id": "savage_attacker",
+      "origin_feat_name": "Свирепый атакующий",
+      "skill_proficiencies": ["athletics", "intimidation"],
+      "tool_proficiencies": ["gaming_set_choice"],
+      "equipment_choice": "package_or_50_gp",
+      "equipment_package": [
+        {"item_id":"spear","quantity":1},
+        {"item_id":"shortbow","quantity":1},
+        {"item_id":"arrow","quantity":20},
+        {"item_id":"gaming_set","quantity":1},
+        {"item_id":"healers_kit","quantity":1},
+        {"item_id":"quiver","quantity":1},
+        {"item_id":"travelers_clothes","quantity":1},
+        {"item_id":"gold_coin","quantity":14}
+      ]
+    }
+  ]
+}
