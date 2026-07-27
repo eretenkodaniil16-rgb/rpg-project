@@ -35,10 +35,10 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 
-	var panel: Node = game.find_child("AbilityPanel", true, false)
+	var panel: Node = game.find_child("PreparedActionPanel", true, false)
 	var dummy: Node = game.find_child("TrainingDummy", true, false)
 	if panel == null or dummy == null:
-		_fail("Ability panel or training dummy is missing.")
+		_fail("Prepared action panel or training dummy is missing.")
 		return
 	if not character.starter_loadout_granted:
 		_fail("Starter loadout was not granted.")
@@ -62,5 +62,5 @@ func _run() -> void:
 		_fail("Second Wind resource was not consumed.")
 		return
 
-	print("Ability panel smoke test passed.")
+	print("Prepared action panel smoke test passed.")
 	quit(0)
