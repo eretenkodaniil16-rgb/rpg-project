@@ -71,43 +71,52 @@ jobs:
 
   render-proxy-v06:
     if: github.event_name == 'pull_request' && github.head_ref == 'tools/blender-sprite-pilot'
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     timeout-minutes: 35
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download and verify Blender 5.2.0 LTS
-        shell: powershell
+      - name: Install headless render dependencies
         run: |
-          $ErrorActionPreference = "Stop"
-          $archive = Join-Path $env:RUNNER_TEMP "blender-5.2.0-windows-x64.zip"
-          $extract = Join-Path $env:RUNNER_TEMP "blender-5.2.0"
-          curl.exe -L --fail --retry 3 --output $archive `
-            "https://download.blender.org/release/Blender5.2/blender-5.2.0-windows-x64.zip"
-          $actual = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
-          $expected = "2d184b626c001692c362291911293b6a297179d618d95e9e9192c3a80318adc4"
-          if ($actual -ne $expected) {
-            throw "Blender archive SHA-256 mismatch: $actual"
-          }
-          Expand-Archive -LiteralPath $archive -DestinationPath $extract
-          $blender = Get-ChildItem -LiteralPath $extract -Filter "blender.exe" -File -Recurse |
-            Select-Object -First 1 -ExpandProperty FullName
-          if (-not $blender) {
-            throw "blender.exe was not found after extraction"
-          }
-          "BLENDER_EXE=$blender" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xvfb libgl1 libxi6 libxrender1 libxkbcommon-x11-0
 
-      - name: Run real Blender pilot through Windows launcher
+      - name: Download and verify Blender 5.2.0 LTS
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/blender-5.2.0-linux-x64.tar.xz"
+          extract="$RUNNER_TEMP/blender-5.2.0"
+          curl -L --fail --retry 3 --output "$archive" \
+            "https://download.blender.org/release/Blender5.2/blender-5.2.0-linux-x64.tar.xz"
+          actual="$(sha256sum "$archive" | cut -d' ' -f1)"
+          expected="96f6c181a30f4950607839dc84d42a354b250d8a0231b098b59b7bc69c351c48"
+          test "$actual" = "$expected"
+          mkdir -p "$extract"
+          tar -xJf "$archive" -C "$extract"
+          blender="$(find "$extract" -type f -name blender -perm -111 | head -n 1)"
+          test -n "$blender"
+          echo "BLENDER_EXE=$blender" >> "$GITHUB_ENV"
+
+      - name: Run real Blender 5.2 pilot
         id: blender-pilot
         continue-on-error: true
-        shell: cmd
+        shell: bash
         run: |
-          call 02_RUN_BLENDER_SPRITE_PILOT.cmd < nul > blender_pilot.log 2>&1
-          set PILOT_EXIT=%ERRORLEVEL%
-          type blender_pilot.log
-          exit /b %PILOT_EXIT%
+          set -o pipefail
+          run_id="${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}"
+          xvfb-run -a "$BLENDER_EXE" \
+            --background \
+            --factory-startup \
+            --python-exit-code 1 \
+            --python tools/blender_sprite_factory/blender_sprite_factory.py \
+            -- \
+            --repo-root "$GITHUB_WORKSPACE" \
+            --config tools/blender_sprite_factory/configs/human_warrior_m01.json \
+            --run-id "$run_id" \
+            --mode all 2>&1 | tee blender_pilot.log
 
       - name: Upload proxy v06 run and diagnostics
         if: always()
@@ -122,5 +131,6 @@ jobs:
 
       - name: Require successful Blender pilot
         if: steps.blender-pilot.outcome != 'success'
-        shell: powershell
-        run: throw "Blender sprite pilot failed; inspect blender_pilot.log in the uploaded artifact."
+        run: |
+          echo "Blender sprite pilot failed; inspect blender_pilot.log in the uploaded artifact."
+          exit 1
