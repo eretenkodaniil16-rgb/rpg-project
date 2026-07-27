@@ -64,6 +64,7 @@ class HeadProfileTests(unittest.TestCase):
             )
         }
         self.assertIn("hair_lock_crown_front", names)
+        self.assertIn("hair_crown_front_ridge", names)
         self.assertIn("hair_lock_front_center", names)
         self.assertIn("hair_lock_crown_back", names)
         self.assertIn("hair_crown_back_left", names)
@@ -87,6 +88,11 @@ class HeadProfileTests(unittest.TestCase):
             for part in profile.hair_back_masses
             if part.name == "hair_lock_crown_back"
         )
+        front_ridge = next(
+            part
+            for part in profile.hair_front_locks
+            if part.name == "hair_crown_front_ridge"
+        )
         front_top = front_crown.location[2] + front_crown.scale[2]
         back_top = back_crown.location[2] + back_crown.scale[2]
         self.assertGreaterEqual(back_top, front_top)
@@ -95,6 +101,11 @@ class HeadProfileTests(unittest.TestCase):
         self.assertGreaterEqual(back_crown.location[1], -0.01)
         cap_front = profile.hair_cap.location[1] - profile.hair_cap.scale[1]
         cap_back = profile.hair_cap.location[1] + profile.hair_cap.scale[1]
+        self.assertLessEqual(front_ridge.location[1], -0.40)
+        self.assertGreaterEqual(
+            front_ridge.location[1] + front_ridge.scale[1],
+            cap_front,
+        )
         self.assertGreaterEqual(
             front_crown.location[1] + front_crown.scale[1],
             cap_front,
@@ -148,10 +159,7 @@ class HeadProfileTests(unittest.TestCase):
             max(part.dimensions[0] for part in profile.brows),
             max(part.dimensions[0] for part in HUMAN_WARRIOR_M01_HEAD_V02.brows),
         )
-        self.assertLess(
-            profile.mouth.dimensions[0],
-            HUMAN_WARRIOR_M01_HEAD_V02.mouth.dimensions[0],
-        )
+        self.assertLess(profile.mouth.dimensions[0], HUMAN_WARRIOR_M01_HEAD_V02.mouth.dimensions[0])
 
     def test_unknown_character_cannot_reuse_head_identity_silently(self) -> None:
         with self.assertRaisesRegex(KeyError, "No head profile"):
