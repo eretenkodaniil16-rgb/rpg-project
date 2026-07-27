@@ -9,7 +9,15 @@ var _world_time: WorldTimeSystem = WorldTimeSystem.new()
 
 func use_self_ability(character: PlayerCharacter, ability: Dictionary, casting_context: Dictionary = {}) -> Dictionary:
 	var effect: String = str(ability.get("effect", ""))
-	if effect in ["utility_detect_magic", "utility_comprehend_languages"]:
+	if effect in [
+		"utility_detect_magic",
+		"utility_comprehend_languages",
+		"utility_speak_with_animals",
+		"utility_light",
+		"utility_prestidigitation",
+		"guidance",
+		"shield_of_faith"
+	]:
 		var state: Node = _get_game_state()
 		var current_minutes: int = _world_time.get_minutes(state)
 		return _spellcasting.cast_utility_spell(character, ability, current_minutes, false, casting_context)
@@ -36,6 +44,17 @@ func use_self_ability(character: PlayerCharacter, ability: Dictionary, casting_c
 			}
 		"heal_2d8_wisdom":
 			return _heal_with_dice(character, ability, 2, 8, character.get_ability_modifier("wisdom"), casting_context)
+		"heal_spell":
+			var healing_pair: Array[int] = _int_pair(ability.get("healing_dice", [2, 8]) as Array, [2, 8])
+			var spell_ability_id: String = _spellcasting.get_spellcasting_ability(character, ability, casting_context)
+			return _heal_with_dice(
+				character,
+				ability,
+				healing_pair[0],
+				healing_pair[1],
+				character.get_ability_modifier(spell_ability_id),
+				casting_context
+			)
 		"heal_1d10_level":
 			return _heal_with_dice(character, ability, 1, 10, character.level, casting_context)
 		"origin_heal":
@@ -118,7 +137,7 @@ func perform_offensive_ability(
 		result.damage_before_mitigation = result.damage
 		return result
 	if effect == "saving_throw_spell":
-		var ability_id_for_spell: String = _spellcasting.get_spellcasting_ability(character, ability)
+		var ability_id_for_spell: String = _spellcasting.get_spellcasting_ability(character, ability, attack_context)
 		if ability_id_for_spell.is_empty():
 			ability_id_for_spell = str(ability.get("ability", "charisma"))
 		var save_ability: String = str(ability.get("save_ability", "dexterity"))
@@ -136,7 +155,7 @@ func perform_offensive_ability(
 		result.note = "%s спасбросок: %d против Сл %d — %s." % [save_ability, result.total, spell_dc, "успех" if bool(save_result.get("success", false)) else "провал"]
 		return result
 
-	var ability_id: String = _spellcasting.get_spellcasting_ability(character, ability)
+	var ability_id: String = _spellcasting.get_spellcasting_ability(character, ability, attack_context)
 	if ability_id.is_empty():
 		ability_id = str(ability.get("ability", "charisma"))
 	result.ability_name = _ability_name(ability_id)
@@ -180,6 +199,16 @@ func perform_offensive_ability(
 	if result.hit:
 		result.damage = _roll_damage(dice_count * (2 if result.critical else 1), die_sides, damage_rolls_override)
 		result.damage_before_mitigation = result.damage
+		if defender_state != null:
+			var removed_condition: String = str(ability.get("on_hit_remove_condition", ""))
+			if not removed_condition.is_empty() and defender_state.remove_condition(removed_condition):
+				result.note = _append_note(result.note, "Состояние «%s» снято." % removed_condition)
+			var applied_condition: String = str(ability.get("on_hit_condition", ""))
+			if not applied_condition.is_empty() and defender_state.add_condition(
+				applied_condition,
+				maxi(int(ability.get("on_hit_condition_rounds", 1)), 1)
+			):
+				result.note = _append_note(result.note, "Цель получает состояние «%s»." % applied_condition)
 	if attacker_state != null:
 		attacker_state.hidden = false
 	return result
@@ -207,7 +236,7 @@ func perform_area_spell(
 	damage_dice = _spellcasting.scale_dice_for_slot(ability, damage_dice, slot_level, "damage")
 	var shared_damage: int = _roll_damage(damage_dice[0], damage_dice[1], damage_rolls_override)
 	shared_damage += _spellcasting.damage_bonus_for_slot(ability, slot_level)
-	var ability_id: String = _spellcasting.get_spellcasting_ability(character, ability)
+	var ability_id: String = _spellcasting.get_spellcasting_ability(character, ability, casting_context)
 	if ability_id.is_empty():
 		ability_id = str(ability.get("ability", "intelligence"))
 	var save_ability: String = str(ability.get("save_ability", "dexterity"))
@@ -263,7 +292,10 @@ func perform_area_spell(
 			spell_dc,
 			"успех" if successful_save else "провал"
 		]
-		resolutions.append({"target": target, "result": result, "save": save_result})
+		var push_feet: int = 0 if successful_save else maxi(int(ability.get("push_feet_on_failed_save", 0)), 0)
+		if push_feet > 0:
+			result.note = _append_note(result.note, "Цель отталкивается на %d футов." % push_feet)
+		resolutions.append({"target": target, "result": result, "save": save_result, "push_feet": push_feet})
 	return {
 		"success": true,
 		"message": "%s: область затронула целей — %d." % [str(ability.get("name", "Заклинание")), resolutions.size()],
@@ -408,3 +440,9 @@ func _failure(message: String) -> Dictionary:
 
 func _ability_name(ability_id: String) -> String:
 	return {"strength":"Сила", "dexterity":"Ловкость", "wisdom":"Мудрость", "intelligence":"Интеллект", "charisma":"Харизма", "constitution":"Телосложение"}.get(ability_id, ability_id)
+
+
+func _append_note(current: String, addition: String) -> String:
+	if current.is_empty():
+		return addition
+	return "%s %s" % [current, addition]

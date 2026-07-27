@@ -33,7 +33,13 @@ func evaluate_shield(character: PlayerCharacter, context: Dictionary) -> Diction
 	var requested_slot_level: int = maxi(int(context.get("slot_level", 0)), 0)
 	if not _spellcasting.can_cast_spell(character, spell, false, true, requested_slot_level, casting_context):
 		return _unavailable("Щит не подготовлен, нет ячейки или недоступны компоненты.")
-	var slot_level: int = _spellcasting.resolve_slot_level(character, spell, requested_slot_level)
+	var active_resource_key: String = _spellcasting.active_resource_key(character, spell, casting_context)
+	var special_resource: bool = _is_special_resource_key(active_resource_key)
+	var slot_level: int = (
+		maxi(int(spell.get("spell_level", 1)), 1)
+		if special_resource
+		else _spellcasting.resolve_slot_level(character, spell, requested_slot_level)
+	)
 	if slot_level <= 0:
 		return _unavailable("Нет доступной ячейки для Щита.")
 	var current_ac: int = maxi(int(context.get("current_ac", 0)), 0)
@@ -47,7 +53,7 @@ func evaluate_shield(character: PlayerCharacter, context: Dictionary) -> Diction
 		"available": true,
 		"spell": spell,
 		"slot_level": slot_level,
-		"resource_key": _spellcasting.slot_resource_key(character, slot_level),
+		"resource_key": active_resource_key,
 		"prevents_triggering_hit": prevents_hit,
 		"blocks_magic_missile": trigger_id == TRIGGER_MAGIC_MISSILE_TARGETED,
 		"armor_class_bonus": int(spell.get("armor_class_bonus", 5))
@@ -112,14 +118,20 @@ func evaluate_absorb_elements(character: PlayerCharacter, context: Dictionary) -
 	var requested_slot_level: int = maxi(int(context.get("slot_level", 0)), 0)
 	if not _spellcasting.can_cast_spell(character, spell, false, true, requested_slot_level, casting_context):
 		return _unavailable("Поглощение стихий не подготовлено, нет ячейки или недоступен соматический компонент.")
-	var slot_level: int = _spellcasting.resolve_slot_level(character, spell, requested_slot_level)
+	var active_resource_key: String = _spellcasting.active_resource_key(character, spell, casting_context)
+	var special_resource: bool = _is_special_resource_key(active_resource_key)
+	var slot_level: int = (
+		maxi(int(spell.get("spell_level", 1)), 1)
+		if special_resource
+		else _spellcasting.resolve_slot_level(character, spell, requested_slot_level)
+	)
 	if slot_level <= 0:
 		return _unavailable("Нет доступной ячейки для Поглощения стихий.")
 	return {
 		"available": true,
 		"spell": spell,
 		"slot_level": slot_level,
-		"resource_key": _spellcasting.slot_resource_key(character, slot_level),
+		"resource_key": active_resource_key,
 		"damage_type": damage_type,
 		"incoming_damage": incoming_damage,
 		"bonus_dice_count": maxi(slot_level, 1),
@@ -164,6 +176,15 @@ func _normalize_damage_type(value: String) -> String:
 		"электричество", "электрический", "молния": return "lightning"
 		"звук", "звуковой", "гром": return "thunder"
 		_: return normalized
+
+
+func _is_special_resource_key(resource_key: String) -> bool:
+	return (
+		not resource_key.is_empty()
+		and resource_key != "unlimited"
+		and not resource_key.begins_with("spell_slots_")
+		and not resource_key.begins_with("pact_slots_")
+	)
 
 
 func _unavailable(reason: String) -> Dictionary:

@@ -184,6 +184,7 @@ func _build_confirmation_step() -> void:
 	summary.add_child(_make_label("Здоровье: %d · скорость: %d футов" % [health, int(selected_race.get("speed_ft", 30))], 20))
 	summary.add_child(_make_label("Навыки происхождения: %s" % _display_skill_ids(selected_background.get("skill_proficiencies", [])), 18))
 	_append_class_training_summary(summary, selected_class)
+	_append_spell_selection_summary(summary)
 	summary.add_child(_make_label("Языки: Общий, %s" % _display_language_ids(_selected_languages), 18))
 	var abilities_grid: GridContainer = GridContainer.new()
 	abilities_grid.columns = 4

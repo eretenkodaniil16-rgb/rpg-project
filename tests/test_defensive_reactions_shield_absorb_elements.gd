@@ -149,8 +149,60 @@ func _run() -> void:
 	no_reaction_context["reaction_available"] = false
 	_expect(opportunities.collect_options(ReactionOpportunitySystem.TRIGGER_ATTACK_ROLL_HIT, no_reaction_context).is_empty(), "Shield was offered after the reaction was spent.")
 
+	var initiate := PlayerCharacter.new()
+	initiate.character_name = "Посвящённый защитник"
+	initiate.character_class_id = "fighter"
+	initiate.origin_feat_id = OriginFeatSystem.MAGIC_INITIATE_WIZARD_FEAT_ID
+	initiate.abilities["charisma"] = 16
+	initiate.base_abilities["charisma"] = 16
+	var selections := SpellSelectionSystem.new()
+	var initiate_sources: Dictionary = selections.create_default_sources(
+		"fighter",
+		OriginFeatSystem.MAGIC_INITIATE_WIZARD_FEAT_ID
+	)
+	var initiate_source: Dictionary = initiate_sources.get(SpellSelectionSystem.SOURCE_MAGIC_INITIATE, {}) as Dictionary
+	initiate_source["ability_id"] = "charisma"
+	initiate_source[SpellSelectionSystem.SPELL_IDS_KEY] = [DefensiveReactionSystem.SHIELD_SPELL_ID]
+	initiate_source[SpellSelectionSystem.PREPARED_IDS_KEY] = [DefensiveReactionSystem.SHIELD_SPELL_ID]
+	initiate_source[SpellSelectionSystem.ALWAYS_PREPARED_IDS_KEY] = [DefensiveReactionSystem.SHIELD_SPELL_ID]
+	initiate_sources[SpellSelectionSystem.SOURCE_MAGIC_INITIATE] = initiate_source
+	_expect(
+		bool(selections.apply_sources(initiate, initiate_sources).get("success", false)),
+		"Magic Initiate Shield source could not be applied."
+	)
+	OriginFeatSystem.new().initialize_character(initiate, true)
+	spellcasting.ensure_character(initiate, false)
+	var initiate_context: Dictionary = shield_context.duplicate(true)
+	initiate_context["reactor"] = initiate
+	initiate_context["casting_context"] = _base_casting_context("enemy:initiate")
+	var initiate_options: Array[Dictionary] = opportunities.collect_options(
+		ReactionOpportunitySystem.TRIGGER_ATTACK_ROLL_HIT,
+		initiate_context
+	)
+	_expect(initiate_options.size() == 1, "Magic Initiate Shield was not offered without class spell slots.")
+	if not initiate_options.is_empty():
+		var initiate_offer: Dictionary = initiate_options[0].get("offer", {}) as Dictionary
+		_expect(
+			str(initiate_offer.get("resource_key", "")) == "magic_initiate_wizard_1",
+			"Magic Initiate Shield did not advertise its free-use resource."
+		)
+	var initiate_result: Dictionary = opportunities.resolve_defensive_option(
+		ReactionOpportunitySystem.OPTION_SHIELD,
+		initiate_context
+	)
+	_expect(bool(initiate_result.get("resolved", false)), "Magic Initiate Shield did not resolve from its free use.")
+	_expect(
+		str(initiate_result.get("resource_key", "")) == "magic_initiate_wizard_1",
+		"Magic Initiate Shield spent the wrong resource."
+	)
+	_expect(initiate.get_resource("magic_initiate_wizard_1") == 0, "Magic Initiate Shield did not consume its free use.")
+	_expect(
+		opportunities.collect_options(ReactionOpportunitySystem.TRIGGER_ATTACK_ROLL_HIT, initiate_context).is_empty(),
+		"Magic Initiate Shield remained available without a free use or class spell slot."
+	)
+
 	if _failed:
 		quit(1)
 		return
-	print("Shield and Absorb Elements obey preparation, components, slots, triggers, +5 AC, Magic Missile immunity, elemental filtering, and upcasting.")
+	print("Shield and Absorb Elements obey preparation, source resources, components, slots, triggers, +5 AC, Magic Missile immunity, elemental filtering, and upcasting.")
 	quit(0)

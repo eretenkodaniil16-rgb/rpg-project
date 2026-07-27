@@ -37,10 +37,11 @@ func ensure_starting_loadout(character: PlayerCharacter) -> bool:
 	if character.starter_loadout_granted:
 		_origin_feats.initialize_character(character, false)
 		var spell_migrated: bool = _spellcasting.ensure_character(character, false)
+		var signature_migrated: bool = _ensure_known_signature_ability(character)
 		var equipment_migrated: bool = _grant_origin_equipment(character, state)
-		if proficiencies_migrated or spell_migrated or equipment_migrated:
+		if proficiencies_migrated or spell_migrated or signature_migrated or equipment_migrated:
 			state.call("save_game")
-		return proficiencies_migrated or spell_migrated or equipment_migrated
+		return proficiencies_migrated or spell_migrated or signature_migrated or equipment_migrated
 	var items_value: Variant = class_data.get("starting_items", {})
 	if items_value is Dictionary:
 		for item_id_value: Variant in (items_value as Dictionary).keys():
@@ -60,6 +61,7 @@ func ensure_starting_loadout(character: PlayerCharacter) -> bool:
 	_initialize_signature_resource(character)
 	_origin_feats.initialize_character(character, true)
 	_spellcasting.ensure_character(character, true)
+	_ensure_known_signature_ability(character)
 	_grant_origin_equipment(character, state)
 	if character.character_class_id == "rogue":
 		character.active_effects["sneak_attack_ready"] = true
@@ -71,6 +73,20 @@ func ensure_starting_loadout(character: PlayerCharacter) -> bool:
 func get_class_definition(class_id: String) -> Dictionary:
 	var value: Variant = _classes.get(class_id, {})
 	return (value as Dictionary).duplicate(true) if value is Dictionary else {}
+
+
+func _ensure_known_signature_ability(character: PlayerCharacter) -> bool:
+	if character == null:
+		return false
+	var configured: Dictionary = get_ability_definition(character.signature_ability_id)
+	if configured.is_empty() or not _spellcasting.is_spell_definition(configured) or character.signature_ability_id in character.known_features:
+		return false
+	for spell_id: String in _spellcasting.get_known_spell_ids(character):
+		var spell: Dictionary = get_ability_definition(spell_id)
+		if str(spell.get("kind", "")) == "active":
+			character.signature_ability_id = spell_id
+			return true
+	return false
 
 
 func get_movement_traits(character: PlayerCharacter) -> Array[String]:
@@ -219,6 +235,8 @@ func get_armor_class(character: PlayerCharacter) -> int:
 			armor_class += 1
 	if not shield.is_empty() and character.has_armor_training("shield"):
 		armor_class += int(shield.get("ac_bonus", 2))
+	if bool(character.active_effects.get(SpellcastingSystem.SHIELD_OF_FAITH_ACTIVE_KEY, false)):
+		armor_class += 2
 	return maxi(armor_class, 0)
 
 

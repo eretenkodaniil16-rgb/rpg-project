@@ -30,6 +30,7 @@ func _run() -> void:
 	bard.level = 1
 	bard.abilities["charisma"] = 16
 	bard.base_abilities["charisma"] = 16
+	bard.known_features.append(ViciousMockerySystem.SPELL_ID)
 	var target_state := CombatantState.new()
 
 	var definition: Dictionary = system.get_definition()

@@ -5,11 +5,15 @@ on:
     paths:
       - "data/abilities/abilities.json"
       - "data/classes/classes.json"
+      - "data/rules/spell_selection.json"
       - "scenes/game/game.tscn"
       - "scripts/game/game_defensive_reactions_runtime.gd"
       - "scripts/game/game_defensive_reactions_complete_runtime.gd"
       - "scripts/systems/defensive_reaction_system.gd"
+      - "scripts/systems/origin_feat_system.gd"
       - "scripts/systems/reaction_opportunity_system.gd"
+      - "scripts/systems/spell_selection_system.gd"
+      - "scripts/systems/spellcasting_system.gd"
       - "tests/test_defensive_reactions_shield_absorb_elements.gd"
       - "tests/smoke_defensive_reactions_runtime.gd"
       - "tests/smoke_spell_reaction_prompt.gd"
@@ -18,14 +22,19 @@ on:
   push:
     branches:
       - feature/defensive-reactions-shield-absorb-elements
+      - feature/spell-selection-sources
     paths:
       - "data/abilities/abilities.json"
       - "data/classes/classes.json"
+      - "data/rules/spell_selection.json"
       - "scenes/game/game.tscn"
       - "scripts/game/game_defensive_reactions_runtime.gd"
       - "scripts/game/game_defensive_reactions_complete_runtime.gd"
       - "scripts/systems/defensive_reaction_system.gd"
+      - "scripts/systems/origin_feat_system.gd"
       - "scripts/systems/reaction_opportunity_system.gd"
+      - "scripts/systems/spell_selection_system.gd"
+      - "scripts/systems/spellcasting_system.gd"
       - "tests/test_defensive_reactions_shield_absorb_elements.gd"
       - "tests/smoke_defensive_reactions_runtime.gd"
       - "tests/smoke_spell_reaction_prompt.gd"

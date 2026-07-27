@@ -43,6 +43,8 @@ func validate_cast(
 		return _failure("Заклинатель не определён.")
 	if character.character_class_id != "bard":
 		return _failure("Злая насмешка доступна Барду.")
+	if SPELL_ID not in character.known_features:
+		return _failure("Злая насмешка не выбрана среди заговоров Барда.")
 	if maxi(distance_feet, 0) > RANGE_FEET:
 		return _failure("Цель находится дальше 60 футов.")
 	if not can_see_or_hear_target:
