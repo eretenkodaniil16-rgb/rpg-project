@@ -1,24 +1,31 @@
 extends SceneTree
 
+
 func _init() -> void:
 	call_deferred("_run")
+
 
 func _fail(message: String) -> void:
 	push_error(message)
 	quit(1)
 
+
 func _run() -> void:
-	GameState.new_game()
+	var game_state: Node = root.get_node_or_null("GameState")
+	if game_state == null:
+		_fail("GameState autoload is unavailable.")
+		return
+	game_state.call("new_game")
 	var hero := PlayerCharacter.new()
 	hero.character_name = "Тестовый герой"
 	hero.character_class_id = "paladin"
 	hero.character_class_name = "Паладин"
 	hero.maximum_health = 12
 	hero.current_health = 12
-	GameState.player_character = hero
+	game_state.set("player_character", hero)
 	var class_data := ClassDataSystem.new()
 	class_data.ensure_starting_loadout(hero)
-	GameState.set_flag("prepared_ability_id", "lay_on_hands")
+	game_state.call("set_flag", "prepared_ability_id", "lay_on_hands")
 
 	var host := Control.new()
 	host.size = Vector2(1280.0, 720.0)
@@ -46,7 +53,8 @@ func _run() -> void:
 		return
 
 	var test_weapon: Dictionary = {}
-	for value: Variant in GameState.get_inventory_entries():
+	var inventory_entries: Array = game_state.call("get_inventory_entries") as Array
+	for value: Variant in inventory_entries:
 		if value is Dictionary and str((value as Dictionary).get("id", "")) == "javelin":
 			test_weapon = value as Dictionary
 			break
