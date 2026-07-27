@@ -12,10 +12,17 @@ const CONCENTRATION_STATE_KEY: String = "_concentration_spell_id"
 
 const DETECT_MAGIC_UNTIL_KEY: String = "detect_magic_until_minute"
 const COMPREHEND_LANGUAGES_UNTIL_KEY: String = "comprehend_languages_until_minute"
+const SPEAK_WITH_ANIMALS_UNTIL_KEY: String = "speak_with_animals_until_minute"
+const LIGHT_UNTIL_KEY: String = "light_until_minute"
+const GUIDANCE_UNTIL_KEY: String = "guidance_until_minute"
+const GUIDANCE_ACTIVE_KEY: String = "guidance_active"
+const SHIELD_OF_FAITH_UNTIL_KEY: String = "shield_of_faith_until_minute"
+const SHIELD_OF_FAITH_ACTIVE_KEY: String = "shield_of_faith_active"
 
 var _abilities: Dictionary = {}
 var _classes: Dictionary = {}
 var _progression: SpellcastingProgressionSystem = SpellcastingProgressionSystem.new()
+var _selection: SpellSelectionSystem = SpellSelectionSystem.new()
 
 
 func _init() -> void:
@@ -26,7 +33,7 @@ func ensure_character(character: PlayerCharacter, refill_slots: bool = false) ->
 	if character == null:
 		return false
 	var profile: Dictionary = get_spellcasting_profile(character.character_class_id)
-	var changed: bool = false
+	var changed: bool = _selection.ensure_character(character)
 	if not profile.is_empty():
 		var ability_id: String = str(profile.get("ability", ""))
 		if str(character.class_resources.get(SPELLCASTING_ABILITY_STATE_KEY, "")) != ability_id:
@@ -37,8 +44,6 @@ func ensure_character(character: PlayerCharacter, refill_slots: bool = false) ->
 		if int(character.class_resources.get(PREPARED_LIMIT_STATE_KEY, -1)) != prepared_limit:
 			character.class_resources[PREPARED_LIMIT_STATE_KEY] = prepared_limit
 			changed = true
-		for spell_id: String in _string_array(profile.get("starting_spells", [])):
-			changed = _append_unique(character.known_features, spell_id) or changed
 		var level_spells_value: Variant = profile.get("level_spells", {})
 		if level_spells_value is Dictionary:
 			for required_level_value: Variant in (level_spells_value as Dictionary).keys():
@@ -50,7 +55,7 @@ func ensure_character(character: PlayerCharacter, refill_slots: bool = false) ->
 		var had_prepared_state: bool = character.class_resources.has(PREPARED_SPELLS_STATE_KEY)
 		var profile_prepared: Array[String] = get_prepared_spell_ids(character)
 		if not had_prepared_state:
-			for spell_id: String in _string_array(profile.get("starting_prepared", [])):
+			for spell_id: String in _selection.get_initial_prepared_spell_ids(character):
 				if spell_id not in profile_prepared:
 					profile_prepared.append(spell_id)
 					changed = true
@@ -60,7 +65,10 @@ func ensure_character(character: PlayerCharacter, refill_slots: bool = false) ->
 		changed = _sync_slot_resources(character, profile, maximums, refill_slots) or changed
 	for feature_id: String in character.known_features.duplicate():
 		var spell: Dictionary = get_spell_definition(feature_id)
-		if spell.is_empty() or not bool(spell.get("always_prepared", false)):
+		if spell.is_empty() or (
+			not bool(spell.get("always_prepared", false))
+			and not _selection.is_source_always_prepared(character, feature_id)
+		):
 			continue
 		var always_prepared_ids: Array[String] = get_prepared_spell_ids(character)
 		if feature_id not in always_prepared_ids:
@@ -116,8 +124,10 @@ func is_spell_definition(definition: Dictionary) -> bool:
 	if bool(definition.get("is_spell", false)):
 		return true
 	return str(definition.get("effect", "")) in [
-		"spell_attack", "saving_throw_spell", "auto_hit_spell", "heal_2d8_wisdom",
-		"origin_heal", "hunters_mark", "utility_detect_magic", "utility_comprehend_languages"
+		"spell_attack", "saving_throw_spell", "auto_hit_spell", "heal_2d8_wisdom", "heal_spell",
+		"origin_heal", "hunters_mark", "utility_detect_magic", "utility_comprehend_languages",
+		"utility_speak_with_animals", "utility_light", "utility_prestidigitation", "guidance",
+		"shield_of_faith", "area_saving_throw_spell", "vicious_mockery"
 	]
 
 
@@ -141,35 +151,54 @@ func get_prepared_limit(character: PlayerCharacter) -> int:
 	return 0 if character == null else maxi(int(character.class_resources.get(PREPARED_LIMIT_STATE_KEY, 0)), 0)
 
 
-func get_spellcasting_ability(character: PlayerCharacter, spell: Dictionary = {}) -> String:
+func is_always_prepared(character: PlayerCharacter, spell_id: String) -> bool:
+	var spell: Dictionary = get_spell_definition(spell_id)
+	if character == null or spell.is_empty():
+		return false
+	return (
+		int(spell.get("spell_level", 0)) == 0
+		or bool(spell.get("always_prepared", false))
+		or _selection.is_source_always_prepared(character, spell_id)
+	)
+
+
+func get_spellcasting_ability(character: PlayerCharacter, spell: Dictionary = {}, casting_context: Dictionary = {}) -> String:
+	if character != null and not spell.is_empty():
+		var source_ability: String = _selection.get_spellcasting_ability(
+			character,
+			str(spell.get("id", "")),
+			str(casting_context.get("spell_source_id", ""))
+		)
+		if not source_ability.is_empty():
+			return source_ability
 	if not spell.is_empty() and not str(spell.get("ability", "")).is_empty():
 		return str(spell.get("ability", ""))
 	return "" if character == null else str(character.class_resources.get(SPELLCASTING_ABILITY_STATE_KEY, ""))
 
 
-func get_spell_attack_bonus(character: PlayerCharacter, spell: Dictionary = {}) -> int:
+func get_spell_attack_bonus(character: PlayerCharacter, spell: Dictionary = {}, casting_context: Dictionary = {}) -> int:
 	if character == null:
 		return 0
-	var ability_id: String = get_spellcasting_ability(character, spell)
+	var ability_id: String = get_spellcasting_ability(character, spell, casting_context)
 	return character.get_proficiency_bonus() + character.get_ability_modifier(ability_id)
 
 
-func get_spell_save_dc(character: PlayerCharacter, spell: Dictionary = {}) -> int:
-	return 8 + get_spell_attack_bonus(character, spell)
+func get_spell_save_dc(character: PlayerCharacter, spell: Dictionary = {}, casting_context: Dictionary = {}) -> int:
+	return 8 + get_spell_attack_bonus(character, spell, casting_context)
 
 
 func is_prepared(character: PlayerCharacter, spell_id: String) -> bool:
 	var spell: Dictionary = get_spell_definition(spell_id)
 	if character == null or spell.is_empty() or spell_id not in get_known_spell_ids(character):
 		return false
-	return int(spell.get("spell_level", 0)) == 0 or bool(spell.get("always_prepared", false)) or spell_id in get_prepared_spell_ids(character)
+	return is_always_prepared(character, spell_id) or spell_id in get_prepared_spell_ids(character)
 
 
 func prepare_spell(character: PlayerCharacter, spell_id: String) -> Dictionary:
 	var spell: Dictionary = get_spell_definition(spell_id)
 	if character == null or spell.is_empty() or spell_id not in get_known_spell_ids(character):
 		return _failure("Заклинание не изучено.")
-	if int(spell.get("spell_level", 0)) == 0 or bool(spell.get("always_prepared", false)):
+	if is_always_prepared(character, spell_id):
 		return _success("Это заклинание всегда подготовлено.")
 	var prepared: Array[String] = get_prepared_spell_ids(character)
 	if spell_id in prepared:
@@ -187,7 +216,7 @@ func unprepare_spell(character: PlayerCharacter, spell_id: String) -> Dictionary
 	var spell: Dictionary = get_spell_definition(spell_id)
 	if character == null or spell.is_empty():
 		return _failure("Заклинание не найдено.")
-	if int(spell.get("spell_level", 0)) == 0 or bool(spell.get("always_prepared", false)):
+	if is_always_prepared(character, spell_id):
 		return _failure("Это заклинание нельзя снять с подготовки.")
 	var prepared: Array[String] = get_prepared_spell_ids(character)
 	if spell_id not in prepared:
@@ -214,30 +243,45 @@ func can_cast_spell(character: PlayerCharacter, spell: Dictionary, as_ritual: bo
 		return false
 	if level == 0:
 		return true
-	var special_key: String = _available_special_resource_key(character, spell)
+	var special_key: String = _available_special_resource_key(character, spell, casting_context)
 	if not special_key.is_empty():
 		return true
-	if _has_special_resource_contract(spell) and str(spell.get("fallback_resource_key", "")).is_empty():
+	var resource_contract: Dictionary = _resource_contract(character, spell, casting_context)
+	if _has_special_resource_contract(character, spell, casting_context) and str(resource_contract.get("fallback_resource_key", "")).is_empty():
 		return false
 	if _turn_slot_rule_blocked(character, casting_context):
 		return false
-	return resolve_slot_level(character, spell, slot_level) > 0
+	if resolve_slot_level(character, spell, slot_level) > 0:
+		return true
+	var fallback_key: String = _mapped_resource_key(
+		character,
+		str(resource_contract.get("fallback_resource_key", ""))
+	)
+	return (
+		not fallback_key.is_empty()
+		and _resource_level(fallback_key, level) >= level
+		and character.get_resource(fallback_key) > 0
+	)
 
 
 func consume_spell_cost(character: PlayerCharacter, spell: Dictionary, slot_level: int = 0) -> bool:
 	return bool(consume_spell_cost_detailed(character, spell, slot_level).get("success", false))
 
 
-func active_resource_key(character: PlayerCharacter, spell: Dictionary) -> String:
+func active_resource_key(character: PlayerCharacter, spell: Dictionary, casting_context: Dictionary = {}) -> String:
 	if character == null or spell.is_empty():
 		return ""
 	var level: int = maxi(int(spell.get("spell_level", 0)), 0)
 	if level == 0:
 		return "unlimited"
-	var special_key: String = _available_special_resource_key(character, spell)
+	var special_key: String = _available_special_resource_key(character, spell, casting_context)
 	if not special_key.is_empty():
 		return special_key
-	var selected_level: int = resolve_slot_level(character, spell, 0)
+	var selected_level: int = resolve_slot_level(
+		character,
+		spell,
+		maxi(int(casting_context.get("slot_level", 0)), 0)
+	)
 	return slot_resource_key(character, selected_level if selected_level > 0 else level)
 
 
@@ -292,18 +336,37 @@ func consume_spell_cost_detailed(character: PlayerCharacter, spell: Dictionary, 
 	var level: int = maxi(int(spell.get("spell_level", 0)), 0)
 	if level == 0:
 		return {"success": true, "message": "Заговор не расходует ячейку.", "slot_level": 0, "resource_key": "unlimited", "expended_slot": false}
-	var special_key: String = _available_special_resource_key(character, spell)
+	var special_key: String = _available_special_resource_key(character, spell, casting_context)
 	if not special_key.is_empty():
 		if not character.consume_resource(special_key, 1):
 			return _failure("Не удалось израсходовать бесплатное применение.")
 		return {"success": true, "message": "Использовано специальное применение.", "slot_level": level, "resource_key": special_key, "expended_slot": false}
-	if _has_special_resource_contract(spell) and str(spell.get("fallback_resource_key", "")).is_empty():
+	var resource_contract: Dictionary = _resource_contract(character, spell, casting_context)
+	if _has_special_resource_contract(character, spell, casting_context) and str(resource_contract.get("fallback_resource_key", "")).is_empty():
 		return _failure("Специальные применения закончились.")
 	if _turn_slot_rule_blocked(character, casting_context):
 		return _failure("На этом ходу уже была потрачена ячейка на другое заклинание.")
 	var selected_level: int = resolve_slot_level(character, spell, slot_level)
 	if selected_level <= 0:
-		return _failure("Нет доступной ячейки подходящего уровня.")
+		var fallback_key: String = _mapped_resource_key(
+			character,
+			str(resource_contract.get("fallback_resource_key", ""))
+		)
+		if fallback_key.is_empty() or character.get_resource(fallback_key) <= 0:
+			return _failure("Нет доступной ячейки подходящего уровня.")
+		var fallback_level: int = _resource_level(fallback_key, level)
+		if fallback_level < level:
+			return _failure("Резервная ячейка имеет слишком низкий уровень.")
+		if not character.consume_resource(fallback_key, 1):
+			return _failure("Не удалось израсходовать резервную ячейку.")
+		_mark_slot_expended(character, casting_context)
+		return {
+			"success": true,
+			"message": "Израсходована ячейка %d уровня." % fallback_level,
+			"slot_level": fallback_level,
+			"resource_key": fallback_key,
+			"expended_slot": true
+		}
 	var resource_key: String = slot_resource_key(character, selected_level)
 	if not character.consume_resource(resource_key, 1):
 		return _failure("Не удалось израсходовать выбранную ячейку.")
@@ -458,15 +521,32 @@ func _clear_concentration_bound_effect(character: PlayerCharacter, spell_id: Str
 			character.active_effects.erase(DETECT_MAGIC_UNTIL_KEY)
 		"hunters_mark":
 			character.active_effects.erase("hunters_mark_hits")
+		"guidance":
+			character.active_effects.erase(GUIDANCE_ACTIVE_KEY)
+			character.active_effects.erase(GUIDANCE_UNTIL_KEY)
+		"shield_of_faith":
+			character.active_effects.erase(SHIELD_OF_FAITH_ACTIVE_KEY)
+			character.active_effects.erase(SHIELD_OF_FAITH_UNTIL_KEY)
 
 
 func cleanup_expired_effects(character: PlayerCharacter, current_world_minutes: int) -> void:
 	if character == null:
 		return
-	for key: String in [DETECT_MAGIC_UNTIL_KEY, COMPREHEND_LANGUAGES_UNTIL_KEY]:
+	for key: String in [
+		DETECT_MAGIC_UNTIL_KEY,
+		COMPREHEND_LANGUAGES_UNTIL_KEY,
+		SPEAK_WITH_ANIMALS_UNTIL_KEY,
+		LIGHT_UNTIL_KEY,
+		GUIDANCE_UNTIL_KEY,
+		SHIELD_OF_FAITH_UNTIL_KEY
+	]:
 		if int(character.active_effects.get(key, -1)) >= 0 and int(character.active_effects.get(key, -1)) <= current_world_minutes:
 			character.active_effects.erase(key)
 	if get_concentration_spell_id(character) == "detect_magic" and not has_detect_magic(character, current_world_minutes):
+		end_concentration(character)
+	if get_concentration_spell_id(character) == "guidance" and not has_guidance(character, current_world_minutes):
+		end_concentration(character)
+	if get_concentration_spell_id(character) == "shield_of_faith" and not has_shield_of_faith(character, current_world_minutes):
 		end_concentration(character)
 
 
@@ -476,6 +556,26 @@ func has_detect_magic(character: PlayerCharacter, current_world_minutes: int) ->
 
 func comprehends_all_languages(character: PlayerCharacter, current_world_minutes: int) -> bool:
 	return character != null and int(character.active_effects.get(COMPREHEND_LANGUAGES_UNTIL_KEY, -1)) > current_world_minutes
+
+
+func speaks_with_animals(character: PlayerCharacter, current_world_minutes: int) -> bool:
+	return character != null and int(character.active_effects.get(SPEAK_WITH_ANIMALS_UNTIL_KEY, -1)) > current_world_minutes
+
+
+func has_light(character: PlayerCharacter, current_world_minutes: int) -> bool:
+	return character != null and int(character.active_effects.get(LIGHT_UNTIL_KEY, -1)) > current_world_minutes
+
+
+func has_guidance(character: PlayerCharacter, current_world_minutes: int = -1) -> bool:
+	if character == null or not bool(character.active_effects.get(GUIDANCE_ACTIVE_KEY, false)):
+		return false
+	return current_world_minutes < 0 or int(character.active_effects.get(GUIDANCE_UNTIL_KEY, -1)) > current_world_minutes
+
+
+func has_shield_of_faith(character: PlayerCharacter, current_world_minutes: int = -1) -> bool:
+	if character == null or not bool(character.active_effects.get(SHIELD_OF_FAITH_ACTIVE_KEY, false)):
+		return false
+	return current_world_minutes < 0 or int(character.active_effects.get(SHIELD_OF_FAITH_UNTIL_KEY, -1)) > current_world_minutes
 
 
 func describe_spell(character: PlayerCharacter, spell: Dictionary) -> String:
@@ -518,6 +618,22 @@ func _apply_utility_effect(character: PlayerCharacter, spell: Dictionary, effect
 		"utility_comprehend_languages":
 			character.active_effects[COMPREHEND_LANGUAGES_UNTIL_KEY] = effect_start_minute + duration_minutes
 			return _success("Понимание языков активно на %d мин. Персонаж понимает буквальный смысл известных языковых форм." % duration_minutes)
+		"utility_speak_with_animals":
+			character.active_effects[SPEAK_WITH_ANIMALS_UNTIL_KEY] = effect_start_minute + duration_minutes
+			return _success("Разговор с животными доступен на %d мин." % duration_minutes)
+		"utility_light":
+			character.active_effects[LIGHT_UNTIL_KEY] = effect_start_minute + duration_minutes
+			return _success("Магический свет активен на %d мин." % duration_minutes)
+		"utility_prestidigitation":
+			return _success("Создан небольшой безвредный магический эффект.")
+		"guidance":
+			character.active_effects[GUIDANCE_ACTIVE_KEY] = true
+			character.active_effects[GUIDANCE_UNTIL_KEY] = effect_start_minute + duration_minutes
+			return _success("Следующая проверка навыка получит 1к4. Указание требует концентрации.")
+		"shield_of_faith":
+			character.active_effects[SHIELD_OF_FAITH_ACTIVE_KEY] = true
+			character.active_effects[SHIELD_OF_FAITH_UNTIL_KEY] = effect_start_minute + duration_minutes
+			return _success("Щит веры даёт +2 к КД на %d мин. и требует концентрации." % duration_minutes)
 		_:
 			return _failure("Для этого ритуального эффекта ещё не создан исполнитель.")
 
@@ -594,15 +710,34 @@ func _sync_pact_slot_resources(character: PlayerCharacter, profile: Dictionary, 
 	return changed
 
 
-func _has_special_resource_contract(spell: Dictionary) -> bool:
-	var resource_key: String = str(spell.get("resource_key", ""))
-	return not resource_key.is_empty() and resource_key != "unlimited" and not resource_key.begins_with("spell_slots_")
+func _resource_contract(character: PlayerCharacter, spell: Dictionary, casting_context: Dictionary = {}) -> Dictionary:
+	var selected_contract: Dictionary = _selection.get_resource_contract(
+		character,
+		str(spell.get("id", "")),
+		str(casting_context.get("spell_source_id", ""))
+	)
+	if not selected_contract.is_empty():
+		return selected_contract
+	return {
+		"resource_key": str(spell.get("resource_key", "")),
+		"fallback_resource_key": str(spell.get("fallback_resource_key", ""))
+	}
 
 
-func _available_special_resource_key(character: PlayerCharacter, spell: Dictionary) -> String:
-	if not _has_special_resource_contract(spell):
+func _has_special_resource_contract(character: PlayerCharacter, spell: Dictionary, casting_context: Dictionary = {}) -> bool:
+	var resource_key: String = str(_resource_contract(character, spell, casting_context).get("resource_key", ""))
+	return (
+		not resource_key.is_empty()
+		and resource_key != "unlimited"
+		and not resource_key.begins_with("spell_slots_")
+		and not resource_key.begins_with("pact_slots_")
+	)
+
+
+func _available_special_resource_key(character: PlayerCharacter, spell: Dictionary, casting_context: Dictionary = {}) -> String:
+	if not _has_special_resource_contract(character, spell, casting_context):
 		return ""
-	var resource_key: String = str(spell.get("resource_key", ""))
+	var resource_key: String = str(_resource_contract(character, spell, casting_context).get("resource_key", ""))
 	return resource_key if character.get_resource(resource_key) > 0 else ""
 
 
@@ -623,11 +758,23 @@ func _mapped_resource_key(character: PlayerCharacter, resource_key: String) -> S
 	return resource_key
 
 
+func _resource_level(resource_key: String, fallback: int) -> int:
+	var parts: PackedStringArray = resource_key.split("_")
+	if parts.is_empty():
+		return maxi(fallback, 1)
+	return maxi(int(parts[parts.size() - 1]), 1)
+
+
 func _count_changeable_prepared(character: PlayerCharacter, prepared: Array[String]) -> int:
 	var result: int = 0
 	for spell_id: String in prepared:
 		var spell: Dictionary = get_spell_definition(spell_id)
-		if spell.is_empty() or int(spell.get("spell_level", 0)) == 0 or bool(spell.get("always_prepared", false)):
+		if (
+			spell.is_empty()
+			or int(spell.get("spell_level", 0)) == 0
+			or bool(spell.get("always_prepared", false))
+			or _selection.is_source_always_prepared(character, spell_id)
+		):
 			continue
 		result += 1
 	return result

@@ -49,6 +49,10 @@ jobs:
         shell: bash
         run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_spellcasting_and_rituals.gd
 
+      - name: Validate class and Magic Initiate spell choices
+        shell: bash
+        run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_spell_selection_sources.gd
+
       - name: Smoke test spellcasting and ritual UI
         id: spell_ui
         continue-on-error: true
@@ -104,3 +108,7 @@ jobs:
         if: steps.creator.outcome != 'success'
         shell: bash
         run: exit 1
+
+      - name: Smoke test spell-selection interface
+        shell: bash
+        run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_character_creator_spell_selection.gd

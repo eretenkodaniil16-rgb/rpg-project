@@ -24,6 +24,13 @@ func _run() -> void:
 
 	var natural_twenty_failure := system.perform_check(character, "charisma", 30, 0, 20)
 	assert(not natural_twenty_failure.success)
+	character.active_effects[SpellcastingSystem.GUIDANCE_ACTIVE_KEY] = true
+	character.class_resources[SpellcastingSystem.CONCENTRATION_STATE_KEY] = "guidance"
+	var guided := system.perform_skill_check(character, "persuasion", 20, 0, 10, 0, 0, false, 4)
+	assert(guided.total == 17)
+	assert(guided.bonus == 4)
+	assert(not character.active_effects.has(SpellcastingSystem.GUIDANCE_ACTIVE_KEY))
+	assert(not character.class_resources.has(SpellcastingSystem.CONCENTRATION_STATE_KEY))
 	assert(SkillCheckSystem.difficulty_name(15) == "Сложно")
 	print("Skill check tests passed.")
 	quit(0)

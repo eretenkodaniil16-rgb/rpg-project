@@ -34,8 +34,8 @@ func _run_smoke_test() -> void:
 	if title_label == null or title_label.text != "Имя героя":
 		_fail("Character creator title was not initialized.")
 		return
-	if progress_label == null or progress_label.text != "Шаг 1 из 7":
-		_fail("Character creator did not expose the seven-step SRD flow.")
+	if progress_label == null or progress_label.text != "Шаг 1 из 8":
+		_fail("Character creator did not expose the eight-step SRD flow.")
 		return
 	if content_container == null or content_container.get_child_count() < 3:
 		_fail("Character creator content is empty.")
@@ -122,10 +122,21 @@ func _run_smoke_test() -> void:
 	creator.call("_show_step", 6)
 	for _frame: int in range(2):
 		await process_frame
+	var no_spell_choices_panel: PanelContainer = creator.find_child("NoSpellChoicesPanel", true, false) as PanelContainer
+	if title_label.text != "Заклинания" or no_spell_choices_panel == null or not no_spell_choices_panel.is_visible_in_tree():
+		_fail("A non-spellcasting character did not expose the explicit no-spell selection state.")
+		return
+	if not bool(creator.call("_can_continue_current_step")):
+		_fail("A valid non-spellcasting character was blocked on the spell selection step.")
+		return
+
+	creator.call("_show_step", 7)
+	for _frame: int in range(2):
+		await process_frame
 	if title_label.text != "Подтверждение" or not bool(creator.call("_can_continue_current_step")):
 		_fail("Complete SRD character data did not reach confirmation.")
 		return
 
-	print("Character creator seven-step SRD origin smoke test passed.")
+	print("Character creator eight-step SRD origin and non-spellcaster smoke test passed.")
 	creator.queue_free()
 	quit(0)

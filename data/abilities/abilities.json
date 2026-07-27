@@ -69,6 +69,154 @@
     "material": "щепоть сажи и соли",
     "button": "ПОНИМАНИЕ ЯЗЫКОВ"
   },
+  "speak_with_animals": {
+    "id": "speak_with_animals",
+    "name": "Разговор с животными",
+    "kind": "active",
+    "is_spell": true,
+    "spell_level": 1,
+    "school": "Прорицание",
+    "target": "self",
+    "resource_key": "spell_slots_1",
+    "description": "На 10 минут позволяет понимать зверей и общаться с ними. Может быть сотворено как ритуал.",
+    "effect": "utility_speak_with_animals",
+    "ritual": true,
+    "concentration": false,
+    "duration_minutes": 10,
+    "casting_time_text": "1 действие",
+    "casting_time_minutes": 0,
+    "components": [
+      "v",
+      "s"
+    ],
+    "button": "РАЗГОВОР С ЖИВОТНЫМИ"
+  },
+  "light": {
+    "id": "light",
+    "name": "Свет",
+    "kind": "active",
+    "is_spell": true,
+    "spell_level": 0,
+    "school": "Воплощение",
+    "target": "self",
+    "resource_key": "unlimited",
+    "always_prepared": true,
+    "description": "Создаёт яркий свет на 20 футов и тусклый ещё на 20 футов на 1 час.",
+    "effect": "utility_light",
+    "duration_minutes": 60,
+    "casting_time_text": "1 действие",
+    "components": [
+      "v",
+      "m"
+    ],
+    "material": "светлячок или фосфоресцирующий мох",
+    "button": "СВЕТ"
+  },
+  "prestidigitation": {
+    "id": "prestidigitation",
+    "name": "Фокусы",
+    "kind": "active",
+    "is_spell": true,
+    "spell_level": 0,
+    "school": "Преобразование",
+    "target": "self",
+    "resource_key": "unlimited",
+    "always_prepared": true,
+    "description": "Создаёт небольшой безвредный магический эффект: искры, запах, очистку или метку.",
+    "effect": "utility_prestidigitation",
+    "casting_time_text": "1 действие",
+    "components": [
+      "v",
+      "s"
+    ],
+    "button": "ФОКУСЫ"
+  },
+  "guidance": {
+    "id": "guidance",
+    "name": "Указание",
+    "kind": "active",
+    "is_spell": true,
+    "spell_level": 0,
+    "school": "Прорицание",
+    "target": "self",
+    "resource_key": "unlimited",
+    "always_prepared": true,
+    "description": "До следующей проверки навыка добавляет 1к4 к её результату. Требует концентрации.",
+    "effect": "guidance",
+    "concentration": true,
+    "duration_minutes": 1,
+    "casting_time_text": "1 действие",
+    "components": [
+      "v",
+      "s"
+    ],
+    "button": "УКАЗАНИЕ"
+  },
+  "starry_wisp": {
+    "id": "starry_wisp",
+    "name": "Звёздный огонёк",
+    "kind": "active",
+    "is_spell": true,
+    "spell_level": 0,
+    "school": "Воплощение",
+    "target": "enemy",
+    "resource_key": "unlimited",
+    "always_prepared": true,
+    "description": "Дальняя магическая атака в пределах 60 футов наносит лучистый урон и раскрывает невидимую цель.",
+    "effect": "spell_attack",
+    "damage_dice": [
+      1,
+      8
+    ],
+    "damage_dice_progression": {
+      "5": [
+        2,
+        8
+      ],
+      "11": [
+        3,
+        8
+      ],
+      "17": [
+        4,
+        8
+      ]
+    },
+    "damage_type": "radiant",
+    "range_ft": 60,
+    "on_hit_remove_condition": "invisible",
+    "casting_time_text": "1 действие",
+    "components": [
+      "v",
+      "s"
+    ],
+    "button": "ЗВЁЗДНЫЙ ОГОНЁК"
+  },
+  "vicious_mockery": {
+    "id": "vicious_mockery",
+    "name": "Злая насмешка",
+    "kind": "passive",
+    "is_spell": true,
+    "spell_level": 0,
+    "school": "Очарование",
+    "target": "enemy",
+    "resource_key": "unlimited",
+    "always_prepared": true,
+    "description": "Спасбросок Мудрости; при провале цель получает психический урон и помеху на следующий бросок атаки.",
+    "effect": "vicious_mockery",
+    "save_ability": "wisdom",
+    "damage_dice": [
+      1,
+      6
+    ],
+    "damage_type": "psychic",
+    "range_ft": 60,
+    "casting_time_text": "1 действие",
+    "components": [
+      "v"
+    ],
+    "button": "ЗЛАЯ НАСМЕШКА"
+  },
   "sacred_flame": {
     "id": "sacred_flame",
     "name": "Священное пламя",
@@ -362,9 +510,8 @@
     "school": "Ограждение",
     "target": "self",
     "resource_key": "spell_slots_1",
-    "description": "Восстанавливает 2к8 + модификатор Мудрости здоровья.",
-    "effect": "heal_2d8_wisdom",
-    "ability": "wisdom",
+    "description": "Восстанавливает 2к8 + модификатор характеристики заклинателя здоровья.",
+    "effect": "heal_spell",
     "healing_dice": [
       2,
       8
@@ -381,6 +528,90 @@
         8
       ]
     }
+  },
+  "healing_word": {
+    "id": "healing_word",
+    "name": "Лечащее слово",
+    "kind": "active",
+    "is_spell": true,
+    "spell_level": 1,
+    "school": "Ограждение",
+    "target": "self",
+    "resource_key": "spell_slots_1",
+    "description": "Бонусным действием восстанавливает 2к4 + модификатор характеристики заклинателя здоровья.",
+    "effect": "heal_spell",
+    "healing_dice": [
+      2,
+      4
+    ],
+    "casting_time_text": "1 бонусное действие",
+    "casting_time_kind": "bonus_action",
+    "components": [
+      "v"
+    ],
+    "button": "ЛЕЧАЩЕЕ СЛОВО",
+    "upcast": {
+      "healing_dice_per_level": [
+        2,
+        4
+      ]
+    }
+  },
+  "inflict_wounds": {
+    "id": "inflict_wounds",
+    "name": "Нанесение ран",
+    "kind": "active",
+    "is_spell": true,
+    "spell_level": 1,
+    "school": "Некромантия",
+    "target": "enemy",
+    "resource_key": "spell_slots_1",
+    "description": "Цель в пределах 5 футов совершает спасбросок Телосложения, получая 2к10 некротического урона или половину при успехе.",
+    "effect": "saving_throw_spell",
+    "save_ability": "constitution",
+    "save_for_half": true,
+    "damage_dice": [
+      2,
+      10
+    ],
+    "damage_type": "necrotic",
+    "range_ft": 5,
+    "casting_time_text": "1 действие",
+    "components": [
+      "v",
+      "s"
+    ],
+    "button": "НАНЕСЕНИЕ РАН",
+    "upcast": {
+      "damage_dice_per_level": [
+        1,
+        10
+      ]
+    }
+  },
+  "shield_of_faith": {
+    "id": "shield_of_faith",
+    "name": "Щит веры",
+    "kind": "active",
+    "is_spell": true,
+    "spell_level": 1,
+    "school": "Ограждение",
+    "target": "self",
+    "resource_key": "spell_slots_1",
+    "description": "Бонусным действием даёт +2 к КД на 10 минут. Требует концентрации.",
+    "effect": "shield_of_faith",
+    "armor_class_bonus": 2,
+    "concentration": true,
+    "duration_minutes": 10,
+    "casting_time_text": "1 бонусное действие",
+    "casting_time_kind": "bonus_action",
+    "components": [
+      "v",
+      "s",
+      "m"
+    ],
+    "material": "молитвенный свиток",
+    "button": "ЩИТ ВЕРЫ"
   },
   "spellcasting_druid": {
     "id": "spellcasting_druid",
@@ -659,6 +890,77 @@
       ],
       "damage_bonus_per_level": 1
     }
+  },
+  "ray_of_sickness": {
+    "id": "ray_of_sickness",
+    "name": "Луч болезни",
+    "kind": "active",
+    "is_spell": true,
+    "spell_level": 1,
+    "school": "Некромантия",
+    "target": "enemy",
+    "resource_key": "spell_slots_1",
+    "description": "Дальняя магическая атака в пределах 60 футов наносит 2к8 урона ядом и отравляет цель до конца следующего хода заклинателя.",
+    "effect": "spell_attack",
+    "damage_dice": [
+      2,
+      8
+    ],
+    "damage_type": "poison",
+    "range_ft": 60,
+    "on_hit_condition": "poisoned",
+    "on_hit_condition_rounds": 1,
+    "casting_time_text": "1 действие",
+    "components": [
+      "v",
+      "s"
+    ],
+    "button": "ЛУЧ БОЛЕЗНИ",
+    "upcast": {
+      "damage_dice_per_level": [
+        1,
+        8
+      ]
+    }
+  },
+  "thunderwave": {
+    "id": "thunderwave",
+    "name": "Волна грома",
+    "kind": "active",
+    "is_spell": true,
+    "spell_level": 1,
+    "school": "Воплощение",
+    "target": "area",
+    "effect": "area_saving_throw_spell",
+    "save_ability": "constitution",
+    "damage_dice": [
+      2,
+      8
+    ],
+    "damage_type": "thunder",
+    "save_for_half": true,
+    "push_feet_on_failed_save": 10,
+    "range_ft": 0,
+    "casting_time_text": "1 действие",
+    "components": [
+      "v",
+      "s"
+    ],
+    "area": {
+      "shape": "cube",
+      "origin": "self",
+      "size_ft": 15,
+      "include_origin": false,
+      "target_filter": "creatures"
+    },
+    "upcast": {
+      "damage_dice_per_level": [
+        1,
+        8
+      ]
+    },
+    "description": "Волна грома заполняет 15-футовый куб. При провале спасброска Телосложения цель получает полный урон и отталкивается на 10 футов; при успехе получает половину.",
+    "button": "ВОЛНА ГРОМА"
   },
   "burning_hands": {
     "id": "burning_hands",

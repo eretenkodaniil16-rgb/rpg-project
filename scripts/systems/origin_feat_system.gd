@@ -16,6 +16,8 @@ const MAGIC_INITIATE_RESOURCES: Dictionary = {
 	MAGIC_INITIATE_WIZARD_FEAT_ID: "magic_initiate_wizard_1"
 }
 
+var _spell_selection: SpellSelectionSystem = SpellSelectionSystem.new()
+
 
 func initialize_character(character: PlayerCharacter, refill_resources: bool = false) -> void:
 	if character == null or character.origin_feat_id.is_empty():
@@ -23,6 +25,7 @@ func initialize_character(character: PlayerCharacter, refill_resources: bool = f
 	_append_unique(character.known_features, character.origin_feat_id)
 	if character.origin_feat_id == SAVAGE_ATTACKER_FEAT_ID:
 		character.active_effects[SAVAGE_ATTACKER_READY_KEY] = true
+	_spell_selection.ensure_magic_initiate_source(character)
 	var abilities: Array[String] = get_magic_initiate_abilities(character)
 	for ability_id: String in abilities:
 		_append_unique(character.known_features, ability_id)
@@ -62,6 +65,9 @@ func get_magic_initiate_abilities(character: PlayerCharacter) -> Array[String]:
 	var result: Array[String] = []
 	if character == null:
 		return result
+	var source: Dictionary = _spell_selection.get_source(character, SpellSelectionSystem.SOURCE_MAGIC_INITIATE)
+	if not source.is_empty():
+		return _spell_selection.get_source_spell_ids(source)
 	var value: Variant = MAGIC_INITIATE_ABILITIES.get(character.origin_feat_id, [])
 	if value is Array:
 		for ability_value: Variant in value:
@@ -70,7 +76,19 @@ func get_magic_initiate_abilities(character: PlayerCharacter) -> Array[String]:
 
 
 func get_magic_initiate_resource_key(character: PlayerCharacter) -> String:
-	return "" if character == null else str(MAGIC_INITIATE_RESOURCES.get(character.origin_feat_id, ""))
+	if character == null:
+		return ""
+	var source: Dictionary = _spell_selection.get_source(character, SpellSelectionSystem.SOURCE_MAGIC_INITIATE)
+	if not source.is_empty():
+		return str(source.get("resource_key", ""))
+	return str(MAGIC_INITIATE_RESOURCES.get(character.origin_feat_id, ""))
+
+
+func get_magic_initiate_spellcasting_ability(character: PlayerCharacter) -> String:
+	if character == null:
+		return ""
+	var source: Dictionary = _spell_selection.get_source(character, SpellSelectionSystem.SOURCE_MAGIC_INITIATE)
+	return str(source.get("ability_id", ""))
 
 
 func is_magic_initiate_ability(character: PlayerCharacter, ability_id: String) -> bool:

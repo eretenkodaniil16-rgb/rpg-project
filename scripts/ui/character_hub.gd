@@ -249,7 +249,7 @@ func _refresh_spell_buttons(ability: Dictionary) -> void:
 	if not _is_spell(ability):
 		return
 	var spell_level: int = maxi(int(ability.get("spell_level", 0)), 0)
-	var always_prepared: bool = spell_level == 0 or bool(ability.get("always_prepared", false))
+	var always_prepared: bool = _spellcasting.is_always_prepared(_hero, _selected_power)
 	if spell_level > 0:
 		_refresh_slot_level_selector(ability, spell_level)
 	if spell_level > 0 and not always_prepared:
@@ -262,7 +262,7 @@ func _refresh_spell_buttons(ability: Dictionary) -> void:
 		_ritual.text = "РИТУАЛ НЕДОСТУПЕН" if _ritual.disabled else "СОТВОРИТЬ КАК РИТУАЛ"
 
 
-func _refresh_slot_level_selector(ability: Dictionary, spell_level: int) -> void:
+func _refresh_slot_level_selector(_ability: Dictionary, spell_level: int) -> void:
 	var levels: Array[int] = _spellcasting.get_available_slot_levels(_hero, spell_level, false)
 	if levels.is_empty():
 		return
@@ -397,7 +397,7 @@ func _count_changeable_prepared(prepared: Array[String]) -> int:
 	var result: int = 0
 	for spell_id: String in prepared:
 		var spell: Dictionary = _class_data.get_ability_definition(spell_id)
-		if spell.is_empty() or int(spell.get("spell_level", 0)) == 0 or bool(spell.get("always_prepared", false)):
+		if spell.is_empty() or _spellcasting.is_always_prepared(_hero, spell_id):
 			continue
 		result += 1
 	return result

@@ -61,12 +61,16 @@ func _build_vicious_mockery_control() -> void:
 func _update_vicious_mockery_control() -> void:
 	if _vicious_mockery_button == null:
 		return
-	var is_bard: bool = GameState.player_character != null and GameState.player_character.character_class_id == "bard"
-	_vicious_mockery_button.visible = is_bard and not _any_overlay_visible()
+	var has_mockery: bool = (
+		GameState.player_character != null
+		and GameState.player_character.character_class_id == "bard"
+		and ViciousMockerySystem.SPELL_ID in GameState.player_character.known_features
+	)
+	_vicious_mockery_button.visible = has_mockery and not _any_overlay_visible()
 	var player_turn: bool = not _turn_system.active or _turn_system.is_player_turn(player)
 	var action_available: bool = not _turn_system.active or _turn_system.action_available
 	_vicious_mockery_button.disabled = (
-		not is_bard
+		not has_mockery
 		or GameState.input_locked
 		or _attack_in_progress
 		or _enemy_turn_running
@@ -78,8 +82,11 @@ func _update_vicious_mockery_control() -> void:
 func _request_vicious_mockery() -> void:
 	if GameState.input_locked or _attack_in_progress or _enemy_turn_running or _any_overlay_visible():
 		return
-	if GameState.player_character.character_class_id != "bard":
-		show_combat_message("Злая насмешка доступна Барду.", false)
+	if (
+		GameState.player_character.character_class_id != "bard"
+		or ViciousMockerySystem.SPELL_ID not in GameState.player_character.known_features
+	):
+		show_combat_message("Злая насмешка не выбрана среди заговоров Барда.", false)
 		return
 	if _turn_system.active and not _turn_system.is_player_turn(player):
 		show_combat_message("Заклинание можно применить только на своём ходу.", false)

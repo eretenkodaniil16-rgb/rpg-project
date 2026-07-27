@@ -7,6 +7,7 @@ const CREATION_STEPS: Array[String] = [
 	"Распределение значений",
 	"Происхождение",
 	"Выбор класса",
+	"Заклинания",
 	"Подтверждение"
 ]
 const SKILL_NAMES: Dictionary = {
@@ -33,6 +34,7 @@ const SKILL_NAMES: Dictionary = {
 var _race_data: RaceDataSystem = RaceDataSystem.new()
 var _origin_data: OriginDataSystem = OriginDataSystem.new()
 var _class_proficiencies: ClassProficiencySystem = ClassProficiencySystem.new()
+var _spell_selection: SpellSelectionSystem = SpellSelectionSystem.new()
 var _races: Array[Dictionary] = []
 var _backgrounds: Array[Dictionary] = []
 var _languages: Array[Dictionary] = []
@@ -41,6 +43,7 @@ var _selected_background_id: String = OriginDataSystem.DEFAULT_BACKGROUND_ID
 var _background_ability_bonuses: Dictionary = {}
 var _selected_languages: Array[String] = []
 var _selected_class_skill_ids: Array[String] = []
+var _selected_spell_sources: Dictionary = {}
 var _custom_creator_initialized: bool = false
 
 
@@ -78,7 +81,8 @@ func _show_step(step_index: int) -> void:
 		3: _build_assignment_step()
 		4: _build_origin_step()
 		5: _build_class_step()
-		6: _build_confirmation_step()
+		6: _build_spell_selection_step()
+		7: _build_confirmation_step()
 	_update_navigation()
 
 
@@ -324,6 +328,253 @@ func _append_class_training_summary(container: VBoxContainer, selected_class: Di
 	container.add_child(_make_label("Обучение доспехам: %s" % _display_armor_training(selected_class.get("armor_training", [])), 18))
 
 
+func _build_spell_selection_step() -> void:
+	_ensure_spell_selection()
+	_add_paragraph("Выберите заговоры и заклинания 1 уровня. Источник хранится отдельно, поэтому классовая магия и Magic Initiate могут использовать разные характеристики.")
+	var has_choices: bool = false
+	var class_profile: Dictionary = _spell_selection.get_class_profile(_selected_class_id)
+	if not class_profile.is_empty():
+		has_choices = true
+		_append_spell_source_panel(
+			SpellSelectionSystem.SOURCE_CLASS,
+			"Заклинания класса",
+			class_profile
+		)
+	var origin_feat_id: String = _selected_origin_feat_id()
+	var feat_profile: Dictionary = _spell_selection.get_magic_initiate_profile(origin_feat_id)
+	if not feat_profile.is_empty():
+		has_choices = true
+		_append_spell_source_panel(
+			SpellSelectionSystem.SOURCE_MAGIC_INITIATE,
+			"Magic Initiate · %s" % str(feat_profile.get("list_id", "")).capitalize(),
+			feat_profile
+		)
+	if not has_choices:
+		var panel: PanelContainer = PanelContainer.new()
+		panel.name = "NoSpellChoicesPanel"
+		_content_container.add_child(panel)
+		var margin: MarginContainer = MarginContainer.new()
+		margin.add_theme_constant_override("margin_left", 20)
+		margin.add_theme_constant_override("margin_top", 18)
+		margin.add_theme_constant_override("margin_right", 20)
+		margin.add_theme_constant_override("margin_bottom", 18)
+		panel.add_child(margin)
+		margin.add_child(_make_label("У этого сочетания класса и происхождения нет выбора заклинаний на 1 уровне.", 18))
+	var validation: Dictionary = _spell_selection_validation()
+	var validation_label: Label = _make_label(
+		str(validation.get("message", "")),
+		17,
+		Color(0.63, 0.88, 0.67, 1.0) if bool(validation.get("success", false)) else Color(1.0, 0.68, 0.38, 1.0)
+	)
+	validation_label.name = "SpellSelectionValidation"
+	_content_container.add_child(validation_label)
+
+
+func _append_spell_source_panel(source_id: String, title: String, profile: Dictionary) -> void:
+	var source: Dictionary = _spell_source(source_id)
+	var panel: PanelContainer = PanelContainer.new()
+	panel.name = "SpellSource_%s" % source_id
+	_content_container.add_child(panel)
+	var margin: MarginContainer = MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 20)
+	margin.add_theme_constant_override("margin_top", 18)
+	margin.add_theme_constant_override("margin_right", 20)
+	margin.add_theme_constant_override("margin_bottom", 18)
+	panel.add_child(margin)
+	var box: VBoxContainer = VBoxContainer.new()
+	box.add_theme_constant_override("separation", 10)
+	margin.add_child(box)
+	box.add_child(_make_label(title, 24, Color(1.0, 0.82, 0.38, 1.0)))
+	if source_id == SpellSelectionSystem.SOURCE_MAGIC_INITIATE:
+		_append_magic_initiate_ability_picker(box, profile, source)
+	else:
+		var ability_id: String = str(source.get("ability_id", profile.get("ability_id", "")))
+		box.add_child(_make_label("Характеристика заклинаний: %s" % str(ABILITY_NAMES.get(ability_id, ability_id)), 17))
+	_append_spell_choice_section(
+		box,
+		source_id,
+		SpellSelectionSystem.CANTRIP_IDS_KEY,
+		"Заговоры",
+		_creator_string_array(profile.get("cantrip_options", [])),
+		maxi(int(profile.get("cantrip_choice_count", 0)), 0)
+	)
+	_append_spell_choice_section(
+		box,
+		source_id,
+		SpellSelectionSystem.SPELL_IDS_KEY,
+		"Заклинания 1 уровня",
+		_creator_string_array(profile.get("spell_options", [])),
+		maxi(int(profile.get("spell_choice_count", 0)), 0)
+	)
+	var prepared_count: int = maxi(int(profile.get("prepared_choice_count", profile.get("spell_choice_count", 0))), 0)
+	var spell_count: int = maxi(int(profile.get("spell_choice_count", 0)), 0)
+	if source_id == SpellSelectionSystem.SOURCE_CLASS and prepared_count < spell_count:
+		_append_spell_choice_section(
+			box,
+			source_id,
+			SpellSelectionSystem.PREPARED_IDS_KEY,
+			"Подготовлено на старте",
+			_creator_string_array(source.get(SpellSelectionSystem.SPELL_IDS_KEY, [])),
+			prepared_count
+		)
+	var always_known: Array[String] = _creator_string_array(source.get(SpellSelectionSystem.ALWAYS_KNOWN_IDS_KEY, []))
+	if not always_known.is_empty():
+		var names: Array[String] = []
+		for spell_id: String in always_known:
+			names.append(_spell_selection.get_spell_name(spell_id))
+		box.add_child(_make_label("Всегда доступно: %s" % ", ".join(names), 16, Color(0.72, 0.82, 1.0, 1.0)))
+
+
+func _append_magic_initiate_ability_picker(container: VBoxContainer, profile: Dictionary, source: Dictionary) -> void:
+	container.add_child(_make_label("Характеристика заклинаний Magic Initiate", 19, Color(0.72, 0.82, 1.0, 1.0)))
+	var picker: OptionButton = OptionButton.new()
+	picker.name = "MagicInitiateAbilityPicker"
+	picker.custom_minimum_size = Vector2(0.0, 56.0)
+	picker.add_theme_font_size_override("font_size", 18)
+	var options: Array[String] = _creator_string_array(profile.get("ability_options", []))
+	var selected_ability: String = str(source.get("ability_id", profile.get("default_ability_id", "wisdom")))
+	var selected_index: int = 0
+	for index: int in range(options.size()):
+		var ability_id: String = options[index]
+		picker.add_item(str(ABILITY_NAMES.get(ability_id, ability_id)), index)
+		picker.set_item_metadata(index, ability_id)
+		if ability_id == selected_ability:
+			selected_index = index
+	picker.select(selected_index)
+	picker.item_selected.connect(_on_magic_initiate_ability_selected.bind(picker))
+	container.add_child(picker)
+
+
+func _append_spell_choice_section(
+	container: VBoxContainer,
+	source_id: String,
+	field_key: String,
+	title: String,
+	options: Array[String],
+	required: int
+) -> void:
+	if required <= 0:
+		return
+	var source: Dictionary = _spell_source(source_id)
+	var selected_ids: Array[String] = _creator_string_array(source.get(field_key, []))
+	container.add_child(_make_label("%s · %d из %d" % [title, selected_ids.size(), required], 20, Color(0.72, 0.82, 1.0, 1.0)))
+	var grid: GridContainer = GridContainer.new()
+	grid.name = "SpellGrid_%s_%s" % [source_id, field_key]
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 10)
+	grid.add_theme_constant_override("v_separation", 10)
+	container.add_child(grid)
+	for spell_id: String in options:
+		var selected: bool = spell_id in selected_ids
+		var button: Button = Button.new()
+		button.name = "SpellChoice_%s_%s_%s" % [source_id, field_key, spell_id]
+		button.custom_minimum_size = Vector2(0.0, 58.0)
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.toggle_mode = true
+		button.button_pressed = selected
+		button.text = ("%s " % ("✓" if selected else "○")) + _spell_selection.get_spell_name(spell_id)
+		button.disabled = not selected and selected_ids.size() >= required
+		button.add_theme_font_size_override("font_size", 16)
+		button.pressed.connect(_toggle_spell_choice.bind(source_id, field_key, spell_id))
+		grid.add_child(button)
+
+
+func _toggle_spell_choice(source_id: String, field_key: String, spell_id: String) -> void:
+	var source: Dictionary = _spell_source(source_id)
+	if source.is_empty():
+		return
+	var profile: Dictionary = (
+		_spell_selection.get_class_profile(_selected_class_id)
+		if source_id == SpellSelectionSystem.SOURCE_CLASS
+		else _spell_selection.get_magic_initiate_profile(_selected_origin_feat_id())
+	)
+	var required: int = _spell_choice_count(profile, field_key)
+	var selected_ids: Array[String] = _creator_string_array(source.get(field_key, []))
+	if spell_id in selected_ids:
+		selected_ids.erase(spell_id)
+	elif selected_ids.size() < required:
+		selected_ids.append(spell_id)
+	source[field_key] = selected_ids
+	if field_key == SpellSelectionSystem.SPELL_IDS_KEY:
+		var prepared_count: int = maxi(int(profile.get("prepared_choice_count", profile.get("spell_choice_count", 0))), 0)
+		var spell_count: int = maxi(int(profile.get("spell_choice_count", 0)), 0)
+		if source_id == SpellSelectionSystem.SOURCE_MAGIC_INITIATE or prepared_count == spell_count:
+			source[SpellSelectionSystem.PREPARED_IDS_KEY] = selected_ids.duplicate()
+		else:
+			var prepared: Array[String] = _creator_string_array(source.get(SpellSelectionSystem.PREPARED_IDS_KEY, []))
+			for prepared_id: String in prepared.duplicate():
+				if prepared_id not in selected_ids:
+					prepared.erase(prepared_id)
+			source[SpellSelectionSystem.PREPARED_IDS_KEY] = prepared
+		if source_id == SpellSelectionSystem.SOURCE_MAGIC_INITIATE:
+			source[SpellSelectionSystem.ALWAYS_PREPARED_IDS_KEY] = selected_ids.duplicate()
+	_selected_spell_sources[source_id] = source
+	_show_step(6)
+
+
+func _on_magic_initiate_ability_selected(item_index: int, picker: OptionButton) -> void:
+	var source: Dictionary = _spell_source(SpellSelectionSystem.SOURCE_MAGIC_INITIATE)
+	if source.is_empty() or item_index < 0 or item_index >= picker.item_count:
+		return
+	source["ability_id"] = str(picker.get_item_metadata(item_index))
+	_selected_spell_sources[SpellSelectionSystem.SOURCE_MAGIC_INITIATE] = source
+	_show_step(6)
+
+
+func _spell_choice_count(profile: Dictionary, field_key: String) -> int:
+	match field_key:
+		SpellSelectionSystem.CANTRIP_IDS_KEY:
+			return maxi(int(profile.get("cantrip_choice_count", 0)), 0)
+		SpellSelectionSystem.SPELL_IDS_KEY:
+			return maxi(int(profile.get("spell_choice_count", 0)), 0)
+		SpellSelectionSystem.PREPARED_IDS_KEY:
+			return maxi(int(profile.get("prepared_choice_count", 0)), 0)
+	return 0
+
+
+func _ensure_spell_selection() -> void:
+	_selected_spell_sources = _spell_selection.reconcile_sources(
+		_selected_class_id,
+		_selected_origin_feat_id(),
+		_selected_spell_sources
+	)
+
+
+func _spell_selection_validation() -> Dictionary:
+	return _spell_selection.validate_sources(
+		_selected_class_id,
+		_selected_origin_feat_id(),
+		_selected_spell_sources
+	)
+
+
+func _is_spell_selection_valid() -> bool:
+	return bool(_spell_selection_validation().get("success", false))
+
+
+func _spell_source(source_id: String) -> Dictionary:
+	var value: Variant = _selected_spell_sources.get(source_id, {})
+	return (value as Dictionary).duplicate(true) if value is Dictionary else {}
+
+
+func _selected_origin_feat_id() -> String:
+	return str(_get_selected_background().get("origin_feat_id", ""))
+
+
+func _append_spell_selection_summary(container: VBoxContainer) -> void:
+	_ensure_spell_selection()
+	var summaries: Array[String] = _spell_selection.get_selection_summary(_selected_spell_sources)
+	if summaries.is_empty():
+		container.add_child(_make_label("Заклинания: нет выбора на 1 уровне", 18))
+		return
+	for summary: String in summaries:
+		container.add_child(_make_label(summary, 18))
+	var feat_source: Dictionary = _spell_source(SpellSelectionSystem.SOURCE_MAGIC_INITIATE)
+	if not feat_source.is_empty():
+		var ability_id: String = str(feat_source.get("ability_id", ""))
+		container.add_child(_make_label("Magic Initiate использует: %s" % str(ABILITY_NAMES.get(ability_id, ability_id)), 18))
+
+
 func _build_confirmation_step() -> void:
 	var selected_class: Dictionary = _get_selected_class()
 	var selected_race: Dictionary = _get_selected_race()
@@ -348,6 +599,7 @@ func _build_confirmation_step() -> void:
 	summary.add_child(_make_label("Черта происхождения: %s" % str(selected_background.get("origin_feat_name", "—")), 18))
 	summary.add_child(_make_label("Навыки происхождения: %s" % _display_skill_ids(selected_background.get("skill_proficiencies", [])), 18))
 	_append_class_training_summary(summary, selected_class)
+	_append_spell_selection_summary(summary)
 	summary.add_child(_make_label("Языки: Общий, %s" % _display_language_ids(_selected_languages), 18))
 	var abilities_grid: GridContainer = GridContainer.new()
 	abilities_grid.columns = 3
@@ -369,8 +621,14 @@ func _build_confirmation_step() -> void:
 func _finish_creation() -> void:
 	var selected_class: Dictionary = _get_selected_class()
 	var selected_race: Dictionary = _get_selected_race()
-	if selected_class.is_empty() or selected_race.is_empty() or not _is_origin_configuration_valid() or not _is_class_skill_configuration_valid():
-		_message_label.text = "Заполните вид, происхождение, языки, характеристики, класс и классовые навыки персонажа."
+	if (
+		selected_class.is_empty()
+		or selected_race.is_empty()
+		or not _is_origin_configuration_valid()
+		or not _is_class_skill_configuration_valid()
+		or not _is_spell_selection_valid()
+	):
+		_message_label.text = "Заполните вид, происхождение, языки, характеристики, класс, навыки и заклинания персонажа."
 		return
 	var character: PlayerCharacter = PlayerCharacter.new()
 	character.character_name = _character_name
@@ -398,6 +656,10 @@ func _finish_creation() -> void:
 	if not bool(class_result.get("success", false)):
 		_message_label.text = str(class_result.get("message", "Не удалось применить владения класса."))
 		return
+	var spell_result: Dictionary = _spell_selection.apply_sources(character, _selected_spell_sources)
+	if not bool(spell_result.get("success", false)):
+		_message_label.text = str(spell_result.get("message", "Не удалось сохранить выбор заклинаний."))
+		return
 	character.maximum_health = maxi(int(selected_class.get("hit_die", 8)) + character.get_ability_modifier("constitution"), 1)
 	character.current_health = character.maximum_health
 	_race_data.apply_race(character, _selected_race_id, false)
@@ -420,6 +682,7 @@ func _get_selected_race() -> Dictionary:
 func _select_background(background_id: String) -> void:
 	_selected_background_id = background_id
 	_background_ability_bonuses = _origin_data.default_ability_bonuses(background_id)
+	_selected_spell_sources.erase(SpellSelectionSystem.SOURCE_MAGIC_INITIATE)
 	if not _selected_class_id.is_empty():
 		_selected_class_skill_ids.clear()
 		_ensure_class_skill_selection()
@@ -491,6 +754,7 @@ func _on_ability_pressed(ability_id: String) -> void:
 func _select_class(class_id: String) -> void:
 	if class_id != _selected_class_id:
 		_selected_class_skill_ids.clear()
+		_selected_spell_sources.erase(SpellSelectionSystem.SOURCE_CLASS)
 	_selected_class_id = class_id
 	_ensure_class_skill_selection()
 	_show_step(5)
@@ -527,7 +791,8 @@ func _can_continue_current_step() -> bool:
 		3: return _assignments.size() == ABILITY_IDS.size()
 		4: return _is_origin_configuration_valid()
 		5: return not _selected_class_id.is_empty() and _is_class_skill_configuration_valid()
-		6: return _is_name_valid() and not _selected_race_id.is_empty() and _assignments.size() == ABILITY_IDS.size() and _is_origin_configuration_valid() and not _selected_class_id.is_empty() and _is_class_skill_configuration_valid()
+		6: return _is_spell_selection_valid()
+		7: return _is_name_valid() and not _selected_race_id.is_empty() and _assignments.size() == ABILITY_IDS.size() and _is_origin_configuration_valid() and not _selected_class_id.is_empty() and _is_class_skill_configuration_valid() and _is_spell_selection_valid()
 	return false
 
 
@@ -546,6 +811,8 @@ func _validation_message_for_step() -> String:
 			if _selected_class_id.is_empty():
 				return "Выберите класс персонажа."
 			return str(_class_skill_validation().get("message", "Выберите классовые навыки."))
+		6:
+			return str(_spell_selection_validation().get("message", "Завершите выбор заклинаний."))
 	return "Не все данные заполнены."
 
 
@@ -673,6 +940,16 @@ func _display_language_ids(language_ids: Array[String]) -> String:
 				names.append(str(language.get("name", language_id)))
 				break
 	return ", ".join(names)
+
+
+func _creator_string_array(value: Variant) -> Array[String]:
+	var result: Array[String] = []
+	if value is Array:
+		for item: Variant in value:
+			var text: String = str(item)
+			if not text.is_empty() and text not in result:
+				result.append(text)
+	return result
 
 
 func _make_race_style(color: Color, selected: bool, hover: bool) -> StyleBoxFlat:

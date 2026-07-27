@@ -70,21 +70,28 @@ func perform_skill_check(
 	forced_natural_roll: int = 0,
 	forced_second_roll: int = 0,
 	forced_lucky_reroll: int = 0,
-	forced_disadvantage: bool = false
+	forced_disadvantage: bool = false,
+	forced_guidance_roll: int = 0
 ) -> SkillCheckResult:
 	var normalized_skill: String = skill_id.strip_edges().to_lower()
 	var ability_id: String = character.get_skill_ability(normalized_skill)
 	var skill_training_bonus: int = character.get_skill_modifier(normalized_skill) - character.get_ability_modifier(ability_id)
+	var guidance_bonus: int = 0
+	var has_guidance: bool = bool(character.active_effects.get(SpellcastingSystem.GUIDANCE_ACTIVE_KEY, false))
+	if has_guidance:
+		guidance_bonus = clampi(forced_guidance_roll, 1, 4) if forced_guidance_roll > 0 else _dice_roller.roll_die(4)
 	var result: SkillCheckResult = perform_check(
 		character,
 		ability_id,
 		difficulty,
-		bonus + skill_training_bonus,
+		bonus + skill_training_bonus + guidance_bonus,
 		forced_natural_roll,
 		forced_second_roll,
 		forced_lucky_reroll,
 		forced_disadvantage
 	)
+	if has_guidance:
+		SpellcastingSystem.new().end_concentration(character)
 	result.skill_id = normalized_skill
 	result.ability_name = str(SKILL_NAMES.get(normalized_skill, normalized_skill.capitalize()))
 	return result
