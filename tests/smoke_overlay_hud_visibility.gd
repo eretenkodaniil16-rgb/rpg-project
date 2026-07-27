@@ -33,16 +33,16 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 
-	var inventory: Control = game.find_child("InventoryPanel", true, false) as Control
+	var hub: CharacterHub = game.find_child("CharacterHub", true, false) as CharacterHub
 	var mobile_controls: Control = game.get_node_or_null("Interface/MobileControls") as Control
 	var character_button: Button = game.find_child("CharacterButton", true, false) as Button
 	var target_button: Button = game.find_child("TargetButton", true, false) as Button
 	var attack_button: Button = game.find_child("AttackButton", true, false) as Button
 	var target_label: Label = game.find_child("TargetLabel", true, false) as Label
-	var ability_panel: Control = game.find_child("AbilityPanel", true, false) as Control
+	var prepared_panel: Control = game.find_child("PreparedActionPanel", true, false) as Control
 	var caretaker: Node = game.get_node_or_null("Caretaker")
-	if inventory == null or mobile_controls == null or character_button == null or target_button == null or attack_button == null or target_label == null or ability_panel == null or caretaker == null:
-		_fail("Required HUD, target, or inventory nodes are missing.")
+	if hub == null or mobile_controls == null or character_button == null or target_button == null or attack_button == null or target_label == null or prepared_panel == null or caretaker == null:
+		_fail("Required HUD, target, or Character Hub nodes are missing.")
 		return
 	if target_label.visible:
 		_fail("Target distance must be hidden before manual target selection.")
@@ -59,19 +59,23 @@ func _run() -> void:
 	character_button.show()
 	target_button.show()
 	attack_button.show()
-	ability_panel.show()
+	prepared_panel.show()
 	game.call("_open_inventory")
 	await process_frame
+	var tabs := hub.find_child("CharacterTabs", true, false) as TabContainer
+	if not hub.visible or tabs == null or tabs.current_tab != 1:
+		_fail("Character Hub did not open the inventory tab.")
+		return
 
-	for item: CanvasItem in [mobile_controls, character_button, target_button, attack_button, target_label, ability_panel]:
+	for item: CanvasItem in [mobile_controls, character_button, target_button, attack_button, target_label, prepared_panel]:
 		if item.visible:
 			_fail("Exploration HUD remained visible over the inventory: %s" % item.name)
 			return
 
-	inventory.call("close_inventory")
+	hub.close_sheet()
 	await process_frame
 	await process_frame
-	for item: CanvasItem in [mobile_controls, character_button, target_button, attack_button, target_label, ability_panel]:
+	for item: CanvasItem in [mobile_controls, character_button, target_button, attack_button, target_label, prepared_panel]:
 		if not item.visible:
 			_fail("Exploration HUD was not restored after closing inventory: %s" % item.name)
 			return
