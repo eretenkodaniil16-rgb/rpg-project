@@ -33,10 +33,12 @@ func _run() -> void:
 	var action: Button = game.find_child("AttackButton", true, false) as Button
 	var selector: Button = game.find_child("TargetButton", true, false) as Button
 	var label: Label = game.find_child("TargetLabel", true, false) as Label
+	var feed: CombatEventFeed = game.find_child("CombatEventFeed", true, false) as CombatEventFeed
+	var dice: D20RollOverlay = game.find_child("D20RollOverlay", true, false) as D20RollOverlay
 	var caretaker: Node = game.get_node_or_null("Caretaker")
 	var dummy: Node = game.get_node_or_null("TrainingDummy")
-	if action == null or selector == null or label == null:
-		_fail("Target controls missing.")
+	if action == null or selector == null or label == null or feed == null or dice == null:
+		_fail("Target controls or combat presentation nodes are missing.")
 		return
 	if caretaker == null or dummy == null:
 		_fail("Room targets missing.")
@@ -61,11 +63,11 @@ func _run() -> void:
 		_fail("Ranged attack did not create a projectile visual.")
 		return
 	await create_timer(0.9).timeout
-	var popup: Control = game.find_child("AttackResultPopup", true, false) as Control
-	if popup == null or not popup.visible:
-		_fail("Result popup did not appear after projectile animation.")
+	if feed.card_count() < 1:
+		_fail("Combat event feed did not receive the ranged attack result.")
 		return
-	popup.call("_on_continue_pressed")
-	await process_frame
-	print("Target controls smoke test passed.")
+	if dice.queued_roll_count() < 1:
+		_fail("D20 presentation did not receive the ranged attack roll.")
+		return
+	print("Target controls and compact combat presentation smoke test passed.")
 	quit(0)
