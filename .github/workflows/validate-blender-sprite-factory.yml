@@ -59,6 +59,15 @@ jobs:
           fi
           tail -n 30 unit_tests.log
 
+      - name: Upload unit test diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: blender_factory_unit_tests_${{ github.run_id }}_${{ github.run_attempt }}
+          path: unit_tests.log
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Validate shared contract and references
         env:
           PYTHONPATH: tools/blender_sprite_factory
