@@ -1,5 +1,14 @@
 extends "res://scripts/game/game_exploration_stealth_runtime.gd"
 
+const PLAYER_FEEDBACK_STATE_PRIORITY: Dictionary = {
+	StealthAlertSystem.STATE_CALM: 0,
+	StealthAlertSystem.STATE_SUSPICIOUS: 1,
+	StealthAlertSystem.STATE_INVESTIGATING: 2,
+	StealthAlertSystem.STATE_SEARCHING: 3,
+	StealthAlertSystem.STATE_ALERTED: 4,
+	StealthAlertSystem.STATE_COMBAT: 5
+}
+
 
 func _update_exploration_alerts(delta: float) -> void:
 	if _any_overlay_visible():
@@ -45,3 +54,42 @@ func _update_exploration_actor(actor: Node, delta: float) -> void:
 	_apply_record_to_actor(actor, record)
 	if str(record.get("state", "")) == StealthAlertSystem.STATE_ALERTED and visible:
 		_begin_combat_from_alert(actor, record)
+
+
+func _refresh_alert_indicator() -> void:
+	if _alert_indicator == null:
+		return
+	var highest_state: String = _highest_player_feedback_state()
+	var hidden: bool = _exploration_hidden or _player_combat_state.hidden
+	if highest_state == StealthAlertSystem.STATE_CALM:
+		_alert_indicator.visible = hidden
+		_alert_indicator.text = "СКРЫТ" if hidden else ""
+		_alert_indicator.add_theme_color_override("font_color", Color(0.62, 0.86, 0.64, 1.0))
+		return
+	var state_label: String = {
+		StealthAlertSystem.STATE_SUSPICIOUS: "КТО-ТО НАСТОРОЖЕН",
+		StealthAlertSystem.STATE_INVESTIGATING: "ПРОВЕРЯЮТ ШУМ",
+		StealthAlertSystem.STATE_SEARCHING: "ВАС ИЩУТ",
+		StealthAlertSystem.STATE_ALERTED: "ТРЕВОГА",
+		StealthAlertSystem.STATE_COMBAT: "ОБНАРУЖЕН"
+	}.get(highest_state, "ОПАСНОСТЬ")
+	_alert_indicator.visible = true
+	_alert_indicator.text = "СКРЫТ · %s" % state_label if hidden else state_label
+	var alert_color: Color = Color(1.0, 0.78, 0.28, 1.0)
+	if highest_state in [StealthAlertSystem.STATE_ALERTED, StealthAlertSystem.STATE_COMBAT]:
+		alert_color = Color(1.0, 0.34, 0.28, 1.0)
+	_alert_indicator.add_theme_color_override("font_color", alert_color)
+
+
+func _highest_player_feedback_state() -> String:
+	var highest_state: String = StealthAlertSystem.STATE_CALM
+	var highest_priority: int = 0
+	for value: Variant in _alert_records.values():
+		if not value is Dictionary:
+			continue
+		var state: String = str((value as Dictionary).get("state", StealthAlertSystem.STATE_CALM))
+		var priority: int = int(PLAYER_FEEDBACK_STATE_PRIORITY.get(state, 0))
+		if priority > highest_priority:
+			highest_priority = priority
+			highest_state = state
+	return highest_state
