@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "rewards": {
+    "quest_first_steps_complete": {
+      "experience": 300,
+      "label": "Задание «Первые шаги»",
+      "source_type": "quest",
+      "source_id": "first_steps"
+    },
+    "encounter_training_dummy_break": {
+      "experience": 25,
+      "label": "Тренировочная цель",
+      "source_type": "encounter",
+      "source_id": "training_dummy"
+    },
+    "dialogue_caretaker_revelation": {
+      "experience": 25,
+      "label": "Открытие тайны Смотрителя",
+      "source_type": "dialogue",
+      "source_id": "caretaker_intro"
+    }
+  }
+}
