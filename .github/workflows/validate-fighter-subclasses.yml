@@ -1,0 +1,63 @@
+name: Validate fighter subclasses
+
+on:
+  pull_request:
+    paths:
+      - "data/abilities/fighter_subclass_abilities.json"
+      - "scripts/systems/fighter_subclass_system.gd"
+      - "scripts/systems/class_data_subclass_system.gd"
+      - "scripts/systems/class_ability_subclass_system.gd"
+      - "scripts/systems/combat_subclass_system.gd"
+      - "scripts/game/game_fighter_subclasses_runtime.gd"
+      - "scripts/ui/character_hub_level_up.gd"
+      - "scenes/game/game.tscn"
+      - "tests/test_fighter_subclass_system.gd"
+      - "tests/smoke_fighter_subclass_ui.gd"
+      - ".github/workflows/validate-fighter-subclasses.yml"
+  push:
+    branches:
+      - feature/fighter-subclass-mechanics
+    paths:
+      - "data/abilities/fighter_subclass_abilities.json"
+      - "scripts/systems/fighter_subclass_system.gd"
+      - "scripts/systems/class_data_subclass_system.gd"
+      - "scripts/systems/class_ability_subclass_system.gd"
+      - "scripts/systems/combat_subclass_system.gd"
+      - "scripts/game/game_fighter_subclasses_runtime.gd"
+      - "scripts/ui/character_hub_level_up.gd"
+      - "scenes/game/game.tscn"
+      - "tests/test_fighter_subclass_system.gd"
+      - "tests/smoke_fighter_subclass_ui.gd"
+      - ".github/workflows/validate-fighter-subclasses.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Godot 4.7.1 Standard
+        shell: bash
+        run: |
+          curl --location --fail --retry 3 --output godot.zip "https://downloads.godotengine.org/?flavor=stable&platform=linux.64&slug=linux.x86_64.zip&version=4.7.1"
+          unzip -q godot.zip
+          chmod +x Godot_v4.7.1-stable_linux.x86_64
+
+      - name: Import project
+        shell: bash
+        run: |
+          rm -rf .godot
+          ./Godot_v4.7.1-stable_linux.x86_64 --headless --editor --path "$GITHUB_WORKSPACE" --quit
+
+      - name: Validate subclass resources, rest, armor and attack effects
+        shell: bash
+        run: timeout 120s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_fighter_subclass_system.gd
+
+      - name: Smoke test game scene, action catalog and Character Hub
+        shell: bash
+        run: timeout 120s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_fighter_subclass_ui.gd
