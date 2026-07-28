@@ -13,6 +13,7 @@ if str(SCRIPT_DIR) not in sys.path:
 import blender_sprite_factory as factory
 import blender_sprite_factory_head_v07 as previous_adapter
 from hair_crown_profile_v08 import load_hair_crown_profile_v08
+from hair_forelock_profile_v08 import load_hair_forelock_profile_v08
 from hair_mass_builder_v08 import (
     ACTIVE_HAIR_PART_NAMES,
     HAIR_ROTATION_OVERRIDES_DEGREES,
@@ -29,6 +30,7 @@ PREVIOUS_HEAD_PROFILE_PATH = SCRIPT_DIR / "head_profile_v07.py"
 ACTIVE_HEAD_PROFILE_PATH = SCRIPT_DIR / "head_profile_v08.py"
 HAIR_MASS_BUILDER_PATH = SCRIPT_DIR / "hair_mass_builder_v08.py"
 HAIR_CROWN_PROFILE_PATH = SCRIPT_DIR / "hair_crown_profile_v08.py"
+HAIR_FORELOCK_PROFILE_PATH = SCRIPT_DIR / "hair_forelock_profile_v08.py"
 HAIR_SWEEP_PROFILE_PATH = SCRIPT_DIR / "hair_sweep_profile_v08.py"
 HAIR_SWEEP_BUILDER_PATH = SCRIPT_DIR / "hair_sweep_builder_v08.py"
 _ORIGINAL_WRITE_RUN_MANIFEST = factory._write_run_manifest
@@ -69,6 +71,7 @@ def _write_run_manifest_v08(
     )
     detail = load_head_detail_profile_v08(context.config.character_id)
     crown = load_hair_crown_profile_v08()
+    forelock = load_hair_forelock_profile_v08()
     payload = json.loads(manifest_path.read_text(encoding="utf-8"))
     payload["base_head_profile"] = {
         "path": context.config.relative_to_repo(BASE_HEAD_PROFILE_PATH),
@@ -95,6 +98,12 @@ def _write_run_manifest_v08(
         "proxy_revision": crown.proxy_revision,
         "sha256": hashlib.sha256(HAIR_CROWN_PROFILE_PATH.read_bytes()).hexdigest(),
     }
+    payload["hair_forelock_profile"] = {
+        "path": context.config.relative_to_repo(HAIR_FORELOCK_PROFILE_PATH),
+        "revision": forelock.revision,
+        "proxy_revision": forelock.proxy_revision,
+        "sha256": hashlib.sha256(HAIR_FORELOCK_PROFILE_PATH.read_bytes()).hexdigest(),
+    }
     payload["inactive_hair_experiments"] = {
         "sweep_profile": {
             "path": context.config.relative_to_repo(HAIR_SWEEP_PROFILE_PATH),
@@ -117,14 +126,16 @@ def _write_run_manifest_v08(
         if obj.get(factory.MODULE_PROPERTY) == "hair"
     )
     profile_rotations = dict(detail.hair_rotations_degrees)
+    custom_mesh_names = {crown.mesh_name, forelock.mesh_name}
     actual_rotations: dict[str, list[float]] = {}
     for name in actual_hair_names:
-        if name == crown.mesh_name:
+        if name in custom_mesh_names:
             continue
         rotation = HAIR_ROTATION_OVERRIDES_DEGREES.get(name, profile_rotations.get(name))
         if rotation is not None:
             actual_rotations[name] = list(rotation)
     crown_vertex_count = sum(len(item.points_xz) for item in crown.slices)
+    forelock_vertex_count = sum(len(item.points_xz) for item in forelock.slices)
     payload["head_geometry"] = {
         "cranium_segments": detail.cranium_density.segments,
         "cranium_rings": detail.cranium_density.rings,
@@ -142,15 +153,22 @@ def _write_run_manifest_v08(
         "active_hair_names": actual_hair_names,
         "crown_mesh_vertices": crown_vertex_count,
         "crown_mesh_slices": len(crown.slices),
+        "forelock_mesh_vertices": forelock_vertex_count,
+        "forelock_mesh_slices": len(forelock.slices),
     }
     payload["hair_structure"] = {
-        "strategy": "approved_reference_single_crown_mesh_with_modular_accents",
+        "strategy": "approved_reference_single_crown_and_forelock_meshes_with_modular_accents",
         "zones": ["top", "front", "sides", "back", "nape"],
         "active_parts": sorted(ACTIVE_HAIR_PART_NAMES),
         "crown_mesh": {
             "name": crown.mesh_name,
             "slice_count": len(crown.slices),
             "points_per_slice": len(crown.slices[0].points_xz),
+        },
+        "forelock_mesh": {
+            "name": forelock.mesh_name,
+            "slice_count": len(forelock.slices),
+            "points_per_slice": len(forelock.slices[0].points_xz),
         },
         "face_geometry_locked_to_revision": "v07",
         "material_palette": list(REFERENCE_HAIR_PALETTE),
