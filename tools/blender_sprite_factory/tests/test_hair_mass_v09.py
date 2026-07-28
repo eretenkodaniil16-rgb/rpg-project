@@ -18,7 +18,7 @@ class HairMassBuilderV09Tests(unittest.TestCase):
         self.assertIn('factory._register(context, obj, "hair", "head")', self.builder_source)
         self.assertIn('"hair_reference_crown_mesh"', self.builder_source)
         self.assertIn('"hair_reference_forelock_mesh"', self.builder_source)
-        self.assertIn('"hair_reference_lock_separators_mesh"', self.adapter_source)
+        self.assertIn("load_hair_lock_profile_v09", self.builder_source)
 
     def test_builder_adds_one_mesh_for_eight_large_grooves(self) -> None:
         self.assertIn("_build_lock_separator_mesh(context)", self.builder_source)
