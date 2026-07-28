@@ -29,6 +29,10 @@ func _run() -> void:
 	assert(active.is_empty())
 	assert(completed.size() == 1)
 	assert(int(state.call("get_item_count", "apprentice_token")) == 1)
+	assert(int((state.get("player_character") as PlayerCharacter).experience) == 300)
+	assert(bool(state.call("has_claimed_experience_reward", "quest_first_steps_complete")))
+	state.call("report_quest_event", "talked_to_caretaker")
+	assert(int((state.get("player_character") as PlayerCharacter).experience) == 300)
 
 	state.call("add_item", "straw_scrap", 3, false)
 	assert(int(state.call("get_item_count", "straw_scrap")) == 3)
@@ -38,5 +42,5 @@ func _run() -> void:
 
 	var entries: Array = state.call("get_inventory_entries") as Array
 	assert(entries.size() == 2)
-	print("Quest and inventory tests passed.")
+	print("Quest, experience reward and inventory tests passed.")
 	quit(0)
