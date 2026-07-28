@@ -86,7 +86,7 @@ class DetailedHeadProfileV05Tests(unittest.TestCase):
         self.assertIn("hair_forelock_root", detail_names)
         self.assertIn("hair_forelock_tip", detail_names)
 
-    def test_active_adapter_records_v05_profile_and_all_density_tiers(self) -> None:
+    def test_historical_adapter_records_v05_profile_and_density_tiers(self) -> None:
         tool_root = Path(__file__).resolve().parents[1]
         adapter = tool_root / "blender_sprite_factory_head_v05.py"
         source = adapter.read_text(encoding="utf-8")
@@ -98,15 +98,6 @@ class DetailedHeadProfileV05Tests(unittest.TestCase):
         self.assertIn('"hair_tertiary_segments"', source)
         self.assertNotIn("scale.x = -1", source)
         self.assertNotIn("scale[0] = -1", source)
-
-    def test_launchers_and_ci_activate_proxy_v08_adapter(self) -> None:
-        tool_root = Path(__file__).resolve().parents[1]
-        launcher = (tool_root / "run_blender_sprite_pilot.ps1").read_text(encoding="ascii")
-        workflow = (tool_root.parents[1] / ".github" / "workflows" / "validate-blender-sprite-factory.yml").read_text(encoding="utf-8")
-        self.assertIn("blender_sprite_factory_head_v05.py", launcher)
-        self.assertIn("render-proxy-v08", workflow)
-        self.assertIn("blender_sprite_factory_head_v05.py", workflow)
-        self.assertIn("human_warrior_m01_proxy_v08_", workflow)
 
     def test_unknown_character_cannot_use_v05_identity(self) -> None:
         with self.assertRaisesRegex(KeyError, "No detailed head profile"):
