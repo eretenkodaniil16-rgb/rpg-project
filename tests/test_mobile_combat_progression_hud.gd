@@ -27,11 +27,20 @@ func _run() -> void:
 	GameState.player_character = hero
 	ClassDataSystem.new().ensure_starting_loadout(hero)
 
-	var progression: Dictionary = ProgressionSystem.grant_experience(hero, 100)
-	if hero.level != 2 or hero.experience != 100:
-		_fail("Experience did not advance the fighter to level 2.")
+	var progression: Dictionary = ProgressionSystem.grant_experience(hero, 300)
+	if hero.level != 1 or hero.experience != 300 or not bool(progression.get("level_up_available", false)):
+		_fail("Experience did not unlock level 2 without applying it automatically.")
 		return
-	if int(progression.get("health_gained", 0)) <= 0 or hero.maximum_health <= 12:
+	var level_up := LevelUpSystem.new()
+	if not bool(level_up.begin_transaction(hero, GameState).get("success", false)):
+		_fail("Level-up transaction did not start.")
+		return
+	level_up.choose_fixed_hp(hero, GameState)
+	var level_result: Dictionary = level_up.commit_transaction(hero, GameState)
+	if hero.level != 2 or not bool(level_result.get("success", false)):
+		_fail("Saved level-up transaction did not advance the fighter to level 2.")
+		return
+	if int(level_result.get("hp_gain", 0)) <= 0 or hero.maximum_health <= 12:
 		_fail("Level advancement did not increase maximum health.")
 		return
 
@@ -123,6 +132,9 @@ func _run() -> void:
 	var status_panel := status_hud.find_child("PlayerStatusPanel", true, false) as Control
 	if status_panel == null or status_panel.size.y > 60.0:
 		_fail("Gameplay character HUD is still too large.")
+		return
+	if game.find_child("LevelUpPanel", true, false) == null:
+		_fail("Mobile level-up panel is missing from the game interface.")
 		return
 
 	var action_state: Dictionary = {"id": ""}
