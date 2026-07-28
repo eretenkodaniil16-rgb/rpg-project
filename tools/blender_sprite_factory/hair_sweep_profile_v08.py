@@ -21,6 +21,9 @@ class HairSweepMeshPart:
     wave_frequency: int
     wave_amplitude: float
     rings: tuple[HairSweepRing, ...]
+    arc_start_degrees: float = 0.0
+    arc_end_degrees: float = 360.0
+    closed_around: bool = True
 
     def assert_valid(self) -> None:
         if self.segments < 8 or len(self.rings) < 4:
@@ -32,6 +35,12 @@ class HairSweepMeshPart:
         z_values = [ring.z for ring in self.rings]
         if z_values != sorted(z_values) or len(z_values) != len(set(z_values)):
             raise ValueError(f"Sweep rings must have unique ascending z: {self.name}")
+        arc_span = self.arc_end_degrees - self.arc_start_degrees
+        if self.closed_around:
+            if abs(arc_span - 360.0) > 0.001:
+                raise ValueError(f"Closed sweep {self.name} must span 360 degrees")
+        elif not 180.0 <= arc_span <= 300.0:
+            raise ValueError(f"Open sweep {self.name} needs a rear/side arc")
 
 
 @dataclass(frozen=True)
@@ -54,6 +63,10 @@ class HairSweepProfileV08:
             raise ValueError("Reference hair needs shell, nape and forelock meshes")
         for part in self.meshes:
             part.assert_valid()
+        if self.meshes[0].closed_around or self.meshes[1].closed_around:
+            raise ValueError("Shell and nape must leave the face side open")
+        if not self.meshes[2].closed_around:
+            raise ValueError("Forelock must remain a closed strand")
         rotation_names = [name for name, _rotation in self.accent_rotations_degrees]
         if len(rotation_names) != len(set(rotation_names)):
             raise ValueError("Hair rotation targets must be unique")
@@ -66,42 +79,48 @@ HUMAN_WARRIOR_M01_HAIR_SWEEP_V08 = HairSweepProfileV08(
     proxy_revision="v11",
     meshes=(
         HairSweepMeshPart(
-            "hair_reference_shell",
-            (0.0, 0.0, 4.55),
-            20,
-            3,
-            0.045,
-            (
-                HairSweepRing(-0.42, 0.00, 0.22, 0.20, 0.11, 8.0),
-                HairSweepRing(-0.27, 0.00, 0.18, 0.34, 0.22, 16.0),
-                HairSweepRing(-0.09, 0.00, 0.10, 0.44, 0.30, 24.0),
-                HairSweepRing(0.09, -0.02, 0.02, 0.47, 0.36, 36.0),
-                HairSweepRing(0.25, -0.04, 0.02, 0.40, 0.31, 48.0),
-                HairSweepRing(0.37, -0.05, 0.05, 0.27, 0.22, 62.0),
-                HairSweepRing(0.44, -0.05, 0.07, 0.10, 0.08, 74.0),
+            name="hair_reference_shell",
+            location=(0.0, 0.0, 4.55),
+            segments=20,
+            wave_frequency=3,
+            wave_amplitude=0.040,
+            rings=(
+                HairSweepRing(-0.38, 0.00, 0.05, 0.25, 0.20, 8.0),
+                HairSweepRing(-0.23, 0.00, 0.02, 0.38, 0.30, 16.0),
+                HairSweepRing(-0.06, 0.00, -0.02, 0.47, 0.40, 24.0),
+                HairSweepRing(0.12, -0.01, -0.03, 0.48, 0.40, 36.0),
+                HairSweepRing(0.28, -0.03, -0.01, 0.40, 0.32, 48.0),
+                HairSweepRing(0.40, -0.04, 0.02, 0.25, 0.20, 62.0),
+                HairSweepRing(0.47, -0.04, 0.04, 0.08, 0.06, 74.0),
             ),
+            arc_start_degrees=-40.0,
+            arc_end_degrees=220.0,
+            closed_around=False,
         ),
         HairSweepMeshPart(
-            "hair_reference_nape",
-            (0.0, 0.0, 4.22),
-            16,
-            3,
-            0.035,
-            (
-                HairSweepRing(-0.20, 0.00, 0.22, 0.10, 0.07),
-                HairSweepRing(-0.10, 0.00, 0.22, 0.22, 0.12, 12.0),
-                HairSweepRing(0.05, 0.00, 0.20, 0.31, 0.16, 24.0),
-                HairSweepRing(0.18, 0.00, 0.16, 0.34, 0.18, 36.0),
-                HairSweepRing(0.27, 0.00, 0.12, 0.27, 0.16, 48.0),
+            name="hair_reference_nape",
+            location=(0.0, 0.0, 4.22),
+            segments=16,
+            wave_frequency=3,
+            wave_amplitude=0.030,
+            rings=(
+                HairSweepRing(-0.20, 0.00, 0.20, 0.10, 0.08),
+                HairSweepRing(-0.10, 0.00, 0.20, 0.22, 0.14, 12.0),
+                HairSweepRing(0.05, 0.00, 0.18, 0.31, 0.20, 24.0),
+                HairSweepRing(0.18, 0.00, 0.15, 0.34, 0.22, 36.0),
+                HairSweepRing(0.27, 0.00, 0.11, 0.27, 0.18, 48.0),
             ),
+            arc_start_degrees=-25.0,
+            arc_end_degrees=205.0,
+            closed_around=False,
         ),
         HairSweepMeshPart(
-            "hair_reference_forelock",
-            (-0.08, -0.43, 4.52),
-            10,
-            2,
-            0.025,
-            (
+            name="hair_reference_forelock",
+            location=(-0.08, -0.43, 4.52),
+            segments=10,
+            wave_frequency=2,
+            wave_amplitude=0.025,
+            rings=(
                 HairSweepRing(-0.22, -0.04, -0.035, 0.045, 0.030, 10.0),
                 HairSweepRing(-0.08, -0.02, -0.020, 0.075, 0.045, 24.0),
                 HairSweepRing(0.08, 0.00, 0.000, 0.105, 0.060, 38.0),
