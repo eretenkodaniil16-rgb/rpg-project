@@ -59,8 +59,16 @@ func _run() -> void:
 	if float(observed.get("suspicion", 0.0)) <= 0.0 or str(observed.get("state", "")) != StealthAlertSystem.STATE_SUSPICIOUS:
 		_fail("Visible exploration movement did not raise suspicion.")
 		return
-	if "ПОДОЗРЕНИЕ" not in str(game.call("get_alert_indicator_text_for_testing")):
-		_fail("Mobile alert indicator did not show suspicion.")
+	var alert_text: String = str(game.call("get_alert_indicator_text_for_testing"))
+	if "НАСТОРОЖЕН" not in alert_text:
+		_fail("Mobile alert indicator did not show qualitative suspicion feedback.")
+		return
+	if "%" in alert_text or _contains_digit(alert_text):
+		_fail("Player-facing alert indicator leaked an exact detection value.")
+		return
+	var npc_alert_label: Label = caretaker.get_node_or_null("StealthAlertLabel") as Label
+	if npc_alert_label == null or "%" in npc_alert_label.text or _contains_digit(npc_alert_label.text):
+		_fail("NPC alert label leaked an exact suspicion value.")
 		return
 
 	player.global_position = Vector2(100.0, 110.0)
@@ -128,8 +136,15 @@ func _run() -> void:
 	await process_frame
 	if FileAccess.file_exists(save_path):
 		DirAccess.remove_absolute(save_path)
-	print("Exploration vision, suspicion, hiding, door acoustics, investigation, post-escape search and persistence smoke test passed.")
+	print("Exploration vision, qualitative feedback, hiding, door acoustics, investigation, post-escape search and persistence smoke test passed.")
 	quit(0)
+
+
+func _contains_digit(value: String) -> bool:
+	for character: String in value:
+		if character >= "0" and character <= "9":
+			return true
+	return false
 
 
 func _make_hero() -> PlayerCharacter:
