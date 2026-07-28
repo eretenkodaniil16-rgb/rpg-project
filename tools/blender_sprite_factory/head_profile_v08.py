@@ -26,6 +26,7 @@ class HeadDetailProfileV08:
     face_skin_masses: tuple
     hair_detail_masses: tuple[DetailedEllipsoidPart, ...]
     face_dark_details: tuple
+    hair_rotations_degrees: tuple[tuple[str, tuple[float, float, float]], ...]
 
     def assert_valid(self) -> None:
         if self.character_id != "human_warrior_m01":
@@ -76,6 +77,11 @@ class HeadDetailProfileV08:
         }
         if forbidden_fragment_names.intersection(detail_names):
             raise ValueError("Proxy v11 must not restore the fragmented proxy v10 hair bumps")
+        rotation_names = [name for name, _rotation in self.hair_rotations_degrees]
+        if len(rotation_names) != len(set(rotation_names)):
+            raise ValueError("Reference hair rotation targets must be unique")
+        if "hair_cap" not in rotation_names or "hair_forelock_characteristic" not in rotation_names:
+            raise ValueError("Reference hair rotations must include cap and forelock")
 
 
 HUMAN_WARRIOR_M01_HEAD_V08 = HeadProfile(
@@ -88,8 +94,8 @@ HUMAN_WARRIOR_M01_HEAD_V08 = HeadProfile(
     nose=HUMAN_WARRIOR_M01_HEAD_V07.nose,
     hair_cap=EllipsoidPart(
         "hair_cap",
-        (0.0, 0.070, 4.665),
-        (0.470, 0.310, 0.300),
+        (0.0, 0.060, 4.640),
+        (0.470, 0.320, 0.340),
     ),
     hair_back_masses=(
         EllipsoidPart(
@@ -243,6 +249,24 @@ HUMAN_WARRIOR_M01_HEAD_DETAIL_V08 = HeadDetailProfileV08(
         ),
     ),
     face_dark_details=HUMAN_WARRIOR_M01_HEAD_DETAIL_V07.face_dark_details,
+    hair_rotations_degrees=(
+        ("hair_cap", (18.0, 0.0, 0.0)),
+        ("hair_back_shell", (13.0, 0.0, 0.0)),
+        ("hair_back_crown_bridge", (15.0, 0.0, 0.0)),
+        ("hair_back_sweep_left", (22.0, 0.0, -5.0)),
+        ("hair_back_sweep_right", (22.0, 0.0, 4.0)),
+        ("hair_front_rotation_bridge", (28.0, 0.0, 0.0)),
+        ("hair_front_crown_mass", (20.0, 0.0, 0.0)),
+        ("hair_front_hairline_left", (12.0, -8.0, 0.0)),
+        ("hair_front_hairline_right", (15.0, 10.0, 0.0)),
+        ("hair_forelock_characteristic", (10.0, 22.0, 0.0)),
+        ("hair_forelock_root", (8.0, 20.0, 0.0)),
+        ("hair_forelock_tip", (6.0, 18.0, 0.0)),
+        ("hair_side_mass_left", (12.0, 0.0, -6.0)),
+        ("hair_side_mass_right", (12.0, 0.0, 5.0)),
+        ("hair_temple_curl_left", (10.0, -8.0, 0.0)),
+        ("hair_temple_curl_right", (12.0, 10.0, 0.0)),
+    ),
 )
 
 
