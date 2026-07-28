@@ -1,12 +1,13 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "actors": {
     "caretaker": {
       "actor_id": "caretaker",
       "alert_group_id": "vault_watch",
       "patrol_id": "",
       "can_start_combat": true,
-      "participates_in_combat": true
+      "participates_in_combat": true,
+      "can_join_active_combat": false
     },
     "service_guard": {
       "actor_id": "service_guard",
@@ -14,7 +15,8 @@
       "patrol_id": "main_hall_service_loop",
       "patrol_speed_pixels": 74.0,
       "can_start_combat": false,
-      "participates_in_combat": false
+      "participates_in_combat": true,
+      "can_join_active_combat": true
     }
   },
   "alert_groups": {
