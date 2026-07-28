@@ -21,9 +21,12 @@ func get_armor_class(character: PlayerCharacter) -> int:
 func short_rest(character: PlayerCharacter, roll_override: int = -1) -> Dictionary:
 	_fighter_subclasses.ensure_character(character)
 	var result: Dictionary = super.short_rest(character, roll_override)
-	if bool(result.get("success", false)) and _fighter_subclasses.recharge_short_rest(character):
-		_save_state()
-		result["subclass_resource_recharged"] = true
+	if bool(result.get("success", false)):
+		var recharged: bool = _fighter_subclasses.recharge_short_rest(character)
+		var cleared: bool = _fighter_subclasses.clear_combat_effects(character)
+		if recharged or cleared:
+			_save_state()
+		result["subclass_resource_recharged"] = recharged
 	return result
 
 
