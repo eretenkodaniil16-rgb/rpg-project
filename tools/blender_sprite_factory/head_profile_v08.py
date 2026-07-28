@@ -99,7 +99,7 @@ HUMAN_WARRIOR_M01_HEAD_V08 = HeadProfile(
         ),
         EllipsoidPart(
             "hair_back_crown_bridge",
-            (0.0, 0.075, 4.845),
+            (0.0, 0.075, 4.846),
             (0.335, 0.180, 0.215),
         ),
         EllipsoidPart(
