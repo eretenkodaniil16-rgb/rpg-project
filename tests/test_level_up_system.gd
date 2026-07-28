@@ -31,7 +31,7 @@ func _run() -> void:
 		_fail("XP must unlock a level without applying it automatically.")
 		return
 
-	var levels := LevelUpSystem.new()
+	var levels := LevelUpChoiceSystem.new()
 	var begin_result: Dictionary = levels.begin_transaction(fighter, state)
 	if not bool(begin_result.get("success", false)):
 		_fail("Level-up transaction did not start.")
@@ -39,7 +39,7 @@ func _run() -> void:
 	if int((begin_result.get("transaction", {}) as Dictionary).get("target_level", 0)) != 2:
 		_fail("The transaction did not target the next sequential level.")
 		return
-	var restored := LevelUpSystem.new()
+	var restored := LevelUpChoiceSystem.new()
 	if not restored.has_pending_transaction(fighter, state):
 		_fail("A new system instance did not restore the saved transaction.")
 		return
@@ -69,8 +69,17 @@ func _run() -> void:
 	if int(first_transaction.get("hp_roll", 0)) != 1 or int(second_transaction.get("hp_roll", 0)) != 1:
 		_fail("HP roll was not irreversible after switching between HP modes.")
 		return
+	levels.set_level_choice(
+		fighter,
+		state,
+		"fighter_subclass",
+		{"option_id": "guardian_vanguard"}
+	)
 	if not bool(levels.commit_transaction(fighter, state).get("success", false)) or fighter.level != 3:
-		_fail("Rolled-HP level-up did not commit.")
+		_fail("Rolled-HP level-up with subclass did not commit.")
+		return
+	if fighter.subclass_id != "guardian_vanguard":
+		_fail("Fighter subclass was not stored by the level transaction.")
 		return
 
 	state.call("new_game")
@@ -82,11 +91,23 @@ func _run() -> void:
 	state.set("player_character", monk)
 	levels.begin_transaction(monk, state)
 	levels.choose_fixed_hp(monk, state)
+	levels.set_level_choice(
+		monk,
+		state,
+		"level_4_advancement",
+		{
+			"mode": LevelChoiceSystem.ADVANCEMENT_PLUS_TWO,
+			"primary_ability_id": "wisdom"
+		}
+	)
 	if not bool(levels.commit_transaction(monk, state).get("success", false)):
 		_fail("Monk level-up did not commit.")
 		return
 	if "slow_fall" not in monk.known_features:
 		_fail("Level-specific class feature was not granted.")
+		return
+	if monk.get_ability_score("wisdom") != 12:
+		_fail("Level 4 ability increase was not applied.")
 		return
 
 	state.call("new_game")
@@ -174,7 +195,7 @@ func _run() -> void:
 		_fail("Migration did not preserve the level with the official minimum XP.")
 		return
 
-	print("Official XP, saved sequential transactions, HP choice, class features and spell replacement tests passed.")
+	print("Official XP, saved sequential transactions, level choices, class features and spell replacement tests passed.")
 	quit(0)
 
 
