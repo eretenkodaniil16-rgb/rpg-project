@@ -24,7 +24,40 @@ ACTIVE_HEAD_PROFILE_PATH = SCRIPT_DIR / "head_profile_v08.py"
 _ORIGINAL_WRITE_RUN_MANIFEST = factory._write_run_manifest
 
 
+def _apply_reference_hair_palette(context: factory.BuildContext) -> None:
+    material = context.materials["hair"]
+    nodes = material.node_tree.nodes
+    links = material.node_tree.links
+    texture = next(node for node in nodes if node.type == "TEX_IMAGE")
+    shader = next(node for node in nodes if node.type == "BSDF_PRINCIPLED")
+    for link in tuple(shader.inputs["Base Color"].links):
+        links.remove(link)
+
+    rgb_to_bw = nodes.new("ShaderNodeRGBToBW")
+    rgb_to_bw.name = "hair_reference_luminance"
+    color_ramp = nodes.new("ShaderNodeValToRGB")
+    color_ramp.name = "hair_reference_palette"
+    color_ramp.color_ramp.interpolation = "CONSTANT"
+    elements = color_ramp.color_ramp.elements
+    elements[0].position = 0.06
+    elements[0].color = (0x0B / 255.0, 0x06 / 255.0, 0x02 / 255.0, 1.0)
+    elements[1].position = 0.36
+    elements[1].color = (0x7C / 255.0, 0x49 / 255.0, 0x24 / 255.0, 1.0)
+    for position, color in (
+        (0.11, (0x1A, 0x12, 0x0A)),
+        (0.17, (0x26, 0x18, 0x0B)),
+        (0.25, (0x58, 0x2A, 0x15)),
+    ):
+        element = elements.new(position)
+        element.color = tuple(component / 255.0 for component in color) + (1.0,)
+
+    links.new(texture.outputs["Color"], rgb_to_bw.inputs["Color"])
+    links.new(rgb_to_bw.outputs["Val"], color_ramp.inputs["Fac"])
+    links.new(color_ramp.outputs["Color"], shader.inputs["Base Color"])
+
+
 def _build_head_and_hair_v08(context: factory.BuildContext) -> None:
+    _apply_reference_hair_palette(context)
     previous_adapter.load_head_detail_profile_v07 = load_head_detail_profile_v08
     previous_adapter._build_head_and_hair_v07(context)
 
@@ -106,6 +139,8 @@ def _write_run_manifest_v08(
         ),
         "detail_hair_parts": len(detail.hair_detail_masses),
         "face_geometry_locked_to_revision": "v07",
+        "material_palette": ["#0B0602", "#1A120A", "#26180B", "#582A15", "#7C4924"],
+        "material_strategy": "approved_reference_constant_color_ramp",
     }
     manifest_path.write_text(
         json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
