@@ -11,7 +11,7 @@ config/features=PackedStringArray("4.7", "GL Compatibility")
 
 [autoload]
 
-GameState="*res://scripts/core/game_state.gd"
+GameState="*res://scripts/core/game_state_rewards.gd"
 CharacterSelectionTouchAssist="*res://scripts/ui/character_selection_touch_assist.gd"
 TouchScrollManager="*res://scripts/ui/touch_scroll_manager.gd"
 
