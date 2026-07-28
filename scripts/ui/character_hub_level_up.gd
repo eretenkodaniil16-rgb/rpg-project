@@ -4,9 +4,11 @@ extends CharacterHubInventory
 signal level_up_requested
 
 var _level_up_system: LevelUpChoiceSystem = LevelUpChoiceSystem.new()
+var _fighter_subclasses: FighterSubclassSystem = FighterSubclassSystem.new()
 
 
 func _ready() -> void:
+	_class_data = ClassDataSubclassSystem.new()
 	super._ready()
 	var state: Node = _game_state()
 	if state != null and state.has_signal("experience_gained"):
@@ -19,6 +21,8 @@ func _refresh_character() -> void:
 	var state: Node = _game_state()
 	if state != null:
 		_level_up_system.ensure_migrated(_hero, state)
+		if _fighter_subclasses.ensure_character(_hero):
+			state.call("save_game")
 	super._refresh_character()
 	if _hero == null or state == null:
 		return
