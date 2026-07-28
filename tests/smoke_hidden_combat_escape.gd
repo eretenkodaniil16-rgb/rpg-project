@@ -178,6 +178,18 @@ func _test_room_route(
 func _begin_pursuit_attempt(game: Node, state: Node, caretaker: Node, source_id: String) -> void:
 	if caretaker.has_method("reset_combat_state"):
 		caretaker.call("reset_combat_state", true)
+	# This smoke validates one observer. Reset the new reinforcement so a previous
+	# abandoned attempt does not intentionally add a second searcher.
+	var guard: Node = game.call("get_patrol_actor_for_testing", "service_guard") as Node
+	if guard != null:
+		if guard.has_method("reset_combat_state"):
+			guard.call("reset_combat_state", true)
+		var guard_record: Dictionary = state.call("get_stealth_alert_record", "service_guard") as Dictionary
+		guard_record["state"] = StealthAlertSystem.STATE_CALM
+		guard_record["suspicion"] = 0.0
+		guard_record["last_known_position"] = [0.0, 0.0]
+		state.call("set_stealth_alert_record", "service_guard", guard_record, false, false)
+		game.call("_restore_exploration_alerts")
 	var begin_result: Dictionary = state.call(
 		"begin_encounter",
 		ENCOUNTER_ID,
