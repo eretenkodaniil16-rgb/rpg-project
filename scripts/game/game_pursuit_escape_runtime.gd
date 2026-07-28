@@ -9,7 +9,7 @@ func _active_observers() -> Array[Node]:
 		if bool(entry.get("is_player", false)):
 			continue
 		var actor: Node = entry.get("node") as Node
-		if not is_instance_valid(actor) or not (actor is Node2D) or not _target_is_valid(actor):
+		if not is_instance_valid(actor) or not (actor is Node2D):
 			continue
 		if actor.has_method("can_take_combat_turn") and not bool(actor.call("can_take_combat_turn")):
 			continue
