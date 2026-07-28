@@ -20,13 +20,15 @@ class HairMassBuilderV17Tests(unittest.TestCase):
         ast.parse(self.builder_source)
         ast.parse(self.adapter_source)
 
-    def test_builder_extends_integrated_proxy_without_reintroducing_overlays(self) -> None:
-        self.assertIn(
+    def test_builder_refines_one_completed_proxy_v19_scene(self) -> None:
+        self.assertIn("_assert_previous_integrated_state", self.builder_source)
+        self.assertIn("completed proxy v19 scene", self.builder_source)
+        self.assertNotIn(
             "previous_builder.apply_integrated_crown_back_pass(context)",
             self.builder_source,
         )
         self.assertIn("REMOVED_BACK_OVERLAY_NAMES.intersection", self.builder_source)
-        self.assertNotIn("hair_back_shell\" =", self.builder_source)
+        self.assertIn("current_names != actual_names", self.builder_source)
         self.assertNotIn("scale.x = -1", self.builder_source)
         self.assertNotIn("scale[0] = -1", self.builder_source)
 
