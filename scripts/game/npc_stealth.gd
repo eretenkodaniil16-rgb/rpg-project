@@ -92,6 +92,39 @@ func get_last_known_position() -> Vector2:
 	return last_known_position
 
 
+func get_maximum_health() -> int:
+	return maximum_health
+
+
+func get_observable_alert_state_label() -> String:
+	return {
+		StealthAlertSystem.STATE_CALM: "спокоен",
+		StealthAlertSystem.STATE_SUSPICIOUS: "насторожен",
+		StealthAlertSystem.STATE_INVESTIGATING: "проверяет источник",
+		StealthAlertSystem.STATE_SEARCHING: "обыскивает область",
+		StealthAlertSystem.STATE_ALERTED: "поднял тревогу",
+		StealthAlertSystem.STATE_COMBAT: "ведёт бой"
+	}.get(detection_state, "поведение неясно")
+
+
+func get_observable_health_label() -> String:
+	if defeated or current_health <= 0:
+		return "без сознания"
+	var ratio: float = float(current_health) / float(maxi(maximum_health, 1))
+	if ratio >= 0.85:
+		return "выглядит невредимым"
+	if ratio >= 0.5:
+		return "заметно ранен"
+	if ratio >= 0.25:
+		return "тяжело ранен"
+	return "едва держится"
+
+
+func get_context_status_text() -> String:
+	var relation: String = "враждебен" if is_hostile() else "не проявляет открытой враждебности"
+	return "Поведение: %s. Отношение: %s. Состояние: %s." % [get_observable_alert_state_label(), relation, get_observable_health_label()]
+
+
 func enter_combat_hostile() -> void:
 	super.enter_combat_hostile()
 	detection_state = StealthAlertSystem.STATE_COMBAT
@@ -121,25 +154,12 @@ func _build_alert_label() -> void:
 	_alert_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_alert_label.add_theme_font_size_override("font_size", 14)
 	_alert_label.z_index = 8
+	_alert_label.hide()
 	add_child(_alert_label)
 
 
 func _update_alert_visuals() -> void:
-	if _alert_label == null:
-		return
-	var state_label: String = {
-		StealthAlertSystem.STATE_CALM: "СПОКОЕН",
-		StealthAlertSystem.STATE_SUSPICIOUS: "НАСТОРОЖЕН",
-		StealthAlertSystem.STATE_INVESTIGATING: "ПРОВЕРЯЕТ",
-		StealthAlertSystem.STATE_SEARCHING: "ИЩЕТ",
-		StealthAlertSystem.STATE_ALERTED: "ТРЕВОГА",
-		StealthAlertSystem.STATE_COMBAT: "БОЙ"
-	}.get(detection_state, detection_state.to_upper())
-	_alert_label.text = state_label
-	_alert_label.visible = detection_state != StealthAlertSystem.STATE_CALM
-	var alert_color: Color = Color(0.62, 0.86, 0.64, 1.0)
-	if detection_state in [StealthAlertSystem.STATE_SUSPICIOUS, StealthAlertSystem.STATE_INVESTIGATING, StealthAlertSystem.STATE_SEARCHING]:
-		alert_color = Color(1.0, 0.78, 0.28, 1.0)
-	elif detection_state in [StealthAlertSystem.STATE_ALERTED, StealthAlertSystem.STATE_COMBAT]:
-		alert_color = Color(1.0, 0.34, 0.28, 1.0)
-	_alert_label.add_theme_color_override("font_color", alert_color)
+	# Точное или текстовое состояние NPC раскрывается только через контекстное действие игрока.
+	if _alert_label != null:
+		_alert_label.text = ""
+		_alert_label.hide()
