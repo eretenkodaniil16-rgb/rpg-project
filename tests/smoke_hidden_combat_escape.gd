@@ -3,12 +3,15 @@ extends SceneTree
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
 const RUNTIME_PATH: String = "res://scripts/game/game_pursuit_escape_runtime.gd"
 
+var _failed: bool = false
+
 
 func _init() -> void:
 	call_deferred("_run")
 
 
 func _fail(message: String) -> void:
+	_failed = true
 	push_error(message)
 	quit(1)
 
@@ -46,13 +49,13 @@ func _run() -> void:
 	var combat_state: CombatantState = game.get("_player_combat_state") as CombatantState
 
 	await _test_hideout_route(game, state, hero, player, grid, dummy, combat_state)
-	if get_exit_code() != 0:
+	if _failed:
 		return
 	await _test_room_route(game, state, player, grid, dummy, combat_state)
-	if get_exit_code() != 0:
+	if _failed:
 		return
 	await _test_persistence(game, state, save_path)
-	if get_exit_code() != 0:
+	if _failed:
 		return
 
 	game.queue_free()
@@ -175,7 +178,7 @@ func _test_room_route(
 		_fail("Combat or hidden state leaked after escape.")
 
 
-func _test_persistence(game: Node, state: Node, save_path: String) -> void:
+func _test_persistence(_game: Node, state: Node, save_path: String) -> void:
 	if not bool(state.call("save_game")):
 		_fail("Abandoned encounter could not be saved.")
 		return
