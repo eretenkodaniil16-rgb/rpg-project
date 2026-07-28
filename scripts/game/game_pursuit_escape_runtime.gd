@@ -15,3 +15,11 @@ func _active_observers() -> Array[Node]:
 			continue
 		result.append(actor)
 	return result
+
+
+func _on_hide_requested() -> void:
+	await super._on_hide_requested()
+	if not _player_combat_state.hidden:
+		return
+	for observer: Node in _active_observers():
+		_set_observer_state(observer, DETECTION_PURSUING, _last_seen_player_position)
