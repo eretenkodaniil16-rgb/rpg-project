@@ -115,6 +115,7 @@ func _apply_state(report_noise: bool) -> void:
 	if report_noise:
 		get_tree().call_group("game_world", "report_world_noise", "door", global_position, {"door_id": door_id})
 	get_tree().call_group("game_world", "on_stealth_door_state_changed", door_id, _door_state)
+	get_tree().call_group("stealth_world", "set_navigation_door_state", door_id, _door_state)
 
 
 func _on_body_entered(body: Node2D) -> void:
