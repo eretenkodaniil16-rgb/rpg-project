@@ -49,10 +49,15 @@ def _clear_old_hair() -> None:
 def _sweep_mesh(part: HairSweepMeshPart, material: object) -> object:
     vertices: list[tuple[float, float, float]] = []
     faces: list[tuple[int, ...]] = []
-    for ring_index, ring in enumerate(part.rings):
+    point_count = part.segments if part.closed_around else part.segments + 1
+    arc_start = math.radians(part.arc_start_degrees)
+    arc_span = math.radians(part.arc_end_degrees - part.arc_start_degrees)
+
+    for ring in part.rings:
         phase = math.radians(ring.phase_degrees)
-        for segment_index in range(part.segments):
-            angle = math.tau * segment_index / part.segments
+        for point_index in range(point_count):
+            divisor = part.segments
+            angle = arc_start + arc_span * point_index / divisor
             wave = 1.0 + part.wave_amplitude * math.cos(
                 part.wave_frequency * angle + phase
             )
@@ -63,22 +68,31 @@ def _sweep_mesh(part: HairSweepMeshPart, material: object) -> object:
                     ring.z,
                 )
             )
-        if ring_index:
-            previous = (ring_index - 1) * part.segments
-            current = ring_index * part.segments
-            for index in range(part.segments):
-                next_index = (index + 1) % part.segments
-                faces.append(
-                    (
-                        previous + index,
-                        previous + next_index,
-                        current + next_index,
-                        current + index,
-                    )
+
+    for ring_index in range(1, len(part.rings)):
+        previous = (ring_index - 1) * point_count
+        current = ring_index * point_count
+        edge_count = part.segments
+        for index in range(edge_count):
+            next_index = (index + 1) % point_count
+            faces.append(
+                (
+                    previous + index,
+                    previous + next_index,
+                    current + next_index,
+                    current + index,
                 )
-    faces.append(tuple(reversed(range(part.segments))))
-    top = (len(part.rings) - 1) * part.segments
-    faces.append(tuple(top + index for index in range(part.segments)))
+            )
+
+    faces.append(tuple(reversed(range(point_count))))
+    top = (len(part.rings) - 1) * point_count
+    faces.append(tuple(top + index for index in range(point_count)))
+    if not part.closed_around:
+        for index in range(len(part.rings) - 1):
+            current = index * point_count
+            following = (index + 1) * point_count
+            faces.append((current, following, following + point_count - 1, current + point_count - 1))
+
     mesh = factory.bpy.data.meshes.new(f"{part.name}_mesh")
     mesh.from_pydata(vertices, [], faces)
     mesh.update(calc_edges=True)
