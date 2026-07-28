@@ -134,6 +134,10 @@ func _run() -> void:
 		_fail("Hidden combat state leaked out of the abandoned encounter.")
 		return
 
+	var status_before_save: String = str(state.call("get_encounter_status", "training_construct"))
+	var registry_before_save: Variant = state.call("get_flag", EncounterSystem.REGISTRY_FLAG, {})
+	print("Encounter status before save: %s" % status_before_save)
+	print("Encounter registry before save: %s" % JSON.stringify(registry_before_save))
 	if not bool(state.call("save_game")):
 		_fail("Abandoned encounter could not be saved.")
 		return
@@ -141,8 +145,12 @@ func _run() -> void:
 	if not bool(state.call("load_game")):
 		_fail("Abandoned encounter save could not be loaded.")
 		return
-	if str(state.call("get_encounter_status", "training_construct")) != EncounterSystem.STATUS_ABANDONED:
-		_fail("Abandoned encounter state was not preserved by save/load.")
+	var loaded_status: String = str(state.call("get_encounter_status", "training_construct"))
+	var loaded_registry: Variant = state.call("get_flag", EncounterSystem.REGISTRY_FLAG, {})
+	print("Encounter status after load: %s" % loaded_status)
+	print("Encounter registry after load: %s" % JSON.stringify(loaded_registry))
+	if loaded_status != EncounterSystem.STATUS_ABANDONED:
+		_fail("Abandoned encounter state was not preserved by save/load: %s." % loaded_status)
 		return
 	var retry: Dictionary = state.call("begin_encounter", "training_construct", {"source_type": "retry"}, false, false) as Dictionary
 	if not bool(retry.get("success", false)) or int((retry.get("state", {}) as Dictionary).get("attempt_count", 0)) < 2:
