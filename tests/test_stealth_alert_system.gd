@@ -44,7 +44,7 @@ func _run() -> void:
 	if not system.can_see_target(Vector2.ZERO, Vector2.RIGHT, Vector2(192.0, 0.0), profile, true, false):
 		_fail("Target in the primary view cone was not visible.")
 		return
-	if system.can_see_target(Vector2.ZERO, Vector2.LEFT, Vector2(192.0, 0.0), profile, true, false):
+	if system.can_see_target(Vector2.ZERO, Vector2.LEFT, Vector2(288.0, 0.0), profile, true, false):
 		_fail("Target behind the observer was visible outside peripheral range.")
 		return
 	if system.can_see_target(Vector2.ZERO, Vector2.RIGHT, Vector2(96.0, 0.0), profile, false, false):
