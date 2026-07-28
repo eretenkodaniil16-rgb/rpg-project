@@ -50,7 +50,14 @@ jobs:
       - name: Run unit tests
         env:
           PYTHONPATH: tools/blender_sprite_factory
-        run: python -m unittest discover -s tools/blender_sprite_factory/tests -p "test_*.py" -v
+        shell: bash
+        run: |
+          set -o pipefail
+          if ! python -m unittest discover -s tools/blender_sprite_factory/tests -p "test_*.py" -v > unit_tests.log 2>&1; then
+            tail -n 120 unit_tests.log
+            exit 1
+          fi
+          tail -n 30 unit_tests.log
 
       - name: Validate shared contract and references
         env:
