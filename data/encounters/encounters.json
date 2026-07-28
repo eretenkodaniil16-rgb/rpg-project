@@ -7,6 +7,15 @@
       "repeatable": false,
       "combat_resolution_id": "destroyed",
       "reward_id": "encounter_training_dummy_break",
+      "escape": {
+        "policy": "hidden_boundary",
+        "edges": ["west", "south"],
+        "depth_cells": 1,
+        "safe_anchor": [320.0, 360.0],
+        "reason_id": "player_escaped_hidden",
+        "alert_flag": "training_construct_alerted",
+        "restore_participants": true
+      },
       "resolutions": {
         "destroyed": {
           "type": "combat",
@@ -36,6 +45,9 @@
       "title": "Тайна Смотрителя",
       "repeatable": false,
       "reward_id": "dialogue_caretaker_revelation",
+      "escape": {
+        "policy": "forbidden"
+      },
       "resolutions": {
         "persuaded": {
           "type": "dialogue",
