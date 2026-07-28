@@ -2,6 +2,7 @@ extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
 const RUNTIME_PATH: String = "res://scripts/game/game_pursuit_escape_runtime.gd"
+const ENCOUNTER_ID: String = "training_construct"
 
 var _failed: bool = false
 
@@ -41,20 +42,20 @@ func _run() -> void:
 		return
 
 	var player: Node2D = game.get_node_or_null("Player") as Node2D
+	var caretaker: Node = game.get_node_or_null("Caretaker")
 	var grid: BattleGrid = get_first_node_in_group("battle_grid") as BattleGrid
-	var dummy: Node = _find_training_construct()
-	if player == null or grid == null or dummy == null:
-		_fail("Player, battle grid or training encounter actor is missing.")
+	if player == null or caretaker == null or grid == null:
+		_fail("Player, caretaker or battle grid is missing.")
 		return
 	var combat_state: CombatantState = game.get("_player_combat_state") as CombatantState
 
-	await _test_hideout_route(game, state, hero, player, grid, dummy, combat_state)
+	await _test_hideout_route(game, state, hero, player, grid, caretaker, combat_state)
 	if _failed:
 		return
-	await _test_room_route(game, state, player, grid, dummy, combat_state)
+	await _test_room_route(game, state, player, grid, caretaker, combat_state)
 	if _failed:
 		return
-	await _test_persistence(game, state, save_path)
+	_test_persistence(state, save_path)
 	if _failed:
 		return
 
@@ -72,30 +73,28 @@ func _test_hideout_route(
 	hero: PlayerCharacter,
 	player: Node2D,
 	grid: BattleGrid,
-	dummy: Node,
+	caretaker: Node,
 	combat_state: CombatantState
 ) -> void:
-	game.call("_start_turn_based_combat", dummy)
-	game.call("force_player_turn_for_testing")
-	await process_frame
-	if str(state.call("get_encounter_status", "training_construct")) != EncounterSystem.STATUS_ACTIVE:
-		_fail("Training encounter did not become active.")
+	(caretaker as Node2D).global_position = Vector2(930.0, 555.0)
+	player.global_position = grid.cell_to_world_center(Vector2i(11, 8))
+	state.set("player_position", player.global_position)
+	await _begin_pursuit_attempt(game, state, caretaker, "hideout")
+	if _failed:
 		return
 	var escape_entry: Dictionary = _find_entry((game.call("_build_catalog_entries") as Dictionary).get("action", []) as Array, "escape")
 	if escape_entry.is_empty() or bool(escape_entry.get("enabled", false)):
 		_fail("Escape should be disabled before successful hiding.")
 		return
 
-	player.global_position = grid.cell_to_world_center(Vector2i(11, 8))
-	state.set("player_position", player.global_position)
 	game.call("set_hide_roll_overrides_for_testing", [20])
 	game.call("_on_hide_requested")
 	await process_frame
 	if combat_state == null or not combat_state.hidden:
 		_fail("The concealed wall niche did not hide the player.")
 		return
-	if str(game.call("get_detection_state_for_testing", dummy)) != "pursuing_last_seen":
-		_fail("The enemy did not pursue the last seen position.")
+	if str(game.call("get_detection_state_for_testing", caretaker)) != "pursuing_last_seen":
+		_fail("The caretaker did not pursue the last seen position.")
 		return
 	game.call("_on_catalog_action_requested", "escape")
 	await process_frame
@@ -103,14 +102,14 @@ func _test_hideout_route(
 	if str(progress.get("route_id", "")) != "collapsed_wall_niche" or not bool(progress.get("objective_ready", false)):
 		_fail("The deep hideout did not become the active objective.")
 		return
-	if bool(game.call("resolve_search_for_testing", dummy, 1)):
+	if bool(game.call("resolve_search_for_testing", caretaker, 1)):
 		_fail("One failed search ended the encounter too early.")
 		return
-	if not bool(game.call("resolve_search_for_testing", dummy, 1)):
+	if not bool(game.call("resolve_search_for_testing", caretaker, 1)):
 		_fail("Two failed searches did not complete the hideout escape.")
 		return
 	await process_frame
-	if str(state.call("get_encounter_status", "training_construct")) != EncounterSystem.STATUS_ABANDONED:
+	if str(state.call("get_encounter_status", ENCOUNTER_ID)) != EncounterSystem.STATUS_ABANDONED:
 		_fail("Hideout escape did not abandon the encounter.")
 		return
 	if hero.experience != 0 or int(state.call("get_item_count", "straw_scrap")) != 0:
@@ -122,19 +121,17 @@ func _test_room_route(
 	state: Node,
 	player: Node2D,
 	grid: BattleGrid,
-	dummy: Node,
+	caretaker: Node,
 	combat_state: CombatantState
 ) -> void:
-	if dummy.has_method("reset_for_testing"):
-		dummy.call("reset_for_testing")
-	game.call("_start_turn_based_combat", dummy)
-	game.call("force_player_turn_for_testing")
-	await process_frame
-	if str(state.call("get_encounter_status", "training_construct")) != EncounterSystem.STATUS_ACTIVE:
-		_fail("Abandoned encounter could not be attempted again.")
+	(caretaker as Node2D).global_position = grid.cell_to_world_center(Vector2i(4, 4))
+	player.global_position = grid.cell_to_world_center(Vector2i(2, 4))
+	state.set("player_position", player.global_position)
+	await _begin_pursuit_attempt(game, state, caretaker, "room_transition")
+	if _failed:
 		return
 
-	game.call("force_hidden_escape_state_for_testing", 22, true)
+	game.call("force_hidden_escape_state_for_testing", 18, true)
 	var room_path: Array[Vector2i] = [Vector2i(2, 4), Vector2i(1, 4), Vector2i(0, 4)]
 	game.call("apply_hidden_path_for_testing", room_path)
 	var transition: Dictionary = game.call("get_escape_progress_for_testing") as Dictionary
@@ -147,30 +144,30 @@ func _test_room_route(
 
 	player.global_position = grid.cell_to_world_center(Vector2i(0, 3))
 	state.set("player_position", player.global_position)
-	game.call("set_hide_roll_overrides_for_testing", [20])
+	game.call("set_hide_roll_overrides_for_testing", [9])
 	game.call("_on_hide_requested")
 	await process_frame
 	var hidden_room: Dictionary = game.call("get_escape_progress_for_testing") as Dictionary
 	if not combat_state.hidden or not bool(hidden_room.get("objective_ready", false)):
 		_fail("The player did not re-hide inside the adjacent room.")
 		return
-	if bool(game.call("resolve_search_for_testing", dummy, 20)):
+	if bool(game.call("resolve_search_for_testing", caretaker, 20)):
 		_fail("Finding one trace segment incorrectly completed escape.")
 		return
-	if str(game.call("get_detection_state_for_testing", dummy)) != "tracking":
+	if str(game.call("get_detection_state_for_testing", caretaker)) != "tracking":
 		_fail("Successful tracking did not change the enemy state.")
 		return
-	if bool(game.call("resolve_search_for_testing", dummy, 1)):
+	if bool(game.call("resolve_search_for_testing", caretaker, 1)):
 		_fail("One failed search after tracking ended the encounter too early.")
 		return
-	if not bool(game.call("resolve_search_for_testing", dummy, 1)):
+	if not bool(game.call("resolve_search_for_testing", caretaker, 1)):
 		_fail("The enemy did not lose the trail after two failed searches.")
 		return
 	await process_frame
-	if str(state.call("get_encounter_status", "training_construct")) != EncounterSystem.STATUS_ABANDONED:
+	if str(state.call("get_encounter_status", ENCOUNTER_ID)) != EncounterSystem.STATUS_ABANDONED:
 		_fail("Adjacent-room escape did not abandon the encounter.")
 		return
-	var encounter_state: Dictionary = state.call("get_encounter_state", "training_construct") as Dictionary
+	var encounter_state: Dictionary = state.call("get_encounter_state", ENCOUNTER_ID) as Dictionary
 	if int(encounter_state.get("attempt_count", 0)) < 2:
 		_fail("Retry attempt count was not preserved.")
 		return
@@ -178,7 +175,31 @@ func _test_room_route(
 		_fail("Combat or hidden state leaked after escape.")
 
 
-func _test_persistence(_game: Node, state: Node, save_path: String) -> void:
+func _begin_pursuit_attempt(game: Node, state: Node, caretaker: Node, source_id: String) -> void:
+	if caretaker.has_method("reset_combat_state"):
+		caretaker.call("reset_combat_state", true)
+	var begin_result: Dictionary = state.call(
+		"begin_encounter",
+		ENCOUNTER_ID,
+		{"source_type": "pursuit_smoke", "source_id": source_id},
+		false,
+		false
+	) as Dictionary
+	if not bool(begin_result.get("success", false)) and not bool(begin_result.get("duplicate", false)):
+		_fail("Training encounter could not begin for pursuit smoke testing.")
+		return
+	game.call("_start_turn_based_combat", caretaker)
+	game.call("force_active_escape_encounter_for_testing", ENCOUNTER_ID)
+	game.call("force_player_turn_for_testing")
+	await process_frame
+	if not bool(game.call("is_turn_based_combat_active")):
+		_fail("Turn-based combat did not start with the mobile enemy observer.")
+		return
+	if str(state.call("get_encounter_status", ENCOUNTER_ID)) != EncounterSystem.STATUS_ACTIVE:
+		_fail("Encounter registry is not active during pursuit.")
+
+
+func _test_persistence(state: Node, save_path: String) -> void:
 	if not bool(state.call("save_game")):
 		_fail("Abandoned encounter could not be saved.")
 		return
@@ -188,7 +209,7 @@ func _test_persistence(_game: Node, state: Node, save_path: String) -> void:
 	if not bool(state.call("load_game")):
 		_fail("Abandoned encounter save could not be loaded.")
 		return
-	if str(state.call("get_encounter_status", "training_construct")) != EncounterSystem.STATUS_ABANDONED:
+	if str(state.call("get_encounter_status", ENCOUNTER_ID)) != EncounterSystem.STATUS_ABANDONED:
 		_fail("Abandoned encounter state was not preserved by save/load.")
 		return
 	if not bool(state.call("get_flag", "training_construct_alerted", false)):
@@ -215,13 +236,6 @@ func _make_hero() -> PlayerCharacter:
 	hero.base_abilities["dexterity"] = 18
 	hero.skill_proficiencies.append("stealth")
 	return hero
-
-
-func _find_training_construct() -> Node:
-	for candidate: Node in get_nodes_in_group("combat_targets"):
-		if candidate.has_method("get_encounter_id") and str(candidate.call("get_encounter_id")) == "training_construct":
-			return candidate
-	return null
 
 
 func _find_entry(entries: Array, action_id: String) -> Dictionary:
