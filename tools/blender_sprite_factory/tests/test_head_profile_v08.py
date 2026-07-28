@@ -198,10 +198,10 @@ class ReferenceHairProfileV08Tests(unittest.TestCase):
             / "workflows"
             / "validate-blender-sprite-factory.yml"
         ).read_text(encoding="utf-8")
-        self.assertIn("blender_sprite_factory_head_v15.py", launcher)
-        self.assertIn("render-proxy-v18", workflow)
-        self.assertIn("blender_sprite_factory_head_v15.py", workflow)
-        self.assertIn("human_warrior_m01_proxy_v18_", workflow)
+        self.assertIn("blender_sprite_factory_head_v16.py", launcher)
+        self.assertIn("render-proxy-v19", workflow)
+        self.assertIn("blender_sprite_factory_head_v16.py", workflow)
+        self.assertIn("human_warrior_m01_proxy_v19_", workflow)
 
     def test_unknown_character_cannot_use_v08_identity(self) -> None:
         with self.assertRaisesRegex(KeyError, "No detailed head profile"):
