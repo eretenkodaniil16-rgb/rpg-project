@@ -3,7 +3,13 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import sys
 from pathlib import Path
+
+SCRIPT_PATH = Path(__file__).resolve()
+SCRIPT_DIR = SCRIPT_PATH.parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
 
 import blender_sprite_factory as factory
 from head_profile_v04 import (
@@ -15,8 +21,6 @@ from head_profile_v04 import (
 )
 
 
-SCRIPT_PATH = Path(__file__).resolve()
-SCRIPT_DIR = SCRIPT_PATH.parent
 BASE_HEAD_PROFILE_PATH = SCRIPT_DIR / "head_profile.py"
 ACTIVE_HEAD_PROFILE_PATH = SCRIPT_DIR / "head_profile_v04.py"
 _ORIGINAL_WRITE_RUN_MANIFEST = factory._write_run_manifest
