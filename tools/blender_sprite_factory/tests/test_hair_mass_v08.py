@@ -131,7 +131,7 @@ class HairMassBuilderV08Tests(unittest.TestCase):
         self.assertIn('"hair_forelock_characteristic": (0.78, 0.95, 1.18)', self.builder_source)
         self.assertIn('"hair_forelock_tip": (0.78, 1.00, 1.25)', self.builder_source)
 
-    def test_adapter_records_crown_profile_and_inactive_sweep(self) -> None:
+    def test_adapter_records_actual_transforms_crown_profile_and_inactive_sweep(self) -> None:
         adapter = self.tool_root / "blender_sprite_factory_head_v08.py"
         source = adapter.read_text(encoding="utf-8")
         tree = ast.parse(source)
@@ -141,6 +141,10 @@ class HairMassBuilderV08Tests(unittest.TestCase):
         self.assertIn('"hair_crown_profile"', source)
         self.assertIn('"inactive_after_occlusion_diagnostic"', source)
         self.assertIn('"hair_mass_builder"', source)
+        self.assertIn("HAIR_ROTATION_OVERRIDES_DEGREES", source)
+        self.assertIn('"actual_rotations_degrees"', source)
+        self.assertIn('"positive_scale_multipliers"', source)
+        self.assertIn('"world_offsets"', source)
 
 
 if __name__ == "__main__":
