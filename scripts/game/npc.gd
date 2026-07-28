@@ -38,7 +38,8 @@ func _ready() -> void:
 	add_to_group("combat_targets")
 	maximum_health = maxi(maximum_health, 1)
 	current_health = maximum_health
-	name_label.text = combat_name
+	if name_label != null:
+		name_label.text = combat_name
 	_build_combat_labels()
 	_update_combat_visuals()
 
@@ -46,7 +47,8 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if _is_turn_based_combat_active():
 		return
-	if not hostile or defeated or GameState.input_locked:
+	var state: Node = _get_game_state()
+	if not hostile or defeated or (state != null and bool(state.get("input_locked"))):
 		return
 	_attack_cooldown = maxf(_attack_cooldown - delta, 0.0)
 	var player: Node2D = get_tree().get_first_node_in_group("player") as Node2D
@@ -68,8 +70,9 @@ func interact() -> void:
 	if dialogue_data.is_empty():
 		return
 	var quest_event: String = str(dialogue_data.get("quest_event", ""))
-	if not quest_event.is_empty():
-		GameState.report_quest_event(quest_event)
+	var state: Node = _get_game_state()
+	if not quest_event.is_empty() and state != null and state.has_method("report_quest_event"):
+		state.call("report_quest_event", quest_event)
 	get_tree().call_group("dialogue_ui", "start_dialogue", dialogue_data)
 	get_tree().call_group("game_world", "set_interaction_hint", false)
 
@@ -170,19 +173,27 @@ func receive_player_attack(result: AttackResult, show_interface: bool = true) ->
 func receive_signature_ability(ability: Dictionary, show_interface: bool = true, attack_context: Dictionary = {}) -> Dictionary:
 	if defeated:
 		return {"success": false, "message": "%s уже без сознания." % combat_name}
+	var state: Node = _get_game_state()
+	if state == null:
+		return {"success": false, "message": "Игровое состояние недоступно."}
+	var character: PlayerCharacter = state.get("player_character") as PlayerCharacter
+	if character == null:
+		return {"success": false, "message": "Персонаж игрока недоступен."}
 	var effect: String = str(ability.get("effect", ""))
 	if effect == "hunters_mark":
-		var setup: Dictionary = _ability_system.apply_target_ability(GameState.player_character, ability)
-		GameState.save_game()
+		var setup: Dictionary = _ability_system.apply_target_ability(character, ability)
+		if state.has_method("save_game"):
+			state.call("save_game")
 		return setup
 	if effect not in ["spell_attack", "auto_hit_spell", "saving_throw_spell"]:
 		return {"success": false, "message": "Эта способность не действует на выбранную цель."}
-	var result: AttackResult = _ability_system.perform_offensive_ability(GameState.player_character, ability, armor_class, -1, [], attack_context)
+	var result: AttackResult = _ability_system.perform_offensive_ability(character, ability, armor_class, -1, [], attack_context)
 	if result.out_of_range or (not result.note.is_empty() and not result.hit):
 		return {"success": false, "message": result.note}
 	hostile = true
 	receive_player_attack(result, show_interface)
-	GameState.save_game()
+	if state.has_method("save_game"):
+		state.call("save_game")
 	return {"success": true, "message": "%s применена к цели %s." % [result.attack_name, combat_name]}
 
 
@@ -193,7 +204,8 @@ func reset_combat_state(full_restore: bool = true) -> void:
 	_attack_cooldown = 0.0
 	if full_restore:
 		current_health = maximum_health
-	body_visual.modulate = Color.WHITE
+	if body_visual != null:
+		body_visual.modulate = Color.WHITE
 	_update_combat_visuals()
 
 
@@ -202,22 +214,29 @@ func _perform_retaliation() -> void:
 	if game != null and game.has_method("resolve_npc_attack"):
 		game.call("resolve_npc_attack", self, attack_bonus, damage_die, damage_bonus, damage_type)
 		return
+	var state: Node = _get_game_state()
+	if state == null:
+		return
+	var character: PlayerCharacter = state.get("player_character") as PlayerCharacter
+	if character == null:
+		return
 	var natural_first: int = _dice.roll_die(20)
 	var natural: int = natural_first
 	var player_dodging: bool = game != null and game.has_method("player_is_dodging") and bool(game.call("player_is_dodging"))
 	if player_dodging:
 		var natural_second: int = _dice.roll_die(20)
 		natural = mini(natural_first, natural_second)
-	var target_ac: int = _class_data.get_armor_class(GameState.player_character)
+	var target_ac: int = _class_data.get_armor_class(character)
 	var total: int = natural + attack_bonus
 	if natural == 1 or (natural != 20 and total < target_ac):
 		get_tree().call_group("game_world", "show_combat_message", "%s промахивается: d20 %d + %d против КД %d." % [combat_name, natural, attack_bonus, target_ac], false)
 		return
 	var damage: int = _dice.roll_die(maxi(damage_die, 2)) + damage_bonus
-	GameState.player_character.current_health = maxi(0, GameState.player_character.current_health - damage)
-	get_tree().call_group("game_world", "show_combat_message", "%s наносит %d урона. Здоровье: %d/%d." % [combat_name, damage, GameState.player_character.current_health, GameState.player_character.maximum_health], false)
-	GameState.save_game()
-	if GameState.player_character.current_health <= 0:
+	character.current_health = maxi(0, character.current_health - damage)
+	get_tree().call_group("game_world", "show_combat_message", "%s наносит %d урона. Здоровье: %d/%d." % [combat_name, damage, character.current_health, character.maximum_health], false)
+	if state.has_method("save_game"):
+		state.call("save_game")
+	if character.current_health <= 0:
 		get_tree().call_group("game_world", "handle_player_defeat", self)
 
 
@@ -250,10 +269,13 @@ func _update_combat_visuals() -> void:
 	if _health_label != null:
 		_health_label.text = "%s · КД %d · %d/%d" % ["без сознания" if defeated else ("враждебен" if hostile else "нейтрален"), armor_class, current_health, maximum_health]
 		_health_label.visible = _combat_overlay_visible and (_targeted or _turn_active or hostile or current_health < maximum_health)
-	body_visual.modulate = Color(0.45, 0.45, 0.45, 0.75) if defeated else Color.WHITE
+	if body_visual != null:
+		body_visual.modulate = Color(0.45, 0.45, 0.45, 0.75) if defeated else Color.WHITE
 
 
 func _flash(color: Color) -> void:
+	if body_visual == null:
+		return
 	body_visual.modulate = color
 	var tween: Tween = create_tween()
 	tween.tween_property(body_visual, "modulate", Color.WHITE, 0.22)
@@ -285,6 +307,10 @@ func _on_body_exited(body: Node2D) -> void:
 		body.call("clear_interactable", self)
 	player_in_range = null
 	get_tree().call_group("game_world", "set_interaction_hint", false)
+
+
+func _get_game_state() -> Node:
+	return get_tree().root.get_node_or_null("GameState") if is_inside_tree() else null
 
 
 func _is_turn_based_combat_active() -> bool:
