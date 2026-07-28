@@ -15,6 +15,9 @@ import blender_sprite_factory_head_v07 as previous_adapter
 from hair_crown_profile_v08 import load_hair_crown_profile_v08
 from hair_mass_builder_v08 import (
     ACTIVE_HAIR_PART_NAMES,
+    HAIR_ROTATION_OVERRIDES_DEGREES,
+    HAIR_SCALE_MULTIPLIERS,
+    HAIR_WORLD_OFFSETS,
     REFERENCE_HAIR_PALETTE,
     consolidate_reference_hair_masses,
 )
@@ -113,11 +116,14 @@ def _write_run_manifest_v08(
         for obj in factory.bpy.data.objects
         if obj.get(factory.MODULE_PROPERTY) == "hair"
     )
-    active_rotations = {
-        name: list(rotation)
-        for name, rotation in detail.hair_rotations_degrees
-        if name in ACTIVE_HAIR_PART_NAMES
-    }
+    profile_rotations = dict(detail.hair_rotations_degrees)
+    actual_rotations: dict[str, list[float]] = {}
+    for name in actual_hair_names:
+        if name == crown.mesh_name:
+            continue
+        rotation = HAIR_ROTATION_OVERRIDES_DEGREES.get(name, profile_rotations.get(name))
+        if rotation is not None:
+            actual_rotations[name] = list(rotation)
     crown_vertex_count = sum(len(item.points_xz) for item in crown.slices)
     payload["head_geometry"] = {
         "cranium_segments": detail.cranium_density.segments,
@@ -149,7 +155,13 @@ def _write_run_manifest_v08(
         "face_geometry_locked_to_revision": "v07",
         "material_palette": list(REFERENCE_HAIR_PALETTE),
         "material_strategy": "approved_reference_emission_color_ramp",
-        "rotations_degrees": active_rotations,
+        "actual_rotations_degrees": actual_rotations,
+        "positive_scale_multipliers": {
+            name: list(values) for name, values in sorted(HAIR_SCALE_MULTIPLIERS.items())
+        },
+        "world_offsets": {
+            name: list(values) for name, values in sorted(HAIR_WORLD_OFFSETS.items())
+        },
     }
     manifest_path.write_text(
         json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
