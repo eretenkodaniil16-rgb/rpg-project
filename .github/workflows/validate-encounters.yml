@@ -64,4 +64,15 @@ jobs:
 
       - name: Smoke test combat and dialogue encounter runtime
         shell: bash
-        run: timeout 120s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_encounter_runtime.gd
+        run: |
+          set -o pipefail
+          timeout 120s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_encounter_runtime.gd 2>&1 | tee encounter-smoke.log
+
+      - name: Upload encounter diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: encounter-smoke-diagnostics
+          path: encounter-smoke.log
+          if-no-files-found: ignore
+          retention-days: 3
