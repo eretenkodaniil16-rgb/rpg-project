@@ -1,6 +1,20 @@
 extends "res://scripts/game/game_exploration_stealth_runtime.gd"
 
 
+func _update_exploration_alerts(delta: float) -> void:
+	if _any_overlay_visible():
+		return
+	super._update_exploration_alerts(delta)
+
+
+func _update_exploration_step_noise(delta: float) -> void:
+	if _any_overlay_visible():
+		_last_exploration_player_position = player.global_position
+		_step_noise_elapsed = 0.0
+		return
+	super._update_exploration_step_noise(delta)
+
+
 func _update_exploration_actor(actor: Node, delta: float) -> void:
 	if actor == null or not is_instance_valid(actor) or not (actor is Node2D):
 		return
