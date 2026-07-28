@@ -16,18 +16,16 @@ EXPECTED_SOURCE_HAIR_NAMES = {
     "hair_back_sweep_right",
     "hair_front_hairline_left",
     "hair_front_hairline_right",
-    "hair_forelock_characteristic",
     "hair_side_mass_left",
     "hair_side_mass_right",
     "hair_nape_left",
     "hair_nape_center",
     "hair_nape_right",
-    "hair_forelock_root",
-    "hair_forelock_tip",
 }
 EXPECTED_ACTIVE_HAIR_NAMES = {
     *EXPECTED_SOURCE_HAIR_NAMES,
     "hair_reference_crown_mesh",
+    "hair_reference_forelock_mesh",
 }
 
 
@@ -68,12 +66,10 @@ class HairMassBuilderV08Tests(unittest.TestCase):
 
     def test_source_set_matches_consolidated_reference_contract(self) -> None:
         self.assertEqual(self.source_names, EXPECTED_SOURCE_HAIR_NAMES)
-        self.assertEqual(len(self.source_names), 13)
-        self.assertIn(
-            'ACTIVE_HAIR_PART_NAMES = frozenset(\n    {*SOURCE_HAIR_PART_NAMES, "hair_reference_crown_mesh"}',
-            self.builder_source,
-        )
-        self.assertEqual(len(EXPECTED_ACTIVE_HAIR_NAMES), 14)
+        self.assertEqual(len(self.source_names), 10)
+        self.assertIn('"hair_reference_crown_mesh"', self.builder_source)
+        self.assertIn('"hair_reference_forelock_mesh"', self.builder_source)
+        self.assertEqual(len(EXPECTED_ACTIVE_HAIR_NAMES), 12)
 
     def test_every_source_name_exists_in_head_v08_data(self) -> None:
         profile_names = {
@@ -88,18 +84,25 @@ class HairMassBuilderV08Tests(unittest.TestCase):
         }
         self.assertTrue(self.source_names.issubset(profile_names))
 
-    def test_smooth_top_ellipsoids_are_replaced_by_one_crown_mesh(self) -> None:
+    def test_smooth_top_and_three_part_forelock_are_replaced_by_two_profile_meshes(self) -> None:
         self.assertTrue(
             {
                 "hair_cap",
                 "hair_back_crown_bridge",
                 "hair_front_rotation_bridge",
                 "hair_front_crown_mass",
+                "hair_forelock_characteristic",
+                "hair_forelock_root",
+                "hair_forelock_tip",
             }.isdisjoint(self.source_names)
         )
-        self.assertIn("_build_reference_crown(context)", self.builder_source)
+        self.assertIn("_build_reference_profile_meshes(context)", self.builder_source)
+        self.assertIn("_build_slice_profile_mesh(", self.builder_source)
+        self.assertIn("load_hair_crown_profile_v08()", self.builder_source)
+        self.assertIn("load_hair_forelock_profile_v08()", self.builder_source)
         self.assertIn("mesh.from_pydata(vertices, [], faces)", self.builder_source)
-        self.assertIn('obj["hair_shape_zone"] = "top_crown"', self.builder_source)
+        self.assertIn('"top_crown"', self.builder_source)
+        self.assertIn('"front_forelock"', self.builder_source)
 
     def test_small_decorative_accents_remain_inactive(self) -> None:
         self.assertTrue(
@@ -124,21 +127,18 @@ class HairMassBuilderV08Tests(unittest.TestCase):
         self.assertNotIn("scale.x = -1", self.builder_source)
         self.assertNotIn("scale[0] = -1", self.builder_source)
 
-    def test_forelock_has_separate_asymmetric_shape_overrides(self) -> None:
-        self.assertIn('"hair_forelock_characteristic": (10.0, 28.0, -8.0)', self.builder_source)
-        self.assertIn('"hair_forelock_root": (8.0, 25.0, -6.0)', self.builder_source)
-        self.assertIn('"hair_forelock_tip": (6.0, 22.0, -10.0)', self.builder_source)
-        self.assertIn('"hair_forelock_characteristic": (0.78, 0.95, 1.18)', self.builder_source)
-        self.assertIn('"hair_forelock_tip": (0.78, 1.00, 1.25)', self.builder_source)
-
-    def test_adapter_records_actual_transforms_crown_profile_and_inactive_sweep(self) -> None:
+    def test_adapter_records_actual_transforms_crown_forelock_and_inactive_sweep(self) -> None:
         adapter = self.tool_root / "blender_sprite_factory_head_v08.py"
         source = adapter.read_text(encoding="utf-8")
         tree = ast.parse(source)
         self.assertIsInstance(tree, ast.Module)
         self.assertIn("consolidate_reference_hair_masses(context)", source)
-        self.assertIn('"approved_reference_single_crown_mesh_with_modular_accents"', source)
+        self.assertIn(
+            '"approved_reference_single_crown_and_forelock_meshes_with_modular_accents"',
+            source,
+        )
         self.assertIn('"hair_crown_profile"', source)
+        self.assertIn('"hair_forelock_profile"', source)
         self.assertIn('"inactive_after_occlusion_diagnostic"', source)
         self.assertIn('"hair_mass_builder"', source)
         self.assertIn("HAIR_ROTATION_OVERRIDES_DEGREES", source)
