@@ -23,3 +23,7 @@ func _on_hide_requested() -> void:
 		return
 	for observer: Node in _active_observers():
 		_set_observer_state(observer, DETECTION_PURSUING, _last_seen_player_position)
+
+
+func force_active_escape_encounter_for_testing(encounter_id: String) -> void:
+	_active_combat_encounter_id = encounter_id
