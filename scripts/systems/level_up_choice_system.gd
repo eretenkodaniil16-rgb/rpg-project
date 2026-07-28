@@ -199,17 +199,3 @@ func _restore_character(character: PlayerCharacter, snapshot: Dictionary) -> voi
 	character.class_resource_maximums = _dictionary(
 		snapshot.get("class_resource_maximums", {})
 	).duplicate(true)
-
-
-func _dictionary(value: Variant) -> Dictionary:
-	return value as Dictionary if value is Dictionary else {}
-
-
-func _string_array(value: Variant) -> Array[String]:
-	var result: Array[String] = []
-	if value is Array:
-		for item: Variant in value:
-			var text: String = str(item)
-			if not text.is_empty() and text not in result:
-				result.append(text)
-	return result
