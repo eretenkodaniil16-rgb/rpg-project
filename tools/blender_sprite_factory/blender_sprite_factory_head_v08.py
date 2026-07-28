@@ -19,6 +19,7 @@ from hair_mass_builder_v08 import (
     HAIR_ROTATION_OVERRIDES_DEGREES,
     HAIR_SCALE_MULTIPLIERS,
     HAIR_WORLD_OFFSETS,
+    REFERENCE_HAIR_FACET_COLORS,
     REFERENCE_HAIR_PALETTE,
     consolidate_reference_hair_masses,
 )
@@ -134,8 +135,8 @@ def _write_run_manifest_v08(
         rotation = HAIR_ROTATION_OVERRIDES_DEGREES.get(name, profile_rotations.get(name))
         if rotation is not None:
             actual_rotations[name] = list(rotation)
-    crown_vertex_count = sum(len(item.points_xz) for item in crown.slices)
-    forelock_vertex_count = sum(len(item.points_xz) for item in forelock.slices)
+    crown_contour_vertices = sum(len(item.points_xz) for item in crown.slices)
+    forelock_contour_vertices = sum(len(item.points_xz) for item in forelock.slices)
     payload["head_geometry"] = {
         "cranium_segments": detail.cranium_density.segments,
         "cranium_rings": detail.cranium_density.rings,
@@ -151,28 +152,35 @@ def _write_run_manifest_v08(
         ),
         "separate_hair_parts": len(actual_hair_names),
         "active_hair_names": actual_hair_names,
-        "crown_mesh_vertices": crown_vertex_count,
+        "crown_mesh_vertices": crown_contour_vertices + 2,
         "crown_mesh_slices": len(crown.slices),
-        "forelock_mesh_vertices": forelock_vertex_count,
+        "crown_mesh_center_vertices": 2,
+        "forelock_mesh_vertices": forelock_contour_vertices + 2,
         "forelock_mesh_slices": len(forelock.slices),
+        "forelock_mesh_center_vertices": 2,
     }
     payload["hair_structure"] = {
-        "strategy": "approved_reference_single_crown_and_forelock_meshes_with_modular_accents",
+        "strategy": "approved_reference_single_crown_and_forelock_meshes_with_large_palette_facets",
         "zones": ["top", "front", "sides", "back", "nape"],
         "active_parts": sorted(ACTIVE_HAIR_PART_NAMES),
         "crown_mesh": {
             "name": crown.mesh_name,
             "slice_count": len(crown.slices),
             "points_per_slice": len(crown.slices[0].points_xz),
+            "front_cap": "triangulated_fan",
+            "back_cap": "triangulated_fan",
         },
         "forelock_mesh": {
             "name": forelock.mesh_name,
             "slice_count": len(forelock.slices),
             "points_per_slice": len(forelock.slices[0].points_xz),
+            "front_cap": "triangulated_fan",
+            "back_cap": "triangulated_fan",
         },
         "face_geometry_locked_to_revision": "v07",
         "material_palette": list(REFERENCE_HAIR_PALETTE),
-        "material_strategy": "approved_reference_emission_color_ramp",
+        "material_strategy": "approved_reference_large_emission_facets",
+        "facet_colors": dict(REFERENCE_HAIR_FACET_COLORS),
         "actual_rotations_degrees": actual_rotations,
         "positive_scale_multipliers": {
             name: list(values) for name, values in sorted(HAIR_SCALE_MULTIPLIERS.items())
