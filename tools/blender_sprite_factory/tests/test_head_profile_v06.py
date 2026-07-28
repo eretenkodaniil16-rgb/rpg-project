@@ -67,17 +67,15 @@ class DetailedHeadProfileV06Tests(unittest.TestCase):
         cap_top = self.profile.hair_cap.location[2] + self.profile.hair_cap.scale[2]
         self.assertLessEqual(current["hair_wave_top_center"].location[2] + current["hair_wave_top_center"].scale[2], cap_top + 0.01)
 
-    def test_adapter_and_launchers_activate_proxy_v09(self) -> None:
+    def test_historical_adapter_remains_reproducible(self) -> None:
         tool_root = Path(__file__).resolve().parents[1]
         adapter = tool_root / "blender_sprite_factory_head_v06.py"
         source = adapter.read_text(encoding="utf-8")
         ast.parse(source)
         self.assertIn("factory.load_head_profile = load_head_profile_v06", source)
-        launcher = (tool_root / "run_blender_sprite_pilot.ps1").read_text(encoding="ascii")
-        workflow = (tool_root.parents[1] / ".github" / "workflows" / "validate-blender-sprite-factory.yml").read_text(encoding="utf-8")
-        self.assertIn("blender_sprite_factory_head_v06.py", launcher)
-        self.assertIn("render-proxy-v09", workflow)
-        self.assertIn("human_warrior_m01_proxy_v09_", workflow)
+        self.assertIn("factory._build_head_and_hair = _build_head_and_hair_v06", source)
+        self.assertNotIn("scale.x = -1", source)
+        self.assertNotIn("scale[0] = -1", source)
 
     def test_unknown_character_cannot_use_v06_identity(self) -> None:
         with self.assertRaisesRegex(KeyError, "No detailed head profile"):
