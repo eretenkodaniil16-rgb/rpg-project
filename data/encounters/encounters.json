@@ -8,13 +8,40 @@
       "combat_resolution_id": "destroyed",
       "reward_id": "encounter_training_dummy_break",
       "escape": {
-        "policy": "hidden_boundary",
-        "edges": ["west", "south"],
-        "depth_cells": 1,
+        "policy": "pursuit_routes",
+        "default_required_search_sweeps": 2,
         "safe_anchor": [320.0, 360.0],
-        "reason_id": "player_escaped_hidden",
+        "reason_id": "player_escaped_after_pursuit",
         "alert_flag": "training_construct_alerted",
-        "restore_participants": true
+        "restore_participants": true,
+        "routes": [
+          {
+            "id": "collapsed_wall_niche",
+            "type": "hideout",
+            "label": "Ниша за обвалившейся стеной",
+            "objective_cells": [[11, 8]],
+            "concealment_bonus": 6,
+            "trace_dc_bonus": 4,
+            "required_search_sweeps": 2,
+            "reason_id": "player_vanished_in_hideout",
+            "safe_anchor": [320.0, 360.0]
+          },
+          {
+            "id": "west_service_room",
+            "type": "room_transition",
+            "label": "Западная служебная комната",
+            "transition_cells": [[1, 4], [1, 5]],
+            "destination_cells": [[0, 3], [0, 4], [0, 5], [1, 3], [1, 4], [1, 5]],
+            "hide_cells": [[0, 3], [0, 5]],
+            "requires_rehide": true,
+            "blocks_cross_room_los": true,
+            "concealment_bonus": 3,
+            "trace_dc_bonus": 2,
+            "required_search_sweeps": 2,
+            "reason_id": "player_escaped_through_adjacent_room",
+            "safe_anchor": [320.0, 360.0]
+          }
+        ]
       },
       "resolutions": {
         "destroyed": {
