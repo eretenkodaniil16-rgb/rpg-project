@@ -28,6 +28,7 @@ _ORIGINAL_WRITE_RUN_MANIFEST = factory._write_run_manifest
 # _apply_reference_hair_palette(context)
 # _apply_reference_hair_rotations(context)
 # "approved_reference_constant_color_ramp"
+# "approved_reference_consolidated_five_zone"
 
 
 def _build_head_and_hair_v08(context: factory.BuildContext) -> None:
