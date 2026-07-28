@@ -1,7 +1,7 @@
 extends "res://scripts/game/game_target_free_attacks.gd"
 
 const PREPARED_PANEL_SCRIPT: Script = preload("res://scripts/ui/prepared_action_panel.gd")
-const CHARACTER_HUB_SCRIPT: Script = preload("res://scripts/ui/character_hub_inventory.gd")
+const CHARACTER_HUB_SCRIPT: Script = preload("res://scripts/ui/character_hub_level_up.gd")
 const COMBAT_FEED_SCRIPT: Script = preload("res://scripts/ui/combat_event_feed.gd")
 const D20_OVERLAY_SCRIPT: Script = preload("res://scripts/ui/d20_roll_overlay.gd")
 const PLAYER_STATUS_HUD_SCRIPT: Script = preload("res://scripts/ui/player_status_hud.gd")
@@ -24,7 +24,7 @@ func _ready() -> void:
 	var old_sheet: CharacterSheet = _character_sheet
 	if old_sheet != null:
 		old_sheet.queue_free()
-	var hub: CharacterHubInventory = CHARACTER_HUB_SCRIPT.new() as CharacterHubInventory
+	var hub: CharacterHubLevelUp = CHARACTER_HUB_SCRIPT.new() as CharacterHubLevelUp
 	hub.name = "CharacterHub"
 	hub.rest_completed.connect(_on_rest_completed)
 	hub.prepared_action_changed.connect(_on_prepared_action_changed)
