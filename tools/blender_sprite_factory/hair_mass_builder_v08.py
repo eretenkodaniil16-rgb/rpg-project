@@ -1,10 +1,17 @@
 from __future__ import annotations
 
 import math
+from typing import Protocol
 
 import blender_sprite_factory as factory
 from hair_crown_profile_v08 import load_hair_crown_profile_v08
+from hair_forelock_profile_v08 import load_hair_forelock_profile_v08
 from head_profile_v08 import load_head_detail_profile_v08
+
+
+class _SliceProfile(Protocol):
+    mesh_name: str
+    slices: tuple
 
 
 SOURCE_HAIR_PART_NAMES = frozenset(
@@ -14,19 +21,20 @@ SOURCE_HAIR_PART_NAMES = frozenset(
         "hair_back_sweep_right",
         "hair_front_hairline_left",
         "hair_front_hairline_right",
-        "hair_forelock_characteristic",
         "hair_side_mass_left",
         "hair_side_mass_right",
         "hair_nape_left",
         "hair_nape_center",
         "hair_nape_right",
-        "hair_forelock_root",
-        "hair_forelock_tip",
     }
 )
 
 ACTIVE_HAIR_PART_NAMES = frozenset(
-    {*SOURCE_HAIR_PART_NAMES, "hair_reference_crown_mesh"}
+    {
+        *SOURCE_HAIR_PART_NAMES,
+        "hair_reference_crown_mesh",
+        "hair_reference_forelock_mesh",
+    }
 )
 
 REFERENCE_HAIR_PALETTE = (
@@ -40,17 +48,11 @@ REFERENCE_HAIR_PALETTE = (
 HAIR_ROTATION_OVERRIDES_DEGREES: dict[str, tuple[float, float, float]] = {
     "hair_back_sweep_left": (18.0, 0.0, -8.0),
     "hair_back_sweep_right": (20.0, 0.0, 4.0),
-    "hair_forelock_characteristic": (10.0, 28.0, -8.0),
-    "hair_forelock_root": (8.0, 25.0, -6.0),
-    "hair_forelock_tip": (6.0, 22.0, -10.0),
 }
 
 HAIR_SCALE_MULTIPLIERS: dict[str, tuple[float, float, float]] = {
     "hair_back_sweep_left": (1.00, 0.95, 1.08),
     "hair_back_sweep_right": (0.95, 1.00, 1.02),
-    "hair_forelock_characteristic": (0.78, 0.95, 1.18),
-    "hair_forelock_root": (0.90, 1.00, 1.08),
-    "hair_forelock_tip": (0.78, 1.00, 1.25),
     "hair_side_mass_left": (0.95, 0.95, 1.05),
     "hair_side_mass_right": (0.95, 0.95, 1.03),
 }
@@ -58,9 +60,6 @@ HAIR_SCALE_MULTIPLIERS: dict[str, tuple[float, float, float]] = {
 HAIR_WORLD_OFFSETS: dict[str, tuple[float, float, float]] = {
     "hair_back_sweep_left": (0.010, -0.010, 0.000),
     "hair_back_sweep_right": (-0.015, 0.005, -0.005),
-    "hair_forelock_characteristic": (-0.025, -0.035, -0.015),
-    "hair_forelock_root": (-0.015, -0.030, 0.000),
-    "hair_forelock_tip": (-0.035, -0.030, -0.020),
 }
 
 
@@ -121,18 +120,19 @@ def _remove_inactive_hair_parts() -> None:
             factory.bpy.data.objects.remove(obj, do_unlink=True)
 
 
-def _build_reference_crown(context: factory.BuildContext) -> None:
-    crown = load_hair_crown_profile_v08()
-    point_count = len(crown.slices[0].points_xz)
+def _build_slice_profile_mesh(
+    context: factory.BuildContext,
+    profile: _SliceProfile,
+    shape_zone: str,
+) -> None:
+    point_count = len(profile.slices[0].points_xz)
     vertices: list[tuple[float, float, float]] = []
     faces: list[tuple[int, ...]] = []
 
-    for crown_slice in crown.slices:
-        vertices.extend(
-            (x, crown_slice.y, z) for x, z in crown_slice.points_xz
-        )
+    for profile_slice in profile.slices:
+        vertices.extend((x, profile_slice.y, z) for x, z in profile_slice.points_xz)
 
-    for slice_index in range(1, len(crown.slices)):
+    for slice_index in range(1, len(profile.slices)):
         previous = (slice_index - 1) * point_count
         current = slice_index * point_count
         for point_index in range(point_count):
@@ -147,18 +147,31 @@ def _build_reference_crown(context: factory.BuildContext) -> None:
             )
 
     faces.append(tuple(reversed(range(point_count))))
-    back_start = (len(crown.slices) - 1) * point_count
+    back_start = (len(profile.slices) - 1) * point_count
     faces.append(tuple(back_start + index for index in range(point_count)))
 
-    mesh = factory.bpy.data.meshes.new(f"{crown.mesh_name}_mesh")
+    mesh = factory.bpy.data.meshes.new(f"{profile.mesh_name}_mesh")
     mesh.from_pydata(vertices, [], faces)
     mesh.update(calc_edges=True)
     mesh.validate(verbose=False, clean_customdata=False)
-    obj = factory.bpy.data.objects.new(crown.mesh_name, mesh)
-    obj["hair_shape_zone"] = "top_crown"
+    obj = factory.bpy.data.objects.new(profile.mesh_name, mesh)
+    obj["hair_shape_zone"] = shape_zone
     factory._flat_shade(obj)
     factory._assign_material(obj, context.materials["hair"])
     factory._register(context, obj, "hair", "head")
+
+
+def _build_reference_profile_meshes(context: factory.BuildContext) -> None:
+    _build_slice_profile_mesh(
+        context,
+        load_hair_crown_profile_v08(),
+        "top_crown",
+    )
+    _build_slice_profile_mesh(
+        context,
+        load_hair_forelock_profile_v08(),
+        "front_forelock",
+    )
 
 
 def _apply_shape_overrides() -> None:
@@ -202,7 +215,7 @@ def consolidate_reference_hair_masses(
     _assert_positive_transform_contract()
     _remove_inactive_hair_parts()
     _apply_reference_palette(context)
-    _build_reference_crown(context)
+    _build_reference_profile_meshes(context)
     _apply_shape_overrides()
     applied_rotations = _apply_reference_rotations(context)
 
