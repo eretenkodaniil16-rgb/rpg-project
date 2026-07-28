@@ -15,7 +15,10 @@
           "set_flags": {
             "training_construct_resolved": true,
             "training_construct_destroyed": true
-          }
+          },
+          "items": [
+            {"item_id": "straw_scrap", "quantity": 1}
+          ]
         },
         "disabled": {
           "type": "interaction",
