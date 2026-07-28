@@ -45,10 +45,10 @@ func _run() -> void:
 		_fail("Game scene does not use the unified encounter runtime.")
 		return
 
-	var dummy: TrainingDummy = null
+	var dummy: Node = null
 	for candidate: Node in get_nodes_in_group("combat_targets"):
-		if candidate is TrainingDummy:
-			dummy = candidate as TrainingDummy
+		if candidate.has_method("get_encounter_id") and str(candidate.call("get_encounter_id")) == "training_construct":
+			dummy = candidate
 			break
 	if dummy == null:
 		_fail("Training dummy encounter actor is missing.")
@@ -66,7 +66,7 @@ func _run() -> void:
 	killing_result.hit = true
 	killing_result.damage = 99
 	killing_result.attack_name = "Тестовый удар"
-	dummy.receive_player_attack(killing_result, false)
+	dummy.call("receive_player_attack", killing_result, false)
 	await process_frame
 	if str(state.call("get_encounter_status", "training_construct")) != EncounterSystem.STATUS_REWARDED:
 		_fail("Destroying the training target did not resolve the encounter.")
@@ -80,11 +80,11 @@ func _run() -> void:
 		_fail("Combat encounter ID was not cleared after combat ended.")
 		return
 
-	dummy.reset_combat_state(true)
+	dummy.call("reset_combat_state", true)
 	var repeated_result := AttackResult.new()
 	repeated_result.hit = true
 	repeated_result.damage = 99
-	dummy.receive_player_attack(repeated_result, false)
+	dummy.call("receive_player_attack", repeated_result, false)
 	await process_frame
 	if hero.experience != 25 or int(state.call("get_item_count", "straw_scrap")) != 1:
 		_fail("Resetting the actor allowed encounter rewards to be farmed.")
