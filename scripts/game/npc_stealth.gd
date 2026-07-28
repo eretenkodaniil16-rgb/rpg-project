@@ -39,18 +39,16 @@ func set_facing_direction(direction: Vector2) -> void:
 
 
 func get_passive_perception() -> int:
-	var profile: Dictionary = GameState.call("get_stealth_profile", actor_id) as Dictionary if GameState.has_method("get_stealth_profile") else {}
+	var profile: Dictionary = _get_stealth_profile()
 	return maxi(int(profile.get("passive_perception", 10)), 1)
 
 
 func get_perception_modifier() -> int:
-	var profile: Dictionary = GameState.call("get_stealth_profile", actor_id) as Dictionary if GameState.has_method("get_stealth_profile") else {}
-	return int(profile.get("perception_modifier", 0))
+	return int(_get_stealth_profile().get("perception_modifier", 0))
 
 
 func get_tracking_modifier() -> int:
-	var profile: Dictionary = GameState.call("get_stealth_profile", actor_id) as Dictionary if GameState.has_method("get_stealth_profile") else {}
-	return int(profile.get("tracking_modifier", 0))
+	return int(_get_stealth_profile().get("tracking_modifier", 0))
 
 
 func set_exploration_alert_state(new_state: String, new_suspicion: float, new_last_known_position: Vector2) -> void:
@@ -137,10 +135,22 @@ func reset_combat_state(full_restore: bool = true) -> void:
 	_restore_alert_record()
 
 
+func _get_game_state() -> Node:
+	return get_tree().root.get_node_or_null("GameState") if is_inside_tree() else null
+
+
+func _get_stealth_profile() -> Dictionary:
+	var state: Node = _get_game_state()
+	if state == null or not state.has_method("get_stealth_profile"):
+		return {}
+	return state.call("get_stealth_profile", actor_id) as Dictionary
+
+
 func _restore_alert_record() -> void:
-	if actor_id.is_empty() or not GameState.has_method("get_stealth_alert_record"):
+	var state: Node = _get_game_state()
+	if actor_id.is_empty() or state == null or not state.has_method("get_stealth_alert_record"):
 		return
-	var record: Dictionary = GameState.call("get_stealth_alert_record", actor_id) as Dictionary
+	var record: Dictionary = state.call("get_stealth_alert_record", actor_id) as Dictionary
 	detection_state = str(record.get("state", StealthAlertSystem.STATE_CALM))
 	suspicion = float(record.get("suspicion", 0.0))
 	last_known_position = StealthAlertSystem.new().vector_from_value(record.get("last_known_position", []))
