@@ -28,6 +28,7 @@ from hair_palette_v10 import load_hair_palette_v10
 from head_profile_v16 import load_head_profile_v16
 
 
+BASE_WRITE_RUN_MANIFEST = factory._write_run_manifest
 PREVIOUS_HEAD_PROFILE_PATH = SCRIPT_DIR / "head_profile_v15.py"
 ACTIVE_HEAD_PROFILE_PATH = SCRIPT_DIR / "head_profile_v16.py"
 HAIR_INTEGRATED_PROFILE_PATH = SCRIPT_DIR / "hair_integrated_crown_back_profile_v16.py"
@@ -58,7 +59,7 @@ def _write_run_manifest_v16(
     artifacts: list[factory.FrameArtifact],
     contact_sheet: Path | None,
 ) -> Path:
-    manifest_path = previous_adapter._write_run_manifest_v15(
+    manifest_path = BASE_WRITE_RUN_MANIFEST(
         context,
         run_dir,
         run_id,
@@ -129,6 +130,7 @@ def _write_run_manifest_v16(
             "physical_side": obj.get("hair_physical_side"),
         }
 
+    payload.setdefault("head_geometry", {})
     payload["head_geometry"]["separate_hair_parts"] = len(actual_hair_names)
     payload["head_geometry"]["active_hair_names"] = actual_hair_names
     payload["head_geometry"]["integrated_crown_back_vertices"] = len(crown.data.vertices)
