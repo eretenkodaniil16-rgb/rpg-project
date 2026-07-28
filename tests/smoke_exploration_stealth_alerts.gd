@@ -1,7 +1,7 @@
 extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
-const RUNTIME_PATH: String = "res://scripts/game/game_exploration_stealth_runtime.gd"
+const RUNTIME_PATH: String = "res://scripts/game/game_pursuit_escape_runtime.gd"
 
 
 func _init() -> void:
@@ -35,7 +35,7 @@ func _run() -> void:
 		await process_frame
 	game.set_process(false)
 	if str(game.get_script().resource_path) != RUNTIME_PATH:
-		_fail("Game scene does not use the exploration stealth runtime.")
+		_fail("Game scene does not use the pursuit-compatible exploration stealth runtime.")
 		return
 
 	var player: Node2D = game.get_node_or_null("Player") as Node2D
