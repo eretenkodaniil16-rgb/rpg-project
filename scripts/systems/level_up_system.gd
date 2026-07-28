@@ -111,7 +111,6 @@ func choose_fixed_hp(character: PlayerCharacter, state: Node) -> Dictionary:
 		return transaction_result
 	var transaction: Dictionary = transaction_result.get("transaction", {}) as Dictionary
 	transaction["hp_mode"] = HP_MODE_FIXED
-	transaction["hp_roll"] = 0
 	transaction["hp_gain"] = get_fixed_hp_gain(character)
 	_store_transaction(state, transaction)
 	return _success("Выбран фиксированный прирост здоровья.", transaction)
@@ -295,8 +294,7 @@ func commit_transaction(character: PlayerCharacter, state: Node) -> Dictionary:
 	character.current_health = mini(character.current_health + hp_gain, character.maximum_health)
 	var racial_hp_gain: int = _racial_hp_gain(character)
 	character.applied_racial_hit_point_bonus += racial_hp_gain
-	character.hit_dice_maximum = maxi(
-		character.level, 1)
+	character.hit_dice_maximum = maxi(character.level, 1)
 	character.hit_dice_current = clampi(
 		character.hit_dice_current + 1,
 		0,
