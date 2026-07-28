@@ -11,12 +11,16 @@ on:
       - "scripts/systems/class_data_system.gd"
       - "scripts/systems/race_data_system.gd"
       - "scripts/ui/level_up_panel.gd"
+      - "scripts/ui/character_hub_level_up.gd"
       - "scripts/ui/character_hub_inventory.gd"
       - "scripts/game/game_feature_ui.gd"
       - "data/classes/classes.json"
+      - "data/races/races.json"
       - "data/rules/spell_selection.json"
       - "data/rules/spellcasting_progression.json"
       - "tests/test_level_up_system.gd"
+      - "tests/test_level_up_race_resources.gd"
+      - "tests/smoke_level_up_ui.gd"
       - "tests/test_mobile_combat_progression_hud.gd"
       - "tests/test_mobile_combat_progression_hud.tscn"
       - ".github/workflows/validate-level-up.yml"
@@ -27,9 +31,11 @@ on:
       - "scripts/systems/progression_system.gd"
       - "scripts/systems/level_up_system.gd"
       - "scripts/ui/level_up_panel.gd"
-      - "scripts/ui/character_hub_inventory.gd"
+      - "scripts/ui/character_hub_level_up.gd"
       - "scripts/game/game_feature_ui.gd"
       - "tests/test_level_up_system.gd"
+      - "tests/test_level_up_race_resources.gd"
+      - "tests/smoke_level_up_ui.gd"
       - "tests/test_mobile_combat_progression_hud.gd"
       - ".github/workflows/validate-level-up.yml"
 
@@ -60,6 +66,14 @@ jobs:
       - name: Validate official XP and saved level-up transactions
         shell: bash
         run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_level_up_system.gd
+
+      - name: Validate racial HP and proficiency resources
+        shell: bash
+        run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_level_up_race_resources.gd
+
+      - name: Smoke test mobile Character Hub level-up flow
+        shell: bash
+        run: timeout 120s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_level_up_ui.gd
 
       - name: Validate mobile level-up integration and HUD
         shell: bash
