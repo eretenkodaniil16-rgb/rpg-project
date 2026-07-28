@@ -16,8 +16,9 @@ var _player_in_range: Node = null
 func _ready() -> void:
 	add_to_group("stealth_doors")
 	_build_nodes()
-	if GameState.has_method("get_stealth_door_state"):
-		_door_state = str(GameState.call("get_stealth_door_state", door_id))
+	var state: Node = _get_game_state()
+	if state != null and state.has_method("get_stealth_door_state"):
+		_door_state = str(state.call("get_stealth_door_state", door_id))
 	_apply_state(false)
 
 
@@ -35,8 +36,9 @@ func set_door_state(value: String, report_noise: bool = false) -> void:
 	if value not in ["open", "closed", "locked", "blocked", "broken"]:
 		return
 	_door_state = value
-	if GameState.has_method("set_stealth_door_state"):
-		GameState.call("set_stealth_door_state", door_id, _door_state, true)
+	var state: Node = _get_game_state()
+	if state != null and state.has_method("set_stealth_door_state"):
+		state.call("set_stealth_door_state", door_id, _door_state, true)
 	_apply_state(report_noise)
 
 
@@ -54,6 +56,10 @@ func blocks_line_of_sight() -> bool:
 
 func get_world_rect() -> Rect2:
 	return Rect2(global_position - door_size * 0.5, door_size)
+
+
+func _get_game_state() -> Node:
+	return get_tree().root.get_node_or_null("GameState") if is_inside_tree() else null
 
 
 func _build_nodes() -> void:
