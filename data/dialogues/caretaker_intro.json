@@ -9,8 +9,8 @@
       "check": {"skill": "persuasion", "difficulty": 12},
       "success": {
         "response": "Твои слова заставляют Смотрителя смягчиться. Он признаёт, что за дверью находится древнее хранилище воспоминаний.",
-        "set_flags": {"met_caretaker": true, "caretaker_convinced": true},
-        "reward_id": "dialogue_caretaker_revelation"
+        "encounter_id": "caretaker_revelation",
+        "resolution_id": "persuaded"
       },
       "failure": {
         "response": "Смотритель не поддаётся. Он согласится помочь только после небольшой услуги.",
@@ -22,8 +22,8 @@
       "check": {"skill": "insight", "difficulty": 12},
       "success": {
         "response": "Ты замечаешь, как он избегает смотреть на северную дверь. Опасность связана именно с ней.",
-        "set_flags": {"met_caretaker": true, "caretaker_secret_noticed": true},
-        "reward_id": "dialogue_caretaker_revelation"
+        "encounter_id": "caretaker_revelation",
+        "resolution_id": "insight"
       },
       "failure": {
         "response": "Ты принимаешь его тревогу за обычную усталость и не замечаешь ничего полезного.",
@@ -35,8 +35,8 @@
       "check": {"skill": "history", "difficulty": 14},
       "success": {
         "response": "Ты вспоминаешь знак хранителей памяти — ордена, исчезнувшего несколько поколений назад.",
-        "set_flags": {"met_caretaker": true, "keeper_symbol_known": true},
-        "reward_id": "dialogue_caretaker_revelation"
+        "encounter_id": "caretaker_revelation",
+        "resolution_id": "history"
       },
       "failure": {
         "response": "Символ кажется знакомым, но его значение ускользает.",
