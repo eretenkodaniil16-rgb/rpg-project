@@ -41,8 +41,8 @@ func _run() -> void:
 	root.add_child(game)
 	for _frame: int in range(5):
 		await process_frame
-	if str(game.get_script().resource_path) != "res://scripts/game/game_encounters_runtime.gd":
-		_fail("Game scene does not use the unified encounter runtime.")
+	if str(game.get_script().resource_path) != "res://scripts/game/game_hidden_escape_runtime.gd":
+		_fail("Game scene does not use the hidden escape runtime layered above unified encounters.")
 		return
 
 	var dummy: Node = null
