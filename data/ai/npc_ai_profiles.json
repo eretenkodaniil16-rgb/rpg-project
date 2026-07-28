@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "profiles": {
+    "caretaker": {
+      "actor_id": "caretaker",
+      "role": "defender",
+      "preferred_range_feet": 5,
+      "retreat_health_ratio": 0.12,
+      "aggression": 0.9,
+      "join_combat_on_alert": false,
+      "combat_join_radius_feet": 0,
+      "utility": {
+        "attack": 100.0,
+        "advance": 72.0,
+        "retreat": 18.0,
+        "wait": 4.0
+      }
+    },
+    "service_guard": {
+      "actor_id": "service_guard",
+      "role": "guard",
+      "preferred_range_feet": 5,
+      "retreat_health_ratio": 0.2,
+      "aggression": 0.78,
+      "join_combat_on_alert": true,
+      "combat_join_radius_feet": 55,
+      "utility": {
+        "attack": 94.0,
+        "advance": 76.0,
+        "retreat": 30.0,
+        "wait": 8.0
+      }
+    }
+  }
+}
