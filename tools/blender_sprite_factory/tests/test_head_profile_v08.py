@@ -176,7 +176,7 @@ class ReferenceHairProfileV08Tests(unittest.TestCase):
             -rotations["hair_back_sweep_right"][2],
         )
 
-    def test_adapter_and_launchers_activate_proxy_v11(self) -> None:
+    def test_historical_v08_adapter_remains_reproducible_while_launchers_advance(self) -> None:
         tool_root = Path(__file__).resolve().parents[1]
         adapter = tool_root / "blender_sprite_factory_head_v08.py"
         source = adapter.read_text(encoding="utf-8")
@@ -198,10 +198,10 @@ class ReferenceHairProfileV08Tests(unittest.TestCase):
             / "workflows"
             / "validate-blender-sprite-factory.yml"
         ).read_text(encoding="utf-8")
-        self.assertIn("blender_sprite_factory_head_v08.py", launcher)
-        self.assertIn("render-proxy-v11", workflow)
-        self.assertIn("blender_sprite_factory_head_v08.py", workflow)
-        self.assertIn("human_warrior_m01_proxy_v11_", workflow)
+        self.assertIn("blender_sprite_factory_head_v09.py", launcher)
+        self.assertIn("render-proxy-v12", workflow)
+        self.assertIn("blender_sprite_factory_head_v09.py", workflow)
+        self.assertIn("human_warrior_m01_proxy_v12_", workflow)
 
     def test_unknown_character_cannot_use_v08_identity(self) -> None:
         with self.assertRaisesRegex(KeyError, "No detailed head profile"):
