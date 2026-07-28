@@ -82,9 +82,23 @@ func _run() -> void:
 	if catalog.confirm_move_button.visible:
 		_fail("Movement confirmation appeared before a route was selected.")
 		return
-	if catalog.action_group_row.get_child_count() != 4:
-		_fail("Action subcategories Attack, Movement, Spells and Tactics are missing.")
+	var expected_action_groups: Dictionary = {
+		"TargetActionGroupButton": "ЦЕЛЬ",
+		"WorldActionGroupButton": "МИР",
+		"AttackActionGroupButton": "АТАКИ",
+		"MovementActionGroupButton": "ПЕРЕМЕЩЕНИЕ",
+		"SpellActionGroupButton": "ЗАКЛИНАНИЯ",
+		"TacticActionGroupButton": "ТАКТИКА"
+	}
+	if catalog.action_group_row.get_child_count() != expected_action_groups.size():
+		_fail("Extensible Actions menu does not contain all six action groups.")
 		return
+	for node_name_value: Variant in expected_action_groups.keys():
+		var node_name: String = str(node_name_value)
+		var group_button: Button = catalog.action_group_row.get_node_or_null(node_name) as Button
+		if group_button == null or group_button.text != str(expected_action_groups[node_name]):
+			_fail("Actions menu group is missing or mislabeled: %s" % node_name)
+			return
 
 	var turn_system: TurnBasedCombatSystem = game.get("_turn_system") as TurnBasedCombatSystem
 	if turn_system == null or not turn_system.action_available or not turn_system.bonus_action_available:
@@ -168,5 +182,5 @@ func _run() -> void:
 	game.call("_stop_turn_based_combat", "test")
 	game.queue_free()
 	await process_frame
-	print("Planned movement and action catalog smoke test passed.")
+	print("Planned movement and extensible action catalog smoke test passed.")
 	quit(0)
