@@ -16,6 +16,7 @@ EXPECTED_ACTIVE_HAIR_NAMES = {
     "hair_back_crown_bridge",
     "hair_back_sweep_left",
     "hair_back_sweep_right",
+    "hair_front_rotation_bridge",
     "hair_front_crown_mass",
     "hair_front_hairline_left",
     "hair_front_hairline_right",
@@ -64,7 +65,7 @@ class HairMassBuilderV08Tests(unittest.TestCase):
 
     def test_active_set_matches_consolidated_reference_contract(self) -> None:
         self.assertEqual(self.active_names, EXPECTED_ACTIVE_HAIR_NAMES)
-        self.assertEqual(len(self.active_names), 16)
+        self.assertEqual(len(self.active_names), 17)
 
     def test_every_active_name_exists_in_head_v08_data(self) -> None:
         profile_names = {
@@ -79,15 +80,15 @@ class HairMassBuilderV08Tests(unittest.TestCase):
         }
         self.assertTrue(self.active_names.issubset(profile_names))
 
-    def test_large_crown_and_back_sweeps_replace_the_front_bridge(self) -> None:
+    def test_large_crown_back_sweeps_and_front_bridge_are_active(self) -> None:
         self.assertTrue(
             {
                 "hair_back_crown_bridge",
                 "hair_back_sweep_left",
                 "hair_back_sweep_right",
+                "hair_front_rotation_bridge",
             }.issubset(self.active_names)
         )
-        self.assertNotIn("hair_front_rotation_bridge", self.active_names)
 
     def test_small_decorative_accents_remain_inactive(self) -> None:
         self.assertTrue(
@@ -111,6 +112,11 @@ class HairMassBuilderV08Tests(unittest.TestCase):
         self.assertIn("if any(value <= 0.0 for value in obj.scale)", self.builder_source)
         self.assertNotIn("scale.x = -1", self.builder_source)
         self.assertNotIn("scale[0] = -1", self.builder_source)
+
+    def test_front_bridge_is_reduced_and_asymmetric(self) -> None:
+        self.assertIn('"hair_front_rotation_bridge": (24.0, 8.0, -5.0)', self.builder_source)
+        self.assertIn('"hair_front_rotation_bridge": (0.94, 0.95, 0.88)', self.builder_source)
+        self.assertIn('"hair_front_rotation_bridge": (-0.035, -0.015, -0.020)', self.builder_source)
 
     def test_forelock_has_separate_asymmetric_shape_overrides(self) -> None:
         self.assertIn('"hair_forelock_characteristic": (10.0, 28.0, -8.0)', self.builder_source)
