@@ -1,0 +1,42 @@
+{
+  "subclasses": {
+    "guardian_vanguard": {
+      "id": "guardian_vanguard",
+      "name": "Страж передовой",
+      "ability_ids": ["guardian_stance"]
+    },
+    "tactical_blade": {
+      "id": "tactical_blade",
+      "name": "Тактический клинок",
+      "ability_ids": ["tactical_focus"]
+    }
+  },
+  "abilities": {
+    "guardian_stance": {
+      "id": "guardian_stance",
+      "name": "Опорная стойка",
+      "kind": "active",
+      "target": "self",
+      "effect": "guardian_stance",
+      "action_kind": "bonus",
+      "combat_only": true,
+      "resource_key": "guardian_stance_uses",
+      "max_uses_formula": "proficiency_bonus",
+      "recovery": "short_rest",
+      "description": "Бонусным действием принять устойчивую стойку до начала следующего хода: получить временное здоровье, равное бонусу мастерства плюс модификатор Телосложения, и +1 к КД."
+    },
+    "tactical_focus": {
+      "id": "tactical_focus",
+      "name": "Тактическая подготовка",
+      "kind": "active",
+      "target": "self",
+      "effect": "tactical_focus",
+      "action_kind": "bonus",
+      "combat_only": true,
+      "resource_key": "tactical_focus_uses",
+      "max_uses_formula": "proficiency_bonus",
+      "recovery": "short_rest",
+      "description": "Бонусным действием подготовить следующую оружейную атаку. Она получает преимущество, а при попадании наносит дополнительный урон, равный бонусу мастерства. Эффект расходуется после броска атаки."
+    }
+  }
+}
