@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -39,14 +40,14 @@ def _apply_reference_hair_palette(context: factory.BuildContext) -> None:
     color_ramp.name = "hair_reference_palette"
     color_ramp.color_ramp.interpolation = "CONSTANT"
     elements = color_ramp.color_ramp.elements
-    elements[0].position = 0.06
+    elements[0].position = 0.005
     elements[0].color = (0x0B / 255.0, 0x06 / 255.0, 0x02 / 255.0, 1.0)
-    elements[1].position = 0.36
+    elements[1].position = 0.10
     elements[1].color = (0x7C / 255.0, 0x49 / 255.0, 0x24 / 255.0, 1.0)
     for position, color in (
-        (0.11, (0x1A, 0x12, 0x0A)),
-        (0.17, (0x26, 0x18, 0x0B)),
-        (0.25, (0x58, 0x2A, 0x15)),
+        (0.010, (0x1A, 0x12, 0x0A)),
+        (0.020, (0x26, 0x18, 0x0B)),
+        (0.045, (0x58, 0x2A, 0x15)),
     ):
         element = elements.new(position)
         element.color = tuple(component / 255.0 for component in color) + (1.0,)
@@ -56,10 +57,22 @@ def _apply_reference_hair_palette(context: factory.BuildContext) -> None:
     links.new(color_ramp.outputs["Color"], shader.inputs["Base Color"])
 
 
+def _apply_reference_hair_rotations(context: factory.BuildContext) -> None:
+    detail = load_head_detail_profile_v08(context.config.character_id)
+    for object_name, rotation_degrees in detail.hair_rotations_degrees:
+        obj = factory.bpy.data.objects.get(object_name)
+        if obj is None:
+            raise RuntimeError(f"Reference hair object was not built: {object_name}")
+        obj.rotation_mode = "XYZ"
+        obj.rotation_euler = tuple(math.radians(value) for value in rotation_degrees)
+    factory.bpy.context.view_layer.update()
+
+
 def _build_head_and_hair_v08(context: factory.BuildContext) -> None:
     _apply_reference_hair_palette(context)
     previous_adapter.load_head_detail_profile_v07 = load_head_detail_profile_v08
     previous_adapter._build_head_and_hair_v07(context)
+    _apply_reference_hair_rotations(context)
 
 
 def _write_run_manifest_v08(
@@ -141,6 +154,7 @@ def _write_run_manifest_v08(
         "face_geometry_locked_to_revision": "v07",
         "material_palette": ["#0B0602", "#1A120A", "#26180B", "#582A15", "#7C4924"],
         "material_strategy": "approved_reference_constant_color_ramp",
+        "rotations_degrees": {name: list(rotation) for name, rotation in detail.hair_rotations_degrees},
     }
     manifest_path.write_text(
         json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
