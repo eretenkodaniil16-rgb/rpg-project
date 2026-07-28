@@ -166,6 +166,16 @@ class ReferenceHairProfileV08Tests(unittest.TestCase):
         self.assertLess(forelock.location[0], 0.0)
         self.assertGreater(forelock.scale[2], 0.20)
 
+    def test_reference_hair_uses_real_asymmetric_rotations_without_mirroring(self) -> None:
+        rotations = dict(self.detail.hair_rotations_degrees)
+        self.assertEqual(rotations["hair_cap"][0], 18.0)
+        self.assertGreater(rotations["hair_front_rotation_bridge"][0], 20.0)
+        self.assertGreater(rotations["hair_forelock_characteristic"][1], 0.0)
+        self.assertNotEqual(
+            rotations["hair_back_sweep_left"][2],
+            -rotations["hair_back_sweep_right"][2],
+        )
+
     def test_adapter_and_launchers_activate_proxy_v11(self) -> None:
         tool_root = Path(__file__).resolve().parents[1]
         adapter = tool_root / "blender_sprite_factory_head_v08.py"
@@ -175,6 +185,7 @@ class ReferenceHairProfileV08Tests(unittest.TestCase):
         self.assertIn("factory._build_head_and_hair = _build_head_and_hair_v08", source)
         self.assertIn('"approved_reference_consolidated_five_zone"', source)
         self.assertIn("_apply_reference_hair_palette(context)", source)
+        self.assertIn("_apply_reference_hair_rotations(context)", source)
         self.assertIn('"approved_reference_constant_color_ramp"', source)
         self.assertNotIn("scale.x = -1", source)
         self.assertNotIn("scale[0] = -1", source)
