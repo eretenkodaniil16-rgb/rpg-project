@@ -62,11 +62,12 @@ func _run() -> void:
 	)
 	levels.begin_transaction(fighter, state)
 	var first_roll: Dictionary = levels.roll_hp_once(fighter, state, 1)
+	levels.choose_fixed_hp(fighter, state)
 	var second_roll: Dictionary = levels.roll_hp_once(fighter, state, 10)
 	var first_transaction: Dictionary = first_roll.get("transaction", {}) as Dictionary
 	var second_transaction: Dictionary = second_roll.get("transaction", {}) as Dictionary
 	if int(first_transaction.get("hp_roll", 0)) != 1 or int(second_transaction.get("hp_roll", 0)) != 1:
-		_fail("HP roll was not irreversible inside the saved transaction.")
+		_fail("HP roll was not irreversible after switching between HP modes.")
 		return
 	if not bool(levels.commit_transaction(fighter, state).get("success", false)) or fighter.level != 3:
 		_fail("Rolled-HP level-up did not commit.")
