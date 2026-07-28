@@ -24,6 +24,9 @@
       {
         "item_id": "apprentice_token",
         "quantity": 1
+      },
+      {
+        "reward_id": "quest_first_steps_complete"
       }
     ]
   }
