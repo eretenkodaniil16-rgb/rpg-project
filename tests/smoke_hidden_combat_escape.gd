@@ -141,7 +141,9 @@ func _run() -> void:
 	if not bool(state.call("save_game")):
 		_fail("Abandoned encounter could not be saved.")
 		return
-	state.call("new_game")
+	state.set("story_flags", {})
+	state.set("quest_states", {})
+	state.set("inventory", {})
 	if not bool(state.call("load_game")):
 		_fail("Abandoned encounter save could not be loaded.")
 		return
