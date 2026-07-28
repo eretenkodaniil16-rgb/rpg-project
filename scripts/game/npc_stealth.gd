@@ -135,6 +135,13 @@ func reset_combat_state(full_restore: bool = true) -> void:
 	_restore_alert_record()
 
 
+func _update_combat_visuals() -> void:
+	super._update_combat_visuals()
+	if _health_label != null:
+		_health_label.text = ""
+		_health_label.hide()
+
+
 func _get_game_state() -> Node:
 	return get_tree().root.get_node_or_null("GameState") if is_inside_tree() else null
 
