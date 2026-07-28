@@ -87,7 +87,7 @@ func _build_nodes() -> void:
 	_interaction_area = Area2D.new()
 	_interaction_area.name = "InteractionArea"
 	var interaction_shape := RectangleShape2D.new()
-	interaction_shape.size = door_size + Vector2(86.0, 64.0)
+	interaction_shape.size = door_size + Vector2(48.0, 64.0)
 	var interaction_collision := CollisionShape2D.new()
 	interaction_collision.shape = interaction_shape
 	_interaction_area.add_child(interaction_collision)
