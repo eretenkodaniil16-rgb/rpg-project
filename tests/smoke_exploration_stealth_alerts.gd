@@ -79,6 +79,7 @@ func _run() -> void:
 	if str(state.call("get_stealth_room_id", player.global_position)) != "west_service_room":
 		_fail("Player did not enter the data-driven service room.")
 		return
+	game.call("_refresh_alert_indicator")
 	alert_text = str(game.call("get_alert_indicator_text_for_testing"))
 	if alert_text != "СКРЫТ":
 		_fail("HUD did not preserve the hero's own hidden-state feedback.")
