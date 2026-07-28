@@ -77,6 +77,7 @@ class ReferenceHairProfileV08Tests(unittest.TestCase):
         }
         self.assertTrue(
             {
+                "hair_front_rotation_bridge",
                 "hair_front_crown_mass",
                 "hair_front_hairline_left",
                 "hair_front_hairline_right",
@@ -141,7 +142,7 @@ class ReferenceHairProfileV08Tests(unittest.TestCase):
         self.assertLessEqual(current_count, 24)
         self.assertEqual(self.profile.head_base, HUMAN_WARRIOR_M01_HEAD_V07.head_base)
 
-    def test_side_hair_is_shorter_and_back_hair_keeps_required_height(self) -> None:
+    def test_side_hair_is_shorter_and_front_bridge_preserves_up_height(self) -> None:
         current_side_bottom = min(
             part.location[2] - part.scale[2] for part in self.profile.hair_side_locks
         )
@@ -150,14 +151,20 @@ class ReferenceHairProfileV08Tests(unittest.TestCase):
             for part in HUMAN_WARRIOR_M01_HEAD_V07.hair_side_locks
         )
         self.assertGreater(current_side_bottom, previous_side_bottom)
-        current_back_top = max(
-            part.location[2] + part.scale[2] for part in self.profile.hair_back_masses
+        rotation_bridge = next(
+            part
+            for part in self.profile.hair_front_locks
+            if part.name == "hair_front_rotation_bridge"
         )
-        previous_back_top = max(
-            part.location[2] + part.scale[2]
-            for part in HUMAN_WARRIOR_M01_HEAD_V07.hair_back_masses
+        self.assertLess(rotation_bridge.location[1], -0.30)
+        self.assertGreaterEqual(rotation_bridge.location[2] + rotation_bridge.scale[2], 5.06)
+        forelock = next(
+            part
+            for part in self.profile.hair_front_locks
+            if part.name == "hair_forelock_characteristic"
         )
-        self.assertGreaterEqual(current_back_top, previous_back_top - 0.01)
+        self.assertLess(forelock.location[0], 0.0)
+        self.assertGreater(forelock.scale[2], 0.20)
 
     def test_adapter_and_launchers_activate_proxy_v11(self) -> None:
         tool_root = Path(__file__).resolve().parents[1]
@@ -167,6 +174,8 @@ class ReferenceHairProfileV08Tests(unittest.TestCase):
         self.assertIn("factory.load_head_profile = load_head_profile_v08", source)
         self.assertIn("factory._build_head_and_hair = _build_head_and_hair_v08", source)
         self.assertIn('"approved_reference_consolidated_five_zone"', source)
+        self.assertIn("_apply_reference_hair_palette(context)", source)
+        self.assertIn('"approved_reference_constant_color_ramp"', source)
         self.assertNotIn("scale.x = -1", source)
         self.assertNotIn("scale[0] = -1", source)
         launcher = (tool_root / "run_blender_sprite_pilot.ps1").read_text(
