@@ -20,11 +20,14 @@ var _spell_selection: SpellSelectionSystem = SpellSelectionSystem.new()
 
 
 func initialize_character(character: PlayerCharacter, refill_resources: bool = false) -> void:
-	if character == null or character.origin_feat_id.is_empty():
+	if character == null:
 		return
-	_append_unique(character.known_features, character.origin_feat_id)
-	if character.origin_feat_id == SAVAGE_ATTACKER_FEAT_ID:
+	for feat_id: String in character.get_all_feat_ids():
+		_append_unique(character.known_features, feat_id)
+	if character.has_feat(SAVAGE_ATTACKER_FEAT_ID) and not character.active_effects.has(SAVAGE_ATTACKER_READY_KEY):
 		character.active_effects[SAVAGE_ATTACKER_READY_KEY] = true
+	if character.origin_feat_id not in [MAGIC_INITIATE_CLERIC_FEAT_ID, MAGIC_INITIATE_WIZARD_FEAT_ID]:
+		return
 	_spell_selection.ensure_magic_initiate_source(character)
 	var abilities: Array[String] = get_magic_initiate_abilities(character)
 	for ability_id: String in abilities:
@@ -39,18 +42,18 @@ func initialize_character(character: PlayerCharacter, refill_resources: bool = f
 
 
 func begin_turn(character: PlayerCharacter) -> void:
-	if character != null and character.origin_feat_id == SAVAGE_ATTACKER_FEAT_ID:
+	if character != null and character.has_feat(SAVAGE_ATTACKER_FEAT_ID):
 		character.active_effects[SAVAGE_ATTACKER_READY_KEY] = true
 
 
 func initiative_proficiency_bonus(character: PlayerCharacter) -> int:
-	if character == null or character.origin_feat_id != ALERT_FEAT_ID:
+	if character == null or not character.has_feat(ALERT_FEAT_ID):
 		return 0
 	return character.get_proficiency_bonus()
 
 
 func can_apply_savage_attacker(character: PlayerCharacter, turn_based: bool) -> bool:
-	if character == null or character.origin_feat_id != SAVAGE_ATTACKER_FEAT_ID:
+	if character == null or not character.has_feat(SAVAGE_ATTACKER_FEAT_ID):
 		return false
 	return not turn_based or bool(character.active_effects.get(SAVAGE_ATTACKER_READY_KEY, true))
 
