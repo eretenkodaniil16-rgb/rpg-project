@@ -88,29 +88,29 @@ HUMAN_WARRIOR_M01_HEAD_V08 = HeadProfile(
     nose=HUMAN_WARRIOR_M01_HEAD_V07.nose,
     hair_cap=EllipsoidPart(
         "hair_cap",
-        (0.0, 0.055, 4.665),
-        (0.485, 0.385, 0.300),
+        (0.0, 0.070, 4.665),
+        (0.470, 0.310, 0.300),
     ),
     hair_back_masses=(
         EllipsoidPart(
             "hair_back_shell",
-            (0.0, 0.180, 4.490),
-            (0.405, 0.240, 0.310),
+            (0.0, 0.205, 4.490),
+            (0.400, 0.310, 0.300),
         ),
         EllipsoidPart(
             "hair_back_crown_bridge",
-            (0.0, 0.075, 4.846),
-            (0.335, 0.180, 0.215),
+            (0.0, 0.080, 4.820),
+            (0.330, 0.200, 0.205),
         ),
         EllipsoidPart(
             "hair_back_sweep_left",
-            (0.235, 0.120, 4.485),
-            (0.205, 0.175, 0.270),
+            (0.235, 0.205, 4.485),
+            (0.205, 0.220, 0.260),
         ),
         EllipsoidPart(
             "hair_back_sweep_right",
-            (-0.235, 0.120, 4.485),
-            (0.205, 0.175, 0.270),
+            (-0.235, 0.205, 4.485),
+            (0.205, 0.220, 0.260),
         ),
         EllipsoidPart(
             "hair_nape_left",
@@ -130,36 +130,41 @@ HUMAN_WARRIOR_M01_HEAD_V08 = HeadProfile(
     ),
     hair_front_locks=(
         EllipsoidPart(
+            "hair_front_rotation_bridge",
+            (0.0, -0.365, 4.835),
+            (0.315, 0.125, 0.235),
+        ),
+        EllipsoidPart(
             "hair_front_crown_mass",
-            (0.0, -0.180, 4.755),
-            (0.370, 0.180, 0.205),
+            (0.0, -0.175, 4.755),
+            (0.355, 0.145, 0.200),
         ),
         EllipsoidPart(
             "hair_front_hairline_left",
-            (0.180, -0.345, 4.505),
-            (0.180, 0.110, 0.200),
+            (0.195, -0.340, 4.525),
+            (0.150, 0.090, 0.180),
         ),
         EllipsoidPart(
             "hair_forelock_characteristic",
-            (-0.060, -0.405, 4.505),
-            (0.100, 0.075, 0.190),
+            (-0.085, -0.435, 4.480),
+            (0.135, 0.072, 0.230),
         ),
         EllipsoidPart(
             "hair_front_hairline_right",
-            (-0.180, -0.345, 4.505),
-            (0.180, 0.110, 0.200),
+            (-0.190, -0.380, 4.500),
+            (0.190, 0.100, 0.215),
         ),
     ),
     hair_side_locks=(
         EllipsoidPart(
             "hair_side_mass_left",
-            (0.400, -0.015, 4.395),
-            (0.135, 0.180, 0.260),
+            (0.400, 0.010, 4.400),
+            (0.130, 0.175, 0.250),
         ),
         EllipsoidPart(
             "hair_side_mass_right",
-            (-0.400, -0.015, 4.395),
-            (0.135, 0.180, 0.260),
+            (-0.400, 0.010, 4.400),
+            (0.130, 0.175, 0.250),
         ),
     ),
     brows=HUMAN_WARRIOR_M01_HEAD_V07.brows,
@@ -185,8 +190,8 @@ HUMAN_WARRIOR_M01_HEAD_DETAIL_V08 = HeadDetailProfileV08(
         DetailedEllipsoidPart(
             EllipsoidPart(
                 "hair_forelock_root",
-                (-0.040, -0.335, 4.610),
-                (0.090, 0.060, 0.105),
+                (-0.070, -0.350, 4.610),
+                (0.110, 0.060, 0.115),
             ),
             "hair",
             MeshDensity(16, 10),
@@ -194,8 +199,8 @@ HUMAN_WARRIOR_M01_HEAD_DETAIL_V08 = HeadDetailProfileV08(
         DetailedEllipsoidPart(
             EllipsoidPart(
                 "hair_forelock_tip",
-                (-0.065, -0.455, 4.425),
-                (0.055, 0.045, 0.085),
+                (-0.105, -0.475, 4.370),
+                (0.070, 0.042, 0.105),
             ),
             "hair",
             MeshDensity(12, 8),
@@ -203,8 +208,8 @@ HUMAN_WARRIOR_M01_HEAD_DETAIL_V08 = HeadDetailProfileV08(
         DetailedEllipsoidPart(
             EllipsoidPart(
                 "hair_temple_curl_left",
-                (0.315, -0.175, 4.430),
-                (0.080, 0.090, 0.130),
+                (0.315, -0.150, 4.435),
+                (0.070, 0.085, 0.115),
             ),
             "hair",
             MeshDensity(12, 8),
@@ -212,8 +217,8 @@ HUMAN_WARRIOR_M01_HEAD_DETAIL_V08 = HeadDetailProfileV08(
         DetailedEllipsoidPart(
             EllipsoidPart(
                 "hair_temple_curl_right",
-                (-0.315, -0.175, 4.430),
-                (0.080, 0.090, 0.130),
+                (-0.320, -0.190, 4.420),
+                (0.090, 0.095, 0.145),
             ),
             "hair",
             MeshDensity(12, 8),
