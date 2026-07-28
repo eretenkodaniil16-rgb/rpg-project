@@ -3,7 +3,7 @@ extends CharacterHubInventory
 
 signal level_up_requested
 
-var _level_up_system: LevelUpSystem = LevelUpSystem.new()
+var _level_up_system: LevelUpChoiceSystem = LevelUpChoiceSystem.new()
 
 
 func _ready() -> void:
@@ -22,6 +22,17 @@ func _refresh_character() -> void:
 	super._refresh_character()
 	if _hero == null or state == null:
 		return
+	if not _hero.subclass_name.is_empty():
+		_character_box.add_child(_level_choice_label("Подкласс: %s" % _hero.subclass_name))
+	if not _hero.level_feat_ids.is_empty():
+		var feat_names: Array[String] = []
+		for feat_id: String in _hero.level_feat_ids:
+			feat_names.append(
+				_level_up_system.get_level_choice_option_name("feat", feat_id)
+			)
+		_character_box.add_child(
+			_level_choice_label("Черты, полученные за уровни: %s" % ", ".join(feat_names))
+		)
 	var pending: bool = _level_up_system.has_pending_transaction(_hero, state)
 	if not pending and not ProgressionSystem.can_level_up(_hero):
 		return
@@ -49,6 +60,19 @@ func _request_level_up() -> void:
 	level_up_requested.emit()
 
 
-func _on_experience_gained(_reward_id: String, _amount: int, _total_experience: int, _label: String) -> void:
+func _on_experience_gained(
+	_reward_id: String,
+	_amount: int,
+	_total_experience: int,
+	_label: String
+) -> void:
 	if visible and _hero != null:
 		_refresh_all()
+
+
+func _level_choice_label(text_value: String) -> Label:
+	var label := Label.new()
+	label.text = text_value
+	label.add_theme_font_size_override("font_size", 18)
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	return label
