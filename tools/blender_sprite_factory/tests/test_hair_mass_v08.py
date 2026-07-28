@@ -104,6 +104,17 @@ class HairMassBuilderV08Tests(unittest.TestCase):
         self.assertIn('"top_crown"', self.builder_source)
         self.assertIn('"front_forelock"', self.builder_source)
 
+    def test_profile_caps_are_triangulated_into_large_palette_facets(self) -> None:
+        self.assertIn("REFERENCE_HAIR_FACET_COLORS", self.builder_source)
+        self.assertIn("CROWN_FRONT_FACET_PATTERN", self.builder_source)
+        self.assertIn("CROWN_BACK_FACET_PATTERN", self.builder_source)
+        self.assertIn("FORELOCK_FRONT_FACET_PATTERN", self.builder_source)
+        self.assertIn("front_center_index = len(vertices)", self.builder_source)
+        self.assertIn("back_center_index = len(vertices)", self.builder_source)
+        self.assertIn("polygon.material_index = material_index", self.builder_source)
+        self.assertIn('material["material_slot_id"] = "hair"', self.builder_source)
+        self.assertIn('obj["hair_facet_material_count"]', self.builder_source)
+
     def test_small_decorative_accents_remain_inactive(self) -> None:
         self.assertTrue(
             {
@@ -127,20 +138,23 @@ class HairMassBuilderV08Tests(unittest.TestCase):
         self.assertNotIn("scale.x = -1", self.builder_source)
         self.assertNotIn("scale[0] = -1", self.builder_source)
 
-    def test_adapter_records_actual_transforms_crown_forelock_and_inactive_sweep(self) -> None:
+    def test_adapter_records_actual_transforms_facets_profiles_and_inactive_sweep(self) -> None:
         adapter = self.tool_root / "blender_sprite_factory_head_v08.py"
         source = adapter.read_text(encoding="utf-8")
         tree = ast.parse(source)
         self.assertIsInstance(tree, ast.Module)
         self.assertIn("consolidate_reference_hair_masses(context)", source)
         self.assertIn(
-            '"approved_reference_single_crown_and_forelock_meshes_with_modular_accents"',
+            '"approved_reference_single_crown_and_forelock_meshes_with_large_palette_facets"',
             source,
         )
         self.assertIn('"hair_crown_profile"', source)
         self.assertIn('"hair_forelock_profile"', source)
         self.assertIn('"inactive_after_occlusion_diagnostic"', source)
         self.assertIn('"hair_mass_builder"', source)
+        self.assertIn("REFERENCE_HAIR_FACET_COLORS", source)
+        self.assertIn('"facet_colors"', source)
+        self.assertIn('"approved_reference_large_emission_facets"', source)
         self.assertIn("HAIR_ROTATION_OVERRIDES_DEGREES", source)
         self.assertIn('"actual_rotations_degrees"', source)
         self.assertIn('"positive_scale_multipliers"', source)
