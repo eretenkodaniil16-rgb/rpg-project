@@ -146,6 +146,36 @@ def _build_organic_geometry(
     return tuple(vertices), tuple(faces), tuple(material_indices)
 
 
+def _assert_previous_integrated_state() -> set[str]:
+    actual_names = {
+        obj.name
+        for obj in factory.bpy.data.objects
+        if obj.get(factory.MODULE_PROPERTY) == "hair"
+    }
+    missing = sorted(ACTIVE_HAIR_PART_NAMES.difference(actual_names))
+    unexpected = sorted(actual_names.difference(ACTIVE_HAIR_PART_NAMES))
+    if missing or unexpected:
+        raise RuntimeError(
+            "Proxy v20 expected one completed proxy v19 scene before refinement: "
+            f"missing={missing}, unexpected={unexpected}"
+        )
+    if REMOVED_BACK_OVERLAY_NAMES.intersection(actual_names):
+        raise RuntimeError("Proxy v20 expected proxy v19 back overlays to be already removed")
+    if not RETAINED_PROFILE_LOCK_NAMES.issubset(actual_names):
+        raise RuntimeError("Proxy v20 expected all proxy v19 side/nape profile locks")
+
+    crown = factory.bpy.data.objects.get(_PROFILE.mesh_name)
+    if crown is None:
+        raise RuntimeError("Proxy v20 cannot find the completed proxy v19 integrated crown")
+    if len(crown.data.vertices) != 82 or len(crown.data.polygons) != 96:
+        raise RuntimeError("Proxy v20 must refine the established proxy v19 topology")
+    for name in RETAINED_PROFILE_LOCK_NAMES:
+        obj = factory.bpy.data.objects[name]
+        if len(obj.data.vertices) != 38 or len(obj.data.polygons) != 42:
+            raise RuntimeError(f"Proxy v20 found invalid retained profile lock: {name}")
+    return actual_names
+
+
 def _replace_integrated_mesh_with_organic_form() -> dict[str, object]:
     crown = factory.bpy.data.objects.get(_PROFILE.mesh_name)
     if crown is None:
@@ -232,7 +262,7 @@ def _stamp_organic_contract() -> None:
 def apply_organic_crown_back_pass(
     context: factory.BuildContext,
 ) -> dict[str, tuple[float, float, float]]:
-    applied_rotations = previous_builder.apply_integrated_crown_back_pass(context)
+    actual_names = _assert_previous_integrated_state()
     crown_stats = _replace_integrated_mesh_with_organic_form()
     _stamp_organic_contract()
 
@@ -240,21 +270,16 @@ def apply_organic_crown_back_pass(
         if crown_stats[key] != expected:
             raise RuntimeError(f"Unexpected organic crown/back topology: {crown_stats}")
 
-    actual_names = {
+    current_names = {
         obj.name
         for obj in factory.bpy.data.objects
         if obj.get(factory.MODULE_PROPERTY) == "hair"
     }
-    missing = sorted(ACTIVE_HAIR_PART_NAMES.difference(actual_names))
-    unexpected = sorted(actual_names.difference(ACTIVE_HAIR_PART_NAMES))
-    if missing or unexpected:
-        raise RuntimeError(
-            "Proxy v20 organic crown/back contract failed: "
-            f"missing={missing}, unexpected={unexpected}"
-        )
-    if REMOVED_BACK_OVERLAY_NAMES.intersection(actual_names):
+    if current_names != actual_names:
+        raise RuntimeError("Proxy v20 must refine geometry without changing hair object identities")
+    if REMOVED_BACK_OVERLAY_NAMES.intersection(current_names):
         raise RuntimeError("Proxy v20 restored a redundant back overlay")
-    if not RETAINED_PROFILE_LOCK_NAMES.issubset(actual_names):
+    if not RETAINED_PROFILE_LOCK_NAMES.issubset(current_names):
         raise RuntimeError("Proxy v20 lost one or more side/nape profile locks")
 
     crown = factory.bpy.data.objects[_PROFILE.mesh_name]
@@ -264,10 +289,10 @@ def apply_organic_crown_back_pass(
         obj = factory.bpy.data.objects[name]
         if len(obj.data.vertices) != 38 or len(obj.data.polygons) != 42:
             raise RuntimeError(f"Proxy v20 changed retained profile lock topology: {name}")
-    for name in actual_names:
+    for name in current_names:
         obj = factory.bpy.data.objects[name]
         if any(value <= 0.0 for value in obj.scale):
             raise RuntimeError(f"Hair object has non-positive scale: {name}")
 
     factory.bpy.context.view_layer.update()
-    return applied_rotations
+    return dict(HAIR_ROTATION_OVERRIDES_DEGREES)
