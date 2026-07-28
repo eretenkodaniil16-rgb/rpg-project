@@ -1,10 +1,11 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://scripts/game/game_target_free_attacks.gd" id="1_game"]
 [ext_resource type="Script" path="res://scripts/game/player_combat.gd" id="2_player"]
-[ext_resource type="Script" path="res://scripts/game/npc.gd" id="3_npc"]
+[ext_resource type="Script" path="res://scripts/game/npc_stealth.gd" id="3_npc"]
 [ext_resource type="Script" path="res://scripts/ui/dialogue_ui.gd" id="4_dialogue"]
 [ext_resource type="Script" path="res://scripts/ui/mobile_controls.gd" id="5_mobile"]
+[ext_resource type="Script" path="res://scripts/game/stealth_test_room.gd" id="6_stealth_room"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_player"]
 size = Vector2(38, 38)
@@ -29,6 +30,10 @@ color = Color(0.14, 0.17, 0.17, 1)
 [node name="Carpet" type="Polygon2D" parent="."]
 polygon = PackedVector2Array(180, 250, 1100, 250, 1100, 475, 180, 475)
 color = Color(0.22, 0.11, 0.12, 1)
+
+[node name="StealthTestRoom" type="Node2D" parent="."]
+position = Vector2(245, 360)
+script = ExtResource("6_stealth_room")
 
 [node name="Player" type="CharacterBody2D" parent="." groups=["player"]]
 position = Vector2(320, 360)
