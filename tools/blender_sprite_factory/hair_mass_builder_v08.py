@@ -45,6 +45,52 @@ REFERENCE_HAIR_PALETTE = (
     "#7C4924",
 )
 
+REFERENCE_HAIR_FACET_COLORS = {
+    "shadow": "#1A120A",
+    "base": "#26180B",
+    "mid": "#582A15",
+    "highlight": "#7C4924",
+}
+
+CROWN_FRONT_FACET_PATTERN = (
+    0,
+    0,
+    2,
+    3,
+    0,
+    3,
+    1,
+    2,
+    0,
+    2,
+    1,
+    0,
+    1,
+    2,
+    0,
+    1,
+)
+CROWN_BACK_FACET_PATTERN = (
+    0,
+    0,
+    1,
+    2,
+    0,
+    3,
+    1,
+    2,
+    0,
+    2,
+    1,
+    0,
+    0,
+    1,
+    0,
+    0,
+)
+FORELOCK_FRONT_FACET_PATTERN = (0, 1, 2, 1, 0, 0, 1)
+FORELOCK_BACK_FACET_PATTERN = (0, 0, 1, 1, 0, 0, 0)
+
 HAIR_ROTATION_OVERRIDES_DEGREES: dict[str, tuple[float, float, float]] = {
     "hair_back_sweep_left": (18.0, 0.0, -8.0),
     "hair_back_sweep_right": (20.0, 0.0, 4.0),
@@ -75,6 +121,18 @@ def _assert_positive_transform_contract() -> None:
     for name in HAIR_ROTATION_OVERRIDES_DEGREES:
         if name not in SOURCE_HAIR_PART_NAMES:
             raise ValueError(f"Rotation override targets inactive hair part: {name}")
+    if len(CROWN_FRONT_FACET_PATTERN) != 16 or len(CROWN_BACK_FACET_PATTERN) != 16:
+        raise ValueError("Crown facet patterns must match the sixteen-point contour")
+    if len(FORELOCK_FRONT_FACET_PATTERN) != 7 or len(FORELOCK_BACK_FACET_PATTERN) != 7:
+        raise ValueError("Forelock facet patterns must match the seven-point contour")
+    for pattern in (
+        CROWN_FRONT_FACET_PATTERN,
+        CROWN_BACK_FACET_PATTERN,
+        FORELOCK_FRONT_FACET_PATTERN,
+        FORELOCK_BACK_FACET_PATTERN,
+    ):
+        if min(pattern) < 0 or max(pattern) >= len(REFERENCE_HAIR_FACET_COLORS):
+            raise ValueError("Hair facet pattern references an unknown material")
 
 
 def _apply_reference_palette(context: factory.BuildContext) -> None:
@@ -112,6 +170,36 @@ def _apply_reference_palette(context: factory.BuildContext) -> None:
     material.use_backface_culling = False
 
 
+def _hex_rgb(value: str) -> tuple[float, float, float]:
+    raw = value.lstrip("#")
+    return (
+        int(raw[0:2], 16) / 255.0,
+        int(raw[2:4], 16) / 255.0,
+        int(raw[4:6], 16) / 255.0,
+    )
+
+
+def _create_facet_materials() -> tuple[object, ...]:
+    materials: list[object] = []
+    for facet_name, color_hex in REFERENCE_HAIR_FACET_COLORS.items():
+        material = factory.bpy.data.materials.new(f"MAT_hair_facet_{facet_name}")
+        material.use_nodes = True
+        material["material_slot_id"] = "hair"
+        material["hair_facet_role"] = facet_name
+        nodes = material.node_tree.nodes
+        links = material.node_tree.links
+        nodes.clear()
+        output = nodes.new("ShaderNodeOutputMaterial")
+        emission = nodes.new("ShaderNodeEmission")
+        emission.inputs["Color"].default_value = (*_hex_rgb(color_hex), 1.0)
+        emission.inputs["Strength"].default_value = 0.82
+        links.new(emission.outputs["Emission"], output.inputs["Surface"])
+        material.diffuse_color = (*_hex_rgb(color_hex), 1.0)
+        material.use_backface_culling = False
+        materials.append(material)
+    return tuple(materials)
+
+
 def _remove_inactive_hair_parts() -> None:
     for obj in tuple(factory.bpy.data.objects):
         if obj.get(factory.MODULE_PROPERTY) != "hair":
@@ -124,10 +212,17 @@ def _build_slice_profile_mesh(
     context: factory.BuildContext,
     profile: _SliceProfile,
     shape_zone: str,
+    facet_materials: tuple[object, ...],
+    front_pattern: tuple[int, ...],
+    back_pattern: tuple[int, ...],
 ) -> None:
     point_count = len(profile.slices[0].points_xz)
+    if len(front_pattern) != point_count or len(back_pattern) != point_count:
+        raise ValueError(f"Facet pattern does not match profile {profile.mesh_name}")
+
     vertices: list[tuple[float, float, float]] = []
     faces: list[tuple[int, ...]] = []
+    material_indices: list[int] = []
 
     for profile_slice in profile.slices:
         vertices.extend((x, profile_slice.y, z) for x, z in profile_slice.points_xz)
@@ -145,10 +240,42 @@ def _build_slice_profile_mesh(
                     current + point_index,
                 )
             )
+            material_indices.append(front_pattern[point_index] if slice_index == 1 else back_pattern[point_index])
 
-    faces.append(tuple(reversed(range(point_count))))
+    front_slice = profile.slices[0]
+    front_center_index = len(vertices)
+    vertices.append(
+        (
+            sum(point[0] for point in front_slice.points_xz) / point_count,
+            front_slice.y,
+            sum(point[1] for point in front_slice.points_xz) / point_count,
+        )
+    )
+    for point_index in range(point_count):
+        next_index = (point_index + 1) % point_count
+        faces.append((front_center_index, next_index, point_index))
+        material_indices.append(front_pattern[point_index])
+
+    back_slice = profile.slices[-1]
     back_start = (len(profile.slices) - 1) * point_count
-    faces.append(tuple(back_start + index for index in range(point_count)))
+    back_center_index = len(vertices)
+    vertices.append(
+        (
+            sum(point[0] for point in back_slice.points_xz) / point_count,
+            back_slice.y,
+            sum(point[1] for point in back_slice.points_xz) / point_count,
+        )
+    )
+    for point_index in range(point_count):
+        next_index = (point_index + 1) % point_count
+        faces.append(
+            (
+                back_center_index,
+                back_start + point_index,
+                back_start + next_index,
+            )
+        )
+        material_indices.append(back_pattern[point_index])
 
     mesh = factory.bpy.data.meshes.new(f"{profile.mesh_name}_mesh")
     mesh.from_pydata(vertices, [], faces)
@@ -156,21 +283,32 @@ def _build_slice_profile_mesh(
     mesh.validate(verbose=False, clean_customdata=False)
     obj = factory.bpy.data.objects.new(profile.mesh_name, mesh)
     obj["hair_shape_zone"] = shape_zone
+    obj["hair_facet_material_count"] = len(facet_materials)
     factory._flat_shade(obj)
-    factory._assign_material(obj, context.materials["hair"])
+    for material in facet_materials:
+        obj.data.materials.append(material)
+    for polygon, material_index in zip(obj.data.polygons, material_indices):
+        polygon.material_index = material_index
     factory._register(context, obj, "hair", "head")
 
 
 def _build_reference_profile_meshes(context: factory.BuildContext) -> None:
+    facet_materials = _create_facet_materials()
     _build_slice_profile_mesh(
         context,
         load_hair_crown_profile_v08(),
         "top_crown",
+        facet_materials,
+        CROWN_FRONT_FACET_PATTERN,
+        CROWN_BACK_FACET_PATTERN,
     )
     _build_slice_profile_mesh(
         context,
         load_hair_forelock_profile_v08(),
         "front_forelock",
+        facet_materials,
+        FORELOCK_FRONT_FACET_PATTERN,
+        FORELOCK_BACK_FACET_PATTERN,
     )
 
 
