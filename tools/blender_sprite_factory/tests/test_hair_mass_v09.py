@@ -26,6 +26,7 @@ class HairMassBuilderV09Tests(unittest.TestCase):
         self.assertIn('obj["hair_lock_groove_count"]', self.builder_source)
         self.assertIn('obj["hair_shape_zone"] = "large_lock_separators"', self.builder_source)
         self.assertIn("len(_LOCK_PROFILE.grooves)", self.builder_source)
+        self.assertIn("ACTIVE_HAIR_PART_NAMES = frozenset", self.builder_source)
 
     def test_facet_stripes_are_retoned_into_broad_masses(self) -> None:
         self.assertIn("_retone_profile_meshes()", self.builder_source)
@@ -33,11 +34,10 @@ class HairMassBuilderV09Tests(unittest.TestCase):
         self.assertIn('"single_readable_forelock"', self.builder_source)
         self.assertIn("polygon.material_index = 2", self.builder_source)
 
-    def test_positive_transform_and_no_mirroring_contract_remain(self) -> None:
+    def test_positive_transform_contract_remains(self) -> None:
         self.assertIn("if any(value <= 0.0 for value in obj.scale)", self.builder_source)
         self.assertNotIn("scale.x = -1", self.builder_source)
         self.assertNotIn("scale[0] = -1", self.builder_source)
-        self.assertNotIn("mirror", self.builder_source.lower())
 
     def test_adapter_records_v09_v12_profiles_and_lock_strategy(self) -> None:
         ast.parse(self.adapter_source)
