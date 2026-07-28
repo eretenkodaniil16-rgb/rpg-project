@@ -129,14 +129,14 @@ func _update_alert_visuals() -> void:
 		return
 	var state_label: String = {
 		StealthAlertSystem.STATE_CALM: "СПОКОЕН",
-		StealthAlertSystem.STATE_SUSPICIOUS: "ПОДОЗРЕНИЕ",
+		StealthAlertSystem.STATE_SUSPICIOUS: "НАСТОРОЖЕН",
 		StealthAlertSystem.STATE_INVESTIGATING: "ПРОВЕРЯЕТ",
 		StealthAlertSystem.STATE_SEARCHING: "ИЩЕТ",
 		StealthAlertSystem.STATE_ALERTED: "ТРЕВОГА",
 		StealthAlertSystem.STATE_COMBAT: "БОЙ"
 	}.get(detection_state, detection_state.to_upper())
-	_alert_label.text = "%s · %d%%" % [state_label, roundi(suspicion)]
-	_alert_label.visible = detection_state != StealthAlertSystem.STATE_CALM or suspicion > 0.5
+	_alert_label.text = state_label
+	_alert_label.visible = detection_state != StealthAlertSystem.STATE_CALM
 	var alert_color: Color = Color(0.62, 0.86, 0.64, 1.0)
 	if detection_state in [StealthAlertSystem.STATE_SUSPICIOUS, StealthAlertSystem.STATE_INVESTIGATING, StealthAlertSystem.STATE_SEARCHING]:
 		alert_color = Color(1.0, 0.78, 0.28, 1.0)
