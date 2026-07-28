@@ -10,8 +10,10 @@ const CATEGORY_LABELS: Dictionary = {
 	"bonus": "ДОП. ДЕЙСТВИЕ",
 	"reaction": "РЕАКЦИЯ"
 }
-const ACTION_GROUP_ORDER: Array[String] = ["attack", "movement", "spell", "tactic"]
+const ACTION_GROUP_ORDER: Array[String] = ["target", "world", "attack", "movement", "spell", "tactic"]
 const ACTION_GROUP_LABELS: Dictionary = {
+	"target": "ЦЕЛЬ",
+	"world": "МИР",
 	"attack": "АТАКИ",
 	"movement": "ПЕРЕМЕЩЕНИЕ",
 	"spell": "ЗАКЛИНАНИЯ",
@@ -33,8 +35,11 @@ var close_button: Button
 
 var _entries: Dictionary = {}
 var _selected_category: String = "action"
-var _selected_action_group: String = "attack"
+var _selected_action_group: String = "target"
 var _last_signature: String = ""
+var _combat_active: bool = false
+var _group_buttons: Dictionary = {}
+var _category_buttons: Dictionary = {}
 
 
 func _ready() -> void:
@@ -54,27 +59,34 @@ func refresh(
 	has_movement_plan: bool = false,
 	planned_cost_feet: int = 0
 ) -> void:
-	var show_combat_controls: bool = combat_active and not overlay_visible
-	catalog_button.visible = show_combat_controls
-	end_turn_button.visible = show_combat_controls
-	confirm_move_button.visible = show_combat_controls and player_turn and has_movement_plan
+	var mode_changed: bool = _combat_active != combat_active
+	_combat_active = combat_active
+	var show_catalog_controls: bool = not overlay_visible
+	catalog_button.visible = show_catalog_controls
+	end_turn_button.visible = combat_active and show_catalog_controls
+	confirm_move_button.visible = combat_active and show_catalog_controls and player_turn and has_movement_plan
 	jump_button.hide()
-	if not combat_active:
-		panel.hide()
-	if not catalog_button.visible and panel.visible:
+	if overlay_visible and panel.visible:
 		panel.hide()
 	_entries = entries.duplicate(true)
 	resource_label.text = resource_text
-	header_label.text = "БОЕВЫЕ ДЕЙСТВИЯ · %s" % movement_plan_text
-	catalog_button.disabled = not player_turn
+	header_label.text = "БОЕВЫЕ ДЕЙСТВИЯ · %s" % movement_plan_text if combat_active else "ДЕЙСТВИЯ"
+	catalog_button.disabled = combat_active and not player_turn
 	end_turn_button.disabled = not player_turn
 	confirm_move_button.disabled = not player_turn or not has_movement_plan
 	confirm_move_button.text = "ПЕРЕМЕСТИТЬСЯ · %d ФТ" % planned_cost_feet if has_movement_plan else "ПЕРЕМЕСТИТЬСЯ"
+	category_row.visible = combat_active
+	if mode_changed:
+		_selected_category = "action"
+		_selected_action_group = "attack" if combat_active else "target"
+		_last_signature = ""
+	_ensure_valid_selection()
 	if panel.visible:
 		var signature: String = JSON.stringify([
 			_entries,
 			_selected_category,
 			_selected_action_group,
+			combat_active,
 			player_turn,
 			resource_text,
 			movement_plan_text
@@ -166,6 +178,7 @@ func _build_interface() -> void:
 		category_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		category_button.pressed.connect(_select_category.bind(category_id))
 		category_row.add_child(category_button)
+		_category_buttons[category_id] = category_button
 
 	action_group_row = HBoxContainer.new()
 	action_group_row.add_theme_constant_override("separation", 6)
@@ -178,6 +191,7 @@ func _build_interface() -> void:
 		group_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		group_button.pressed.connect(_select_action_group.bind(group_id))
 		action_group_row.add_child(group_button)
+		_group_buttons[group_id] = group_button
 
 	var scroll := ScrollContainer.new()
 	scroll.custom_minimum_size = Vector2(0.0, 210.0)
@@ -217,12 +231,14 @@ func _toggle_catalog() -> void:
 	panel.visible = not panel.visible
 	if panel.visible:
 		_last_signature = ""
+		_ensure_valid_selection()
 		_rebuild_action_grid()
 
 
 func _select_category(category_id: String) -> void:
 	_selected_category = category_id
 	_last_signature = ""
+	_ensure_valid_selection()
 	_rebuild_action_grid()
 
 
@@ -232,10 +248,25 @@ func _select_action_group(group_id: String) -> void:
 	_rebuild_action_grid()
 
 
+func _ensure_valid_selection() -> void:
+	if not _combat_active:
+		_selected_category = "action"
+	var values: Variant = _entries.get(_selected_category, [])
+	var category_entries: Array = values as Array if values is Array else []
+	var available_groups: Array[String] = []
+	for group_id: String in ACTION_GROUP_ORDER:
+		for entry_value: Variant in category_entries:
+			if entry_value is Dictionary and str((entry_value as Dictionary).get("group", "tactic")) == group_id:
+				available_groups.append(group_id)
+				break
+	if _selected_category == "action" and _selected_action_group not in available_groups:
+		_selected_action_group = available_groups[0] if not available_groups.is_empty() else "target"
+
+
 func _rebuild_action_grid() -> void:
 	for child: Node in action_grid.get_children():
 		child.queue_free()
-	action_group_row.visible = _selected_category == "action"
+	_update_navigation_buttons()
 	var values: Variant = _entries.get(_selected_category, [])
 	var category_entries: Array = values as Array if values is Array else []
 	var visible_entries: Array[Dictionary] = []
@@ -266,7 +297,28 @@ func _rebuild_action_grid() -> void:
 		button.pressed.connect(_emit_action.bind(str(entry.get("id", "")), description, available))
 		button.mouse_entered.connect(_show_description.bind(description))
 		action_grid.add_child(button)
-	description_label.text = "Недоступные действия остаются нажимаемыми и объясняют причину."
+	description_label.text = "Выберите действие. Недоступные варианты объяснят ограничение."
+
+
+func _update_navigation_buttons() -> void:
+	for category_id: String in CATEGORY_ORDER:
+		var category_button: Button = _category_buttons.get(category_id) as Button
+		if category_button != null:
+			var values: Variant = _entries.get(category_id, [])
+			category_button.visible = _combat_active and values is Array and not (values as Array).is_empty()
+	for group_id: String in ACTION_GROUP_ORDER:
+		var group_button: Button = _group_buttons.get(group_id) as Button
+		if group_button == null:
+			continue
+		var has_entries: bool = false
+		var values: Variant = _entries.get("action", [])
+		if values is Array:
+			for entry_value: Variant in values as Array:
+				if entry_value is Dictionary and str((entry_value as Dictionary).get("group", "tactic")) == group_id:
+					has_entries = true
+					break
+		group_button.visible = _selected_category == "action" and has_entries
+	action_group_row.visible = _selected_category == "action"
 
 
 func _emit_action(action_id: String, description: String, available: bool) -> void:
