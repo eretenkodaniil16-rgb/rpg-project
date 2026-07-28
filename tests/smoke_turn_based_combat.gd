@@ -95,10 +95,13 @@ func _run() -> void:
 	game.call("_refresh_action_catalog")
 	await process_frame
 	await process_frame
-	if bool(game.call("is_turn_based_combat_active")) or catalog.catalog_button.visible:
+	if bool(game.call("is_turn_based_combat_active")):
 		_fail("Turn based combat did not stop cleanly.")
+		return
+	if not catalog.catalog_button.visible or catalog.end_turn_button.visible or catalog.confirm_move_button.visible:
+		_fail("Actions menu did not return to exploration mode after combat.")
 		return
 	game.queue_free()
 	await process_frame
-	print("Turn based combat smoke test passed.")
+	print("Turn based combat and exploration Actions menu transition smoke test passed.")
 	quit(0)
