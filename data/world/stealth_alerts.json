@@ -17,6 +17,23 @@
       "search_duration_seconds": 12.0,
       "alert_cooldown_seconds": 24.0,
       "alert_radius_feet": 45
+    },
+    "service_guard": {
+      "actor_id": "service_guard",
+      "view_distance_feet": 50,
+      "view_angle_degrees": 95.0,
+      "peripheral_distance_feet": 12,
+      "passive_perception": 11,
+      "perception_modifier": 1,
+      "tracking_modifier": 0,
+      "suspicion_visible_per_second": 42.0,
+      "suspicion_hidden_per_second": 11.0,
+      "suspicion_decay_per_second": 8.0,
+      "noise_suspicion_multiplier": 0.66,
+      "investigation_speed_pixels": 82.0,
+      "search_duration_seconds": 10.0,
+      "alert_cooldown_seconds": 20.0,
+      "alert_radius_feet": 40
     }
   },
   "rooms": {
