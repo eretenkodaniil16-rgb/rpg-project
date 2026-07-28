@@ -172,7 +172,8 @@ func _build_catalog_entries() -> Dictionary:
 		var entry: Dictionary = entry_value as Dictionary
 		if str(entry.get("id", "")) == "exploration_hide":
 			action_entries.append(entry.duplicate(true))
-	return {"action": action_entries, "bonus": [], "reaction": []}
+	inherited["action"] = action_entries
+	return inherited
 
 
 func _on_catalog_action_requested(action_id: String) -> void:
