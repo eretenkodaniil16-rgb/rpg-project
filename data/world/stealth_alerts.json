@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "profiles": {
+    "caretaker": {
+      "actor_id": "caretaker",
+      "view_distance_feet": 55,
+      "view_angle_degrees": 105.0,
+      "peripheral_distance_feet": 15,
+      "passive_perception": 12,
+      "perception_modifier": 2,
+      "tracking_modifier": 1,
+      "suspicion_visible_per_second": 48.0,
+      "suspicion_hidden_per_second": 13.0,
+      "suspicion_decay_per_second": 9.0,
+      "noise_suspicion_multiplier": 0.72,
+      "investigation_speed_pixels": 92.0,
+      "search_duration_seconds": 12.0,
+      "alert_cooldown_seconds": 24.0,
+      "alert_radius_feet": 45
+    }
+  },
+  "rooms": {
+    "west_service_room": {
+      "id": "west_service_room",
+      "label": "Западная служебная комната",
+      "rect": [45.0, 45.0, 190.0, 630.0],
+      "ambient_noise_multiplier": 0.8
+    },
+    "main_hall": {
+      "id": "main_hall",
+      "label": "Главный зал",
+      "rect": [255.0, 45.0, 980.0, 630.0],
+      "ambient_noise_multiplier": 1.0
+    }
+  },
+  "doors": {
+    "west_service_door": {
+      "id": "west_service_door",
+      "label": "Дверь служебной комнаты",
+      "rect": [227.0, 300.0, 36.0, 120.0],
+      "rooms": ["west_service_room", "main_hall"],
+      "initial_state": "closed",
+      "blocks_line_of_sight_when_closed": true,
+      "closed_noise_multiplier": 0.38,
+      "open_noise_multiplier": 0.9,
+      "interaction_noise_feet": 25
+    }
+  },
+  "hiding_spots": {
+    "west_storage_crates": {
+      "id": "west_storage_crates",
+      "label": "Пространство за старыми ящиками",
+      "room_id": "west_service_room",
+      "rect": [62.0, 74.0, 126.0, 104.0],
+      "concealment_bonus": 5,
+      "noise_multiplier": 0.55
+    }
+  },
+  "noise_profiles": {
+    "quiet_step": {"radius_feet": 10, "intensity": 10},
+    "normal_step": {"radius_feet": 20, "intensity": 20},
+    "running_step": {"radius_feet": 35, "intensity": 36},
+    "door": {"radius_feet": 25, "intensity": 28},
+    "weapon": {"radius_feet": 55, "intensity": 62},
+    "spell": {"radius_feet": 70, "intensity": 78}
+  }
+}
