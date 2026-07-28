@@ -80,7 +80,7 @@ func _run() -> void:
 	calm_record["suspicion"] = 0.0
 	state.call("set_stealth_alert_record", "caretaker", calm_record, false, false)
 	game.call("_restore_exploration_alerts")
-	caretaker.global_position = Vector2(350.0, 360.0)
+	caretaker.global_position = Vector2(500.0, 360.0)
 	game.call("report_world_noise", "weapon", player.global_position, {"source_type": "closed_door_test"})
 	await process_frame
 	var damped: Dictionary = game.call("get_exploration_alert_record_for_testing", caretaker) as Dictionary
