@@ -60,7 +60,8 @@ func _run() -> void:
 	game.call("_start_turn_based_combat", caretaker)
 	game.call("force_player_turn_for_testing")
 	await process_frame
-	game.call("set_hide_roll_overrides_for_testing", [20])
+	var hide_rolls: Array[int] = [20]
+	game.call("set_hide_roll_overrides_for_testing", hide_rolls)
 	game.call("_on_hide_requested")
 	await process_frame
 	var combat_state: CombatantState = game.get("_player_combat_state") as CombatantState
