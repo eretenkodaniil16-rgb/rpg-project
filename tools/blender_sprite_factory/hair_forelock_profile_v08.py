@@ -15,7 +15,7 @@ class HairForelockSlice:
             raise ValueError("Forelock slice points must be unique")
         x_values = [point[0] for point in self.points_xz]
         z_values = [point[1] for point in self.points_xz]
-        if max(x_values) >= 0.08 or min(x_values) >= -0.20:
+        if max(x_values) >= 0.08 or min(x_values) > -0.18:
             raise ValueError("Canonical forelock must stay on the character-left forehead")
         if max(z_values) - min(z_values) < 0.34:
             raise ValueError("Forelock must remain long enough to read at 96x96")
