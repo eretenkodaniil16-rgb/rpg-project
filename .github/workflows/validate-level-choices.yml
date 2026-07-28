@@ -1,0 +1,69 @@
+name: Validate universal level choices
+
+on:
+  pull_request:
+    paths:
+      - "data/rules/level_choices.json"
+      - "scripts/models/player_character.gd"
+      - "scripts/systems/level_choice_system.gd"
+      - "scripts/systems/level_up_choice_system.gd"
+      - "scripts/systems/origin_feat_system.gd"
+      - "scripts/ui/level_up_choices_panel.gd"
+      - "scripts/ui/character_hub_level_up.gd"
+      - "scripts/game/game_feature_ui.gd"
+      - "tests/test_level_choice_system.gd"
+      - "tests/test_level_up_system.gd"
+      - "tests/smoke_level_up_choices_ui.gd"
+      - ".github/workflows/validate-level-choices.yml"
+  push:
+    branches:
+      - feature/universal-level-choices
+    paths:
+      - "data/rules/level_choices.json"
+      - "scripts/models/player_character.gd"
+      - "scripts/systems/level_choice_system.gd"
+      - "scripts/systems/level_up_choice_system.gd"
+      - "scripts/systems/origin_feat_system.gd"
+      - "scripts/ui/level_up_choices_panel.gd"
+      - "scripts/ui/character_hub_level_up.gd"
+      - "scripts/game/game_feature_ui.gd"
+      - "tests/test_level_choice_system.gd"
+      - "tests/test_level_up_system.gd"
+      - "tests/smoke_level_up_choices_ui.gd"
+      - ".github/workflows/validate-level-choices.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Godot 4.7.1 Standard
+        shell: bash
+        run: |
+          curl --location --fail --retry 3 --output godot.zip "https://downloads.godotengine.org/?flavor=stable&platform=linux.64&slug=linux.x86_64.zip&version=4.7.1"
+          unzip -q godot.zip
+          chmod +x Godot_v4.7.1-stable_linux.x86_64
+
+      - name: Import project
+        shell: bash
+        run: |
+          rm -rf .godot
+          ./Godot_v4.7.1-stable_linux.x86_64 --headless --editor --path "$GITHUB_WORKSPACE" --quit
+
+      - name: Validate subclass, advancement, feats and migration
+        shell: bash
+        run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_level_choice_system.gd
+
+      - name: Validate existing level-up transaction regression
+        shell: bash
+        run: ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_level_up_system.gd
+
+      - name: Smoke test mobile level choice flow
+        shell: bash
+        run: timeout 120s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_level_up_choices_ui.gd
