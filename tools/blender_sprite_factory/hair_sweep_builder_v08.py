@@ -4,7 +4,11 @@ import math
 
 import blender_sprite_factory as factory
 from head_profile_v04 import DetailedEllipsoidPart
-from hair_sweep_profile_v08 import HairSweepMeshPart, load_hair_sweep_profile_v08
+from hair_sweep_profile_v08 import (
+    HairSweepMeshPart,
+    HairSweepRing,
+    load_hair_sweep_profile_v08,
+)
 from head_profile_v08 import load_head_detail_profile_v08
 
 
@@ -46,18 +50,23 @@ def _clear_old_hair() -> None:
             factory.bpy.data.objects.remove(obj, do_unlink=True)
 
 
+def _ring_arc(part: HairSweepMeshPart, ring: HairSweepRing) -> tuple[float, float]:
+    arc_start_degrees, arc_end_degrees = part.ring_arc(ring)
+    return math.radians(arc_start_degrees), math.radians(
+        arc_end_degrees - arc_start_degrees
+    )
+
+
 def _sweep_mesh(part: HairSweepMeshPart, material: object) -> object:
     vertices: list[tuple[float, float, float]] = []
     faces: list[tuple[int, ...]] = []
     point_count = part.segments if part.closed_around else part.segments + 1
-    arc_start = math.radians(part.arc_start_degrees)
-    arc_span = math.radians(part.arc_end_degrees - part.arc_start_degrees)
 
     for ring in part.rings:
         phase = math.radians(ring.phase_degrees)
+        arc_start, arc_span = _ring_arc(part, ring)
         for point_index in range(point_count):
-            divisor = part.segments
-            angle = arc_start + arc_span * point_index / divisor
+            angle = arc_start + arc_span * point_index / part.segments
             wave = 1.0 + part.wave_amplitude * math.cos(
                 part.wave_frequency * angle + phase
             )
@@ -72,8 +81,7 @@ def _sweep_mesh(part: HairSweepMeshPart, material: object) -> object:
     for ring_index in range(1, len(part.rings)):
         previous = (ring_index - 1) * point_count
         current = ring_index * point_count
-        edge_count = part.segments
-        for index in range(edge_count):
+        for index in range(part.segments):
             next_index = (index + 1) % point_count
             faces.append(
                 (
@@ -84,18 +92,27 @@ def _sweep_mesh(part: HairSweepMeshPart, material: object) -> object:
                 )
             )
 
-    faces.append(tuple(reversed(range(point_count))))
-    top = (len(part.rings) - 1) * point_count
-    faces.append(tuple(top + index for index in range(point_count)))
-    if not part.closed_around:
+    if part.closed_around:
+        faces.append(tuple(reversed(range(point_count))))
+        top = (len(part.rings) - 1) * point_count
+        faces.append(tuple(top + index for index in range(point_count)))
+    else:
         for index in range(len(part.rings) - 1):
             current = index * point_count
             following = (index + 1) * point_count
-            faces.append((current, following, following + point_count - 1, current + point_count - 1))
+            faces.append(
+                (
+                    current,
+                    following,
+                    following + point_count - 1,
+                    current + point_count - 1,
+                )
+            )
 
     mesh = factory.bpy.data.meshes.new(f"{part.name}_mesh")
     mesh.from_pydata(vertices, [], faces)
     mesh.update(calc_edges=True)
+    mesh.validate(verbose=False, clean_customdata=False)
     obj = factory.bpy.data.objects.new(part.name, mesh)
     obj.location = part.location
     factory._flat_shade(obj)
