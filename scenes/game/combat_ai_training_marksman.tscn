@@ -1,0 +1,49 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/game/combat_ai_training_marksman.gd" id="1_script"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_marksman"]
+size = Vector2(40, 40)
+
+[node name="CombatAiTrainingMarksman" type="Area2D"]
+collision_layer = 2
+collision_mask = 1
+script = ExtResource("1_script")
+actor_id = "training_marksman"
+default_facing_direction = Vector2(-1, 0)
+display_name = "Стрелок дозора"
+combat_name = "Стрелок дозора"
+armor_class = 12
+maximum_health = 10
+attack_bonus = 4
+damage_die = 6
+damage_bonus = 2
+damage_type = "piercing"
+initiative_modifier = 3
+combat_speed_feet = 30
+
+[node name="Body" type="Polygon2D" parent="."]
+polygon = PackedVector2Array(20, 0, -12, -18, -18, 0, -12, 18)
+color = Color(0.46, 0.38, 0.62, 1)
+z_index = 3
+
+[node name="NameLabel" type="Label" parent="."]
+offset_left = -88.0
+offset_top = -62.0
+offset_right = 88.0
+offset_bottom = -34.0
+text = "Стрелок дозора"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 14
+z_index = 4
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_marksman")
+
+[node name="NpcNavigationAgent" type="NavigationAgent2D" parent="."]
+path_desired_distance = 8.0
+target_desired_distance = 10.0
+avoidance_enabled = false
+
+[connection signal="body_entered" from="." to="." method="_on_body_entered"]
+[connection signal="body_exited" from="." to="." method="_on_body_exited"]
