@@ -1,4 +1,4 @@
-name: Validate Combat AI v1
+name: Validate Combat AI tactical v1
 
 on:
   pull_request:
@@ -8,9 +8,13 @@ on:
       - "scripts/systems/npc_combat_ai_system.gd"
       - "scripts/game/game_pursuit_escape_runtime.gd"
       - "scripts/game/game_combat_ai_runtime.gd"
+      - "scripts/game/combat_ai_training_marksman.gd"
       - "scenes/game/game.tscn"
+      - "scenes/game/combat_ai_training_marksman.tscn"
       - "tests/test_combat_ai_v1.gd"
+      - "tests/test_combat_ai_tactical_planning.gd"
       - "tests/smoke_combat_ai_v1.gd"
+      - "tests/smoke_combat_ai_tactical_runtime.gd"
       - "tests/test_v018_integration_stack.gd"
       - "tests/smoke_npc_context_actions_ai.gd"
       - "docs/COMBAT_AI_V1.md"
@@ -25,7 +29,7 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 24
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -51,9 +55,17 @@ jobs:
         shell: bash
         run: timeout 150s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_combat_ai_v1.gd 2>&1 | tee combat-ai-unit.log
 
+      - name: Validate tactical memory, morale and position scoring
+        shell: bash
+        run: timeout 150s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_combat_ai_tactical_planning.gd 2>&1 | tee combat-ai-tactics.log
+
       - name: Smoke test Combat AI runtime
         shell: bash
         run: timeout 150s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_combat_ai_v1.gd 2>&1 | tee combat-ai-smoke.log
+
+      - name: Smoke test squad memory, path planner and marksman
+        shell: bash
+        run: timeout 150s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_combat_ai_tactical_runtime.gd 2>&1 | tee combat-ai-tactical-smoke.log
 
       - name: Regression test NPC context actions and reinforcements
         shell: bash
@@ -71,11 +83,13 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: combat-ai-v1-diagnostics
+          name: combat-ai-tactical-v1-diagnostics
           path: |
             combat-ai-import.log
             combat-ai-unit.log
+            combat-ai-tactics.log
             combat-ai-smoke.log
+            combat-ai-tactical-smoke.log
             npc-ai-regression.log
             v018-regression.log
             pursuit-regression.log
