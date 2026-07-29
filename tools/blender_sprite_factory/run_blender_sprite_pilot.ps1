@@ -14,7 +14,7 @@ Set-StrictMode -Version Latest
 
 $ToolRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $RepoRoot = (Resolve-Path (Join-Path $ToolRoot "..\..")).Path
-$FactoryScript = Join-Path $ToolRoot "blender_sprite_factory_walk_down_v02.py"
+$FactoryScript = Join-Path $ToolRoot "blender_sprite_factory_appearance_v01.py"
 $FactoryConfig = Join-Path $ToolRoot "configs\human_warrior_m01.json"
 
 function Resolve-BlenderExecutable {
@@ -94,4 +94,4 @@ if ($LASTEXITCODE -ne 0) {
 $ResultRoot = Join-Path $RepoRoot "art\blender_pipeline_runs\human_warrior_m01\$RunId"
 Write-Host ""
 Write-Host "Completed: $ResultRoot"
-Write-Host "Review contact_sheet.png and the generated .blend file in source\."
+Write-Host "Review contact_sheet.png and the generated .blend file in source."
