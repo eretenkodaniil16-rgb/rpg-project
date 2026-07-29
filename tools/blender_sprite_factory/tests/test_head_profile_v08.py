@@ -198,11 +198,11 @@ class ReferenceHairProfileV08Tests(unittest.TestCase):
             / "workflows"
             / "validate-blender-sprite-factory.yml"
         ).read_text(encoding="utf-8")
-        self.assertIn("blender_sprite_factory_walk_down_v04.py", launcher)
-        self.assertIn("render-walk-down-v04", workflow)
-        self.assertIn("blender_sprite_factory_walk_down_v04.py", workflow)
+        self.assertIn("blender_sprite_factory_walk_right_v01.py", launcher)
+        self.assertIn("render-walk-right-v01", workflow)
+        self.assertIn("blender_sprite_factory_walk_right_v01.py", workflow)
         self.assertIn(
-            "human_warrior_m01_proxy_v25_appearance_v03_walk_down_v04_",
+            "human_warrior_m01_proxy_v25_appearance_v03_walk_down_v04_walk_left_v01_walk_right_v01_",
             workflow,
         )
 
