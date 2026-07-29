@@ -25,21 +25,24 @@ class WalkHistoricalEntrypointsTests(unittest.TestCase):
             adapter = self.tool_root / adapter_name
             self.assertTrue(adapter.is_file())
             self.assertIn(render_name, adapter.read_text(encoding="utf-8"))
+        self.assertTrue(
+            (self.tool_root / "blender_sprite_factory_walk_up_v02.py").is_file()
+        )
 
-    def test_windows_launcher_advances_to_walk_up_v02_adapter(self) -> None:
+    def test_windows_launcher_advances_to_combat_idle_down_v01_adapter(self) -> None:
         self.assertIn(
-            '$FactoryScript = Join-Path $ToolRoot "blender_sprite_factory_walk_up_v02.py"',
+            '$FactoryScript = Join-Path $ToolRoot "blender_sprite_factory_combat_idle_down_v01.py"',
             self.launcher,
         )
 
-    def test_ci_uses_walk_up_v02_real_blender_render(self) -> None:
-        self.assertIn("render-walk-up-v02:", self.workflow)
+    def test_ci_uses_combat_idle_down_v01_real_blender_render(self) -> None:
+        self.assertIn("render-combat-idle-down-v01:", self.workflow)
         self.assertIn(
-            "--python tools/blender_sprite_factory/blender_sprite_factory_walk_up_v02.py",
+            "--python tools/blender_sprite_factory/blender_sprite_factory_combat_idle_down_v01.py",
             self.workflow,
         )
         self.assertIn(
-            "human_warrior_m01_proxy_v25_appearance_v03_walk_down_v04_walk_left_v01_walk_right_v01_walk_up_v02_",
+            "human_warrior_m01_proxy_v25_appearance_v03_walk_down_v04_walk_left_v01_walk_right_v01_walk_up_v02_combat_idle_down_v01_",
             self.workflow,
         )
 
