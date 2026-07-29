@@ -42,8 +42,14 @@ func _run() -> void:
 	var player: Node2D = game.get_node_or_null("Player") as Node2D
 	var grid: BattleGrid = game.get_node_or_null("BattleGrid") as BattleGrid
 	var social_controller: CombatSocialTerrainController = game.get_node_or_null("CombatSocialTerrainController") as CombatSocialTerrainController
-	if environment == null or old_panel == null or catalog == null or dialogue_ui == null or caretaker == null or player == null or grid == null or social_controller == null:
+	var mobile_controls: Control = game.get_node_or_null("Interface/MobileControls") as Control
+	if environment == null or old_panel == null or catalog == null or dialogue_ui == null or caretaker == null or player == null or grid == null or social_controller == null or mobile_controls == null:
 		_fail("SRD, dialogue, terrain, race or combat social components are missing.")
+		return
+	mobile_controls.call("enable_for_testing")
+	var actions_button: Button = mobile_controls.call("get_actions_button_for_testing") as Button
+	if actions_button == null:
+		_fail("Persistent mobile Actions button is missing.")
 		return
 	if not environment.is_in_group("combat_environment") or not environment.is_difficult_position(Vector2(400.0, 350.0)):
 		_fail("Difficult terrain environment is missing.")
@@ -92,7 +98,7 @@ func _run() -> void:
 	if player.global_position != grid.cell_to_world_center(grid.world_to_cell(player.global_position)):
 		_fail("Player is not centered in a grid cell.")
 		return
-	if old_panel.visible or not catalog.catalog_button.visible:
+	if old_panel.visible or not actions_button.visible or catalog.catalog_button.visible:
 		_fail("Combat catalog visibility is incorrect.")
 		return
 	if catalog.category_row.get_node_or_null("FreeCategoryButton") == null:
@@ -201,5 +207,5 @@ func _run() -> void:
 
 	game.queue_free()
 	await process_frame
-	print("SRD combat dialogue, racial abilities and terrain trait smoke test passed.")
+	print("SRD combat dialogue, persistent Actions button, racial abilities and terrain trait smoke test passed.")
 	quit(0)
