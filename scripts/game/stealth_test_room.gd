@@ -2,16 +2,20 @@ class_name StealthTestRoom
 extends Node2D
 
 const DOOR_SCRIPT: Script = preload("res://scripts/game/stealth_door.gd")
-const PATROL_OBSERVER_SCRIPT: Script = preload("res://scripts/game/stealth_patrol_observer.gd")
-const PATROL_SYSTEM_SCRIPT: Script = preload("res://scripts/systems/patrol_alert_group_system.gd")
+const PATROL_GUARD_SCENE: PackedScene = preload("res://scenes/game/stealth_patrol_guard.tscn")
+const PATROL_SYSTEM_SCRIPT: Script = preload("res://scripts/systems/patrol_alert_group_system_ai.gd")
 
 var _door: StealthDoor
 var _patrol_observer: StealthPatrolObserver
-var _patrol_data: PatrolAlertGroupSystem = PATROL_SYSTEM_SCRIPT.new() as PatrolAlertGroupSystem
+var _patrol_data: PatrolAlertGroupSystemAi = PATROL_SYSTEM_SCRIPT.new() as PatrolAlertGroupSystemAi
+var _west_navigation_region: NavigationRegion2D
+var _hall_navigation_region: NavigationRegion2D
+var _door_navigation_link: NavigationLink2D
 
 
 func _ready() -> void:
 	add_to_group("stealth_world")
+	_build_navigation()
 	_build_wall("WestPartitionTop", Vector2(0.0, -187.5), Vector2(36.0, 255.0))
 	_build_wall("WestPartitionBottom", Vector2(0.0, 187.5), Vector2(36.0, 255.0))
 	_door = DOOR_SCRIPT.new() as StealthDoor
@@ -20,6 +24,7 @@ func _ready() -> void:
 	_door.door_label = "Дверь служебной комнаты"
 	_door.door_size = Vector2(36.0, 120.0)
 	add_child(_door)
+	set_navigation_door_state(_door.door_id, _door.get_door_state())
 	_build_patrol_observer()
 	queue_redraw()
 
@@ -32,15 +37,60 @@ func get_patrol_observer() -> StealthPatrolObserver:
 	return _patrol_observer
 
 
+func get_navigation_link_for_testing() -> NavigationLink2D:
+	return _door_navigation_link
+
+
+func set_navigation_door_state(door_id: String, door_state: String) -> void:
+	if door_id != "west_service_door" or _door_navigation_link == null:
+		return
+	_door_navigation_link.enabled = door_state in ["open", "broken"]
+
+
 func _build_patrol_observer() -> void:
-	_patrol_observer = PATROL_OBSERVER_SCRIPT.new() as StealthPatrolObserver
+	_patrol_observer = PATROL_GUARD_SCENE.instantiate() as StealthPatrolObserver
+	if _patrol_observer == null:
+		return
 	_patrol_observer.name = "ServiceGuard"
-	_patrol_observer.actor_id = "service_guard"
-	_patrol_observer.display_name = "Служебный дозорный"
-	_patrol_observer.default_facing_direction = Vector2.RIGHT
 	add_child(_patrol_observer)
 	var initial_position: Vector2 = _patrol_data.get_initial_patrol_position("service_guard")
 	_patrol_observer.global_position = initial_position if initial_position != Vector2.ZERO else Vector2(760.0, 160.0)
+
+
+func _build_navigation() -> void:
+	_west_navigation_region = _build_navigation_region(
+		"WestServiceNavigationRegion",
+		Rect2(Vector2(-200.0, -315.0), Vector2(180.0, 630.0))
+	)
+	_hall_navigation_region = _build_navigation_region(
+		"MainHallNavigationRegion",
+		Rect2(Vector2(18.0, -315.0), Vector2(972.0, 630.0))
+	)
+	_door_navigation_link = NavigationLink2D.new()
+	_door_navigation_link.name = "WestServiceDoorNavigationLink"
+	_door_navigation_link.start_position = Vector2(-28.0, 0.0)
+	_door_navigation_link.end_position = Vector2(28.0, 0.0)
+	_door_navigation_link.bidirectional = true
+	_door_navigation_link.enter_cost = 0.0
+	_door_navigation_link.travel_cost = 1.0
+	_door_navigation_link.enabled = false
+	add_child(_door_navigation_link)
+
+
+func _build_navigation_region(node_name: String, local_rect: Rect2) -> NavigationRegion2D:
+	var region := NavigationRegion2D.new()
+	region.name = node_name
+	var polygon := NavigationPolygon.new()
+	polygon.vertices = PackedVector2Array([
+		local_rect.position,
+		local_rect.position + Vector2(local_rect.size.x, 0.0),
+		local_rect.end,
+		local_rect.position + Vector2(0.0, local_rect.size.y)
+	])
+	polygon.add_polygon(PackedInt32Array([0, 1, 2, 3]))
+	region.navigation_polygon = polygon
+	add_child(region)
+	return region
 
 
 func _build_wall(node_name: String, local_position: Vector2, wall_size: Vector2) -> void:

@@ -60,15 +60,12 @@ func _run() -> void:
 		_fail("Visible exploration movement did not raise suspicion.")
 		return
 	var alert_text: String = str(game.call("get_alert_indicator_text_for_testing"))
-	if "НАСТОРОЖЕН" not in alert_text:
-		_fail("Mobile alert indicator did not show qualitative suspicion feedback.")
-		return
-	if "%" in alert_text or _contains_digit(alert_text):
-		_fail("Player-facing alert indicator leaked an exact detection value.")
+	if not alert_text.is_empty():
+		_fail("Global HUD exposed enemy awareness without explicit target inspection.")
 		return
 	var npc_alert_label: Label = caretaker.get_node_or_null("StealthAlertLabel") as Label
-	if npc_alert_label == null or "%" in npc_alert_label.text or _contains_digit(npc_alert_label.text):
-		_fail("NPC alert label leaked an exact suspicion value.")
+	if npc_alert_label == null or npc_alert_label.visible or not npc_alert_label.text.is_empty():
+		_fail("NPC alert state was exposed above the actor without inspection.")
 		return
 
 	player.global_position = Vector2(100.0, 110.0)
@@ -81,6 +78,11 @@ func _run() -> void:
 		return
 	if str(state.call("get_stealth_room_id", player.global_position)) != "west_service_room":
 		_fail("Player did not enter the data-driven service room.")
+		return
+	game.call("_refresh_alert_indicator")
+	alert_text = str(game.call("get_alert_indicator_text_for_testing"))
+	if alert_text != "СКРЫТ":
+		_fail("HUD did not preserve the hero's own hidden-state feedback.")
 		return
 
 	var calm_record: Dictionary = state.call("get_stealth_alert_record", "caretaker") as Dictionary
@@ -136,15 +138,8 @@ func _run() -> void:
 	await process_frame
 	if FileAccess.file_exists(save_path):
 		DirAccess.remove_absolute(save_path)
-	print("Exploration vision, qualitative feedback, hiding, door acoustics, investigation, post-escape search and persistence smoke test passed.")
+	print("Exploration vision, concealed enemy state, hiding, door acoustics, investigation, post-escape search and persistence smoke test passed.")
 	quit(0)
-
-
-func _contains_digit(value: String) -> bool:
-	for character: String in value:
-		if character >= "0" and character <= "9":
-			return true
-	return false
 
 
 func _make_hero() -> PlayerCharacter:

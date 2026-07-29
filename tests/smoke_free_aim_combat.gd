@@ -127,8 +127,13 @@ func _run() -> void:
 	if game.get("_selected_target") == null:
 		_fail("Manual target button did not select a target.")
 		return
-	if not target_label.visible or "футов" not in target_label.text or "здоровье" not in target_label.text or "HP" in target_label.text or not distance_line.visible:
-		_fail("Russian distance and health text must appear only after manual target selection. Text: %s" % target_label.text)
+	if not target_label.visible or "футов" not in target_label.text or "состояние неизвестно" not in target_label.text or "здоровье" in target_label.text or "HP" in target_label.text or "КД" in target_label.text or not distance_line.visible:
+		_fail("Manual selection must show only identity, distance and concealed state. Text: %s" % target_label.text)
+		return
+	game.call("inspect_selected_target_for_testing")
+	await process_frame
+	if "Поведение:" not in target_label.text or "состояние неизвестно" in target_label.text or "HP" in target_label.text or "КД" in target_label.text:
+		_fail("Explicit inspection did not reveal qualitative target state safely. Text: %s" % target_label.text)
 		return
 
 	var targets: Array = game.call("_available_targets") as Array
@@ -144,5 +149,5 @@ func _run() -> void:
 
 	game.queue_free()
 	await process_frame
-	print("Target-free melee and ranged combat smoke test passed.")
+	print("Target-free melee, ranged combat and explicit target inspection smoke test passed.")
 	quit(0)

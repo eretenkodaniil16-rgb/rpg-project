@@ -17,6 +17,8 @@ func _run() -> void:
 
 	var dialogue: Control = game.get_node("Interface/DialogueUI") as Control
 	var caretaker: Node = game.get_node("Caretaker")
+	var mobile_controls: Control = game.get_node("Interface/MobileControls") as Control
+	mobile_controls.call("enable_for_testing")
 	var visual_controller: DialogueVisualController = dialogue.call("get_visual_controller_for_testing") as DialogueVisualController
 	assert(visual_controller != null)
 	var test_dialogue: Dictionary = {
@@ -61,18 +63,20 @@ func _run() -> void:
 	assert(int((state.get("player_character") as PlayerCharacter).experience) == 25)
 	assert(bool(state.call("has_claimed_experience_reward", "dialogue_caretaker_revelation")))
 
-	var context_button: Button = visual_controller.get_context_button_for_testing()
-	assert(context_button != null)
-	assert(context_button.text == "ВЗАИМ.")
+	var actions_button: Button = visual_controller.get_context_button_for_testing()
+	assert(actions_button != null)
+	assert(actions_button.text == "ДЕЙСТВИЯ")
 	dialogue.call("_close_dialogue")
 	await process_frame
-	assert(context_button.visible)
+	assert(actions_button.visible)
+	assert(actions_button.text == "ДЕЙСТВИЯ")
 
 	game.call("_set_selected_target", caretaker)
 	game.call("_start_turn_based_combat", caretaker)
 	game.call("force_player_turn_for_testing")
 	await process_frame
 	await process_frame
-	assert(not context_button.visible)
-	print("Checked dialogue, reward, portrait and combat HUD smoke test passed.")
+	assert(actions_button.visible)
+	assert(actions_button.text == "ДЕЙСТВИЯ")
+	print("Checked dialogue, reward, portrait and persistent Actions button smoke test passed.")
 	quit(0)

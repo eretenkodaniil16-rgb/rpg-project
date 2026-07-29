@@ -50,11 +50,15 @@ func _run() -> void:
 	mobile_controls.call("enable_for_testing")
 	await process_frame
 	var mobile_jump: Button = mobile_controls.call("get_jump_button_for_testing") as Button
+	var actions_button: Button = mobile_controls.call("get_actions_button_for_testing") as Button
 	if mobile_jump == null or not mobile_jump.visible:
 		_fail("Mobile jump button is not visible beside the joystick outside combat.")
 		return
-	if catalog.jump_button.visible:
-		_fail("Legacy jump button must stay hidden after moving jump beside the joystick.")
+	if actions_button == null or not actions_button.visible or actions_button.text != "ДЕЙСТВИЯ":
+		_fail("Persistent mobile Actions button is missing outside combat.")
+		return
+	if catalog.jump_button.visible or catalog.catalog_button.visible:
+		_fail("Legacy jump or duplicate catalog buttons must stay hidden.")
 		return
 
 	player.global_position = grid.cell_to_world_center(Vector2i(8, 2))
@@ -76,15 +80,29 @@ func _run() -> void:
 	if environment.is_cell_blocked(grid, player_cell) or environment.is_cell_blocked(grid, caretaker_cell):
 		_fail("Combatant was snapped into a blocked obstacle cell.")
 		return
-	if not catalog.catalog_button.visible or not catalog.end_turn_button.visible:
-		_fail("Permanent combat controls are hidden during the player turn.")
+	if not actions_button.visible or not catalog.end_turn_button.visible or catalog.catalog_button.visible:
+		_fail("Permanent combat controls are hidden or duplicated during the player turn.")
 		return
 	if catalog.confirm_move_button.visible:
 		_fail("Movement confirmation appeared before a route was selected.")
 		return
-	if catalog.action_group_row.get_child_count() != 4:
-		_fail("Action subcategories Attack, Movement, Spells and Tactics are missing.")
+	var expected_action_groups: Dictionary = {
+		"TargetActionGroupButton": "ЦЕЛЬ",
+		"WorldActionGroupButton": "МИР",
+		"AttackActionGroupButton": "АТАКИ",
+		"MovementActionGroupButton": "ПЕРЕМЕЩЕНИЕ",
+		"SpellActionGroupButton": "ЗАКЛИНАНИЯ",
+		"TacticActionGroupButton": "ТАКТИКА"
+	}
+	if catalog.action_group_row.get_child_count() != expected_action_groups.size():
+		_fail("Extensible Actions menu does not contain all six action groups.")
 		return
+	for node_name_value: Variant in expected_action_groups.keys():
+		var node_name: String = str(node_name_value)
+		var group_button: Button = catalog.action_group_row.get_node_or_null(node_name) as Button
+		if group_button == null or group_button.text != str(expected_action_groups[node_name]):
+			_fail("Actions menu group is missing or mislabeled: %s" % node_name)
+			return
 
 	var turn_system: TurnBasedCombatSystem = game.get("_turn_system") as TurnBasedCombatSystem
 	if turn_system == null or not turn_system.action_available or not turn_system.bonus_action_available:
@@ -168,5 +186,5 @@ func _run() -> void:
 	game.call("_stop_turn_based_combat", "test")
 	game.queue_free()
 	await process_frame
-	print("Planned movement and action catalog smoke test passed.")
+	print("Planned movement and unified mobile action catalog smoke test passed.")
 	quit(0)

@@ -7,7 +7,6 @@ var _dialogue_ui: Control
 var _portrait: DialoguePortrait
 var _bottom_panel: PanelContainer
 var _interact_button: Button
-var _game_world: Node
 var _last_target_id: int = -1
 
 
@@ -104,26 +103,15 @@ func _configure_context_button() -> void:
 	if _dialogue_ui == null:
 		return
 	_interact_button = _dialogue_ui.get_node_or_null("../MobileControls/InteractButton") as Button
-	_game_world = get_tree().get_first_node_in_group("game_world")
-	if _interact_button == null:
-		return
-	_interact_button.text = "ВЗАИМ."
-	_interact_button.offset_left = -176.0
-	_interact_button.offset_top = -112.0
-	_interact_button.offset_right = -28.0
-	_interact_button.offset_bottom = -52.0
-	_interact_button.add_theme_font_size_override("font_size", 17)
+	if _interact_button != null:
+		_interact_button.text = "ДЕЙСТВИЯ"
 
 
 func _update_context_button_visibility() -> void:
-	if _interact_button == null or not is_instance_valid(_interact_button):
-		return
-	if _game_world == null or not is_instance_valid(_game_world):
-		_game_world = get_tree().get_first_node_in_group("game_world")
-	var combat_active: bool = false
-	if _game_world != null and _game_world.has_method("is_turn_based_combat_active"):
-		combat_active = bool(_game_world.call("is_turn_based_combat_active"))
-	_interact_button.visible = not combat_active
+	# The persistent lower-right button belongs to MobileControls and ActionCatalogUI.
+	# Dialogue presentation must not rename, move or hide it.
+	if _interact_button != null and is_instance_valid(_interact_button):
+		_interact_button.text = "ДЕЙСТВИЯ"
 
 
 func get_portrait_for_testing() -> DialoguePortrait:

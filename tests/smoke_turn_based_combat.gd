@@ -41,9 +41,12 @@ func _run() -> void:
 	var player: Node2D = game.get_node_or_null("Player") as Node2D
 	var caretaker: Node2D = game.get_node_or_null("Caretaker") as Node2D
 	var grid: BattleGrid = game.get_node_or_null("BattleGrid") as BattleGrid
-	if player == null or caretaker == null or grid == null:
+	var mobile_controls: Control = game.get_node_or_null("Interface/MobileControls") as Control
+	if player == null or caretaker == null or grid == null or mobile_controls == null:
 		_fail("Required combat nodes are missing.")
 		return
+	mobile_controls.call("enable_for_testing")
+	var actions_button: Button = mobile_controls.call("get_actions_button_for_testing") as Button
 	game.call("_start_turn_based_combat", caretaker)
 	game.call("force_player_turn_for_testing")
 	await process_frame
@@ -65,8 +68,8 @@ func _run() -> void:
 		return
 
 	var catalog: ActionCatalogUI = game.get_node_or_null("Interface/ActionCatalogUI") as ActionCatalogUI
-	if catalog == null or catalog.catalog_button == null or not catalog.catalog_button.visible:
-		_fail("Categorized action interface is missing or hidden.")
+	if catalog == null or actions_button == null or not actions_button.visible or catalog.catalog_button.visible:
+		_fail("The persistent Actions control or categorized menu is missing.")
 		return
 	if "Раунд 1" not in catalog.resource_label.text or "Перемещение: 30 футов" not in catalog.resource_label.text:
 		_fail("Action catalog does not show round and movement resources.")
@@ -95,10 +98,13 @@ func _run() -> void:
 	game.call("_refresh_action_catalog")
 	await process_frame
 	await process_frame
-	if bool(game.call("is_turn_based_combat_active")) or catalog.catalog_button.visible:
+	if bool(game.call("is_turn_based_combat_active")):
 		_fail("Turn based combat did not stop cleanly.")
+		return
+	if not actions_button.visible or catalog.catalog_button.visible or catalog.end_turn_button.visible or catalog.confirm_move_button.visible:
+		_fail("Actions menu did not return to exploration mode after combat.")
 		return
 	game.queue_free()
 	await process_frame
-	print("Turn based combat smoke test passed.")
+	print("Turn based combat and persistent exploration Actions menu transition smoke test passed.")
 	quit(0)

@@ -39,18 +39,16 @@ func set_facing_direction(direction: Vector2) -> void:
 
 
 func get_passive_perception() -> int:
-	var profile: Dictionary = GameState.call("get_stealth_profile", actor_id) as Dictionary if GameState.has_method("get_stealth_profile") else {}
+	var profile: Dictionary = _get_stealth_profile()
 	return maxi(int(profile.get("passive_perception", 10)), 1)
 
 
 func get_perception_modifier() -> int:
-	var profile: Dictionary = GameState.call("get_stealth_profile", actor_id) as Dictionary if GameState.has_method("get_stealth_profile") else {}
-	return int(profile.get("perception_modifier", 0))
+	return int(_get_stealth_profile().get("perception_modifier", 0))
 
 
 func get_tracking_modifier() -> int:
-	var profile: Dictionary = GameState.call("get_stealth_profile", actor_id) as Dictionary if GameState.has_method("get_stealth_profile") else {}
-	return int(profile.get("tracking_modifier", 0))
+	return int(_get_stealth_profile().get("tracking_modifier", 0))
 
 
 func set_exploration_alert_state(new_state: String, new_suspicion: float, new_last_known_position: Vector2) -> void:
@@ -92,6 +90,39 @@ func get_last_known_position() -> Vector2:
 	return last_known_position
 
 
+func get_maximum_health() -> int:
+	return maximum_health
+
+
+func get_observable_alert_state_label() -> String:
+	return {
+		StealthAlertSystem.STATE_CALM: "спокоен",
+		StealthAlertSystem.STATE_SUSPICIOUS: "насторожен",
+		StealthAlertSystem.STATE_INVESTIGATING: "проверяет источник",
+		StealthAlertSystem.STATE_SEARCHING: "обыскивает область",
+		StealthAlertSystem.STATE_ALERTED: "поднял тревогу",
+		StealthAlertSystem.STATE_COMBAT: "ведёт бой"
+	}.get(detection_state, "поведение неясно")
+
+
+func get_observable_health_label() -> String:
+	if defeated or current_health <= 0:
+		return "без сознания"
+	var ratio: float = float(current_health) / float(maxi(maximum_health, 1))
+	if ratio >= 0.85:
+		return "выглядит невредимым"
+	if ratio >= 0.5:
+		return "заметно ранен"
+	if ratio >= 0.25:
+		return "тяжело ранен"
+	return "едва держится"
+
+
+func get_context_status_text() -> String:
+	var relation: String = "враждебен" if is_hostile() else "не проявляет открытой враждебности"
+	return "Поведение: %s. Отношение: %s. Состояние: %s." % [get_observable_alert_state_label(), relation, get_observable_health_label()]
+
+
 func enter_combat_hostile() -> void:
 	super.enter_combat_hostile()
 	detection_state = StealthAlertSystem.STATE_COMBAT
@@ -104,10 +135,29 @@ func reset_combat_state(full_restore: bool = true) -> void:
 	_restore_alert_record()
 
 
+func _update_combat_visuals() -> void:
+	super._update_combat_visuals()
+	if _health_label != null:
+		_health_label.text = ""
+		_health_label.hide()
+
+
+func _get_game_state() -> Node:
+	return get_tree().root.get_node_or_null("GameState") if is_inside_tree() else null
+
+
+func _get_stealth_profile() -> Dictionary:
+	var state: Node = _get_game_state()
+	if state == null or not state.has_method("get_stealth_profile"):
+		return {}
+	return state.call("get_stealth_profile", actor_id) as Dictionary
+
+
 func _restore_alert_record() -> void:
-	if actor_id.is_empty() or not GameState.has_method("get_stealth_alert_record"):
+	var state: Node = _get_game_state()
+	if actor_id.is_empty() or state == null or not state.has_method("get_stealth_alert_record"):
 		return
-	var record: Dictionary = GameState.call("get_stealth_alert_record", actor_id) as Dictionary
+	var record: Dictionary = state.call("get_stealth_alert_record", actor_id) as Dictionary
 	detection_state = str(record.get("state", StealthAlertSystem.STATE_CALM))
 	suspicion = float(record.get("suspicion", 0.0))
 	last_known_position = StealthAlertSystem.new().vector_from_value(record.get("last_known_position", []))
@@ -121,25 +171,12 @@ func _build_alert_label() -> void:
 	_alert_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_alert_label.add_theme_font_size_override("font_size", 14)
 	_alert_label.z_index = 8
+	_alert_label.hide()
 	add_child(_alert_label)
 
 
 func _update_alert_visuals() -> void:
-	if _alert_label == null:
-		return
-	var state_label: String = {
-		StealthAlertSystem.STATE_CALM: "СПОКОЕН",
-		StealthAlertSystem.STATE_SUSPICIOUS: "НАСТОРОЖЕН",
-		StealthAlertSystem.STATE_INVESTIGATING: "ПРОВЕРЯЕТ",
-		StealthAlertSystem.STATE_SEARCHING: "ИЩЕТ",
-		StealthAlertSystem.STATE_ALERTED: "ТРЕВОГА",
-		StealthAlertSystem.STATE_COMBAT: "БОЙ"
-	}.get(detection_state, detection_state.to_upper())
-	_alert_label.text = state_label
-	_alert_label.visible = detection_state != StealthAlertSystem.STATE_CALM
-	var alert_color: Color = Color(0.62, 0.86, 0.64, 1.0)
-	if detection_state in [StealthAlertSystem.STATE_SUSPICIOUS, StealthAlertSystem.STATE_INVESTIGATING, StealthAlertSystem.STATE_SEARCHING]:
-		alert_color = Color(1.0, 0.78, 0.28, 1.0)
-	elif detection_state in [StealthAlertSystem.STATE_ALERTED, StealthAlertSystem.STATE_COMBAT]:
-		alert_color = Color(1.0, 0.34, 0.28, 1.0)
-	_alert_label.add_theme_color_override("font_color", alert_color)
+	# Точное или текстовое состояние NPC раскрывается только через контекстное действие игрока.
+	if _alert_label != null:
+		_alert_label.text = ""
+		_alert_label.hide()

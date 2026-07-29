@@ -85,6 +85,7 @@ func _remove_duplicate_inventory_menu() -> void:
 
 func _separate_mobile_combat_buttons() -> void:
 	if _target_button != null:
+		_target_button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 		_target_button.offset_left = -188.0
 		_target_button.offset_top = 116.0
 		_target_button.offset_right = -18.0
