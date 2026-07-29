@@ -40,8 +40,8 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 
-	if str(game.get_script().resource_path) != "res://scripts/game/game_encounters_runtime.gd":
-		_fail("Game scene does not use the encounter runtime layered above fighter subclasses.")
+	if str(game.get_script().resource_path) != "res://scripts/game/game_pursuit_escape_runtime.gd":
+		_fail("Game scene does not use the pursuit escape runtime layered above encounters and fighter subclasses.")
 		return
 	if FighterSubclassSystem.TACTICAL_ABILITY_ID not in hero.known_features:
 		_fail("Game startup did not synchronize the selected fighter subclass.")
