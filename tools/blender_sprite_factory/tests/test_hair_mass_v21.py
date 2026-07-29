@@ -27,8 +27,12 @@ class HairMassBuilderV21Tests(unittest.TestCase):
         self.assertIn("len(crown.data.vertices) != 226", self.builder_source)
         self.assertIn("len(crown.data.polygons) != 256", self.builder_source)
 
-    def test_builder_changes_only_existing_side_and_nape_transforms(self) -> None:
-        self.assertIn("previous_builder.apply_dense_crown_restoration_pass(context)", self.builder_source)
+    def test_builder_refines_existing_scene_without_rebuilding_proxy_v23(self) -> None:
+        self.assertNotIn(
+            "previous_builder.apply_dense_crown_restoration_pass(context)",
+            self.builder_source,
+        )
+        self.assertIn("previous_adapter._build_head_and_hair_v20(context)", self.adapter_source)
         self.assertIn("_apply_side_nape_transforms", self.builder_source)
         self.assertIn("crown_coordinates_before", self.builder_source)
         self.assertIn("must not modify the accepted proxy v23 crown mesh", self.builder_source)
@@ -44,7 +48,6 @@ class HairMassBuilderV21Tests(unittest.TestCase):
         self.assertNotIn("scale[0] = -1", self.builder_source)
 
     def test_adapter_locks_unrelated_geometry_and_animation(self) -> None:
-        self.assertIn("previous_adapter._build_head_and_hair_v20(context)", self.adapter_source)
         self.assertIn("apply_side_nape_volume_pass(context)", self.adapter_source)
         self.assertIn("factory.load_head_profile = load_head_profile_v21", self.adapter_source)
         self.assertIn('"crown_geometry_changed": False', self.adapter_source)
