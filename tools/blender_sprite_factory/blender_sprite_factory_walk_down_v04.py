@@ -156,6 +156,7 @@ def _write_run_manifest_walk_down_v04(
             "walk_down_fps": profile.fps,
             "walk_down_frames": [item.frame for item in profile.poses],
             "walk_down_loop": profile.loop,
+            "walk_down_v02_reused_without_key_change": False,
             "walk_down_v03_refined_keys": False,
             "walk_down_v04_balanced_keys": True,
             "approved_appearance_v03_locked": True,
