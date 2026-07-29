@@ -45,6 +45,11 @@ class WalkAnimationBuilderV04Tests(unittest.TestCase):
         self.assertIn('"scarf_changed": False', self.adapter_source)
         self.assertIn('"equipment_sides_changed": False', self.adapter_source)
 
+    def test_manifest_clears_historical_key_reuse_flags(self) -> None:
+        self.assertIn('"walk_down_v02_reused_without_key_change": False', self.adapter_source)
+        self.assertIn('"walk_down_v03_refined_keys": False', self.adapter_source)
+        self.assertIn('"walk_down_v04_balanced_keys": True', self.adapter_source)
+
 
 if __name__ == "__main__":
     unittest.main()
