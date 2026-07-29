@@ -1,7 +1,7 @@
 extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
-const RUNTIME_PATH: String = "res://scripts/game/game_pursuit_escape_runtime.gd"
+const RUNTIME_PATH: String = "res://scripts/game/game_combat_ai_runtime.gd"
 
 
 func _init() -> void:
@@ -33,7 +33,7 @@ func _run() -> void:
 	for _frame: int in range(12):
 		await process_frame
 	if str(game.get_script().resource_path) != RUNTIME_PATH:
-		_fail("Game scene does not use the final pursuit runtime.")
+		_fail("Game scene does not use the final Combat AI runtime.")
 		return
 	game.set_process(false)
 
@@ -221,7 +221,7 @@ func _run() -> void:
 	await process_frame
 	if FileAccess.file_exists(save_path):
 		DirAccess.remove_absolute(save_path)
-	print("NPC context actions, single mobile Actions button, concealed state, navigation, combat join and AI smoke test passed.")
+	print("NPC context actions, single mobile Actions button, concealed state, navigation, combat join and Combat AI smoke test passed.")
 	quit(0)
 
 
