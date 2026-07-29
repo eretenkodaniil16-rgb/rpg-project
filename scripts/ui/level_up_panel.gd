@@ -26,7 +26,7 @@ var _defer: Button
 
 func _ready() -> void:
 	name = "LevelUpPanel"
-	z_index = 5000
+	z_index = 4095
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_build_ui()
 	hide()
