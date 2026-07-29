@@ -41,9 +41,16 @@ func _run() -> void:
 	var caretaker: Node = game.get_node_or_null("Caretaker")
 	var catalog: ActionCatalogUI = game.get_node_or_null("Interface/ActionCatalogUI") as ActionCatalogUI
 	var target_button: Button = game.find_child("TargetButton", true, false) as Button
+	var mobile_controls: Control = game.get_node_or_null("Interface/MobileControls") as Control
 	var room: StealthTestRoom = get_first_node_in_group("stealth_world") as StealthTestRoom
-	if player == null or caretaker == null or catalog == null or target_button == null or room == null:
-		_fail("Player, caretaker, target selector, Actions menu or stealth room is missing.")
+	if player == null or caretaker == null or catalog == null or target_button == null or mobile_controls == null or room == null:
+		_fail("Player, caretaker, target selector, mobile Actions button or stealth room is missing.")
+		return
+	mobile_controls.call("enable_for_testing")
+	await process_frame
+	var actions_button: Button = mobile_controls.call("get_actions_button_for_testing") as Button
+	if actions_button == null:
+		_fail("The persistent lower-right Actions button is missing.")
 		return
 	var guard: Node = room.get_patrol_observer()
 	if guard == null:
@@ -53,11 +60,17 @@ func _run() -> void:
 	if not is_equal_approx(target_button.anchor_top, 0.0) or not is_equal_approx(target_button.anchor_bottom, 0.0):
 		_fail("Target selector is not anchored in the upper-right HUD area.")
 		return
-	if not is_equal_approx(catalog.catalog_button.anchor_top, 1.0) or not is_equal_approx(catalog.catalog_button.anchor_bottom, 1.0):
+	if not is_equal_approx(actions_button.anchor_top, 1.0) or not is_equal_approx(actions_button.anchor_bottom, 1.0):
 		_fail("Actions button is not anchored in the lower-right HUD area.")
 		return
-	if target_button.get_global_rect().intersects(catalog.catalog_button.get_global_rect()):
+	if actions_button.text != "ДЕЙСТВИЯ":
+		_fail("The lower-right button does not have the permanent ДЕЙСТВИЯ label.")
+		return
+	if target_button.get_global_rect().intersects(actions_button.get_global_rect()):
 		_fail("Target selector and Actions button overlap each other.")
+		return
+	if catalog.catalog_button.visible or not catalog.catalog_button.disabled:
+		_fail("The duplicate ActionCatalogButton is still exposed in the player HUD.")
 		return
 
 	game.call("select_context_target_for_testing", caretaker)
@@ -76,13 +89,13 @@ func _run() -> void:
 		return
 
 	game.call("_refresh_action_catalog")
-	if not catalog.catalog_button.visible:
-		_fail("Actions menu button is not available during exploration.")
+	if not actions_button.visible or actions_button.disabled:
+		_fail("The lower-right Actions button is unavailable during exploration.")
 		return
-	catalog.catalog_button.emit_signal("pressed")
+	actions_button.emit_signal("pressed")
 	await process_frame
 	if not catalog.panel.visible:
-		_fail("Lower-right Actions button did not open the menu outside combat.")
+		_fail("The lower-right Actions button did not open the menu outside combat.")
 		return
 	var inspect_button: Button = null
 	for button: Node in catalog.action_grid.get_children():
@@ -138,6 +151,7 @@ func _run() -> void:
 	state.call("set_stealth_alert_record", "service_guard", guard_record, false, false)
 	game.call("_restore_exploration_alerts")
 	target_button.show()
+	actions_button.show()
 	game.call("_start_turn_based_combat", caretaker)
 	game.call("force_player_turn_for_testing")
 	game.call("_apply_catalog_visibility_rules")
@@ -149,13 +163,16 @@ func _run() -> void:
 	if not target_button.visible:
 		_fail("Target selector disappeared when combat started.")
 		return
-	if not catalog.catalog_button.visible or catalog.catalog_button.disabled:
-		_fail("Lower-right Actions button is unavailable during the player combat turn.")
+	if not actions_button.visible or actions_button.disabled:
+		_fail("The lower-right Actions button is unavailable during the player combat turn.")
 		return
-	catalog.catalog_button.emit_signal("pressed")
+	if catalog.catalog_button.visible:
+		_fail("The duplicate ActionCatalogButton became visible during combat.")
+		return
+	actions_button.emit_signal("pressed")
 	await process_frame
 	if not catalog.panel.visible:
-		_fail("Lower-right Actions button did not open the combat menu.")
+		_fail("The lower-right Actions button did not open the combat menu.")
 		return
 	catalog.close_catalog()
 
@@ -204,7 +221,7 @@ func _run() -> void:
 	await process_frame
 	if FileAccess.file_exists(save_path):
 		DirAccess.remove_absolute(save_path)
-	print("NPC context actions, button layout, concealed state, navigation, combat join and AI smoke test passed.")
+	print("NPC context actions, single mobile Actions button, concealed state, navigation, combat join and AI smoke test passed.")
 	quit(0)
 
 
