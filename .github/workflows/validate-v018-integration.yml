@@ -1,0 +1,79 @@
+name: Validate v0.18 integration stack
+
+on:
+  pull_request:
+    paths:
+      - "project.godot"
+      - "README.md"
+      - "PROJECT_STATUS.md"
+      - "scripts/core/game_state.gd"
+      - "scripts/core/game_state_rewards.gd"
+      - "scripts/core/game_state_encounters.gd"
+      - "scripts/core/game_state_stealth_alerts.gd"
+      - "scripts/game/game_feature_ui.gd"
+      - "scripts/game/game_pursuit_escape_runtime.gd"
+      - "scripts/ui/action_catalog_ui.gd"
+      - "scripts/ui/dialogue_visual_controller.gd"
+      - "scripts/ui/level_up_panel.gd"
+      - "scripts/ui/mobile_controls.gd"
+      - "scenes/game/game.tscn"
+      - "tests/test_v018_integration_stack.gd"
+      - ".github/workflows/validate-v018-integration.yml"
+  push:
+    branches:
+      - integration/v018-stabilization
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Godot 4.7.1 Standard
+        shell: bash
+        run: |
+          curl --location --fail --retry 3 --output godot.zip "https://downloads.godotengine.org/?flavor=stable&platform=linux.64&slug=linux.x86_64.zip&version=4.7.1"
+          unzip -q godot.zip
+          chmod +x Godot_v4.7.1-stable_linux.x86_64
+
+      - name: Import project and reject parser errors
+        shell: bash
+        run: |
+          rm -rf .godot
+          set -o pipefail
+          timeout 120s ./Godot_v4.7.1-stable_linux.x86_64 --headless --editor --path "$GITHUB_WORKSPACE" --quit 2>&1 | tee v018-integration-import.log
+          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script" v018-integration-import.log; then
+            exit 1
+          fi
+
+      - name: Validate integrated state, save migration, runtime and HUD
+        shell: bash
+        run: |
+          timeout 150s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_v018_integration_stack.gd 2>&1 | tee v018-integration-test.log
+
+      - name: Regression test level-up and mobile HUD
+        shell: bash
+        run: |
+          timeout 150s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_mobile_combat_progression_hud.gd 2>&1 | tee v018-level-up-hud.log
+
+      - name: Regression test encounter and stealth lifecycle
+        shell: bash
+        run: |
+          timeout 150s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_hidden_combat_escape.gd 2>&1 | tee v018-encounter-stealth.log
+
+      - name: Upload integration diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v018-integration-diagnostics
+          path: |
+            v018-integration-import.log
+            v018-integration-test.log
+            v018-level-up-hud.log
+            v018-encounter-stealth.log
+          retention-days: 5
