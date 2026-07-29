@@ -40,6 +40,8 @@ const SKILL_ABILITIES: Dictionary = {
 var character_name: String = ""
 var character_class_id: String = ""
 var character_class_name: String = ""
+var subclass_id: String = ""
+var subclass_name: String = ""
 var race_id: String = DEFAULT_RACE_ID
 var race_name: String = "Человек"
 var ruleset_id: String = DEFAULT_RULESET_ID
@@ -47,6 +49,9 @@ var background_id: String = ""
 var background_name: String = ""
 var background_ability_bonuses: Dictionary = {}
 var origin_feat_id: String = ""
+var level_feat_ids: Array[String] = []
+var level_ability_bonuses: Dictionary = {}
+var level_choice_history: Dictionary = {}
 var origin_applied: bool = false
 var skill_proficiencies: Array[String] = []
 var class_skill_proficiencies: Array[String] = []
@@ -108,6 +113,20 @@ func get_ability_modifier(ability_id: String) -> int:
 func get_proficiency_bonus() -> int:
 	var safe_level: int = maxi(level, 1)
 	return clampi(2 + floori(float(safe_level - 1) / 4.0), 2, 6)
+
+
+func has_feat(feat_id: String) -> bool:
+	return not feat_id.is_empty() and (feat_id == origin_feat_id or feat_id in level_feat_ids)
+
+
+func get_all_feat_ids() -> Array[String]:
+	var result: Array[String] = []
+	if not origin_feat_id.is_empty():
+		result.append(origin_feat_id)
+	for feat_id: String in level_feat_ids:
+		if not feat_id.is_empty() and feat_id not in result:
+			result.append(feat_id)
+	return result
 
 
 func get_skill_ability(skill_id: String) -> String:
@@ -223,6 +242,8 @@ func to_dict() -> Dictionary:
 		"name": character_name,
 		"class_id": character_class_id,
 		"class_name": character_class_name,
+		"subclass_id": subclass_id,
+		"subclass_name": subclass_name,
 		"race_id": race_id,
 		"race_name": race_name,
 		"ruleset_id": ruleset_id,
@@ -230,6 +251,9 @@ func to_dict() -> Dictionary:
 		"background_name": background_name,
 		"background_ability_bonuses": background_ability_bonuses.duplicate(true),
 		"origin_feat_id": origin_feat_id,
+		"level_feat_ids": level_feat_ids.duplicate(),
+		"level_ability_bonuses": level_ability_bonuses.duplicate(true),
+		"level_choice_history": level_choice_history.duplicate(true),
 		"origin_applied": origin_applied,
 		"skill_proficiencies": skill_proficiencies.duplicate(),
 		"class_skill_proficiencies": class_skill_proficiencies.duplicate(),
@@ -285,6 +309,8 @@ static func from_dict(data: Dictionary) -> PlayerCharacter:
 	character.character_name = str(data.get("name", "Путник"))
 	character.character_class_id = str(data.get("class_id", "fighter"))
 	character.character_class_name = str(data.get("class_name", "Воин"))
+	character.subclass_id = str(data.get("subclass_id", ""))
+	character.subclass_name = str(data.get("subclass_name", ""))
 	character.race_id = str(data.get("race_id", DEFAULT_RACE_ID))
 	character.race_name = str(data.get("race_name", "Человек"))
 	character.ruleset_id = str(data.get("ruleset_id", DEFAULT_RULESET_ID))
@@ -293,6 +319,11 @@ static func from_dict(data: Dictionary) -> PlayerCharacter:
 	var bonus_value: Variant = data.get("background_ability_bonuses", {})
 	character.background_ability_bonuses = (bonus_value as Dictionary).duplicate(true) if bonus_value is Dictionary else {}
 	character.origin_feat_id = str(data.get("origin_feat_id", ""))
+	character.level_feat_ids = _unique_string_array(data.get("level_feat_ids", []))
+	var level_bonus_value: Variant = data.get("level_ability_bonuses", {})
+	character.level_ability_bonuses = (level_bonus_value as Dictionary).duplicate(true) if level_bonus_value is Dictionary else {}
+	var history_value: Variant = data.get("level_choice_history", {})
+	character.level_choice_history = (history_value as Dictionary).duplicate(true) if history_value is Dictionary else {}
 	character.origin_applied = bool(data.get("origin_applied", false))
 	character.skill_proficiencies = _unique_string_array(data.get("skill_proficiencies", []))
 	character.class_skill_proficiencies = _unique_string_array(data.get("class_skill_proficiencies", []))
@@ -346,6 +377,9 @@ static func from_dict(data: Dictionary) -> PlayerCharacter:
 	character.equipped_armor_id = str(data.get("equipped_armor_id", ""))
 	character.equipped_shield_id = str(data.get("equipped_shield_id", ""))
 	character.known_features = _string_array(data.get("known_features", []))
+	for feat_id: String in character.level_feat_ids:
+		if feat_id not in character.known_features:
+			character.known_features.append(feat_id)
 	var spell_sources_value: Variant = data.get("spell_sources", {})
 	character.spell_sources = (spell_sources_value as Dictionary).duplicate(true) if spell_sources_value is Dictionary else {}
 	character.signature_ability_id = str(data.get("signature_ability_id", ""))

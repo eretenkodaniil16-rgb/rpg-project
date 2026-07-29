@@ -5,7 +5,7 @@ const CHARACTER_HUB_SCRIPT: Script = preload("res://scripts/ui/character_hub_lev
 const COMBAT_FEED_SCRIPT: Script = preload("res://scripts/ui/combat_event_feed.gd")
 const D20_OVERLAY_SCRIPT: Script = preload("res://scripts/ui/d20_roll_overlay.gd")
 const PLAYER_STATUS_HUD_SCRIPT: Script = preload("res://scripts/ui/player_status_hud.gd")
-const LEVEL_UP_PANEL_SCRIPT: Script = preload("res://scripts/ui/level_up_panel.gd")
+const LEVEL_UP_PANEL_SCRIPT: Script = preload("res://scripts/ui/level_up_choices_panel.gd")
 const EXPERIENCE_TOAST_SCRIPT: Script = preload("res://scripts/ui/experience_reward_toast.gd")
 
 var _combat_feed: CombatEventFeed
@@ -13,7 +13,7 @@ var _d20_overlay: D20RollOverlay
 var _player_status_hud: PlayerStatusHud
 var _level_up_panel: LevelUpPanel
 var _experience_reward_toast: ExperienceRewardToast
-var _level_up_system: LevelUpSystem = LevelUpSystem.new()
+var _level_up_system: LevelUpChoiceSystem = LevelUpChoiceSystem.new()
 
 
 func _ready() -> void:

@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "ruleset_id": "game_level_choices_v1",
+  "ability_score_cap": 20,
+  "ability_names": {
+    "strength": "Сила",
+    "dexterity": "Ловкость",
+    "constitution": "Телосложение",
+    "intelligence": "Интеллект",
+    "wisdom": "Мудрость",
+    "charisma": "Харизма"
+  },
+  "subclass_options": {
+    "guardian_vanguard": {
+      "id": "guardian_vanguard",
+      "class_id": "fighter",
+      "name": "Страж передовой",
+      "description": "Воин, который удерживает линию, защищает союзников и навязывает противнику неудобную позицию. Выбор фиксирует путь подкласса; его уровневые способности подключаются отдельными механическими этапами."
+    },
+    "tactical_blade": {
+      "id": "tactical_blade",
+      "class_id": "fighter",
+      "name": "Тактический клинок",
+      "description": "Воин, который полагается на точное позиционирование, темп боя и контролируемые серии атак. Выбор фиксирует путь подкласса; его уровневые способности подключаются отдельными механическими этапами."
+    }
+  },
+  "feat_options": {
+    "alert": {
+      "id": "alert",
+      "name": "Бдительный",
+      "description": "Добавляет бонус мастерства к инициативе.",
+      "repeatable": false
+    },
+    "savage_attacker": {
+      "id": "savage_attacker",
+      "name": "Свирепый атакующий",
+      "description": "Один раз за ход позволяет использовать лучший из двух бросков костей урона оружия.",
+      "repeatable": false
+    }
+  },
+  "global_level_choices": {
+    "4": [
+      {
+        "choice_id": "level_4_advancement",
+        "type": "advancement",
+        "title": "Развитие героя",
+        "description": "Увеличьте характеристики или выберите доступную функциональную черту.",
+        "required": true,
+        "count": 1
+      }
+    ]
+  },
+  "class_level_choices": {
+    "fighter": {
+      "3": [
+        {
+          "choice_id": "fighter_subclass",
+          "type": "subclass",
+          "title": "Воинский путь",
+          "description": "Выберите устойчивый идентификатор подкласса. После подтверждения этот выбор нельзя заменить обычным повышением уровня.",
+          "required": true,
+          "count": 1,
+          "options": [
+            "guardian_vanguard",
+            "tactical_blade"
+          ],
+          "migration_default": "guardian_vanguard"
+        }
+      ]
+    }
+  }
+}
