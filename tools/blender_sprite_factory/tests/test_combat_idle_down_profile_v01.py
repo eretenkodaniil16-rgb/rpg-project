@@ -56,6 +56,27 @@ class CombatIdleDownProfileV01Tests(unittest.TestCase):
         self.assertNotIn("scale.x = -1", self.builder_source)
         self.assertNotIn("scale[0] = -1", self.builder_source)
 
+    def test_action_assignment_resets_unkeyed_pose_channels(self) -> None:
+        self.assertIn("def reset_rig_pose_to_neutral", self.builder_source)
+        self.assertIn("pose_bone.location = (0.0, 0.0, 0.0)", self.builder_source)
+        self.assertIn(
+            "pose_bone.rotation_euler = (0.0, 0.0, 0.0)",
+            self.builder_source,
+        )
+        self.assertIn("pose_bone.scale = (1.0, 1.0, 1.0)", self.builder_source)
+        self.assertIn(
+            "factory._assign_action = _assign_action_with_neutral_pose",
+            self.builder_source,
+        )
+        self.assertIn(
+            "install_neutral_pose_action_assignment()",
+            self.builder_source,
+        )
+        self.assertIn(
+            'action["neutral_pose_reset_before_assignment"] = True',
+            self.builder_source,
+        )
+
     def test_adapter_preserves_sheathed_scabbard_and_toggles_only_hilt(self) -> None:
         ast.parse(self.adapter_source)
         self.assertIn("render_pilot_combat_idle_down_v01", self.adapter_source)
