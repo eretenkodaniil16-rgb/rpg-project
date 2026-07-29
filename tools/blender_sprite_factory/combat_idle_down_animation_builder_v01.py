@@ -41,6 +41,30 @@ COMBAT_WEAPON_OBJECT_NAMES = (
 )
 SHEATHED_HILT_OBJECT_NAMES = ("sword_grip", "sword_guard")
 
+_BASE_ASSIGN_ACTION = factory._assign_action
+_NEUTRAL_ASSIGNMENT_INSTALLED = False
+
+
+def reset_rig_pose_to_neutral(rig: object) -> None:
+    for pose_bone in rig.pose.bones:
+        pose_bone.location = (0.0, 0.0, 0.0)
+        pose_bone.rotation_euler = (0.0, 0.0, 0.0)
+        pose_bone.scale = (1.0, 1.0, 1.0)
+    factory.bpy.context.view_layer.update()
+
+
+def _assign_action_with_neutral_pose(rig: object, action: object) -> None:
+    reset_rig_pose_to_neutral(rig)
+    _BASE_ASSIGN_ACTION(rig, action)
+
+
+def install_neutral_pose_action_assignment() -> None:
+    global _NEUTRAL_ASSIGNMENT_INSTALLED
+    if _NEUTRAL_ASSIGNMENT_INSTALLED:
+        return
+    factory._assign_action = _assign_action_with_neutral_pose
+    _NEUTRAL_ASSIGNMENT_INSTALLED = True
+
 
 def _value_pairs(value: float) -> list[tuple[int, float]]:
     return [(1, float(value))]
@@ -154,6 +178,7 @@ def _create_combat_idle_action(
     action["root_translation_used"] = False
     action["mirroring_used"] = False
     action["negative_scale_used"] = False
+    action["neutral_pose_reset_before_assignment"] = True
     action.use_fake_user = True
     return action
 
@@ -257,6 +282,7 @@ def _build_drawn_sword(context: factory.BuildContext) -> tuple[object, ...]:
 
 def create_combat_idle_down_actions_v01(context: factory.BuildContext) -> None:
     approved_walk_builder.create_walk_up_actions_v02(context)
+    install_neutral_pose_action_assignment()
     _assert_rig_contract(context)
     profile = load_combat_idle_down_profile_v01(context.config.character_id)
     action = _create_combat_idle_action(context, profile)
@@ -286,6 +312,7 @@ def create_combat_idle_down_actions_v01(context: factory.BuildContext) -> None:
     scene["combat_idle_geometry_changed"] = False
     scene["combat_idle_material_changed"] = False
     scene["combat_idle_mirroring_used"] = False
+    scene["neutral_pose_reset_before_action_assignment"] = True
 
     if action.name != f"{context.config.character_id}_combat_idle":
         raise RuntimeError("combat_idle_down v01 action name drifted")
