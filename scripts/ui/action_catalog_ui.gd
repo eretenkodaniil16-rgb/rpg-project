@@ -62,7 +62,7 @@ func refresh(
 	var mode_changed: bool = _combat_active != combat_active
 	_combat_active = combat_active
 	var show_catalog_controls: bool = not overlay_visible
-	catalog_button.visible = show_catalog_controls
+	catalog_button.hide()
 	end_turn_button.visible = combat_active and show_catalog_controls
 	confirm_move_button.visible = combat_active and show_catalog_controls and player_turn and has_movement_plan
 	jump_button.hide()
@@ -71,7 +71,7 @@ func refresh(
 	_entries = entries.duplicate(true)
 	resource_label.text = resource_text
 	header_label.text = "БОЕВЫЕ ДЕЙСТВИЯ · %s" % movement_plan_text if combat_active else "ДЕЙСТВИЯ"
-	catalog_button.disabled = combat_active and not player_turn
+	catalog_button.disabled = true
 	end_turn_button.disabled = not player_turn
 	confirm_move_button.disabled = not player_turn or not has_movement_plan
 	confirm_move_button.text = "ПЕРЕМЕСТИТЬСЯ · %d ФТ" % planned_cost_feet if has_movement_plan else "ПЕРЕМЕСТИТЬСЯ"
@@ -100,14 +100,24 @@ func is_catalog_open() -> bool:
 	return panel.visible
 
 
+func toggle_catalog() -> void:
+	_toggle_catalog()
+
+
 func close_catalog() -> void:
 	panel.hide()
 	_last_signature = ""
 
 
 func _build_interface() -> void:
-	catalog_button = _make_bottom_rail_button("ActionCatalogButton", "ДЕЙСТВИЯ", -144.0, -84.0, 18)
-	catalog_button.pressed.connect(_toggle_catalog)
+	# Compatibility node for older tests and saved scene references. The real mobile entry point is InteractButton.
+	catalog_button = Button.new()
+	catalog_button.name = "ActionCatalogButton"
+	catalog_button.text = "ДЕЙСТВИЯ"
+	catalog_button.hide()
+	catalog_button.disabled = true
+	catalog_button.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	catalog_button.pressed.connect(toggle_catalog)
 	add_child(catalog_button)
 
 	end_turn_button = _make_bottom_rail_button("EndTurnFixedButton", "КОНЕЦ ХОДА", -214.0, -154.0, 16)
