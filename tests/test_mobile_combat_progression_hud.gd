@@ -51,22 +51,31 @@ func _run() -> void:
 	await get_tree().process_frame
 
 	var attack_button := game.find_child("AttackButton", true, false) as Button
-	var catalog_button := game.find_child("ActionCatalogButton", true, false) as Button
+	var legacy_catalog_button := game.find_child("ActionCatalogButton", true, false) as Button
 	var end_turn_button := game.find_child("EndTurnFixedButton", true, false) as Button
 	var confirm_move_button := game.find_child("ConfirmMovementFloatingButton", true, false) as Button
 	var action_catalog := game.find_child("ActionCatalogUI", true, false) as ActionCatalogUI
-	var interaction_button := game.find_child("InteractButton", true, false) as Button
-	if attack_button == null or catalog_button == null or end_turn_button == null or confirm_move_button == null or action_catalog == null or interaction_button == null:
-		_fail("Exploration attack button or combat action catalog is missing.")
+	var mobile_controls := game.find_child("MobileControls", true, false) as Control
+	var actions_button := game.find_child("InteractButton", true, false) as Button
+	if attack_button == null or legacy_catalog_button == null or end_turn_button == null or confirm_move_button == null or action_catalog == null or mobile_controls == null or actions_button == null:
+		_fail("Exploration attack button, mobile Actions button or combat action catalog is missing.")
 		return
+	mobile_controls.call("enable_for_testing")
+	await get_tree().process_frame
 	if game.find_child("QuickAttackButton", true, false) != null:
 		_fail("A separate quick attack button is still present during combat.")
+		return
+	if legacy_catalog_button.visible or not legacy_catalog_button.disabled:
+		_fail("The duplicate ActionCatalogButton is still exposed in the HUD.")
+		return
+	if actions_button.text != "ДЕЙСТВИЯ" or actions_button.size.y < 60.0 or not actions_button.visible:
+		_fail("The persistent lower-right Actions button is hidden, too small or mislabeled.")
 		return
 	if attack_button.text != "АТАКА" or attack_button.size.y < 40.0:
 		_fail("Exploration attack shortcut is too small or has an unclear label.")
 		return
-	if attack_button.get_global_rect().end.y > interaction_button.get_global_rect().position.y:
-		_fail("Exploration attack shortcut is not placed above the interaction button.")
+	if attack_button.get_global_rect().end.y > actions_button.get_global_rect().position.y:
+		_fail("Exploration attack shortcut is not placed above the Actions button.")
 		return
 
 	var menu_button := game.find_child("MenuButton", true, false) as Button
@@ -105,13 +114,26 @@ func _run() -> void:
 	if not combat_attack_found:
 		_fail("Combat attack is missing from ДЕЙСТВИЯ → АТАКИ.")
 		return
+	if not end_turn_button.visible:
+		_fail("End Turn is not available in the combat rail.")
+		return
+	var actions_rect: Rect2 = actions_button.get_global_rect()
+	var attack_rect: Rect2 = attack_button.get_global_rect()
+	var end_turn_rect: Rect2 = end_turn_button.get_global_rect()
+	var confirm_rect: Rect2 = confirm_move_button.get_global_rect()
+	if attack_rect.intersects(actions_rect) or end_turn_rect.intersects(actions_rect) or confirm_rect.intersects(end_turn_rect):
+		_fail("Lower-right mobile controls overlap each other.")
+		return
+	if confirm_rect.end.y > end_turn_rect.position.y or end_turn_rect.end.y > actions_rect.position.y:
+		_fail("Combat rail order must be movement confirmation, End Turn, then Actions.")
+		return
+	actions_button.emit_signal("pressed")
+	await get_tree().process_frame
+	if not action_catalog.panel.visible:
+		_fail("The lower-right Actions button did not open the combat catalog.")
+		return
 	action_catalog.close_catalog()
 
-	var route_safe_zone := Rect2(900.0, 340.0, 380.0, 380.0)
-	for control: Button in [catalog_button, end_turn_button, confirm_move_button]:
-		if control.get_global_rect().intersects(route_safe_zone):
-			_fail("A fixed combat button still blocks the lower-right route area: %s" % control.name)
-			return
 	if game.find_child("InventoryButton", true, false) != null:
 		_fail("Duplicate top inventory button is still present.")
 		return
@@ -221,5 +243,5 @@ func _run() -> void:
 	selector_host.queue_free()
 	game.queue_free()
 	await get_tree().process_frame
-	print("Exploration-only attack shortcut, combat catalog attack, detailed D20 overlay and compact HUD test passed.")
+	print("Unified lower-right Actions button, compact combat rail, progression HUD and touch selection test passed.")
 	get_tree().quit(0)
