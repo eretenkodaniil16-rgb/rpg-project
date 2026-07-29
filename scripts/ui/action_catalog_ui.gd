@@ -106,15 +106,15 @@ func close_catalog() -> void:
 
 
 func _build_interface() -> void:
-	catalog_button = _make_rail_button("ActionCatalogButton", "ДЕЙСТВИЯ", 116.0, 168.0, 18)
+	catalog_button = _make_bottom_rail_button("ActionCatalogButton", "ДЕЙСТВИЯ", -144.0, -84.0, 18)
 	catalog_button.pressed.connect(_toggle_catalog)
 	add_child(catalog_button)
 
-	end_turn_button = _make_rail_button("EndTurnFixedButton", "КОНЕЦ ХОДА", 176.0, 228.0, 16)
+	end_turn_button = _make_bottom_rail_button("EndTurnFixedButton", "КОНЕЦ ХОДА", -214.0, -154.0, 16)
 	end_turn_button.pressed.connect(func() -> void: action_requested.emit("end_turn"))
 	add_child(end_turn_button)
 
-	confirm_move_button = _make_rail_button("ConfirmMovementFloatingButton", "ПЕРЕМЕСТИТЬСЯ", 236.0, 294.0, 15)
+	confirm_move_button = _make_bottom_rail_button("ConfirmMovementFloatingButton", "ПЕРЕМЕСТИТЬСЯ", -284.0, -224.0, 15)
 	confirm_move_button.pressed.connect(func() -> void: action_requested.emit("confirm_move"))
 	add_child(confirm_move_button)
 
@@ -211,14 +211,14 @@ func _build_interface() -> void:
 	column.add_child(description_label)
 
 
-func _make_rail_button(node_name: String, text_value: String, top: float, bottom: float, font_size: int) -> Button:
+func _make_bottom_rail_button(node_name: String, text_value: String, top: float, bottom: float, font_size: int) -> Button:
 	var button := Button.new()
 	button.name = node_name
 	button.text = text_value
-	button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	button.offset_left = -188.0
+	button.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	button.offset_left = -198.0
 	button.offset_top = top
-	button.offset_right = -18.0
+	button.offset_right = -28.0
 	button.offset_bottom = bottom
 	button.add_theme_font_size_override("font_size", font_size)
 	button.mouse_filter = Control.MOUSE_FILTER_STOP
