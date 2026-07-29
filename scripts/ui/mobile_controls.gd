@@ -82,6 +82,9 @@ func _exit_tree() -> void:
 func enable_for_testing() -> void:
 	visible = true
 	_initialize_mobile_controls()
+	interact_button.text = "ДЕЙСТВИЯ"
+	interact_button.show()
+	interact_button.disabled = false
 
 
 func get_joystick_output_for_testing() -> Vector2:
@@ -92,6 +95,10 @@ func get_joystick_output_for_testing() -> Vector2:
 
 func get_jump_button_for_testing() -> Button:
 	return _jump_button
+
+
+func get_actions_button_for_testing() -> Button:
+	return interact_button
 
 
 func move_joystick_for_testing(normalized_direction: Vector2) -> void:
