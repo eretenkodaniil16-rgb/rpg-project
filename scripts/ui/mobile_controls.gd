@@ -32,6 +32,7 @@ func _process(_delta: float) -> void:
 		_player = get_tree().get_first_node_in_group("player") as CharacterBody2D
 	if not is_instance_valid(_game_world):
 		_game_world = get_tree().get_first_node_in_group("game_world")
+	interact_button.disabled = GameState.input_locked
 	if is_instance_valid(_jump_button):
 		var combat_active: bool = false
 		if is_instance_valid(_game_world) and _game_world.has_method("is_turn_based_combat_active"):
@@ -129,6 +130,7 @@ func _configure_layout() -> void:
 	move_pad.offset_bottom = -30.0
 	move_pad.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
+	interact_button.text = "ДЕЙСТВИЯ"
 	interact_button.modulate = Color(1.0, 1.0, 1.0, 0.88)
 	menu_button.modulate = Color(1.0, 1.0, 1.0, 0.88)
 	interact_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
@@ -262,6 +264,13 @@ func _set_player_vector(direction: Vector2) -> void:
 
 
 func _on_interact_pressed() -> void:
+	if not is_instance_valid(_game_world):
+		_game_world = get_tree().get_first_node_in_group("game_world")
+	if is_instance_valid(_game_world):
+		var action_catalog: Node = _game_world.get_node_or_null("Interface/ActionCatalogUI")
+		if action_catalog != null and action_catalog.has_method("toggle_catalog"):
+			action_catalog.call("toggle_catalog")
+			return
 	if is_instance_valid(_player) and _player.has_method("request_interaction"):
 		_player.call("request_interaction")
 
