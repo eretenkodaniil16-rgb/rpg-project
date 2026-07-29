@@ -1,0 +1,82 @@
+name: Validate Combat AI v1
+
+on:
+  pull_request:
+    paths:
+      - "data/ai/npc_ai_profiles.json"
+      - "scripts/systems/npc_ai_system.gd"
+      - "scripts/systems/npc_combat_ai_system.gd"
+      - "scripts/game/game_pursuit_escape_runtime.gd"
+      - "scripts/game/game_combat_ai_runtime.gd"
+      - "scenes/game/game.tscn"
+      - "tests/test_combat_ai_v1.gd"
+      - "tests/smoke_combat_ai_v1.gd"
+      - "tests/test_v018_integration_stack.gd"
+      - "tests/smoke_npc_context_actions_ai.gd"
+      - "docs/COMBAT_AI_V1.md"
+      - ".github/workflows/validate-combat-ai-v1.yml"
+  push:
+    branches:
+      - feature/combat-ai-v1
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Godot 4.7.1 Standard
+        shell: bash
+        run: |
+          curl --location --fail --retry 3 --output godot.zip "https://downloads.godotengine.org/?flavor=stable&platform=linux.64&slug=linux.x86_64.zip&version=4.7.1"
+          unzip -q godot.zip
+          chmod +x Godot_v4.7.1-stable_linux.x86_64
+
+      - name: Import project and reject parser errors
+        shell: bash
+        run: |
+          rm -rf .godot
+          set -o pipefail
+          timeout 120s ./Godot_v4.7.1-stable_linux.x86_64 --headless --editor --path "$GITHUB_WORKSPACE" --quit 2>&1 | tee combat-ai-import.log
+          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script" combat-ai-import.log; then
+            exit 1
+          fi
+
+      - name: Validate Combat AI role decisions
+        shell: bash
+        run: timeout 150s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_combat_ai_v1.gd 2>&1 | tee combat-ai-unit.log
+
+      - name: Smoke test Combat AI runtime
+        shell: bash
+        run: timeout 150s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_combat_ai_v1.gd 2>&1 | tee combat-ai-smoke.log
+
+      - name: Regression test NPC context actions and reinforcements
+        shell: bash
+        run: timeout 150s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_npc_context_actions_ai.gd 2>&1 | tee npc-ai-regression.log
+
+      - name: Regression test integrated v0.18 contract
+        shell: bash
+        run: timeout 150s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_v018_integration_stack.gd 2>&1 | tee v018-regression.log
+
+      - name: Regression test pursuit and escape
+        shell: bash
+        run: timeout 150s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_hidden_combat_escape.gd 2>&1 | tee pursuit-regression.log
+
+      - name: Upload Combat AI diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: combat-ai-v1-diagnostics
+          path: |
+            combat-ai-import.log
+            combat-ai-unit.log
+            combat-ai-smoke.log
+            npc-ai-regression.log
+            v018-regression.log
+            pursuit-regression.log
+          retention-days: 5
