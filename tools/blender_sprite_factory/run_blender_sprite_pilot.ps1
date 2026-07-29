@@ -14,8 +14,8 @@ Set-StrictMode -Version Latest
 
 $ToolRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $RepoRoot = (Resolve-Path (Join-Path $ToolRoot "..\..")).Path
-# Previous approved animation stage: blender_sprite_factory_walk_down_v04.py
-$FactoryScript = Join-Path $ToolRoot "blender_sprite_factory_walk_left_v01.py"
+# Previous approved animation stage: blender_sprite_factory_walk_left_v01.py
+$FactoryScript = Join-Path $ToolRoot "blender_sprite_factory_walk_right_v01.py"
 $FactoryConfig = Join-Path $ToolRoot "configs\human_warrior_m01.json"
 
 function Resolve-BlenderExecutable {
