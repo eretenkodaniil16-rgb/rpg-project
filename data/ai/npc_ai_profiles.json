@@ -1,33 +1,81 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
+  "role_profiles": {
+    "melee": {
+      "role": "melee",
+      "attack_range_feet": 5,
+      "minimum_range_feet": 0,
+      "preferred_range_feet": 5,
+      "retreat_health_ratio": 0.18,
+      "aggression": 0.86,
+      "utility": {
+        "attack": 100.0,
+        "advance": 76.0,
+        "retreat": 28.0,
+        "wait": 4.0
+      }
+    },
+    "ranged": {
+      "role": "ranged",
+      "attack_range_feet": 60,
+      "minimum_range_feet": 15,
+      "preferred_range_feet": 35,
+      "retreat_health_ratio": 0.24,
+      "aggression": 0.72,
+      "utility": {
+        "attack": 96.0,
+        "advance": 64.0,
+        "reposition": 92.0,
+        "retreat": 36.0,
+        "wait": 5.0
+      }
+    },
+    "defender": {
+      "role": "defender",
+      "attack_range_feet": 5,
+      "minimum_range_feet": 0,
+      "preferred_range_feet": 5,
+      "guard_radius_feet": 25,
+      "pursuit_leash_feet": 35,
+      "guard_return_tolerance_feet": 5,
+      "retreat_health_ratio": 0.1,
+      "aggression": 0.82,
+      "utility": {
+        "attack": 100.0,
+        "intercept": 84.0,
+        "guard": 66.0,
+        "retreat": 18.0,
+        "wait": 8.0
+      }
+    }
+  },
   "profiles": {
     "caretaker": {
       "actor_id": "caretaker",
       "role": "defender",
-      "preferred_range_feet": 5,
       "retreat_health_ratio": 0.12,
       "aggression": 0.9,
       "join_combat_on_alert": false,
       "combat_join_radius_feet": 0,
       "utility": {
-        "attack": 100.0,
-        "advance": 72.0,
+        "attack": 104.0,
+        "intercept": 88.0,
+        "guard": 72.0,
         "retreat": 18.0,
-        "wait": 4.0
+        "wait": 6.0
       }
     },
     "service_guard": {
       "actor_id": "service_guard",
-      "role": "guard",
-      "preferred_range_feet": 5,
+      "role": "melee",
       "retreat_health_ratio": 0.2,
       "aggression": 0.78,
       "join_combat_on_alert": true,
       "combat_join_radius_feet": 55,
       "utility": {
         "attack": 94.0,
-        "advance": 76.0,
-        "retreat": 30.0,
+        "advance": 80.0,
+        "retreat": 32.0,
         "wait": 8.0
       }
     }
