@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "encounters": {
+    "training_construct": {
+      "id": "training_construct",
+      "title": "Тренировочная цель",
+      "repeatable": false,
+      "combat_resolution_id": "destroyed",
+      "reward_id": "encounter_training_dummy_break",
+      "resolutions": {
+        "destroyed": {
+          "type": "combat",
+          "label": "Цель уничтожена",
+          "message": "Тренировочная цель разрушена.",
+          "set_flags": {
+            "training_construct_resolved": true,
+            "training_construct_destroyed": true
+          },
+          "items": [
+            {"item_id": "straw_scrap", "quantity": 1}
+          ]
+        },
+        "disabled": {
+          "type": "interaction",
+          "label": "Цель отключена",
+          "message": "Тренировочная цель безопасно отключена.",
+          "set_flags": {
+            "training_construct_resolved": true,
+            "training_construct_disabled": true
+          }
+        }
+      }
+    },
+    "caretaker_revelation": {
+      "id": "caretaker_revelation",
+      "title": "Тайна Смотрителя",
+      "repeatable": false,
+      "reward_id": "dialogue_caretaker_revelation",
+      "resolutions": {
+        "persuaded": {
+          "type": "dialogue",
+          "label": "Смотритель убеждён",
+          "message": "Смотритель добровольно рассказал о хранилище.",
+          "set_flags": {
+            "met_caretaker": true,
+            "caretaker_revelation_resolved": true,
+            "caretaker_convinced": true
+          }
+        },
+        "insight": {
+          "type": "dialogue",
+          "label": "Тайна замечена",
+          "message": "Поведение Смотрителя выдало связь с северной дверью.",
+          "set_flags": {
+            "met_caretaker": true,
+            "caretaker_revelation_resolved": true,
+            "caretaker_secret_noticed": true
+          }
+        },
+        "history": {
+          "type": "dialogue",
+          "label": "Символ опознан",
+          "message": "Символ хранителей памяти раскрыл происхождение Смотрителя.",
+          "set_flags": {
+            "met_caretaker": true,
+            "caretaker_revelation_resolved": true,
+            "keeper_symbol_known": true
+          }
+        },
+        "legacy_revelation": {
+          "type": "migration",
+          "label": "Ранее раскрытая тайна",
+          "message": "Результат восстановлен из старого сохранения.",
+          "set_flags": {
+            "met_caretaker": true,
+            "caretaker_revelation_resolved": true
+          }
+        }
+      }
+    }
+  }
+}

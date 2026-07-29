@@ -3,8 +3,7 @@ extends Node2D
 
 @export var armor_class: int = 10
 @export var maximum_health: int = 12
-@export var experience_reward: int = 25
-@export var experience_reward_id: String = "encounter_training_dummy_break"
+@export var encounter_id: String = "training_construct"
 
 @onready var visual: Node2D = $Visual
 @onready var health_label: Label = $HealthLabel
@@ -18,7 +17,6 @@ var _resetting: bool = false
 var _targeted: bool = false
 var _turn_active: bool = false
 var _combat_overlay_visible: bool = true
-var _experience_awarded_for_break: bool = false
 var _target_marker: Label
 var _turn_marker: Label
 
@@ -57,6 +55,10 @@ func attack_for_testing(natural_roll: int) -> AttackResult:
 
 func get_combat_name() -> String:
 	return "Тренировочное чучело"
+
+
+func get_encounter_id() -> String:
+	return encounter_id
 
 
 func get_current_health() -> int:
@@ -118,6 +120,7 @@ func receive_player_attack(result: AttackResult, show_interface: bool = true) ->
 	if _resetting:
 		result.note = "Чучело восстанавливается."
 		return
+	_begin_encounter()
 	if result.hit:
 		current_health = maxi(0, current_health - result.damage)
 		GameState.report_quest_event("hit_training_dummy")
@@ -131,8 +134,7 @@ func receive_player_attack(result: AttackResult, show_interface: bool = true) ->
 		get_tree().call_group("combat_ui", "show_result", result)
 	if current_health <= 0 and not _resetting:
 		_resetting = true
-		GameState.add_item("straw_scrap", 1, false)
-		_award_break_experience()
+		_resolve_destroyed_encounter()
 		GameState.save_game()
 		_schedule_reset.call_deferred()
 
@@ -158,7 +160,6 @@ func receive_signature_ability(ability: Dictionary, show_interface: bool = true,
 func reset_combat_state(full_restore: bool = true) -> void:
 	_resetting = false
 	_turn_active = false
-	_experience_awarded_for_break = false
 	if full_restore:
 		current_health = maximum_health
 	visual.rotation_degrees = 0.0
@@ -167,34 +168,49 @@ func reset_combat_state(full_restore: bool = true) -> void:
 	_update_health_label()
 
 
-func _award_break_experience() -> void:
-	if _experience_awarded_for_break or experience_reward_id.is_empty():
+func _begin_encounter() -> void:
+	if encounter_id.is_empty() or not GameState.has_method("begin_encounter"):
 		return
-	_experience_awarded_for_break = true
-	if not GameState.has_method("grant_experience_reward"):
-		get_tree().call_group("game_world", "show_combat_message", "Система наград опыта недоступна.", true)
-		return
-	var reward_result: Dictionary = GameState.call(
-		"grant_experience_reward",
-		experience_reward_id,
+	GameState.call(
+		"begin_encounter",
+		encounter_id,
 		{
-			"source_type": "encounter",
+			"source_type": "combat_target",
 			"source_id": "training_dummy",
-			"encounter_id": "training_dummy"
+			"target_name": get_combat_name()
+		},
+		false,
+		true
+	)
+
+
+func _resolve_destroyed_encounter() -> void:
+	if encounter_id.is_empty() or not GameState.has_method("resolve_encounter"):
+		get_tree().call_group("game_world", "show_combat_message", "Система столкновений недоступна.", false)
+		return
+	var result: Dictionary = GameState.call(
+		"resolve_encounter",
+		encounter_id,
+		"destroyed",
+		{
+			"source_type": "combat",
+			"source_id": "training_dummy",
+			"target_name": get_combat_name()
 		},
 		false,
 		true
 	) as Dictionary
 	var message: String
-	if bool(reward_result.get("success", false)):
-		message = "+%d опыта за тренировочную цель." % int(reward_result.get("experience_gained", 0))
-		if bool(reward_result.get("level_up_available", false)):
-			message += " Доступно повышение уровня."
-	elif bool(reward_result.get("duplicate", false)):
-		message = "Опыт за тренировочную цель уже был получен."
+	if bool(result.get("success", false)):
+		message = str(result.get("message", "Тренировочная цель разрушена."))
+		var reward_result: Dictionary = result.get("reward_result", {}) as Dictionary
+		if bool(reward_result.get("success", false)):
+			message += " +%d опыта." % int(reward_result.get("experience_gained", 0))
+	elif bool(result.get("duplicate", false)):
+		message = "Столкновение с тренировочной целью уже было разрешено; повторных наград нет."
 	else:
-		message = str(reward_result.get("message", "Награда опыта не выдана."))
-	get_tree().call_group("game_world", "show_combat_message", message, true)
+		message = str(result.get("message", "Столкновение не удалось завершить."))
+	get_tree().call_group("game_world", "show_combat_message", message, bool(result.get("success", false)))
 
 
 func _schedule_reset() -> void:

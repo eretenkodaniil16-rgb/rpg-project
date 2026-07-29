@@ -75,8 +75,29 @@ func _on_choice_pressed(choice_data: Dictionary) -> void:
 		for flag_name: Variant in flag_changes.keys():
 			GameState.set_flag(str(flag_name), flag_changes[flag_name])
 
+	var encounter_handled: bool = false
+	var encounter_id: String = str(choice_data.get("encounter_id", ""))
+	var resolution_id: String = str(choice_data.get("resolution_id", ""))
+	if not encounter_id.is_empty() and not resolution_id.is_empty() and GameState.has_method("resolve_encounter"):
+		var encounter_result: Dictionary = GameState.call(
+			"resolve_encounter",
+			encounter_id,
+			resolution_id,
+			{
+				"source_type": "dialogue",
+				"source_id": _dialogue_id,
+				"dialogue_id": _dialogue_id,
+				"speaker": speaker_label.text
+			},
+			false,
+			true
+		) as Dictionary
+		encounter_handled = bool(encounter_result.get("success", false)) or bool(encounter_result.get("duplicate", false))
+		if not encounter_handled:
+			push_warning("Не удалось разрешить столкновение %s: %s" % [encounter_id, str(encounter_result.get("message", "неизвестная ошибка"))])
+
 	var reward_id: String = str(choice_data.get("reward_id", ""))
-	if not reward_id.is_empty() and GameState.has_method("grant_experience_reward"):
+	if not encounter_handled and not reward_id.is_empty() and GameState.has_method("grant_experience_reward"):
 		GameState.call(
 			"grant_experience_reward",
 			reward_id,
