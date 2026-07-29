@@ -48,10 +48,10 @@ func set_interaction_action(is_visible: bool, action_description: String, mobile
 	_interaction_action_available = is_visible
 	if is_visible:
 		if _uses_touch_controls():
-			interaction_label.text = "Нажмите %s, чтобы %s" % [mobile_button_text, action_description]
+			interaction_label.text = "Откройте ДЕЙСТВИЯ, чтобы %s" % action_description
 		else:
 			interaction_label.text = "Нажмите Enter или Пробел, чтобы %s" % action_description
-	mobile_action_button.text = mobile_button_text if is_visible else "ДЕЙСТВИЕ"
+	mobile_action_button.text = "ДЕЙСТВИЯ"
 	_refresh_interaction_ui()
 
 
@@ -67,9 +67,10 @@ func is_interaction_action_available() -> bool:
 
 
 func _refresh_interaction_ui() -> void:
-	var should_show: bool = _interaction_action_available and not _interaction_suppressed and not GameState.input_locked
-	interaction_label.visible = should_show
-	mobile_action_button.visible = should_show and _uses_touch_controls()
+	var hint_visible: bool = _interaction_action_available and not _interaction_suppressed and not GameState.input_locked
+	interaction_label.visible = hint_visible
+	mobile_action_button.text = "ДЕЙСТВИЯ"
+	mobile_action_button.visible = _uses_touch_controls() and not GameState.input_locked
 
 
 func _on_dialogue_closed() -> void:
@@ -79,7 +80,7 @@ func _on_dialogue_closed() -> void:
 
 func _configure_platform_prompts() -> void:
 	if _uses_touch_controls():
-		help_label.text = "Движение задаёт направление · ЦЕЛЬ: выбор/сброс · Без цели ВЫСТРЕЛ летит вперёд"
+		help_label.text = "Движение задаёт направление · ЦЕЛЬ: выбор/сброс · ДЕЙСТВИЯ: доступные варианты"
 	else:
 		help_label.text = "Стрелки: движение/направление · Tab: цель/сброс · F: атака или свободный выстрел"
 
