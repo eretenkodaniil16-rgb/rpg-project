@@ -6,11 +6,13 @@ const COMBAT_FEED_SCRIPT: Script = preload("res://scripts/ui/combat_event_feed.g
 const D20_OVERLAY_SCRIPT: Script = preload("res://scripts/ui/d20_roll_overlay.gd")
 const PLAYER_STATUS_HUD_SCRIPT: Script = preload("res://scripts/ui/player_status_hud.gd")
 const LEVEL_UP_PANEL_SCRIPT: Script = preload("res://scripts/ui/level_up_panel.gd")
+const EXPERIENCE_TOAST_SCRIPT: Script = preload("res://scripts/ui/experience_reward_toast.gd")
 
 var _combat_feed: CombatEventFeed
 var _d20_overlay: D20RollOverlay
 var _player_status_hud: PlayerStatusHud
 var _level_up_panel: LevelUpPanel
+var _experience_reward_toast: ExperienceRewardToast
 var _level_up_system: LevelUpSystem = LevelUpSystem.new()
 
 
@@ -54,6 +56,9 @@ func _ready() -> void:
 	_level_up_panel.name = "LevelUpPanel"
 	_level_up_panel.level_up_completed.connect(_on_level_up_completed)
 	$Interface.add_child(_level_up_panel)
+	_experience_reward_toast = EXPERIENCE_TOAST_SCRIPT.new() as ExperienceRewardToast
+	_experience_reward_toast.name = "ExperienceRewardToast"
+	$Interface.add_child(_experience_reward_toast)
 	_register_exploration_hud()
 	_add_exploration_hud_node(_player_status_hud)
 	_sync_exploration_hud_visibility()

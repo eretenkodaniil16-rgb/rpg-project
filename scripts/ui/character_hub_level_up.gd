@@ -6,6 +6,15 @@ signal level_up_requested
 var _level_up_system: LevelUpSystem = LevelUpSystem.new()
 
 
+func _ready() -> void:
+	super._ready()
+	var state: Node = _game_state()
+	if state != null and state.has_signal("experience_gained"):
+		var callback := Callable(self, "_on_experience_gained")
+		if not state.is_connected("experience_gained", callback):
+			state.connect("experience_gained", callback)
+
+
 func _refresh_character() -> void:
 	var state: Node = _game_state()
 	if state != null:
@@ -38,3 +47,8 @@ func _refresh_character() -> void:
 
 func _request_level_up() -> void:
 	level_up_requested.emit()
+
+
+func _on_experience_gained(_reward_id: String, _amount: int, _total_experience: int, _label: String) -> void:
+	if visible and _hero != null:
+		_refresh_all()

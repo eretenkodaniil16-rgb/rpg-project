@@ -9,12 +9,14 @@ signal attack_requested(target: Node)
 @onready var choices_container: VBoxContainer = $BottomPanel/MarginContainer/VBoxContainer/Choices
 
 var _dialogue_target: Node = null
+var _dialogue_id: String = ""
 
 
 func start_dialogue(dialogue_data: Dictionary, dialogue_target: Node = null) -> void:
 	if dialogue_data.is_empty():
 		return
 
+	_dialogue_id = str(dialogue_data.get("id", ""))
 	_dialogue_target = _resolve_dialogue_target(dialogue_data, dialogue_target)
 	GameState.input_locked = true
 	speaker_label.text = str(dialogue_data.get("speaker", "Неизвестный"))
@@ -72,6 +74,20 @@ func _on_choice_pressed(choice_data: Dictionary) -> void:
 	if flag_changes is Dictionary:
 		for flag_name: Variant in flag_changes.keys():
 			GameState.set_flag(str(flag_name), flag_changes[flag_name])
+
+	var reward_id: String = str(choice_data.get("reward_id", ""))
+	if not reward_id.is_empty() and GameState.has_method("grant_experience_reward"):
+		GameState.call(
+			"grant_experience_reward",
+			reward_id,
+			{
+				"source_type": "dialogue",
+				"source_id": _dialogue_id,
+				"dialogue_id": _dialogue_id
+			},
+			false,
+			true
+		)
 
 	text_label.text = str(choice_data.get("response", "Разговор завершён."))
 	_clear_choices()
@@ -149,6 +165,7 @@ func _clear_choices() -> void:
 
 func _close_dialogue() -> void:
 	_dialogue_target = null
+	_dialogue_id = ""
 	GameState.input_locked = false
 	hide()
 	dialogue_closed.emit()

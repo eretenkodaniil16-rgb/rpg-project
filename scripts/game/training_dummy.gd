@@ -4,6 +4,7 @@ extends Node2D
 @export var armor_class: int = 10
 @export var maximum_health: int = 12
 @export var experience_reward: int = 25
+@export var experience_reward_id: String = "encounter_training_dummy_break"
 
 @onready var visual: Node2D = $Visual
 @onready var health_label: Label = $HealthLabel
@@ -167,17 +168,32 @@ func reset_combat_state(full_restore: bool = true) -> void:
 
 
 func _award_break_experience() -> void:
-	if _experience_awarded_for_break or experience_reward <= 0:
+	if _experience_awarded_for_break or experience_reward_id.is_empty():
 		return
 	_experience_awarded_for_break = true
-	var progression: Dictionary = ProgressionSystem.grant_experience(GameState.player_character, experience_reward)
-	var message: String = "+%d опыта за тренировочную цель." % int(progression.get("experience_gained", 0))
-	var levels_gained: int = int(progression.get("levels_gained", 0))
-	if levels_gained > 0:
-		message += " Новый уровень: %d. Максимум здоровья увеличен на %d." % [
-			GameState.player_character.level,
-			int(progression.get("health_gained", 0))
-		]
+	if not GameState.has_method("grant_experience_reward"):
+		get_tree().call_group("game_world", "show_combat_message", "Система наград опыта недоступна.", true)
+		return
+	var reward_result: Dictionary = GameState.call(
+		"grant_experience_reward",
+		experience_reward_id,
+		{
+			"source_type": "encounter",
+			"source_id": "training_dummy",
+			"encounter_id": "training_dummy"
+		},
+		false,
+		true
+	) as Dictionary
+	var message: String
+	if bool(reward_result.get("success", false)):
+		message = "+%d опыта за тренировочную цель." % int(reward_result.get("experience_gained", 0))
+		if bool(reward_result.get("level_up_available", false)):
+			message += " Доступно повышение уровня."
+	elif bool(reward_result.get("duplicate", false)):
+		message = "Опыт за тренировочную цель уже был получен."
+	else:
+		message = str(reward_result.get("message", "Награда опыта не выдана."))
 	get_tree().call_group("game_world", "show_combat_message", message, true)
 
 

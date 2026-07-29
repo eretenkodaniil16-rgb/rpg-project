@@ -20,12 +20,17 @@ func _run() -> void:
 	var visual_controller: DialogueVisualController = dialogue.call("get_visual_controller_for_testing") as DialogueVisualController
 	assert(visual_controller != null)
 	var test_dialogue: Dictionary = {
+		"id": "reward_dialogue_smoke",
 		"speaker": "Смотритель",
 		"text": "Проверка интеграции",
 		"choices": [{
 			"text": "[Сила] Проверить",
 			"check": {"ability": "strength", "difficulty": 1},
-			"success": {"response": "Успех", "set_flags": {"check_success": true}},
+			"success": {
+				"response": "Успех",
+				"set_flags": {"check_success": true},
+				"reward_id": "dialogue_caretaker_revelation"
+			},
 			"failure": {"response": "Неудача"}
 		}]
 	}
@@ -53,6 +58,8 @@ func _run() -> void:
 	popup.call("_on_continue_pressed")
 	await process_frame
 	assert(bool(state.call("get_flag", "check_success", false)))
+	assert(int((state.get("player_character") as PlayerCharacter).experience) == 25)
+	assert(bool(state.call("has_claimed_experience_reward", "dialogue_caretaker_revelation")))
 
 	var context_button: Button = visual_controller.get_context_button_for_testing()
 	assert(context_button != null)
@@ -67,5 +74,5 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 	assert(not context_button.visible)
-	print("Checked dialogue, portrait and combat HUD smoke test passed.")
+	print("Checked dialogue, reward, portrait and combat HUD smoke test passed.")
 	quit(0)
