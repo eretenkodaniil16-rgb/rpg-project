@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "role_profiles": {
     "melee": {
       "role": "melee",
@@ -7,10 +7,29 @@
       "minimum_range_feet": 0,
       "preferred_range_feet": 5,
       "retreat_health_ratio": 0.18,
+      "outnumbered_retreat_health_ratio": 0.45,
+      "retreat_when_outnumbered": true,
       "aggression": 0.86,
+      "morale": 0.72,
+      "memory_rounds": 2,
+      "shares_target_information": true,
+      "spacing_feet": 5,
+      "position_weights": {
+        "attack_ready": 130.0,
+        "approach": 1.6,
+        "line_of_sight": 18.0,
+        "mobility": 1.2,
+        "movement_cost": 0.06,
+        "ally_spacing": 1.2,
+        "retreat_distance": 1.8,
+        "retreat_mobility": 2.2,
+        "search": 1.7,
+        "reacquire_target": 150.0
+      },
       "utility": {
         "attack": 100.0,
         "advance": 76.0,
+        "search": 68.0,
         "retreat": 28.0,
         "wait": 4.0
       }
@@ -21,11 +40,33 @@
       "minimum_range_feet": 15,
       "preferred_range_feet": 35,
       "retreat_health_ratio": 0.24,
+      "outnumbered_retreat_health_ratio": 0.6,
+      "retreat_when_outnumbered": true,
       "aggression": 0.72,
+      "morale": 0.62,
+      "memory_rounds": 3,
+      "shares_target_information": true,
+      "spacing_feet": 10,
+      "position_weights": {
+        "attack_ready": 118.0,
+        "mobile_attack": 72.0,
+        "approach": 1.05,
+        "create_distance": 2.8,
+        "range_error": 1.15,
+        "line_of_sight": 32.0,
+        "mobility": 2.0,
+        "movement_cost": 0.05,
+        "ally_spacing": 2.8,
+        "retreat_distance": 2.1,
+        "retreat_mobility": 2.8,
+        "search": 1.5,
+        "reacquire_target": 165.0
+      },
       "utility": {
         "attack": 96.0,
         "advance": 64.0,
         "reposition": 92.0,
+        "search": 72.0,
         "retreat": 36.0,
         "wait": 5.0
       }
@@ -39,10 +80,30 @@
       "pursuit_leash_feet": 35,
       "guard_return_tolerance_feet": 5,
       "retreat_health_ratio": 0.1,
+      "outnumbered_retreat_health_ratio": 0.3,
+      "retreat_when_outnumbered": false,
       "aggression": 0.82,
+      "morale": 0.9,
+      "memory_rounds": 2,
+      "shares_target_information": true,
+      "spacing_feet": 5,
+      "position_weights": {
+        "attack_ready": 128.0,
+        "approach": 1.45,
+        "guard_return": 2.8,
+        "line_of_sight": 20.0,
+        "mobility": 1.4,
+        "movement_cost": 0.05,
+        "ally_spacing": 1.4,
+        "retreat_distance": 1.3,
+        "retreat_mobility": 1.5,
+        "search": 1.8,
+        "reacquire_target": 145.0
+      },
       "utility": {
         "attack": 100.0,
         "intercept": 84.0,
+        "search": 66.0,
         "guard": 66.0,
         "retreat": 18.0,
         "wait": 8.0
@@ -53,13 +114,16 @@
     "caretaker": {
       "actor_id": "caretaker",
       "role": "defender",
+      "squad_id": "vault_watch",
       "retreat_health_ratio": 0.12,
       "aggression": 0.9,
+      "morale": 0.95,
       "join_combat_on_alert": false,
       "combat_join_radius_feet": 0,
       "utility": {
         "attack": 104.0,
         "intercept": 88.0,
+        "search": 70.0,
         "guard": 72.0,
         "retreat": 18.0,
         "wait": 6.0
@@ -68,15 +132,38 @@
     "service_guard": {
       "actor_id": "service_guard",
       "role": "melee",
+      "squad_id": "vault_watch",
       "retreat_health_ratio": 0.2,
       "aggression": 0.78,
+      "morale": 0.7,
       "join_combat_on_alert": true,
       "combat_join_radius_feet": 55,
       "utility": {
         "attack": 94.0,
         "advance": 80.0,
+        "search": 72.0,
         "retreat": 32.0,
         "wait": 8.0
+      }
+    },
+    "training_marksman": {
+      "actor_id": "training_marksman",
+      "role": "ranged",
+      "squad_id": "vault_watch",
+      "attack_range_feet": 60,
+      "minimum_range_feet": 15,
+      "preferred_range_feet": 35,
+      "aggression": 0.68,
+      "morale": 0.58,
+      "join_combat_on_alert": false,
+      "combat_join_radius_feet": 0,
+      "utility": {
+        "attack": 98.0,
+        "advance": 62.0,
+        "reposition": 98.0,
+        "search": 76.0,
+        "retreat": 38.0,
+        "wait": 5.0
       }
     }
   }
