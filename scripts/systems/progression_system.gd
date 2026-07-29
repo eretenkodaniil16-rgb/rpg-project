@@ -1,28 +1,91 @@
 class_name ProgressionSystem
 extends RefCounted
 
-const EXPERIENCE_STEP: int = 100
+const MAX_LEVEL: int = 20
+
+# SRD 5.2.1 cumulative XP thresholds for character levels 1–20.
+const EXPERIENCE_THRESHOLDS: Array[int] = [
+	0,
+	300,
+	900,
+	2700,
+	6500,
+	14000,
+	23000,
+	34000,
+	48000,
+	64000,
+	85000,
+	100000,
+	120000,
+	140000,
+	165000,
+	195000,
+	225000,
+	265000,
+	305000,
+	355000
+]
 
 
 static func total_experience_for_level(level: int) -> int:
-	var safe_level: int = maxi(level, 1)
-	return floori(float(EXPERIENCE_STEP * (safe_level - 1) * safe_level) / 2.0)
+	var safe_level: int = clampi(level, 1, MAX_LEVEL)
+	return EXPERIENCE_THRESHOLDS[safe_level - 1]
+
+
+static func level_for_experience(experience: int) -> int:
+	var safe_experience: int = maxi(experience, 0)
+	for level: int in range(MAX_LEVEL, 0, -1):
+		if safe_experience >= total_experience_for_level(level):
+			return level
+	return 1
+
+
+static func can_level_up(character: PlayerCharacter) -> bool:
+	return (
+		character != null
+		and character.level < MAX_LEVEL
+		and character.experience >= total_experience_for_level(character.level + 1)
+	)
+
+
+static func pending_level_count(character: PlayerCharacter) -> int:
+	if character == null:
+		return 0
+	return maxi(level_for_experience(character.experience) - character.level, 0)
 
 
 static func experience_required_for_next_level(character: PlayerCharacter) -> int:
 	if character == null:
-		return EXPERIENCE_STEP
-	return total_experience_for_level(character.level + 1) - total_experience_for_level(character.level)
+		return total_experience_for_level(2)
+	if character.level >= MAX_LEVEL:
+		return 0
+	return (
+		total_experience_for_level(character.level + 1)
+		- total_experience_for_level(character.level)
+	)
 
 
 static func experience_progress_in_level(character: PlayerCharacter) -> int:
 	if character == null:
 		return 0
-	return maxi(character.experience - total_experience_for_level(character.level), 0)
+	if character.level >= MAX_LEVEL:
+		return 0
+	var required: int = experience_required_for_next_level(character)
+	return clampi(
+		character.experience - total_experience_for_level(character.level),
+		0,
+		required
+	)
 
 
 static func experience_remaining(character: PlayerCharacter) -> int:
-	return maxi(experience_required_for_next_level(character) - experience_progress_in_level(character), 0)
+	if character == null or character.level >= MAX_LEVEL:
+		return 0
+	return maxi(
+		total_experience_for_level(character.level + 1) - character.experience,
+		0
+	)
 
 
 static func grant_experience(character: PlayerCharacter, amount: int) -> Dictionary:
@@ -30,44 +93,20 @@ static func grant_experience(character: PlayerCharacter, amount: int) -> Diction
 		return {
 			"experience_gained": 0,
 			"levels_gained": 0,
-			"health_gained": 0,
+			"level_up_available": can_level_up(character),
+			"pending_level_count": pending_level_count(character),
 			"level": character.level if character != null else 1
 		}
 
-	var starting_level: int = character.level
-	var total_health_gained: int = 0
 	character.experience += amount
-
-	while character.experience >= total_experience_for_level(character.level + 1):
-		character.level += 1
-		var health_gain: int = _health_gain_for_level(character)
-		character.maximum_health += health_gain
-		character.current_health = mini(character.current_health + health_gain, character.maximum_health)
-		total_health_gained += health_gain
-
-	character.hit_dice_maximum = maxi(character.level, 1)
-	character.hit_dice_current = clampi(
-		character.hit_dice_current + character.level - starting_level,
-		0,
-		character.hit_dice_maximum
-	)
-
 	return {
 		"experience_gained": amount,
-		"levels_gained": character.level - starting_level,
-		"health_gained": total_health_gained,
+		"levels_gained": 0,
+		"level_up_available": can_level_up(character),
+		"pending_level_count": pending_level_count(character),
 		"level": character.level,
 		"experience": character.experience,
 		"progress": experience_progress_in_level(character),
-		"required": experience_required_for_next_level(character)
+		"required": experience_required_for_next_level(character),
+		"remaining": experience_remaining(character)
 	}
-
-
-static func _health_gain_for_level(character: PlayerCharacter) -> int:
-	var average_hit_die: int = floori(float(maxi(character.hit_die_size, 2)) * 0.5) + 1
-	var constitution_bonus: int = character.get_ability_modifier("constitution")
-	var racial_bonus: int = 0
-	var race: Dictionary = RaceDataSystem.new().get_race(character.race_id)
-	if not race.is_empty():
-		racial_bonus = maxi(int(race.get("hp_bonus_per_level", 0)), 0)
-	return maxi(average_hit_die + constitution_bonus + racial_bonus, 1)

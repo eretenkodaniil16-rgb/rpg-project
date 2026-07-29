@@ -1,18 +1,22 @@
 extends "res://scripts/game/game_target_free_attacks.gd"
 
 const PREPARED_PANEL_SCRIPT: Script = preload("res://scripts/ui/prepared_action_panel.gd")
-const CHARACTER_HUB_SCRIPT: Script = preload("res://scripts/ui/character_hub_inventory.gd")
+const CHARACTER_HUB_SCRIPT: Script = preload("res://scripts/ui/character_hub_level_up.gd")
 const COMBAT_FEED_SCRIPT: Script = preload("res://scripts/ui/combat_event_feed.gd")
 const D20_OVERLAY_SCRIPT: Script = preload("res://scripts/ui/d20_roll_overlay.gd")
 const PLAYER_STATUS_HUD_SCRIPT: Script = preload("res://scripts/ui/player_status_hud.gd")
+const LEVEL_UP_PANEL_SCRIPT: Script = preload("res://scripts/ui/level_up_panel.gd")
 
 var _combat_feed: CombatEventFeed
 var _d20_overlay: D20RollOverlay
 var _player_status_hud: PlayerStatusHud
+var _level_up_panel: LevelUpPanel
+var _level_up_system: LevelUpSystem = LevelUpSystem.new()
 
 
 func _ready() -> void:
 	super._ready()
+	_level_up_system.ensure_migrated(GameState.player_character, GameState)
 	_remove_duplicate_inventory_menu()
 	_separate_mobile_combat_buttons()
 	_compact_world_labels()
@@ -20,10 +24,11 @@ func _ready() -> void:
 	var old_sheet: CharacterSheet = _character_sheet
 	if old_sheet != null:
 		old_sheet.queue_free()
-	var hub: CharacterHub = CHARACTER_HUB_SCRIPT.new() as CharacterHub
+	var hub: CharacterHubLevelUp = CHARACTER_HUB_SCRIPT.new() as CharacterHubLevelUp
 	hub.name = "CharacterHub"
 	hub.rest_completed.connect(_on_rest_completed)
 	hub.prepared_action_changed.connect(_on_prepared_action_changed)
+	hub.level_up_requested.connect(_open_level_up)
 	$Interface.add_child(hub)
 	_character_sheet = hub
 	var old_panel: AbilityPanel = _ability_panel
@@ -45,6 +50,10 @@ func _ready() -> void:
 	_combat_feed = COMBAT_FEED_SCRIPT.new() as CombatEventFeed
 	_combat_feed.name = "CombatEventFeed"
 	$Interface.add_child(_combat_feed)
+	_level_up_panel = LEVEL_UP_PANEL_SCRIPT.new() as LevelUpPanel
+	_level_up_panel.name = "LevelUpPanel"
+	_level_up_panel.level_up_completed.connect(_on_level_up_completed)
+	$Interface.add_child(_level_up_panel)
 	_register_exploration_hud()
 	_add_exploration_hud_node(_player_status_hud)
 	_sync_exploration_hud_visibility()
@@ -145,6 +154,27 @@ func _open_inventory() -> void:
 		hub.open_tab(GameState.player_character, 1)
 	else:
 		super._open_inventory()
+	_sync_exploration_hud_visibility()
+
+
+func _open_level_up() -> void:
+	if _level_up_panel == null:
+		return
+	var hub: CharacterHub = _character_sheet as CharacterHub
+	if hub != null and hub.visible:
+		hub.close_sheet()
+	_level_up_panel.open_for(GameState.player_character, GameState)
+	_sync_exploration_hud_visibility()
+
+
+func _on_level_up_completed(_result: Dictionary) -> void:
+	if _player_status_hud != null:
+		_player_status_hud.bind_character(GameState.player_character)
+	if _ability_panel != null:
+		_ability_panel.bind_character(GameState.player_character)
+	var hub: CharacterHub = _character_sheet as CharacterHub
+	if hub != null:
+		hub.open_tab(GameState.player_character, 0)
 	_sync_exploration_hud_visibility()
 
 
