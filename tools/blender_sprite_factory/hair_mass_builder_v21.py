@@ -143,7 +143,6 @@ def _stamp_side_nape_contract() -> None:
 def apply_side_nape_volume_pass(
     context: factory.BuildContext,
 ) -> dict[str, tuple[float, float, float]]:
-    applied_rotations = previous_builder.apply_dense_crown_restoration_pass(context)
     crown, previous_names, previous_scales = _assert_proxy_v23_state()
     crown_coordinates_before = _coordinates(crown)
 
@@ -178,4 +177,4 @@ def apply_side_nape_volume_pass(
         if any(value <= 0.0 for value in obj.scale):
             raise RuntimeError(f"Hair object has non-positive scale: {name}")
 
-    return dict(applied_rotations)
+    return dict(HAIR_ROTATION_OVERRIDES_DEGREES)
