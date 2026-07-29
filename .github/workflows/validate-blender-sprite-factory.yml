@@ -85,10 +85,14 @@ jobs:
           echo "Contract, scripts and textures are validated here."
           echo "A real Blender 5.2 LTS render is required before any frame can be approved."
 
-  render-walk-down-v04:
+  # Historical approved stage retained in source history:
+  # render-walk-down-v04
+  # blender_sprite_factory_walk_down_v04.py
+  # human_warrior_m01_proxy_v25_appearance_v03_walk_down_v04_
+  render-walk-left-v01:
     if: github.event_name == 'pull_request' && github.head_ref == 'tools/blender-sprite-pilot'
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 45
 
     steps:
       - name: Checkout repository
@@ -127,18 +131,18 @@ jobs:
             --background \
             --factory-startup \
             --python-exit-code 1 \
-            --python tools/blender_sprite_factory/blender_sprite_factory_walk_down_v04.py \
+            --python tools/blender_sprite_factory/blender_sprite_factory_walk_left_v01.py \
             -- \
             --repo-root "$GITHUB_WORKSPACE" \
             --config tools/blender_sprite_factory/configs/human_warrior_m01.json \
             --run-id "$run_id" \
             --mode all 2>&1 | tee blender_pilot.log
 
-      - name: Upload walk_down v04 run and diagnostics
+      - name: Upload walk_left v01 run and diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: human_warrior_m01_proxy_v25_appearance_v03_walk_down_v04_${{ github.run_id }}_${{ github.run_attempt }}
+          name: human_warrior_m01_proxy_v25_appearance_v03_walk_down_v04_walk_left_v01_${{ github.run_id }}_${{ github.run_attempt }}
           path: |
             art/blender_pipeline_runs/human_warrior_m01/**
             blender_pilot.log
