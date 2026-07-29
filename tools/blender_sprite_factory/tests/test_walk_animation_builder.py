@@ -29,16 +29,16 @@ class WalkAnimationBuilderTests(unittest.TestCase):
 
     def test_walk_action_contains_full_body_channels(self) -> None:
         for channel in (
-            'pose.bones[\\"pelvis\\"].location',
-            'pose.bones[\\"pelvis\\"].rotation_euler',
-            'pose.bones[\\"spine\\"].rotation_euler',
-            'pose.bones[\\"chest\\"].rotation_euler',
-            'pose.bones[\\"head\\"].rotation_euler',
-            'pose.bones[\\"foot.L\\"].rotation_euler',
-            'pose.bones[\\"foot.R\\"].rotation_euler',
-            'pose.bones[\\"cloth.L\\"].rotation_euler',
-            'pose.bones[\\"cloth.C\\"].rotation_euler',
-            'pose.bones[\\"cloth.R\\"].rotation_euler',
+            'pose.bones["pelvis"].location',
+            'pose.bones["pelvis"].rotation_euler',
+            'pose.bones["spine"].rotation_euler',
+            'pose.bones["chest"].rotation_euler',
+            'pose.bones["head"].rotation_euler',
+            'pose.bones["foot.L"].rotation_euler',
+            'pose.bones["foot.R"].rotation_euler',
+            'pose.bones["cloth.L"].rotation_euler',
+            'pose.bones["cloth.C"].rotation_euler',
+            'pose.bones["cloth.R"].rotation_euler',
         ):
             self.assertIn(channel, self.builder_source)
 
