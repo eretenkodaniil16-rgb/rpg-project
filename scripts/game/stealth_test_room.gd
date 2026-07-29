@@ -2,8 +2,12 @@ class_name StealthTestRoom
 extends Node2D
 
 const DOOR_SCRIPT: Script = preload("res://scripts/game/stealth_door.gd")
+const PATROL_OBSERVER_SCRIPT: Script = preload("res://scripts/game/stealth_patrol_observer.gd")
+const PATROL_SYSTEM_SCRIPT: Script = preload("res://scripts/systems/patrol_alert_group_system.gd")
 
 var _door: StealthDoor
+var _patrol_observer: StealthPatrolObserver
+var _patrol_data: PatrolAlertGroupSystem = PATROL_SYSTEM_SCRIPT.new() as PatrolAlertGroupSystem
 
 
 func _ready() -> void:
@@ -16,11 +20,27 @@ func _ready() -> void:
 	_door.door_label = "Дверь служебной комнаты"
 	_door.door_size = Vector2(36.0, 120.0)
 	add_child(_door)
+	_build_patrol_observer()
 	queue_redraw()
 
 
 func get_test_door() -> StealthDoor:
 	return _door
+
+
+func get_patrol_observer() -> StealthPatrolObserver:
+	return _patrol_observer
+
+
+func _build_patrol_observer() -> void:
+	_patrol_observer = PATROL_OBSERVER_SCRIPT.new() as StealthPatrolObserver
+	_patrol_observer.name = "ServiceGuard"
+	_patrol_observer.actor_id = "service_guard"
+	_patrol_observer.display_name = "Служебный дозорный"
+	_patrol_observer.default_facing_direction = Vector2.RIGHT
+	add_child(_patrol_observer)
+	var initial_position: Vector2 = _patrol_data.get_initial_patrol_position("service_guard")
+	_patrol_observer.global_position = initial_position if initial_position != Vector2.ZERO else Vector2(760.0, 160.0)
 
 
 func _build_wall(node_name: String, local_position: Vector2, wall_size: Vector2) -> void:

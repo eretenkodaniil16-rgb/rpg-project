@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "actors": {
+    "caretaker": {
+      "actor_id": "caretaker",
+      "alert_group_id": "vault_watch",
+      "patrol_id": "",
+      "can_start_combat": true,
+      "participates_in_combat": true
+    },
+    "service_guard": {
+      "actor_id": "service_guard",
+      "alert_group_id": "vault_watch",
+      "patrol_id": "main_hall_service_loop",
+      "patrol_speed_pixels": 74.0,
+      "can_start_combat": false,
+      "participates_in_combat": false
+    }
+  },
+  "alert_groups": {
+    "vault_watch": {
+      "id": "vault_watch",
+      "label": "Дозор хранилища",
+      "relay_radius_feet": 55,
+      "relay_suspicion": 72.0,
+      "relay_state": "investigating"
+    }
+  },
+  "patrol_routes": {
+    "main_hall_service_loop": {
+      "id": "main_hall_service_loop",
+      "loop_mode": "ping_pong",
+      "waypoint_reached_distance_pixels": 10.0,
+      "waypoints": [
+        {"position": [760.0, 160.0], "wait_seconds": 0.8, "facing": [1.0, 0.0]},
+        {"position": [1080.0, 160.0], "wait_seconds": 1.0, "facing": [0.0, 1.0]},
+        {"position": [1080.0, 560.0], "wait_seconds": 1.0, "facing": [-1.0, 0.0]},
+        {"position": [760.0, 560.0], "wait_seconds": 0.8, "facing": [0.0, -1.0]}
+      ]
+    }
+  }
+}
