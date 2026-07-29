@@ -1,7 +1,7 @@
 extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
-const RUNTIME_PATH: String = "res://scripts/game/game_pursuit_escape_runtime.gd"
+const RUNTIME_PATH: String = "res://scripts/game/game_combat_ai_runtime.gd"
 const ENCOUNTER_ID: String = "training_construct"
 
 var _failed: bool = false
@@ -38,7 +38,7 @@ func _run() -> void:
 	for _frame: int in range(7):
 		await process_frame
 	if str(game.get_script().resource_path) != RUNTIME_PATH:
-		_fail("Game scene does not use the pursuit escape runtime.")
+		_fail("Game scene does not use the Combat AI runtime layered above pursuit escape.")
 		return
 
 	var player: Node2D = game.get_node_or_null("Player") as Node2D
