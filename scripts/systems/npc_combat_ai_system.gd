@@ -78,7 +78,7 @@ func choose_role_intent(role_id: String, context: Dictionary, overrides: Diction
 	return _choose_profile_intent(profile, context)
 
 
-func score_candidate_position(intent_id: String, profile: Dictionary, context: Dictionary, candidate: Dictionary) -> float:
+func score_candidate_position(intent_id: String, profile: Dictionary, _context: Dictionary, candidate: Dictionary) -> float:
 	if not bool(candidate.get("valid", true)):
 		return BLOCKED_SCORE
 	var role_id: String = str(profile.get("role", ROLE_MELEE))
@@ -129,10 +129,10 @@ func score_candidate_position(intent_id: String, profile: Dictionary, context: D
 				score += float(weights.get("attack_ready", 120.0))
 		INTENT_REPOSITION:
 			if distance_feet < minimum_range_feet:
-				score += float(distance_feet) * float(weights.get("create_distance", 2.2))
+				score -= float(minimum_range_feet - distance_feet) * float(weights.get("create_distance", 2.2))
 			else:
 				score -= absf(float(distance_feet - preferred_range_feet)) * float(weights.get("range_error", 0.8))
-			if attack_ready:
+			if attack_ready and distance_feet >= minimum_range_feet:
 				score += float(weights.get("mobile_attack", 64.0))
 			elif distance_feet > attack_range_feet:
 				score -= float(distance_feet - attack_range_feet) * 2.0
@@ -191,7 +191,6 @@ func _choose_profile_intent(profile: Dictionary, context: Dictionary) -> Diction
 		INTENT_GUARD: BLOCKED_SCORE,
 		INTENT_WAIT: float(utility.get("wait", 5.0))
 	}
-
 	if tactical_retreat and can_move:
 		scores[INTENT_RETREAT] = float(utility.get("retreat", 25.0)) + 90.0 + maxf(retreat_threshold - actor_health_ratio, 0.0) * 100.0 + morale_pressure * 30.0
 
@@ -224,19 +223,7 @@ func _choose_profile_intent(profile: Dictionary, context: Dictionary) -> Diction
 	}
 
 
-func _score_melee_role(
-	scores: Dictionary,
-	utility: Dictionary,
-	distance_feet: int,
-	attack_range_feet: int,
-	target_visible: bool,
-	has_target_memory: bool,
-	memory_confidence: float,
-	can_attack: bool,
-	can_move: bool,
-	aggression: float,
-	tactical_retreat: bool
-) -> void:
+func _score_melee_role(scores: Dictionary, utility: Dictionary, distance_feet: int, attack_range_feet: int, target_visible: bool, has_target_memory: bool, memory_confidence: float, can_attack: bool, can_move: bool, aggression: float, tactical_retreat: bool) -> void:
 	if can_attack:
 		scores[INTENT_ATTACK] = float(utility.get("attack", 100.0)) * lerpf(0.72, 1.16, aggression)
 	if can_move and not tactical_retreat and target_visible and distance_feet > attack_range_feet:
@@ -245,21 +232,7 @@ func _score_melee_role(
 		scores[INTENT_SEARCH] = float(utility.get("search", 68.0)) + memory_confidence * 28.0
 
 
-func _score_ranged_role(
-	scores: Dictionary,
-	utility: Dictionary,
-	distance_feet: int,
-	minimum_range_feet: int,
-	preferred_range_feet: int,
-	attack_range_feet: int,
-	target_visible: bool,
-	has_target_memory: bool,
-	memory_confidence: float,
-	can_attack: bool,
-	can_move: bool,
-	aggression: float,
-	tactical_retreat: bool
-) -> void:
+func _score_ranged_role(scores: Dictionary, utility: Dictionary, distance_feet: int, minimum_range_feet: int, preferred_range_feet: int, attack_range_feet: int, target_visible: bool, has_target_memory: bool, memory_confidence: float, can_attack: bool, can_move: bool, aggression: float, tactical_retreat: bool) -> void:
 	if can_move and not tactical_retreat and target_visible and distance_feet < minimum_range_feet:
 		scores[INTENT_REPOSITION] = float(utility.get("reposition", 90.0)) + float(minimum_range_feet - distance_feet) * 3.0
 	if can_attack and distance_feet >= minimum_range_feet:
@@ -271,24 +244,7 @@ func _score_ranged_role(
 		scores[INTENT_SEARCH] = float(utility.get("search", 72.0)) + memory_confidence * 30.0
 
 
-func _score_defender_role(
-	scores: Dictionary,
-	utility: Dictionary,
-	distance_feet: int,
-	attack_range_feet: int,
-	target_visible: bool,
-	has_target_memory: bool,
-	memory_confidence: float,
-	can_attack: bool,
-	can_move: bool,
-	aggression: float,
-	tactical_retreat: bool,
-	distance_from_guard_anchor_feet: int,
-	target_distance_from_guard_anchor_feet: int,
-	guard_radius_feet: int,
-	pursuit_leash_feet: int,
-	guard_return_tolerance_feet: int
-) -> void:
+func _score_defender_role(scores: Dictionary, utility: Dictionary, distance_feet: int, attack_range_feet: int, target_visible: bool, has_target_memory: bool, memory_confidence: float, can_attack: bool, can_move: bool, aggression: float, tactical_retreat: bool, distance_from_guard_anchor_feet: int, target_distance_from_guard_anchor_feet: int, guard_radius_feet: int, pursuit_leash_feet: int, guard_return_tolerance_feet: int) -> void:
 	var target_inside_guard_zone: bool = guard_radius_feet <= 0 or target_distance_from_guard_anchor_feet <= guard_radius_feet
 	var actor_outside_leash: bool = pursuit_leash_feet > 0 and distance_from_guard_anchor_feet > pursuit_leash_feet
 	if can_attack and not actor_outside_leash:
