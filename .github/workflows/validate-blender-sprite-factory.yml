@@ -85,7 +85,7 @@ jobs:
           echo "Contract, scripts and textures are validated here."
           echo "A real Blender 5.2 LTS render is required before any frame can be approved."
 
-  render-proxy-v24:
+  render-walk-down-v02:
     if: github.event_name == 'pull_request' && github.head_ref == 'tools/blender-sprite-pilot'
     runs-on: ubuntu-latest
     timeout-minutes: 35
@@ -127,18 +127,18 @@ jobs:
             --background \
             --factory-startup \
             --python-exit-code 1 \
-            --python tools/blender_sprite_factory/blender_sprite_factory_head_v21.py \
+            --python tools/blender_sprite_factory/blender_sprite_factory_walk_down_v02.py \
             -- \
             --repo-root "$GITHUB_WORKSPACE" \
             --config tools/blender_sprite_factory/configs/human_warrior_m01.json \
             --run-id "$run_id" \
             --mode all 2>&1 | tee blender_pilot.log
 
-      - name: Upload proxy v24 run and diagnostics
+      - name: Upload walk_down v02 run and diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: human_warrior_m01_proxy_v24_${{ github.run_id }}_${{ github.run_attempt }}
+          name: human_warrior_m01_proxy_v24_walk_down_v02_${{ github.run_id }}_${{ github.run_attempt }}
           path: |
             art/blender_pipeline_runs/human_warrior_m01/**
             blender_pilot.log
