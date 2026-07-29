@@ -25,6 +25,12 @@ _REQUIRED_BONES = frozenset(
         "cloth.R",
     }
 )
+_ALLOWED_GEOMETRY_STATES = frozenset(
+    {
+        ("v21", "v24"),
+        ("v22", "v25"),
+    }
+)
 
 
 def _pairs(profile: WalkDownProfileV01, attribute: str) -> list[tuple[int, float]]:
@@ -43,8 +49,12 @@ def _assert_rig_contract(context: factory.BuildContext) -> None:
     missing = sorted(_REQUIRED_BONES.difference(actual_bones))
     if missing:
         raise RuntimeError(f"walk_down v02 rig is missing required bones: {missing}")
-    if context.proxy_revision != "v24":
-        raise RuntimeError("walk_down v02 must build on head v21 / proxy v24")
+    geometry_state = (context.head.revision, context.proxy_revision)
+    if geometry_state not in _ALLOWED_GEOMETRY_STATES:
+        raise RuntimeError(
+            "walk_down v02 requires an approved compatible geometry state: "
+            f"actual={geometry_state}, allowed={sorted(_ALLOWED_GEOMETRY_STATES)}"
+        )
 
 
 def _create_idle_action(context: factory.BuildContext) -> object:
@@ -77,8 +87,10 @@ def _create_idle_action(context: factory.BuildContext) -> object:
         animation_id="idle",
         fps=int(config.animations["idle"]["fps"]),
     )
-    idle_action["animation_revision"] = "locked_idle_proxy_v24"
+    idle_action["animation_revision"] = f"locked_idle_proxy_{context.proxy_revision}"
     idle_action["geometry_changed"] = False
+    idle_action["compatible_head_revision"] = context.head.revision
+    idle_action["compatible_proxy_revision"] = context.proxy_revision
     idle_action.use_fake_user = True
     return idle_action
 
@@ -154,6 +166,8 @@ def _create_walk_action(
     walk_action["physical_asymmetry_preserved"] = True
     walk_action["head_stabilization_enabled"] = True
     walk_action["foot_articulation_enabled"] = True
+    walk_action["compatible_head_revision"] = context.head.revision
+    walk_action["compatible_proxy_revision"] = context.proxy_revision
     walk_action.use_fake_user = True
     return walk_action
 
@@ -183,3 +197,5 @@ def create_walk_down_actions_v02(context: factory.BuildContext) -> None:
     scene["walk_down_animation_revision"] = profile.animation_revision
     scene["walk_down_phase_count"] = len(profile.poses)
     scene["walk_down_geometry_changed"] = False
+    scene["walk_down_compatible_head_revision"] = context.head.revision
+    scene["walk_down_compatible_proxy_revision"] = context.proxy_revision
