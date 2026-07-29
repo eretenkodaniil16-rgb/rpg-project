@@ -40,13 +40,24 @@ func _run() -> void:
 	var player: Node2D = game.get_node_or_null("Player") as Node2D
 	var caretaker: Node = game.get_node_or_null("Caretaker")
 	var catalog: ActionCatalogUI = game.get_node_or_null("Interface/ActionCatalogUI") as ActionCatalogUI
+	var target_button: Button = game.find_child("TargetButton", true, false) as Button
 	var room: StealthTestRoom = get_first_node_in_group("stealth_world") as StealthTestRoom
-	if player == null or caretaker == null or catalog == null or room == null:
-		_fail("Player, caretaker, Actions menu or stealth room is missing.")
+	if player == null or caretaker == null or catalog == null or target_button == null or room == null:
+		_fail("Player, caretaker, target selector, Actions menu or stealth room is missing.")
 		return
 	var guard: Node = room.get_patrol_observer()
 	if guard == null:
 		_fail("Patrol guard is missing.")
+		return
+
+	if not is_equal_approx(target_button.anchor_top, 0.0) or not is_equal_approx(target_button.anchor_bottom, 0.0):
+		_fail("Target selector is not anchored in the upper-right HUD area.")
+		return
+	if not is_equal_approx(catalog.catalog_button.anchor_top, 1.0) or not is_equal_approx(catalog.catalog_button.anchor_bottom, 1.0):
+		_fail("Actions button is not anchored in the lower-right HUD area.")
+		return
+	if target_button.get_global_rect().intersects(catalog.catalog_button.get_global_rect()):
+		_fail("Target selector and Actions button overlap each other.")
 		return
 
 	game.call("select_context_target_for_testing", caretaker)
@@ -68,10 +79,10 @@ func _run() -> void:
 	if not catalog.catalog_button.visible:
 		_fail("Actions menu button is not available during exploration.")
 		return
-	catalog.call("_toggle_catalog")
+	catalog.catalog_button.emit_signal("pressed")
 	await process_frame
 	if not catalog.panel.visible:
-		_fail("Actions menu did not open outside combat.")
+		_fail("Lower-right Actions button did not open the menu outside combat.")
 		return
 	var inspect_button: Button = null
 	for button: Node in catalog.action_grid.get_children():
@@ -126,16 +137,41 @@ func _run() -> void:
 	guard_record["last_known_position"] = [player.global_position.x, player.global_position.y]
 	state.call("set_stealth_alert_record", "service_guard", guard_record, false, false)
 	game.call("_restore_exploration_alerts")
+	target_button.show()
 	game.call("_start_turn_based_combat", caretaker)
+	game.call("force_player_turn_for_testing")
+	game.call("_apply_catalog_visibility_rules")
+	game.call("_refresh_action_catalog")
+	await process_frame
 	if not bool(game.call("is_turn_based_combat_active")):
 		_fail("Primary combat did not start.")
 		return
+	if not target_button.visible:
+		_fail("Target selector disappeared when combat started.")
+		return
+	if not catalog.catalog_button.visible or catalog.catalog_button.disabled:
+		_fail("Lower-right Actions button is unavailable during the player combat turn.")
+		return
+	catalog.catalog_button.emit_signal("pressed")
+	await process_frame
+	if not catalog.panel.visible:
+		_fail("Lower-right Actions button did not open the combat menu.")
+		return
+	catalog.close_catalog()
+
 	game.call("force_combat_join_check_for_testing")
 	if not bool(game.call("turn_system_has_actor_for_testing", guard)):
 		_fail("Alerted allied guard did not join active initiative.")
 		return
 	if not guard.is_in_group("combat_targets"):
 		_fail("Joined guard was not activated as a combat target.")
+		return
+	var selected_before_cycle: Node = game.get("_selected_target") as Node
+	target_button.emit_signal("pressed")
+	await process_frame
+	var selected_after_cycle: Node = game.get("_selected_target") as Node
+	if selected_after_cycle == null or selected_after_cycle == selected_before_cycle:
+		_fail("Upper-right target selector did not cycle between combat targets.")
 		return
 	game.call("force_combat_join_check_for_testing")
 	var turn_system: Variant = game.get("_turn_system")
@@ -168,7 +204,7 @@ func _run() -> void:
 	await process_frame
 	if FileAccess.file_exists(save_path):
 		DirAccess.remove_absolute(save_path)
-	print("NPC context actions, concealed state, navigation, combat join and AI smoke test passed.")
+	print("NPC context actions, button layout, concealed state, navigation, combat join and AI smoke test passed.")
 	quit(0)
 
 
