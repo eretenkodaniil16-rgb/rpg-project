@@ -91,6 +91,7 @@ jobs:
   # render-walk-right-v01
   # render-walk-up-v01 (rejected rear passing silhouette)
   # render-walk-up-v02
+  # approved adapter: blender_sprite_factory_walk_up_v02.py
   render-combat-idle-down-v01:
     if: github.event_name == 'pull_request' && github.head_ref == 'tools/blender-sprite-pilot'
     runs-on: ubuntu-latest
