@@ -20,9 +20,11 @@ class WalkAnimationBuilderTests(unittest.TestCase):
         ast.parse(self.builder_source)
         ast.parse(self.adapter_source)
 
-    def test_builder_uses_structured_profile_and_locked_proxy(self) -> None:
+    def test_builder_uses_structured_profile_and_compatible_geometry_states(self) -> None:
         self.assertIn("load_walk_down_profile_v01", self.builder_source)
-        self.assertIn('context.proxy_revision != "v24"', self.builder_source)
+        self.assertIn("_ALLOWED_GEOMETRY_STATES", self.builder_source)
+        self.assertIn('(\"v21\", \"v24\")', self.builder_source)
+        self.assertIn('(\"v22\", \"v25\")', self.builder_source)
         self.assertIn("create_walk_down_actions_v02", self.builder_source)
         self.assertNotIn("left_thigh = (", self.builder_source)
         self.assertNotIn("right_thigh = tuple", self.builder_source)
