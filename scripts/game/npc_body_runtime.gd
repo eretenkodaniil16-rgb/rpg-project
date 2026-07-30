@@ -3,6 +3,7 @@ extends "res://scripts/game/npc.gd"
 
 signal body_state_changed(actor_id: String, body_state: String)
 signal corpse_loot_changed(actor_id: String)
+signal restraint_state_changed(actor_id: String, bound: bool)
 
 const CORPSE_SYSTEM_SCRIPT: Script = preload("res://scripts/systems/corpse_interaction_system.gd")
 const DRAG_FOLLOW_DISTANCE_PIXELS: float = 42.0
@@ -25,9 +26,15 @@ func _process(delta: float) -> void:
 
 func receive_player_attack(result: AttackResult, show_interface: bool = true) -> void:
 	var was_defeated: bool = defeated
+	var nonlethal_knockout: bool = result != null and result.nonlethal_knockout and result.melee_attack
 	super.receive_player_attack(result, show_interface)
 	if not was_defeated and defeated:
-		_activate_body_from_defeat()
+		if nonlethal_knockout:
+			current_health = 1
+			_activate_body_from_defeat(CorpseInteractionSystem.BODY_UNCONSCIOUS)
+		else:
+			current_health = 0
+			_activate_body_from_defeat(CorpseInteractionSystem.BODY_DEAD)
 
 
 func reset_combat_state(full_restore: bool = true) -> void:
@@ -40,6 +47,7 @@ func reset_combat_state(full_restore: bool = true) -> void:
 		remove_from_group("corpse_targets")
 		remove_from_group("context_action_targets")
 		remove_from_group("visible_bodies")
+		remove_from_group("bound_bodies")
 		add_to_group("combat_targets")
 	super.reset_combat_state(full_restore)
 
@@ -49,6 +57,10 @@ func interact() -> void:
 		var instruction: String = "Откройте ДЕЙСТВИЯ, чтобы осмотреть или перетащить тело."
 		if is_dead_body() and not get_remaining_corpse_loot().is_empty():
 			instruction = "Откройте ДЕЙСТВИЯ, чтобы снять предметы или перетащить тело."
+		elif is_unconscious_body() and is_bound_body():
+			instruction = "Цель без сознания и связана. Откройте ДЕЙСТВИЯ для осмотра или освобождения."
+		elif is_unconscious_body():
+			instruction = "Цель без сознания. При наличии пут её можно связать через ДЕЙСТВИЯ."
 		get_tree().call_group("game_world", "show_combat_message", instruction, true)
 		return
 	super.interact()
@@ -66,12 +78,49 @@ func is_unconscious_body() -> bool:
 	return defeated and _body_state == CorpseInteractionSystem.BODY_UNCONSCIOUS
 
 
+func is_bound_body() -> bool:
+	var state: Node = _body_game_state()
+	return is_unconscious_body() and state != null and _corpse_system.is_bound(state, _body_actor_id())
+
+
 func get_body_state() -> String:
 	return _body_state
 
 
 func get_body_actor_id() -> String:
 	return _body_actor_id()
+
+
+func get_binding_context() -> Dictionary:
+	var state: Node = _body_game_state()
+	return _corpse_system.get_binding_context(state, _body_actor_id()) if state != null else {}
+
+
+func get_available_restraint_sources() -> Array[Dictionary]:
+	var state: Node = _body_game_state()
+	return _corpse_system.get_available_restraint_sources(state, _body_actor_id()) if state != null else []
+
+
+func bind_unconscious_body(item_id: String) -> Dictionary:
+	var state: Node = _body_game_state()
+	if state == null:
+		return {"success": false, "message": "Игровое состояние недоступно."}
+	var result: Dictionary = _corpse_system.bind_unconscious(state, _body_actor_id(), item_id)
+	if bool(result.get("success", false)):
+		add_to_group("bound_bodies")
+		restraint_state_changed.emit(_body_actor_id(), true)
+	return result
+
+
+func release_body_restraint() -> Dictionary:
+	var state: Node = _body_game_state()
+	if state == null:
+		return {"success": false, "message": "Игровое состояние недоступно."}
+	var result: Dictionary = _corpse_system.release_restraint(state, _body_actor_id())
+	if bool(result.get("success", false)):
+		remove_from_group("bound_bodies")
+		restraint_state_changed.emit(_body_actor_id(), false)
+	return result
 
 
 func get_remaining_corpse_loot() -> Array[Dictionary]:
@@ -126,19 +175,27 @@ func get_context_status_text() -> String:
 		var loot_text: String = "Видимых предметов не осталось." if loot_count <= 0 else "На теле осталось предметов: %d." % loot_count
 		return "Мёртв. %s Тело можно перетащить." % loot_text
 	if is_unconscious_body():
-		return "Без сознания. Предметы нельзя снимать, но тело можно перетащить."
+		var binding: Dictionary = get_binding_context()
+		if not binding.is_empty():
+			return "Без сознания и связан: %s, Сл освобождения %d. Предметы нельзя снимать." % [
+				str(binding.get("label", "путы")),
+				int(binding.get("escape_dc", 10))
+			]
+		return "Без сознания после несмертельного удара. Предметы нельзя снимать; цель можно связать или перетащить."
 	var relation: String = "враждебен" if is_hostile() else "не проявляет открытой враждебности"
 	return "Жив. Отношение: %s." % relation
 
 
-func _activate_body_from_defeat() -> void:
+func _activate_body_from_defeat(outcome: String) -> void:
 	var actor_id: String = _body_actor_id()
 	var state: Node = _body_game_state()
+	if outcome not in CorpseInteractionSystem.VALID_DEFEAT_OUTCOMES:
+		outcome = CorpseInteractionSystem.BODY_DEAD
 	if state == null or actor_id.is_empty() or not _corpse_system.has_profile(actor_id):
-		_body_state = CorpseInteractionSystem.BODY_UNCONSCIOUS
+		_body_state = outcome
 	else:
-		var record: Dictionary = _corpse_system.mark_defeated(state, actor_id, global_position)
-		_body_state = str(record.get("body_state", CorpseInteractionSystem.BODY_UNCONSCIOUS))
+		var record: Dictionary = _corpse_system.mark_defeated(state, actor_id, global_position, outcome)
+		_body_state = str(record.get("body_state", outcome))
 	_apply_body_groups()
 	body_state_changed.emit(actor_id, _body_state)
 	_update_combat_visuals()
@@ -153,12 +210,12 @@ func _restore_persistent_body() -> void:
 	if record.is_empty():
 		return
 	var restored_state: String = str(record.get("body_state", CorpseInteractionSystem.BODY_ALIVE))
-	if restored_state not in [CorpseInteractionSystem.BODY_UNCONSCIOUS, CorpseInteractionSystem.BODY_DEAD]:
+	if restored_state not in CorpseInteractionSystem.VALID_DEFEAT_OUTCOMES:
 		return
 	_body_state = restored_state
 	defeated = true
 	hostile = false
-	current_health = 0
+	current_health = 1 if restored_state == CorpseInteractionSystem.BODY_UNCONSCIOUS else 0
 	global_position = _corpse_system.get_body_position(record, global_position)
 	_apply_body_groups()
 	_update_combat_visuals()
@@ -169,6 +226,10 @@ func _apply_body_groups() -> void:
 	add_to_group("corpse_targets")
 	add_to_group("context_action_targets")
 	add_to_group("visible_bodies")
+	if is_bound_body():
+		add_to_group("bound_bodies")
+	else:
+		remove_from_group("bound_bodies")
 
 
 func _update_drag_position(delta: float) -> void:
