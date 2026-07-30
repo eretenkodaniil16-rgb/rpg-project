@@ -2,6 +2,9 @@ extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
 const EXPECTED_RUNTIME: String = "res://scripts/game/game_squad_tactical_plans_runtime.gd"
+const TOP_WALL_ID: String = "west_partition_top"
+const BOTTOM_WALL_ID: String = "west_partition_bottom"
+const DOOR_BLOCKER_ID: String = "west_service_door_blocker"
 
 
 func _init() -> void:
@@ -25,7 +28,7 @@ func _run() -> void:
 		return
 	var game: Node = packed.instantiate()
 	root.add_child(game)
-	for _frame: int in range(24):
+	for _frame: int in range(30):
 		await process_frame
 	var game_script: Script = game.get_script() as Script
 	if game_script == null or game_script.resource_path != EXPECTED_RUNTIME:
@@ -61,92 +64,98 @@ func _run() -> void:
 			_fail("Dormant training role affects exploration stealth: %s" % actor.name)
 			return
 
-	var top_wall_cell: Vector2i = grid.world_to_cell(top_wall.global_position)
-	var bottom_wall_cell: Vector2i = grid.world_to_cell(bottom_wall.global_position)
-	if not environment.is_cell_blocked(grid, top_wall_cell) or not environment.is_cell_blocked(grid, bottom_wall_cell):
-		_fail("Real partition walls are absent from the combat grid.")
+	if not _is_on_vertical_grid_edge(grid, top_wall.global_position.x):
+		_fail("Top wall is not aligned with a vertical cell edge.")
 		return
-	var wall_origin: Vector2i = _nearest_open_horizontal(grid, environment, top_wall_cell, -1)
-	if wall_origin == CombatEnvironment.INVALID_CELL:
-		_fail("Could not find a valid wall jump origin.")
+	if not _is_on_vertical_grid_edge(grid, bottom_wall.global_position.x):
+		_fail("Bottom wall is not aligned with a vertical cell edge.")
 		return
-	if environment.get_jump_landing_cell(grid, wall_origin, Vector2i.RIGHT, {}) != CombatEnvironment.INVALID_CELL:
-		_fail("A solid room wall is still considered jumpable.")
+	if not _is_on_vertical_grid_edge(grid, door.global_position.x):
+		_fail("Door is not aligned with a vertical cell edge.")
 		return
 
-	var door_cell: Vector2i = grid.world_to_cell(door.global_position)
+	var top_edges: Array[Dictionary] = environment.get_edge_blocker_edges_for_testing(TOP_WALL_ID)
+	var door_edges: Array[Dictionary] = environment.get_edge_blocker_edges_for_testing(DOOR_BLOCKER_ID)
+	var bottom_edges: Array[Dictionary] = environment.get_edge_blocker_edges_for_testing(BOTTOM_WALL_ID)
+	if top_edges.size() != 4 or door_edges.size() != 2 or bottom_edges.size() != 3:
+		_fail("Partition edge coverage is incorrect: top=%d door=%d bottom=%d" % [top_edges.size(), door_edges.size(), bottom_edges.size()])
+		return
+
 	door.call("set_door_state", "closed", false)
 	await process_frame
-	if not environment.is_cell_blocked(grid, door_cell):
-		_fail("Closed door does not block grid movement.")
-		return
-	var planner := PlannedMovementSystem.new()
-	var combatant_state := CombatantState.new()
-	var closed_cases: int = 0
-	var rows: int = floori(grid.get_field_rect().size.y / grid.get_cell_size())
-	for row: int in range(rows):
-		var partition_cell := Vector2i(door_cell.x, row)
-		var left_cell: Vector2i = _nearest_open_horizontal(grid, environment, partition_cell, -1)
-		var right_cell: Vector2i = _nearest_open_horizontal(grid, environment, partition_cell, 1)
-		if left_cell == CombatEnvironment.INVALID_CELL or right_cell == CombatEnvironment.INVALID_CELL:
-			continue
-		for direction_sign: int in [-1, 1]:
-			var start_cell: Vector2i = left_cell if direction_sign > 0 else right_cell
-			var destination_cell: Vector2i = right_cell if direction_sign > 0 else left_cell
-			var closed_result: Dictionary = planner.build_path(grid, start_cell, destination_cell, {}, environment, combatant_state, 160, false, true)
-			closed_cases += 1
-			if bool(closed_result.get("reachable", false)):
-				_fail("Planner crossed the sealed partition on row %d: %s" % [row, JSON.stringify(closed_result)])
-				return
-	if closed_cases < 10:
-		_fail("Insufficient closed-wall simulation coverage: %d" % closed_cases)
-		return
-
-	door.call("set_door_state", "open", false)
-	await process_frame
-	if environment.is_cell_blocked(grid, door_cell):
-		_fail("Open door remains blocked in the combat grid.")
-		return
-	var open_start: Vector2i = _nearest_open_horizontal(grid, environment, door_cell, -1)
-	var open_destination: Vector2i = _nearest_open_horizontal(grid, environment, door_cell, 1)
-	var open_result: Dictionary = planner.build_path(grid, open_start, open_destination, {}, environment, combatant_state, 80, false, true)
-	if not bool(open_result.get("reachable", false)):
-		_fail("Planner cannot use the opened doorway: %s" % JSON.stringify(open_result))
-		return
-	for path_cell: Vector2i in open_result.get("path", []) as Array[Vector2i]:
-		if path_cell != open_start and environment.is_cell_blocked(grid, path_cell):
-			_fail("Opened-door route contains a blocked cell: %s" % path_cell)
+	var all_edges: Array[Dictionary] = []
+	all_edges.append_array(top_edges)
+	all_edges.append_array(door_edges)
+	all_edges.append_array(bottom_edges)
+	for edge: Dictionary in all_edges:
+		var left_cell: Vector2i = edge.get("a", CombatEnvironment.INVALID_CELL) as Vector2i
+		var right_cell: Vector2i = edge.get("b", CombatEnvironment.INVALID_CELL) as Vector2i
+		if environment.is_cell_blocked(grid, left_cell) or environment.is_cell_blocked(grid, right_cell):
+			_fail("A wall edge incorrectly occupies an adjacent cell: %s" % JSON.stringify(edge))
+			return
+		if not environment.is_transition_blocked(grid, left_cell, right_cell):
+			_fail("Closed partition edge does not block movement: %s" % JSON.stringify(edge))
 			return
 
-	door.call("set_door_state", "closed", false)
-	await process_frame
-	var closed_left: Vector2i = _nearest_open_horizontal(grid, environment, door_cell, -1)
-	player.global_position = grid.cell_to_world_center(closed_left)
-	var player_before: Vector2 = player.global_position
-	if player.has_method("set_facing_direction"):
-		player.call("set_facing_direction", Vector2.RIGHT)
-	game.call("_on_exploration_jump_requested")
-	for _frame: int in range(12):
-		await process_frame
-	if not player.global_position.is_equal_approx(player_before):
-		_fail("Exploration jump crossed a closed door or partition wall.")
+	var planner := PlannedMovementSystem.new()
+	var combatant_state := CombatantState.new()
+	var doorway_edge: Dictionary = door_edges[0]
+	var doorway_left: Vector2i = doorway_edge.get("a", CombatEnvironment.INVALID_CELL) as Vector2i
+	var doorway_right: Vector2i = doorway_edge.get("b", CombatEnvironment.INVALID_CELL) as Vector2i
+	var sealed_result: Dictionary = planner.build_path(grid, doorway_left, doorway_right, {}, environment, combatant_state, 200, false, true)
+	if bool(sealed_result.get("reachable", false)):
+		_fail("Planner crossed the fully sealed edge partition: %s" % JSON.stringify(sealed_result))
+		return
+	var direct_closed: Dictionary = planner.evaluate_path(grid, [doorway_left, doorway_right], {}, environment, combatant_state, 5, false)
+	if bool(direct_closed.get("reachable", false)):
+		_fail("Direct transition crossed the closed door edge.")
+		return
+	if environment.get_jump_landing_cell(grid, doorway_left, Vector2i.RIGHT, {}) != CombatEnvironment.INVALID_CELL:
+		_fail("Jump crossed the closed door edge.")
+		return
+	var wall_edge: Dictionary = top_edges[0]
+	var wall_left: Vector2i = wall_edge.get("a", CombatEnvironment.INVALID_CELL) as Vector2i
+	if environment.get_jump_landing_cell(grid, wall_left, Vector2i.RIGHT, {}) != CombatEnvironment.INVALID_CELL:
+		_fail("Jump crossed a solid wall edge.")
 		return
 
 	guard.call("activate_combat_participant")
-	guard.global_position = grid.cell_to_world_center(closed_left)
-	var candidates: Array = game.call("_build_combat_ai_reachable_candidates", guard, 60) as Array
-	if candidates.size() < 3:
-		_fail("AI route simulation produced too few candidates.")
+	guard.global_position = grid.cell_to_world_center(doorway_left)
+	var closed_candidates: Array = game.call("_build_combat_ai_reachable_candidates", guard, 60) as Array
+	if closed_candidates.size() < 3:
+		_fail("AI route simulation produced too few closed-side candidates.")
 		return
-	var closed_right: Vector2i = _nearest_open_horizontal(grid, environment, door_cell, 1)
-	for candidate_value: Variant in candidates:
+	for candidate_value: Variant in closed_candidates:
 		if not candidate_value is Dictionary:
 			continue
 		var candidate: Dictionary = candidate_value as Dictionary
 		var candidate_cell: Vector2i = candidate.get("cell", Vector2i(-1, -1)) as Vector2i
-		if candidate_cell.x >= closed_right.x:
-			_fail("AI planned through the closed partition: %s" % JSON.stringify(candidate))
+		if candidate_cell.x >= doorway_right.x:
+			_fail("AI planned through the closed edge partition: %s" % JSON.stringify(candidate))
 			return
+
+	door.call("set_door_state", "open", false)
+	for _frame: int in range(3):
+		await process_frame
+	for edge: Dictionary in door_edges:
+		var left_cell: Vector2i = edge.get("a", CombatEnvironment.INVALID_CELL) as Vector2i
+		var right_cell: Vector2i = edge.get("b", CombatEnvironment.INVALID_CELL) as Vector2i
+		if environment.is_transition_blocked(grid, left_cell, right_cell):
+			_fail("Opened door still blocks its cell edge: %s" % JSON.stringify(edge))
+			return
+	var open_result: Dictionary = planner.build_path(grid, doorway_left, doorway_right, {}, environment, combatant_state, 10, false, true)
+	if not bool(open_result.get("reachable", false)):
+		_fail("Planner cannot cross the opened edge doorway: %s" % JSON.stringify(open_result))
+		return
+	var open_candidates: Array = game.call("_build_combat_ai_reachable_candidates", guard, 10) as Array
+	var ai_crossed_open_door: bool = false
+	for candidate_value: Variant in open_candidates:
+		if candidate_value is Dictionary and (candidate_value as Dictionary).get("cell", CombatEnvironment.INVALID_CELL) == doorway_right:
+			ai_crossed_open_door = true
+			break
+	if not ai_crossed_open_door:
+		_fail("AI cannot use the opened edge doorway.")
+		return
 
 	var low_barricade_position: Vector2 = environment.get_environment_object_position("low_barricade")
 	var low_barricade_cell: Vector2i = grid.world_to_cell(low_barricade_position)
@@ -170,22 +179,14 @@ func _run() -> void:
 	await process_frame
 	if FileAccess.file_exists(save_path):
 		DirAccess.remove_absolute(save_path)
-	print("Real walls, doors, jump restrictions, dormant visible roles and squad activation passed.")
+	print("Cell-edge walls, two-sided door traversal, jump restrictions and AI path parity passed.")
 	quit(0)
 
 
-func _nearest_open_horizontal(
-	grid: BattleGrid,
-	environment: CombatEnvironment,
-	cell: Vector2i,
-	direction_sign: int
-) -> Vector2i:
-	var step: Vector2i = Vector2i.RIGHT if direction_sign > 0 else Vector2i.LEFT
-	for distance: int in range(1, 6):
-		var candidate: Vector2i = cell + step * distance
-		if grid.is_cell_valid(candidate) and not environment.is_cell_blocked(grid, candidate):
-			return candidate
-	return CombatEnvironment.INVALID_CELL
+func _is_on_vertical_grid_edge(grid: BattleGrid, world_x: float) -> bool:
+	var local_x: float = grid.to_local(Vector2(world_x, 0.0)).x
+	var edge_index: float = (local_x - grid.get_field_rect().position.x) / grid.get_cell_size()
+	return is_equal_approx(edge_index, roundf(edge_index))
 
 
 func _make_hero() -> PlayerCharacter:
