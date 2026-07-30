@@ -1,7 +1,7 @@
 extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
-const EXPECTED_RUNTIME: String = "res://scripts/game/game_combat_ai_runtime.gd"
+const EXPECTED_RUNTIME: String = "res://scripts/game/game_corpse_interactions_runtime.gd"
 
 
 func _init() -> void:
@@ -34,7 +34,7 @@ func _run() -> void:
 		await process_frame
 	var script: Script = game.get_script() as Script
 	if script == null or script.resource_path != EXPECTED_RUNTIME:
-		_fail("Game scene does not use Combat AI v1 runtime.")
+		_fail("Game scene does not use the corpse-aware Combat AI runtime.")
 		return
 	game.set_process(false)
 
@@ -114,7 +114,7 @@ func _run() -> void:
 	await process_frame
 	if FileAccess.file_exists(save_path):
 		DirAccess.remove_absolute(save_path)
-	print("Combat AI v1 runtime, role profiles, guard anchors and deterministic decisions passed.")
+	print("Combat AI v1 through corpse runtime, role profiles, guard anchors and deterministic decisions passed.")
 	quit(0)
 
 
