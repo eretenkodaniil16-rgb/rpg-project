@@ -66,7 +66,7 @@ func _run() -> void:
 	mage.global_position = grid.cell_to_world_center(doorway_right + Vector2i(4, 3))
 	await process_frame
 
-	guard.call("enter_combat_hostile")
+	guard.call("activate_combat_participant")
 	game.call("_start_turn_based_combat", caretaker)
 	game.call("force_player_turn_for_testing")
 	game.set("_enemy_turn_running", false)
