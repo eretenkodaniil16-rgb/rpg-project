@@ -181,3 +181,10 @@ func _build_alert_label() -> void:
 	_alert_label.z_index = 8
 	_alert_label.hide()
 	add_child(_alert_label)
+
+
+func _update_alert_visuals() -> void:
+	# Точное или текстовое состояние NPC раскрывается только через контекстное действие игрока.
+	if _alert_label != null:
+		_alert_label.text = ""
+		_alert_label.hide()
