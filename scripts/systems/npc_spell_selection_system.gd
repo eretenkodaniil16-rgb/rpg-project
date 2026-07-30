@@ -89,7 +89,7 @@ func score_spell_option(spell: Dictionary, option: Dictionary, policy: Dictionar
 		var conservation: float = clampf(float(policy.get("slot_conservation", 0.55)), 0.0, 1.0)
 		var scarcity: float = 1.0 if slots_remaining <= reserve else 0.25
 		var finisher_discount: float = 0.35 if target_health_ratio <= 0.3 else 1.0
-		score -= float(spell_level) * 80.0 * conservation * scarcity * finisher_discount
+		score -= float(spell_level) * 100.0 * conservation * scarcity * finisher_discount
 	else:
 		score += 10.0
 	return score
