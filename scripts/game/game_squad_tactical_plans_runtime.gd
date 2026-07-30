@@ -52,7 +52,9 @@ func _enrich_advanced_context(
 	if plan.is_empty():
 		_squad_assignment_by_actor.erase(actor_id)
 		return
-	var actor_ids: Array[String] = squad_context.get("member_ids", []) as Array[String]
+	var actor_ids: Array[String] = []
+for member_id_value: Variant in squad_context.get("member_ids", []) as Array:
+    actor_ids.append(str(member_id_value))
 	var actor_index: int = maxi(actor_ids.find(actor_id), 0)
 	var assignment: Dictionary = _squad_plans.get_actor_assignment(
 		squad_id,

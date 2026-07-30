@@ -2,7 +2,7 @@ extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
 const EXPECTED_GAME_STATE_SCRIPT: String = "res://scripts/core/game_state_stealth_alerts.gd"
-const EXPECTED_GAME_RUNTIME: String = "res://scripts/game/game_environment_reactive_ai_runtime.gd"
+const EXPECTED_GAME_RUNTIME: String = "res://scripts/game/game_squad_tactical_plans_runtime.gd"
 const SAVE_PATH: String = "user://savegame.json"
 
 
