@@ -1,6 +1,8 @@
 class_name StealthDoor
 extends StaticBody2D
 
+const WORLD_INTERACTION_ACTION_ID: String = "world_interact"
+
 @export var door_id: String = "west_service_door"
 @export var door_label: String = "Дверь служебной комнаты"
 @export var door_size: Vector2 = Vector2(36.0, 120.0)
@@ -218,6 +220,7 @@ func _on_body_entered(body: Node2D) -> void:
 	_player_in_range = body
 	if body.has_method("set_interactable"):
 		body.call("set_interactable", self)
+	_connect_action_catalog()
 	get_tree().call_group(
 		"game_world",
 		"set_interaction_action",
@@ -230,7 +233,30 @@ func _on_body_entered(body: Node2D) -> void:
 func _on_body_exited(body: Node2D) -> void:
 	if body != _player_in_range:
 		return
+	_disconnect_action_catalog()
 	if body.has_method("clear_interactable"):
 		body.call("clear_interactable", self)
 	_player_in_range = null
 	get_tree().call_group("game_world", "set_interaction_action", false, "", "ДЕЙСТВИЕ")
+
+
+func _connect_action_catalog() -> void:
+	var game: Node = get_tree().get_first_node_in_group("game_world")
+	var catalog: Node = game.get_node_or_null("Interface/ActionCatalogUI") if game != null else null
+	var callback := Callable(self, "_on_catalog_action_requested")
+	if catalog != null and catalog.has_signal("action_requested") and not catalog.is_connected("action_requested", callback):
+		catalog.connect("action_requested", callback)
+
+
+func _disconnect_action_catalog() -> void:
+	var game: Node = get_tree().get_first_node_in_group("game_world")
+	var catalog: Node = game.get_node_or_null("Interface/ActionCatalogUI") if game != null else null
+	var callback := Callable(self, "_on_catalog_action_requested")
+	if catalog != null and catalog.has_signal("action_requested") and catalog.is_connected("action_requested", callback):
+		catalog.disconnect("action_requested", callback)
+
+
+func _on_catalog_action_requested(action_id: String) -> void:
+	if action_id != WORLD_INTERACTION_ACTION_ID or not is_instance_valid(_player_in_range):
+		return
+	interact()
