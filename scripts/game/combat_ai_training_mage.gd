@@ -21,7 +21,7 @@ func _ready() -> void:
 	super._ready()
 
 
-func is_player_targetable() -> bool:
+func is_combat_active() -> bool:
 	return not defeated
 
 
