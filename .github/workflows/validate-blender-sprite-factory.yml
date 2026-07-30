@@ -100,8 +100,10 @@ jobs:
   # render-combat-idle-down-weapon-variants-v06 (two-hand retained; one-hand trajectory superseded)
   # render-combat-idle-down-weapon-variants-v07 (rejected: one-hand blade over-occluded behind torso)
   # render-combat-idle-down-weapon-variants-v08 (rejected: one-hand blade projected across lower torso)
+  # render-combat-idle-down-weapon-variants-v09 (selected static source stances)
+  # static source adapter: blender_sprite_factory_combat_idle_down_weapon_variants_v09.py
   # historical adapters remain reproducible as separate files
-  render-combat-idle-down-weapon-variants-v09:
+  render-combat-idle-down-cycles-v10:
     if: github.event_name == 'pull_request' && github.head_ref == 'tools/blender-sprite-pilot'
     runs-on: ubuntu-latest
     timeout-minutes: 80
@@ -132,7 +134,7 @@ jobs:
           test -n "$blender"
           echo "BLENDER_EXE=$blender" >> "$GITHUB_ENV"
 
-      - name: Run real Blender 5.2 pilot
+      - name: Run real Blender 5.2 combat idle cycles pilot
         id: blender-pilot
         continue-on-error: true
         shell: bash
@@ -143,18 +145,18 @@ jobs:
             --background \
             --factory-startup \
             --python-exit-code 1 \
-            --python tools/blender_sprite_factory/blender_sprite_factory_combat_idle_down_weapon_variants_v09.py \
+            --python tools/blender_sprite_factory/blender_sprite_factory_combat_idle_down_cycles_v10.py \
             -- \
             --repo-root "$GITHUB_WORKSPACE" \
             --config tools/blender_sprite_factory/configs/human_warrior_m01.json \
             --run-id "$run_id" \
             --mode all 2>&1 | tee blender_pilot.log
 
-      - name: Upload outward side-back combat variants v09 run and diagnostics
+      - name: Upload one-hand and two-hand combat idle cycles v10
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: human_warrior_m01_proxy_v25_appearance_v03_walk_down_v04_walk_left_v01_walk_right_v01_walk_up_v02_combat_weapon_variants_v09_${{ github.run_id }}_${{ github.run_attempt }}
+          name: human_warrior_m01_proxy_v25_appearance_v03_walk_down_v04_walk_left_v01_walk_right_v01_walk_up_v02_combat_idle_cycles_v10_${{ github.run_id }}_${{ github.run_attempt }}
           path: |
             art/blender_pipeline_runs/human_warrior_m01/**
             blender_pilot.log
