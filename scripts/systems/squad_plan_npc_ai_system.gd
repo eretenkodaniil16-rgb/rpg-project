@@ -24,7 +24,8 @@ func choose_combat_intent(actor_id: String, context: Dictionary) -> Dictionary:
 	if plan_score <= baseline_score + 0.0001:
 		return baseline
 	var profile: Dictionary = get_profile(actor_id)
-	return {
+	var squad_action: String = str(assignment.get("action", ""))
+	var result: Dictionary = {
 		"intent": intent_id,
 		"score": plan_score,
 		"role": str(profile.get("role", ROLE_MELEE)),
@@ -34,12 +35,22 @@ func choose_combat_intent(actor_id: String, context: Dictionary) -> Dictionary:
 		"preferred_range_feet": int(profile.get("preferred_range_feet", DistanceSystem.MELEE_REACH_FEET)),
 		"squad_plan_id": str(assignment.get("plan_id", "")),
 		"squad_plan_phase": str(assignment.get("plan_phase", "")),
-		"squad_plan_action": str(assignment.get("action", "")),
+		"squad_plan_action": squad_action,
 		"squad_plan_objective": str(assignment.get("objective", "")),
 		"squad_plan_slot": str(assignment.get("slot", "front")),
 		"squad_id": str(assignment.get("squad_id", "")),
 		"failure_count": int(assignment.get("failure_count", 0))
 	}
+	# План удержания прохода расширяет, а не отменяет прежний контракт:
+	# защитник, достигший доступной открытой двери, действительно закрывает её.
+	if squad_action == "anchor_choke":
+		result["environment_action"] = ACTION_SECURE_PASSAGE
+		var event_value: Variant = context.get("environment_event", {})
+		if event_value is Dictionary:
+			var event: Dictionary = event_value as Dictionary
+			result["environment_event_position"] = event.get("position", Vector2.ZERO)
+			result["environment_event_id"] = str(event.get("event_id", ""))
+	return result
 
 
 func _squad_plan_reason(assignment: Dictionary) -> String:
