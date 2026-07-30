@@ -1,0 +1,80 @@
+name: Validate nonlethal attacks and restraints
+
+on:
+  pull_request:
+    paths:
+      - "data/rules/restraint_sources.json"
+      - "data/world/corpse_loot_profiles.json"
+      - "scripts/models/attack_result.gd"
+      - "scripts/systems/corpse_interaction_system.gd"
+      - "scripts/game/npc_body_runtime.gd"
+      - "scripts/game/game_nonlethal_restraints_runtime.gd"
+      - "scenes/game/game.tscn"
+      - "tests/test_corpse_interaction_system.gd"
+      - "tests/smoke_corpse_interactions_runtime.gd"
+      - ".github/workflows/validate-nonlethal-restraints.yml"
+  push:
+    branches:
+      - feature/nonlethal-restraints
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Godot 4.7.1 Standard
+        shell: bash
+        run: |
+          curl --location --fail --retry 3 --output godot.zip "https://downloads.godotengine.org/?flavor=stable&platform=linux.64&slug=linux.x86_64.zip&version=4.7.1"
+          unzip -q godot.zip
+          chmod +x Godot_v4.7.1-stable_linux.x86_64
+
+      - name: Import project and reject parser errors
+        shell: bash
+        run: |
+          rm -rf .godot
+          set -o pipefail
+          timeout 120s ./Godot_v4.7.1-stable_linux.x86_64 --headless --editor --path "$GITHUB_WORKSPACE" --quit 2>&1 | tee nonlethal-import.log
+          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script" nonlethal-import.log; then
+            exit 1
+          fi
+
+      - name: Validate lethal default, knockout and restraint persistence
+        shell: bash
+        run: timeout 150s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_corpse_interaction_system.gd 2>&1 | tee nonlethal-unit.log
+
+      - name: Smoke test action catalog, knockout and binding
+        shell: bash
+        run: timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_corpse_interactions_runtime.gd 2>&1 | tee nonlethal-smoke.log
+
+      - name: Regression test advanced tactical AI
+        shell: bash
+        run: timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_advanced_combat_ai_runtime.gd 2>&1 | tee advanced-ai-regression.log
+
+      - name: Regression test Counterspell
+        shell: bash
+        run: timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_multi_reactor_reaction_runtime.gd 2>&1 | tee reaction-regression.log
+
+      - name: Regression test integrated v0.18 contract
+        shell: bash
+        run: timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_v018_integration_stack.gd 2>&1 | tee v018-regression.log
+
+      - name: Upload nonlethal diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nonlethal-restraints-diagnostics
+          path: |
+            nonlethal-import.log
+            nonlethal-unit.log
+            nonlethal-smoke.log
+            advanced-ai-regression.log
+            reaction-regression.log
+            v018-regression.log
+          retention-days: 5
