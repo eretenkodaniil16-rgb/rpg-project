@@ -2,7 +2,7 @@ extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
 const EXPECTED_GAME_STATE_SCRIPT: String = "res://scripts/core/game_state_stealth_alerts.gd"
-const EXPECTED_GAME_RUNTIME: String = "res://scripts/game/game_combat_ai_runtime.gd"
+const EXPECTED_GAME_RUNTIME: String = "res://scripts/game/game_corpse_interactions_runtime.gd"
 const SAVE_PATH: String = "user://savegame.json"
 
 
@@ -171,7 +171,7 @@ func _run() -> void:
 		await process_frame
 	var game_script: Script = game.get_script() as Script
 	if game_script == null or game_script.resource_path != EXPECTED_GAME_RUNTIME:
-		_fail("Game scene does not use the final Combat AI runtime.")
+		_fail("Game scene does not use the corpse interaction integration runtime.")
 		return
 	var level_up_panel: Control = game.find_child("LevelUpPanel", true, false) as Control
 	if level_up_panel == null:
@@ -193,5 +193,5 @@ func _run() -> void:
 	game.queue_free()
 	await process_frame
 	_cleanup_save()
-	print("v0.18 integration stack, Combat AI runtime, save/load and HUD contract passed.")
+	print("v0.18 integration stack, corpse runtime, save/load and HUD contract passed.")
 	quit(0)

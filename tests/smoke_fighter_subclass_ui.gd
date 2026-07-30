@@ -40,8 +40,8 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 
-	if str(game.get_script().resource_path) != "res://scripts/game/game_combat_ai_runtime.gd":
-		_fail("Game scene does not use the Combat AI runtime layered above pursuit, encounters and fighter subclasses.")
+	if str(game.get_script().resource_path) != "res://scripts/game/game_corpse_interactions_runtime.gd":
+		_fail("Game scene does not use the corpse runtime layered above Combat AI, pursuit, encounters and fighter subclasses.")
 		return
 	if FighterSubclassSystem.TACTICAL_ABILITY_ID not in hero.known_features:
 		_fail("Game startup did not synchronize the selected fighter subclass.")
@@ -89,5 +89,5 @@ func _run() -> void:
 	hub.close_sheet()
 	game.queue_free()
 	await process_frame
-	print("Fighter subclass game scene, action catalog and Character Hub smoke test passed.")
+	print("Fighter subclass through corpse runtime, action catalog and Character Hub smoke test passed.")
 	quit(0)
