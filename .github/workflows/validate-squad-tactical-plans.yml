@@ -16,9 +16,46 @@ on:
       - feature/squad-tactical-plans
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
+  apply-movement-fix:
+    if: github.event_name == 'push' && github.event.head_commit.message == 'chore: run movement integrity patch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout working branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/squad-tactical-plans
+          fetch-depth: 0
+
+      - name: Execute embedded movement patch
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import textwrap
+
+          workflow = Path('.github/workflows/apply-movement-integrity-fix.yml').read_text(encoding='utf-8')
+          start_marker = "          python - <<'PY'\n"
+          end_marker = "\n          PY\n\n      - name: Commit movement integrity changes"
+          start = workflow.find(start_marker)
+          end = workflow.find(end_marker, start + len(start_marker))
+          if start < 0 or end < 0:
+              raise SystemExit('Embedded patch source could not be located')
+          source = textwrap.dedent(workflow[start + len(start_marker):end])
+          exec(compile(source, 'movement_integrity_patch.py', 'exec'))
+          PY
+
+      - name: Commit movement integrity changes
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/game/combat_environment.gd scripts/game/stealth_test_room.gd scripts/game/stealth_door.gd scripts/game/game_combat_ai_runtime.gd tests/smoke_movement_wall_integrity.gd .github/workflows/validate-squad-tactical-plans.yml
+          git commit -m "fix: запретить перемещение через стены и разместить тактические роли"
+          git push origin HEAD:feature/squad-tactical-plans
+
   validate:
     runs-on: ubuntu-latest
     timeout-minutes: 25
