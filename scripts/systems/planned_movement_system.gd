@@ -7,6 +7,7 @@ const DIRECTIONS: Array[Vector2i] = [
 	Vector2i(-1, 0), Vector2i(1, 0),
 	Vector2i(-1, 1), Vector2i(0, 1), Vector2i(1, 1)
 ]
+const INVALID_CELL: Vector2i = Vector2i(-99999, -99999)
 
 var _rules: SrdCombatRules = SrdCombatRules.new()
 
@@ -78,7 +79,7 @@ func calculate_reachable_cells(
 		available_movement_feet,
 		dragging_target,
 		allow_jumps,
-		PlannedMovementSystem.INVALID_CELL
+		INVALID_CELL
 	)
 	return (search.get("costs", {}) as Dictionary).duplicate()
 
@@ -111,6 +112,8 @@ func evaluate_path(
 		else:
 			if distance_cells != 1:
 				return _failure("Маршрут содержит разрыв.")
+			if _transition_blocked(grid, from_cell, to_cell, environment):
+				return _failure("Маршрут пересекает закрытую дверь или стену.")
 			if delta.x != 0 and delta.y != 0 and _diagonal_corner_blocked(grid, from_cell, delta, occupied_cells, environment):
 				return _failure("Нельзя пройти по диагонали через закрытый угол.")
 		total_cost += movement_cost_for_transition(grid, from_cell, to_cell, environment, state, dragging_target, is_jump)
@@ -155,9 +158,6 @@ func movement_cost_for_cell(
 	if dragging_target:
 		cost *= 2
 	return cost
-
-
-const INVALID_CELL: Vector2i = Vector2i(-99999, -99999)
 
 
 func _run_search(
@@ -216,7 +216,11 @@ func _transitions_from(
 	var transitions: Array[Dictionary] = []
 	for direction: Vector2i in DIRECTIONS:
 		var next_cell: Vector2i = current + direction
-		if grid.is_cell_valid(next_cell) and not _is_blocked(grid, next_cell, occupied_cells, environment):
+		if (
+			grid.is_cell_valid(next_cell)
+			and not _is_blocked(grid, next_cell, occupied_cells, environment)
+			and not _transition_blocked(grid, current, next_cell, environment)
+		):
 			if direction.x == 0 or direction.y == 0 or not _diagonal_corner_blocked(grid, current, direction, occupied_cells, environment):
 				transitions.append({
 					"cell": next_cell,
@@ -266,6 +270,10 @@ func _is_blocked(grid: BattleGrid, cell: Vector2i, occupied_cells: Dictionary, e
 	if occupied_cells.has(cell):
 		return true
 	return environment != null and environment.is_cell_blocked(grid, cell)
+
+
+func _transition_blocked(grid: BattleGrid, from_cell: Vector2i, to_cell: Vector2i, environment: CombatEnvironment) -> bool:
+	return environment != null and environment.is_transition_blocked(grid, from_cell, to_cell)
 
 
 func _diagonal_corner_blocked(
