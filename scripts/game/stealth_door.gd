@@ -23,13 +23,50 @@ func _ready() -> void:
 
 
 func interact() -> void:
+	var game: Node = get_tree().get_first_node_in_group("game_world")
+	if game != null and game.has_method("request_world_interaction"):
+		var handled: bool = bool(game.call("request_world_interaction", self))
+		if handled:
+			return
+	perform_world_interaction()
+
+
+func can_perform_world_interaction() -> bool:
+	return _door_state not in ["locked", "blocked", "broken"]
+
+
+func get_combat_interaction_label() -> String:
+	if _door_state == "open":
+		return "ЗАКРЫТЬ ДВЕРЬ"
+	if _door_state == "closed":
+		return "ОТКРЫТЬ ДВЕРЬ"
+	return "ДВЕРЬ НЕДОСТУПНА"
+
+
+func get_combat_interaction_description() -> String:
+	match _door_state:
+		"open": return "Закрыть соседнюю дверь. Использует одно взаимодействие с объектом на этом ходу."
+		"closed": return "Открыть соседнюю дверь. Использует одно взаимодействие с объектом на этом ходу."
+		"locked", "blocked": return "%s заперта или заблокирована." % door_label
+		"broken": return "%s разрушена и больше не закрывается." % door_label
+		_: return "Взаимодействовать с дверью."
+
+
+func perform_world_interaction() -> void:
 	if _door_state in ["locked", "blocked"]:
 		get_tree().call_group("game_world", "show_combat_message", "%s заперта." % door_label, false)
 		return
 	if _door_state == "broken":
 		get_tree().call_group("game_world", "show_combat_message", "%s разрушена и больше не закрывается." % door_label, false)
 		return
-	set_door_state("open" if _door_state == "closed" else "closed", true)
+	var next_state: String = "open" if _door_state == "closed" else "closed"
+	set_door_state(next_state, true)
+	get_tree().call_group(
+		"game_world",
+		"show_combat_message",
+		"%s %s." % [door_label, "открыта" if next_state == "open" else "закрыта"],
+		true
+	)
 
 
 func set_door_state(value: String, report_noise: bool = false) -> void:
