@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "plan_order": [
+    "rescue_bound_ally",
+    "orderly_withdrawal",
+    "hold_chokepoint",
+    "suppress_and_flank",
+    "sector_search",
+    "coordinated_assault"
+  ],
+  "plans": {
+    "rescue_bound_ally": {
+      "duration_rounds": 3,
+      "base_score": 220.0,
+      "assignments": {
+        "melee": {"action": "rescue", "intent": "advance", "score": 190.0, "objective": "bound_ally", "slots": ["left", "right"]},
+        "defender": {"action": "rescue", "intent": "intercept", "score": 205.0, "objective": "bound_ally", "slots": ["front"]},
+        "ranged": {"action": "cover_rescue", "intent": "take_cover", "score": 166.0, "objective": "bound_ally", "slots": ["rear_left", "rear_right"]},
+        "caster": {"action": "support_rescue", "intent": "cast_spell", "score": 172.0, "objective": "bound_ally", "slots": ["rear"]}
+      }
+    },
+    "orderly_withdrawal": {
+      "duration_rounds": 3,
+      "base_score": 205.0,
+      "assignments": {
+        "melee": {"action": "screen_withdrawal", "intent": "regroup", "score": 176.0, "objective": "fallback_line", "slots": ["front_left", "front_right"]},
+        "defender": {"action": "rear_guard", "intent": "guard", "score": 194.0, "objective": "fallback_line", "slots": ["front"]},
+        "ranged": {"action": "withdraw_covering", "intent": "retreat", "score": 184.0, "objective": "fallback_line", "slots": ["rear_left", "rear_right"]},
+        "caster": {"action": "withdraw_covering", "intent": "retreat", "score": 188.0, "objective": "fallback_line", "slots": ["rear"]}
+      }
+    },
+    "hold_chokepoint": {
+      "duration_rounds": 4,
+      "base_score": 184.0,
+      "assignments": {
+        "melee": {"action": "support_choke", "intent": "intercept", "score": 158.0, "objective": "passage", "slots": ["left", "right"]},
+        "defender": {"action": "anchor_choke", "intent": "guard", "score": 208.0, "objective": "passage", "slots": ["front"]},
+        "ranged": {"action": "cover_choke", "intent": "take_cover", "score": 166.0, "objective": "passage", "slots": ["rear_left", "rear_right"]},
+        "caster": {"action": "control_choke", "intent": "cast_spell", "score": 174.0, "objective": "passage", "slots": ["rear"]}
+      }
+    },
+    "suppress_and_flank": {
+      "duration_rounds": 3,
+      "base_score": 172.0,
+      "assignments": {
+        "melee": {"action": "flank", "intent": "reposition", "score": 168.0, "objective": "target_flank", "slots": ["left", "right"]},
+        "defender": {"action": "pin_target", "intent": "intercept", "score": 176.0, "objective": "target_front", "slots": ["front"]},
+        "ranged": {"action": "suppress", "intent": "take_cover", "score": 170.0, "objective": "target_rear", "slots": ["rear_left", "rear_right"]},
+        "caster": {"action": "control_target", "intent": "cast_spell", "score": 178.0, "objective": "target_rear", "slots": ["rear"]}
+      }
+    },
+    "sector_search": {
+      "duration_rounds": 3,
+      "base_score": 158.0,
+      "assignments": {
+        "melee": {"action": "search_sector", "intent": "search", "score": 148.0, "objective": "memory_sector", "slots": ["left", "right"]},
+        "defender": {"action": "guard_exit", "intent": "guard", "score": 156.0, "objective": "memory_rear", "slots": ["rear"]},
+        "ranged": {"action": "watch_sector", "intent": "take_cover", "score": 146.0, "objective": "memory_sector", "slots": ["rear_left", "rear_right"]},
+        "caster": {"action": "reacquire_line", "intent": "reposition", "score": 152.0, "objective": "memory_sector", "slots": ["left", "right"]}
+      }
+    },
+    "coordinated_assault": {
+      "duration_rounds": 2,
+      "base_score": 128.0,
+      "assignments": {
+        "melee": {"action": "pressure", "intent": "advance", "score": 132.0, "objective": "target_front", "slots": ["left", "right"]},
+        "defender": {"action": "pin_target", "intent": "intercept", "score": 142.0, "objective": "target_front", "slots": ["front"]},
+        "ranged": {"action": "support_fire", "intent": "take_cover", "score": 136.0, "objective": "target_rear", "slots": ["rear_left", "rear_right"]},
+        "caster": {"action": "control_target", "intent": "cast_spell", "score": 144.0, "objective": "target_rear", "slots": ["rear"]}
+      }
+    }
+  },
+  "role_profiles": {
+    "melee": {"plan_commitment": 0.72, "failure_tolerance": 2, "reservation_spacing_feet": 5},
+    "ranged": {"plan_commitment": 0.78, "failure_tolerance": 1, "reservation_spacing_feet": 10},
+    "defender": {"plan_commitment": 0.9, "failure_tolerance": 3, "reservation_spacing_feet": 5},
+    "caster": {"plan_commitment": 0.82, "failure_tolerance": 1, "reservation_spacing_feet": 10}
+  },
+  "profiles": {
+    "caretaker": {"plan_commitment": 0.96, "failure_tolerance": 3},
+    "service_guard": {"plan_commitment": 0.7},
+    "training_marksman": {"plan_commitment": 0.84},
+    "training_mage": {"plan_commitment": 0.86}
+  }
+}
