@@ -167,7 +167,7 @@ class CombatIdleDownCyclesV10Tests(unittest.TestCase):
         self.assertNotIn("scale.x = -1", self.adapter_source)
         self.assertNotIn("scale[0] = -1", self.adapter_source)
 
-    def test_active_launcher_and_workflow_use_cycles_v10(self) -> None:
+    def test_v10_remains_approved_source_under_active_v11_stage(self) -> None:
         launcher = (self.tool_root / "run_blender_sprite_pilot.ps1").read_text(
             encoding="ascii"
         )
@@ -178,14 +178,15 @@ class CombatIdleDownCyclesV10Tests(unittest.TestCase):
             / "validate-blender-sprite-factory.yml"
         ).read_text(encoding="utf-8")
         self.assertIn(
-            '$FactoryScript = Join-Path $ToolRoot "blender_sprite_factory_combat_idle_down_cycles_v10.py"',
+            "Artist-approved down cycles: blender_sprite_factory_combat_idle_down_cycles_v10.py",
             launcher,
         )
         self.assertIn("render-combat-idle-down-cycles-v10", workflow)
         self.assertIn(
-            "blender_sprite_factory_combat_idle_down_cycles_v10.py",
-            workflow,
+            '$FactoryScript = Join-Path $ToolRoot "blender_sprite_factory_combat_idle_directional_v11.py"',
+            launcher,
         )
+        self.assertIn("render-combat-idle-directional-v11", workflow)
 
     def test_unknown_character_is_rejected(self) -> None:
         with self.assertRaisesRegex(KeyError, "No combat idle cycles v10"):
