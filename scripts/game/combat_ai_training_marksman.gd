@@ -2,6 +2,12 @@ class_name CombatAiTrainingMarksman
 extends "res://scripts/game/stealth_patrol_observer.gd"
 
 
+func enter_combat_hostile() -> void:
+	if not is_combat_participant_active():
+		get_tree().call_group("stealth_world", "activate_tactical_training_squad")
+	super.enter_combat_hostile()
+
+
 func perform_combat_turn_attack() -> void:
 	if not can_take_combat_turn():
 		return
