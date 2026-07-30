@@ -131,8 +131,9 @@ func _toggle_exploration_hide() -> void:
 	if _exploration_hidden:
 		_break_exploration_hidden("Герой вышел из укрытия.")
 		return
-	if _player_visible_to_any_exploration_actor():
-		show_combat_message("Скрыться нельзя: Смотритель сохраняет прямую линию обзора.", false)
+	var visible_observers: Array[Node] = _visible_exploration_observers()
+	if not visible_observers.is_empty():
+		show_combat_message(_line_of_sight_failure_message(visible_observers), false)
 		return
 	var hiding_spot: Dictionary = _stealth_alerts.get_hiding_spot_at(player.global_position)
 	var concealment_bonus: int = int(hiding_spot.get("concealment_bonus", 0))
@@ -262,12 +263,17 @@ func _exploration_actor_can_see_player(actor: Node, profile: Dictionary) -> bool
 	return _stealth_alerts.can_see_target(actor_position, facing, player.global_position, profile, line_of_sight_clear, fully_concealed)
 
 
-func _player_visible_to_any_exploration_actor() -> bool:
+func _visible_exploration_observers() -> Array[Node]:
+	var result: Array[Node] = []
 	for actor: Node in _exploration_alert_actors():
 		var actor_id: String = str(actor.call("get_actor_id"))
 		if _exploration_actor_can_see_player(actor, _stealth_alerts.get_profile(actor_id)):
-			return true
-	return false
+			result.append(actor)
+	return result
+
+
+func _player_visible_to_any_exploration_actor() -> bool:
+	return not _visible_exploration_observers().is_empty()
 
 
 func _exploration_alert_actors() -> Array[Node]:

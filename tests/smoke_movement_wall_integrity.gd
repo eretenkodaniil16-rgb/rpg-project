@@ -97,6 +97,19 @@ func _run() -> void:
 			_fail("Closed partition edge does not block movement: %s" % JSON.stringify(edge))
 			return
 
+	var wall_los_edge: Dictionary = top_edges[0]
+	var wall_los_left: Vector2i = wall_los_edge.get("a", CombatEnvironment.INVALID_CELL) as Vector2i
+	var wall_los_right: Vector2i = wall_los_edge.get("b", CombatEnvironment.INVALID_CELL) as Vector2i
+	if environment.has_line_of_sight(grid.cell_to_world_center(wall_los_left), grid.cell_to_world_center(wall_los_right)):
+		_fail("A solid wall edge does not block line of sight.")
+		return
+	var door_los_edge: Dictionary = door_edges[0]
+	var door_los_left: Vector2i = door_los_edge.get("a", CombatEnvironment.INVALID_CELL) as Vector2i
+	var door_los_right: Vector2i = door_los_edge.get("b", CombatEnvironment.INVALID_CELL) as Vector2i
+	if environment.has_line_of_sight(grid.cell_to_world_center(door_los_left), grid.cell_to_world_center(door_los_right)):
+		_fail("A closed door edge does not block line of sight.")
+		return
+
 	var planner := PlannedMovementSystem.new()
 	var combatant_state := CombatantState.new()
 	var doorway_edge: Dictionary = door_edges[0]
@@ -143,6 +156,9 @@ func _run() -> void:
 		if environment.is_transition_blocked(grid, left_cell, right_cell):
 			_fail("Opened door still blocks its cell edge: %s" % JSON.stringify(edge))
 			return
+	if not environment.has_line_of_sight(grid.cell_to_world_center(door_los_left), grid.cell_to_world_center(door_los_right)):
+		_fail("An opened door edge still blocks line of sight.")
+		return
 	var open_result: Dictionary = planner.build_path(grid, doorway_left, doorway_right, {}, environment, combatant_state, 10, false, true)
 	if not bool(open_result.get("reachable", false)):
 		_fail("Planner cannot cross the opened edge doorway: %s" % JSON.stringify(open_result))

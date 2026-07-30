@@ -83,7 +83,7 @@ func set_cover_object_active(object_id: String, active: bool, report_change: boo
 	return false
 
 
-func register_edge_blocker(object_id: String, edges: Array, active: bool = true) -> void:
+func register_edge_blocker(object_id: String, edges: Array, active: bool = true, blocks_line_of_sight: bool = true) -> void:
 	if object_id.is_empty():
 		return
 	var normalized_edges: Array[Dictionary] = []
@@ -103,6 +103,7 @@ func register_edge_blocker(object_id: String, edges: Array, active: bool = true)
 		normalized_edges.append({"a": first, "b": second})
 	edge_blockers[object_id] = {
 		"active": active,
+		"blocks_line_of_sight": blocks_line_of_sight,
 		"edges": normalized_edges
 	}
 
@@ -359,6 +360,9 @@ func get_cover(attacker_position: Vector2, target_position: Vector2) -> Dictiona
 			total_cover = true
 			break
 		best_bonus = maxi(best_bonus, int(obstacle.get("cover_bonus", 0)))
+	var grid: BattleGrid = get_tree().get_first_node_in_group("battle_grid") as BattleGrid
+	if not total_cover and _segment_crosses_blocking_edge(grid, attacker_position, target_position):
+		total_cover = true
 	return {
 		"bonus": best_bonus,
 		"total_cover": total_cover,
@@ -368,6 +372,76 @@ func get_cover(attacker_position: Vector2, target_position: Vector2) -> Dictiona
 
 func has_line_of_sight(attacker_position: Vector2, target_position: Vector2) -> bool:
 	return not bool(get_cover(attacker_position, target_position).get("total_cover", false))
+
+
+func _segment_crosses_blocking_edge(grid: BattleGrid, sight_start: Vector2, sight_end: Vector2) -> bool:
+	if grid == null or sight_start.is_equal_approx(sight_end):
+		return false
+	for record_value: Variant in edge_blockers.values():
+		if not (record_value is Dictionary):
+			continue
+		var record: Dictionary = record_value as Dictionary
+		if not bool(record.get("active", true)) or not bool(record.get("blocks_line_of_sight", true)):
+			continue
+		var edges_value: Variant = record.get("edges", [])
+		if not (edges_value is Array):
+			continue
+		for edge_value: Variant in edges_value as Array:
+			if not (edge_value is Dictionary):
+				continue
+			var segment: Dictionary = _edge_world_segment(grid, edge_value as Dictionary)
+			if segment.is_empty():
+				continue
+			if _segments_intersect_strict(
+				sight_start,
+				sight_end,
+				segment.get("start", Vector2.ZERO) as Vector2,
+				segment.get("end", Vector2.ZERO) as Vector2
+			):
+				return true
+	return false
+
+
+func _edge_world_segment(grid: BattleGrid, edge: Dictionary) -> Dictionary:
+	var first: Vector2i = edge.get("a", INVALID_CELL) as Vector2i
+	var second: Vector2i = edge.get("b", INVALID_CELL) as Vector2i
+	if first == INVALID_CELL or second == INVALID_CELL:
+		return {}
+	var first_center: Vector2 = grid.cell_to_world_center(first)
+	var second_center: Vector2 = grid.cell_to_world_center(second)
+	var midpoint: Vector2 = (first_center + second_center) * 0.5
+	var half_cell: float = grid.get_cell_size() * 0.5
+	if first.x != second.x:
+		return {
+			"start": midpoint + Vector2(0.0, -half_cell),
+			"end": midpoint + Vector2(0.0, half_cell)
+		}
+	return {
+		"start": midpoint + Vector2(-half_cell, 0.0),
+		"end": midpoint + Vector2(half_cell, 0.0)
+	}
+
+
+func _segments_intersect_strict(
+	sight_start: Vector2,
+	sight_end: Vector2,
+	edge_start: Vector2,
+	edge_end: Vector2
+) -> bool:
+	var sight_direction: Vector2 = sight_end - sight_start
+	var edge_direction: Vector2 = edge_end - edge_start
+	var denominator: float = sight_direction.cross(edge_direction)
+	if absf(denominator) <= 0.0001:
+		return false
+	var offset: Vector2 = edge_start - sight_start
+	var sight_ratio: float = offset.cross(edge_direction) / denominator
+	var edge_ratio: float = offset.cross(sight_direction) / denominator
+	return (
+		sight_ratio > 0.0001
+		and sight_ratio < 0.9999
+		and edge_ratio >= -0.0001
+		and edge_ratio <= 1.0001
+	)
 
 
 func _rebuild_collision_bodies() -> void:
