@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "role_profiles": {
+    "melee": {
+      "perception_feet": 65,
+      "hearing_feet": 80,
+      "event_memory_rounds": 3,
+      "reactions": {
+        "hazard_added": {"action": "avoid_hazard", "intent": "reposition", "score": 172.0},
+        "cover_destroyed": {"action": "exploit_opening", "intent": "advance", "score": 116.0},
+        "passage_opened": {"action": "exploit_opening", "intent": "advance", "score": 132.0},
+        "door_broken": {"action": "exploit_opening", "intent": "advance", "score": 144.0},
+        "door_closed": {"action": "investigate_change", "intent": "search", "score": 96.0},
+        "body_moved": {"action": "investigate_change", "intent": "search", "score": 104.0},
+        "ally_bound": {"action": "rescue_ally", "intent": "advance", "score": 148.0}
+      }
+    },
+    "ranged": {
+      "perception_feet": 90,
+      "hearing_feet": 85,
+      "event_memory_rounds": 4,
+      "reactions": {
+        "hazard_added": {"action": "avoid_hazard", "intent": "reposition", "score": 180.0},
+        "cover_destroyed": {"action": "recover_cover", "intent": "take_cover", "score": 168.0},
+        "passage_opened": {"action": "recover_cover", "intent": "take_cover", "score": 126.0},
+        "door_broken": {"action": "recover_cover", "intent": "take_cover", "score": 150.0},
+        "door_closed": {"action": "investigate_change", "intent": "search", "score": 90.0},
+        "body_moved": {"action": "investigate_change", "intent": "search", "score": 98.0},
+        "ally_bound": {"action": "cover_rescue", "intent": "take_cover", "score": 118.0}
+      }
+    },
+    "defender": {
+      "perception_feet": 75,
+      "hearing_feet": 90,
+      "event_memory_rounds": 5,
+      "reactions": {
+        "hazard_added": {"action": "avoid_hazard", "intent": "reposition", "score": 164.0},
+        "cover_destroyed": {"action": "hold_breach", "intent": "intercept", "score": 154.0},
+        "passage_opened": {"action": "secure_passage", "intent": "intercept", "score": 176.0},
+        "door_broken": {"action": "hold_breach", "intent": "intercept", "score": 182.0},
+        "door_closed": {"action": "guard_passage", "intent": "guard", "score": 118.0},
+        "body_moved": {"action": "investigate_change", "intent": "search", "score": 112.0},
+        "ally_bound": {"action": "rescue_ally", "intent": "intercept", "score": 170.0}
+      }
+    },
+    "caster": {
+      "perception_feet": 100,
+      "hearing_feet": 85,
+      "event_memory_rounds": 5,
+      "reactions": {
+        "hazard_added": {"action": "avoid_hazard", "intent": "reposition", "score": 190.0},
+        "cover_destroyed": {"action": "recover_cover", "intent": "take_cover", "score": 178.0},
+        "passage_opened": {"action": "reposition_for_spell", "intent": "take_cover", "score": 130.0},
+        "door_broken": {"action": "recover_cover", "intent": "take_cover", "score": 156.0},
+        "door_closed": {"action": "reposition_for_spell", "intent": "reposition", "score": 126.0},
+        "body_moved": {"action": "investigate_change", "intent": "search", "score": 102.0},
+        "ally_bound": {"action": "support_rescue", "intent": "take_cover", "score": 122.0}
+      }
+    }
+  },
+  "profiles": {
+    "caretaker": {
+      "perception_feet": 85,
+      "hearing_feet": 100,
+      "event_memory_rounds": 6
+    },
+    "service_guard": {
+      "hearing_feet": 95
+    },
+    "training_marksman": {
+      "perception_feet": 100
+    },
+    "training_mage": {
+      "perception_feet": 110
+    }
+  }
+}
