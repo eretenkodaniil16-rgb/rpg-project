@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "sources": {
+    "burglar_pack": {
+      "label": "верёвка из набора взломщика",
+      "capacity": 1,
+      "escape_dc": 14,
+      "kind": "rope"
+    },
+    "explorer_pack": {
+      "label": "походная верёвка",
+      "capacity": 1,
+      "escape_dc": 13,
+      "kind": "rope"
+    },
+    "dungeoneer_pack": {
+      "label": "верёвка для подземелий",
+      "capacity": 1,
+      "escape_dc": 14,
+      "kind": "rope"
+    }
+  }
+}
