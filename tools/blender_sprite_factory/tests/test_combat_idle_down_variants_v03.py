@@ -74,7 +74,7 @@ class CombatIdleDownVariantsV03Tests(unittest.TestCase):
         self.assertNotIn("scale.x = -1", self.adapter_source)
         self.assertNotIn("scale[0] = -1", self.adapter_source)
 
-    def test_active_launcher_and_workflow_advance_to_wide_side_v04(self) -> None:
+    def test_historical_v03_remains_while_active_stage_advances_to_v05(self) -> None:
         launcher = (self.tool_root / "run_blender_sprite_pilot.ps1").read_text(
             encoding="ascii"
         )
@@ -91,11 +91,11 @@ class CombatIdleDownVariantsV03Tests(unittest.TestCase):
             ).is_file()
         )
         self.assertIn(
-            "Previous centered variant stage: blender_sprite_factory_combat_idle_down_variants_v03.py",
+            "Previous wide-side stage: blender_sprite_factory_combat_idle_down_variants_v04.py",
             launcher,
         )
-        self.assertIn("render-combat-idle-down-variants-v03 (rejected", workflow)
-        self.assertIn("render-combat-idle-down-variants-v04", workflow)
+        self.assertIn("render-combat-idle-down-variants-v03", workflow)
+        self.assertIn("render-combat-idle-down-weapon-variants-v05", workflow)
 
     def test_unknown_character_is_rejected(self) -> None:
         with self.assertRaisesRegex(KeyError, "No combat_idle_down variants v03"):
