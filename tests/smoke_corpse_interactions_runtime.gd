@@ -83,8 +83,8 @@ func _run() -> void:
 
 	guard.call("reset_combat_state", true)
 	await process_frame
-	if bool(guard.call("is_body_interactable")) or not guard.is_in_group("combat_targets"):
-		_fail("Full reset did not restore the living combat target.")
+	if bool(guard.call("is_body_interactable")) or not guard.is_in_group("context_action_targets") or guard.is_in_group("combat_targets"):
+		_fail("Full reset did not restore the living non-combat patrol observer.")
 		return
 	state.call("add_item", "explorer_pack", 1, false)
 	game.call("_set_selected_target", guard)
