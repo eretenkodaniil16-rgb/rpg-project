@@ -1,0 +1,93 @@
+name: Validate advanced Combat AI
+
+on:
+  pull_request:
+    paths:
+      - "data/ai/npc_advanced_tactics.json"
+      - "data/world/corpse_loot_profiles.json"
+      - "scripts/systems/advanced_npc_combat_ai_system.gd"
+      - "scripts/systems/npc_casualty_awareness_system.gd"
+      - "scripts/systems/npc_spell_selection_system.gd"
+      - "scripts/game/combat_ai_training_mage.gd"
+      - "scripts/game/game_advanced_combat_ai_runtime.gd"
+      - "scenes/game/combat_ai_training_mage.tscn"
+      - "scenes/game/game.tscn"
+      - "tests/test_advanced_combat_ai.gd"
+      - "tests/test_npc_spell_selection_system.gd"
+      - "tests/smoke_advanced_combat_ai_runtime.gd"
+      - ".github/workflows/validate-advanced-combat-ai.yml"
+  push:
+    branches:
+      - feature/advanced-combat-ai-mages
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Godot 4.7.1 Standard
+        shell: bash
+        run: |
+          curl --location --fail --retry 3 --output godot.zip "https://downloads.godotengine.org/?flavor=stable&platform=linux.64&slug=linux.x86_64.zip&version=4.7.1"
+          unzip -q godot.zip
+          chmod +x Godot_v4.7.1-stable_linux.x86_64
+
+      - name: Import project and reject parser errors
+        shell: bash
+        run: |
+          rm -rf .godot
+          set -o pipefail
+          timeout 120s ./Godot_v4.7.1-stable_linux.x86_64 --headless --editor --path "$GITHUB_WORKSPACE" --quit 2>&1 | tee advanced-ai-import.log
+          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script" advanced-ai-import.log; then
+            exit 1
+          fi
+
+      - name: Validate advanced tactical decisions and casualty memory
+        shell: bash
+        run: timeout 150s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_advanced_combat_ai.gd 2>&1 | tee advanced-ai-unit.log
+
+      - name: Validate safe deterministic spell selection
+        shell: bash
+        run: timeout 150s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_npc_spell_selection_system.gd 2>&1 | tee npc-spell-selection.log
+
+      - name: Smoke test corpse awareness, mage and safe spell planning
+        shell: bash
+        run: timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_advanced_combat_ai_runtime.gd 2>&1 | tee advanced-ai-smoke.log
+
+      - name: Regression test corpse interactions
+        shell: bash
+        run: timeout 150s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_corpse_interactions_runtime.gd 2>&1 | tee corpse-regression.log
+
+      - name: Regression test tactical Combat AI
+        shell: bash
+        run: timeout 150s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_combat_ai_tactical_runtime.gd 2>&1 | tee tactical-ai-regression.log
+
+      - name: Regression test Counterspell and reactions
+        shell: bash
+        run: timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_spell_reaction_prompt.gd 2>&1 | tee spell-reaction-regression.log
+
+      - name: Regression test integrated v0.18 contract
+        shell: bash
+        run: timeout 150s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_v018_integration_stack.gd 2>&1 | tee v018-regression.log
+
+      - name: Upload advanced AI diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: advanced-combat-ai-diagnostics
+          path: |
+            advanced-ai-import.log
+            advanced-ai-unit.log
+            npc-spell-selection.log
+            advanced-ai-smoke.log
+            corpse-regression.log
+            tactical-ai-regression.log
+            spell-reaction-regression.log
+            v018-regression.log
+          retention-days: 5
