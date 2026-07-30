@@ -36,6 +36,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: feature/squad-tactical-plans
+          fetch-depth: 0
 
       - name: Apply edge LOS and named observer patch
         shell: bash
