@@ -3,7 +3,8 @@ from pathlib import Path
 runtime_path = Path("scripts/game/game_squad_tactical_plans_runtime.gd")
 scene_path = Path("scenes/game/game.tscn")
 shim_path = Path("scripts/game/game_interactive_tactical_runtime.gd")
-workflow_path = Path(".github/workflows/apply-interaction-target-fix.yml")
+standalone_workflow_path = Path(".github/workflows/apply-interaction-target-fix.yml")
+validate_workflow_path = Path(".github/workflows/validate-squad-tactical-plans.yml")
 script_path = Path(__file__)
 
 runtime = runtime_path.read_text(encoding="utf-8")
@@ -132,6 +133,11 @@ func _world_interaction_available() -> bool:
 
 func is_world_interaction_available_for_testing() -> bool:
 	return _world_interaction_available()
+
+
+func _stop_turn_based_combat(message: String) -> void:
+	_used_world_interaction_turn_token = ""
+	super._stop_turn_based_combat(message)
 '''
 
 runtime_path.write_text(runtime, encoding="utf-8")
@@ -143,9 +149,20 @@ scene = scene.replace(
 )
 scene_path.write_text(scene, encoding="utf-8")
 
+if validate_workflow_path.exists():
+    workflow = validate_workflow_path.read_text(encoding="utf-8")
+    start_marker = "  apply-interaction-fix:\n"
+    end_marker = "  validate:\n"
+    start = workflow.find(start_marker)
+    end = workflow.find(end_marker, start + len(start_marker)) if start >= 0 else -1
+    if start >= 0 and end >= 0:
+        workflow = workflow[:start] + workflow[end:]
+    workflow = workflow.replace("  contents: write\n", "  contents: read\n", 1)
+    validate_workflow_path.write_text(workflow, encoding="utf-8")
+
 if shim_path.exists():
     shim_path.unlink()
-if workflow_path.exists():
-    workflow_path.unlink()
+if standalone_workflow_path.exists():
+    standalone_workflow_path.unlink()
 if script_path.exists():
     script_path.unlink()
