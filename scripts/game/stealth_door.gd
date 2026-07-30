@@ -11,6 +11,7 @@ var _visual: Polygon2D
 var _state_label: Label
 var _interaction_area: Area2D
 var _player_in_range: Node = null
+var _last_combat_interaction_turn_token: String = ""
 
 
 func _ready() -> void:
@@ -23,16 +24,28 @@ func _ready() -> void:
 
 
 func interact() -> void:
-	var game: Node = get_tree().get_first_node_in_group("game_world")
-	if game != null and game.has_method("request_world_interaction"):
-		var handled: bool = bool(game.call("request_world_interaction", self))
-		if handled:
+	if _is_combat_active():
+		if not _combat_player_can_interact_now():
+			get_tree().call_group("game_world", "show_combat_message", "Открыть или закрыть дверь можно только на своём ходу.", false)
 			return
+		var turn_token: String = _current_combat_turn_token()
+		if turn_token.is_empty() or turn_token == _last_combat_interaction_turn_token:
+			get_tree().call_group("game_world", "show_combat_message", "Взаимодействие с объектом на этом ходу уже использовано.", false)
+			return
+		if not _door_state_allows_interaction():
+			_show_blocked_message()
+			return
+		_last_combat_interaction_turn_token = turn_token
 	perform_world_interaction()
 
 
 func can_perform_world_interaction() -> bool:
-	return _door_state not in ["locked", "blocked", "broken"]
+	if not _door_state_allows_interaction():
+		return false
+	if not _is_combat_active():
+		return true
+	var turn_token: String = _current_combat_turn_token()
+	return _combat_player_can_interact_now() and not turn_token.is_empty() and turn_token != _last_combat_interaction_turn_token
 
 
 func get_combat_interaction_label() -> String:
@@ -44,6 +57,10 @@ func get_combat_interaction_label() -> String:
 
 
 func get_combat_interaction_description() -> String:
+	if _is_combat_active() and not _combat_player_can_interact_now():
+		return "Взаимодействовать с дверью можно только на своём ходу."
+	if _is_combat_active() and _current_combat_turn_token() == _last_combat_interaction_turn_token:
+		return "Взаимодействие с объектом на этом ходу уже использовано."
 	match _door_state:
 		"open": return "Закрыть соседнюю дверь. Использует одно взаимодействие с объектом на этом ходу."
 		"closed": return "Открыть соседнюю дверь. Использует одно взаимодействие с объектом на этом ходу."
@@ -53,11 +70,8 @@ func get_combat_interaction_description() -> String:
 
 
 func perform_world_interaction() -> void:
-	if _door_state in ["locked", "blocked"]:
-		get_tree().call_group("game_world", "show_combat_message", "%s заперта." % door_label, false)
-		return
-	if _door_state == "broken":
-		get_tree().call_group("game_world", "show_combat_message", "%s разрушена и больше не закрывается." % door_label, false)
+	if not _door_state_allows_interaction():
+		_show_blocked_message()
 		return
 	var next_state: String = "open" if _door_state == "closed" else "closed"
 	set_door_state(next_state, true)
@@ -93,6 +107,43 @@ func blocks_line_of_sight() -> bool:
 
 func get_world_rect() -> Rect2:
 	return Rect2(global_position - door_size * 0.5, door_size)
+
+
+func _door_state_allows_interaction() -> bool:
+	return _door_state not in ["locked", "blocked", "broken"]
+
+
+func _show_blocked_message() -> void:
+	var message: String = "%s заперта." % door_label
+	if _door_state == "broken":
+		message = "%s разрушена и больше не закрывается." % door_label
+	get_tree().call_group("game_world", "show_combat_message", message, false)
+
+
+func _is_combat_active() -> bool:
+	var game: Node = get_tree().get_first_node_in_group("game_world")
+	return game != null and game.has_method("is_turn_based_combat_active") and bool(game.call("is_turn_based_combat_active"))
+
+
+func _combat_player_can_interact_now() -> bool:
+	var game: Node = get_tree().get_first_node_in_group("game_world")
+	if game == null:
+		return false
+	var turn_system_value: Variant = game.get("_turn_system")
+	if not turn_system_value is TurnBasedCombatSystem:
+		return false
+	var turn_system: TurnBasedCombatSystem = turn_system_value as TurnBasedCombatSystem
+	return turn_system.active and is_instance_valid(_player_in_range) and turn_system.current_actor() == _player_in_range
+
+
+func _current_combat_turn_token() -> String:
+	var game: Node = get_tree().get_first_node_in_group("game_world")
+	if game == null:
+		return ""
+	var turn_system_value: Variant = game.get("_turn_system")
+	if not turn_system_value is TurnBasedCombatSystem:
+		return ""
+	return (turn_system_value as TurnBasedCombatSystem).current_turn_token()
 
 
 func _get_game_state() -> Node:
