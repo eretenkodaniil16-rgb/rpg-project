@@ -16,7 +16,9 @@ func choose_combat_intent(actor_id: String, context: Dictionary) -> Dictionary:
 	var plan_score: float = float(assignment.get("score", BLOCKED_SCORE))
 	var baseline_score: float = float(baseline.get("score", BLOCKED_SCORE))
 	var baseline_environment_action: String = str(baseline.get("environment_action", ""))
-	if baseline_environment_action == ACTION_AVOID_HAZARD:
+	# Немедленная опасность и фактическая потеря укрытия важнее командного плана.
+	# После безопасного перемещения NPC снова возвращается к плану отряда.
+	if baseline_environment_action in [ACTION_AVOID_HAZARD, ACTION_RECOVER_COVER]:
 		return baseline
 	if intent_id == INTENT_CAST_SPELL and float(context.get("spell_plan_score", BLOCKED_SCORE)) <= BLOCKED_SCORE * 0.5:
 		intent_id = INTENT_REPOSITION
