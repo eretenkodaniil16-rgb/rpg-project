@@ -202,16 +202,16 @@ class ReferenceHairProfileV08Tests(unittest.TestCase):
         self.assertTrue(
             (
                 tool_root
-                / "blender_sprite_factory_combat_idle_down_variants_v03.py"
+                / "blender_sprite_factory_combat_idle_down_variants_v04.py"
             ).is_file()
         )
         self.assertIn(
-            "blender_sprite_factory_combat_idle_down_variants_v04.py",
+            "blender_sprite_factory_combat_idle_down_weapon_variants_v05.py",
             launcher,
         )
-        self.assertIn("render-combat-idle-down-variants-v04", workflow)
+        self.assertIn("render-combat-idle-down-weapon-variants-v05", workflow)
         self.assertIn(
-            "blender_sprite_factory_combat_idle_down_variants_v04.py",
+            "blender_sprite_factory_combat_idle_down_weapon_variants_v05.py",
             workflow,
         )
         self.assertIn(
