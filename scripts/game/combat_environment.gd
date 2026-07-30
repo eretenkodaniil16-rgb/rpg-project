@@ -12,6 +12,7 @@ const INVALID_CELL: Vector2i = Vector2i(-99999, -99999)
 var difficult_terrain: Array[Rect2] = []
 var cover_objects: Array[Dictionary] = []
 var dynamic_hazards: Dictionary = {}
+var edge_blockers: Dictionary = {}
 var _collision_root: Node2D
 
 
@@ -32,6 +33,7 @@ func _build_test_lobby_layout() -> void:
 			"rect": Rect2(621.0, 173.0, 64.0, 128.0),
 			"cover_bonus": 2,
 			"blocks_movement": true,
+			"blocks_cells": true,
 			"blocks_line_of_sight": false,
 			"jumpable": true,
 			"active": true
@@ -41,6 +43,7 @@ func _build_test_lobby_layout() -> void:
 			"rect": Rect2(621.0, 429.0, 64.0, 128.0),
 			"cover_bonus": 5,
 			"blocks_movement": true,
+			"blocks_cells": true,
 			"blocks_line_of_sight": false,
 			"jumpable": true,
 			"active": true
@@ -50,6 +53,7 @@ func _build_test_lobby_layout() -> void:
 			"rect": Rect2(813.0, 493.0, 64.0, 128.0),
 			"cover_bonus": 0,
 			"blocks_movement": true,
+			"blocks_cells": true,
 			"blocks_line_of_sight": true,
 			"jumpable": false,
 			"active": true
@@ -76,6 +80,98 @@ func set_cover_object_active(object_id: String, active: bool, report_change: boo
 				"active": active
 			})
 		return true
+	return false
+
+
+func register_edge_blocker(object_id: String, edges: Array, active: bool = true) -> void:
+	if object_id.is_empty():
+		return
+	var normalized_edges: Array[Dictionary] = []
+	for edge_value: Variant in edges:
+		if not (edge_value is Dictionary):
+			continue
+		var edge: Dictionary = edge_value as Dictionary
+		var first_value: Variant = edge.get("a", null)
+		var second_value: Variant = edge.get("b", null)
+		if not (first_value is Vector2i) or not (second_value is Vector2i):
+			continue
+		var first: Vector2i = first_value as Vector2i
+		var second: Vector2i = second_value as Vector2i
+		var delta: Vector2i = second - first
+		if maxi(absi(delta.x), absi(delta.y)) != 1 or (delta.x != 0 and delta.y != 0):
+			continue
+		normalized_edges.append({"a": first, "b": second})
+	edge_blockers[object_id] = {
+		"active": active,
+		"edges": normalized_edges
+	}
+
+
+func set_edge_blocker_active(object_id: String, active: bool) -> bool:
+	var value: Variant = edge_blockers.get(object_id, null)
+	if not (value is Dictionary):
+		return false
+	var record: Dictionary = value as Dictionary
+	var previous: bool = bool(record.get("active", true))
+	record["active"] = active
+	edge_blockers[object_id] = record
+	return previous != active
+
+
+func get_edge_blocker_edges_for_testing(object_id: String) -> Array[Dictionary]:
+	var value: Variant = edge_blockers.get(object_id, null)
+	if not (value is Dictionary):
+		return []
+	var edges_value: Variant = (value as Dictionary).get("edges", [])
+	var result: Array[Dictionary] = []
+	if edges_value is Array:
+		for edge_value: Variant in edges_value as Array:
+			if edge_value is Dictionary:
+				result.append((edge_value as Dictionary).duplicate(true))
+	return result
+
+
+func is_transition_blocked(grid: BattleGrid, from_cell: Vector2i, to_cell: Vector2i) -> bool:
+	if grid == null or not grid.is_cell_valid(from_cell) or not grid.is_cell_valid(to_cell):
+		return true
+	var delta: Vector2i = to_cell - from_cell
+	if delta == Vector2i.ZERO:
+		return false
+	if maxi(absi(delta.x), absi(delta.y)) != 1:
+		return false
+	if delta.x != 0 and delta.y != 0:
+		var horizontal: Vector2i = from_cell + Vector2i(delta.x, 0)
+		var vertical: Vector2i = from_cell + Vector2i(0, delta.y)
+		var horizontal_route_blocked: bool = (
+			_orthogonal_transition_blocked(from_cell, horizontal)
+			or _orthogonal_transition_blocked(horizontal, to_cell)
+		)
+		var vertical_route_blocked: bool = (
+			_orthogonal_transition_blocked(from_cell, vertical)
+			or _orthogonal_transition_blocked(vertical, to_cell)
+		)
+		return horizontal_route_blocked and vertical_route_blocked
+	return _orthogonal_transition_blocked(from_cell, to_cell)
+
+
+func _orthogonal_transition_blocked(from_cell: Vector2i, to_cell: Vector2i) -> bool:
+	for record_value: Variant in edge_blockers.values():
+		if not (record_value is Dictionary):
+			continue
+		var record: Dictionary = record_value as Dictionary
+		if not bool(record.get("active", true)):
+			continue
+		var edges_value: Variant = record.get("edges", [])
+		if not (edges_value is Array):
+			continue
+		for edge_value: Variant in edges_value as Array:
+			if not (edge_value is Dictionary):
+				continue
+			var edge: Dictionary = edge_value as Dictionary
+			var first: Vector2i = edge.get("a", INVALID_CELL) as Vector2i
+			var second: Vector2i = edge.get("b", INVALID_CELL) as Vector2i
+			if (first == from_cell and second == to_cell) or (first == to_cell and second == from_cell):
+				return true
 	return false
 
 
@@ -190,7 +286,12 @@ func is_cell_blocked(grid: BattleGrid, cell: Vector2i) -> bool:
 	var center: Vector2 = to_local(grid.cell_to_world_center(cell))
 	var cell_rect := Rect2(center - Vector2(size, size) * 0.5, Vector2(size, size)).grow(-2.0)
 	for obstacle: Dictionary in cover_objects:
-		if _obstacle_is_active(obstacle) and bool(obstacle.get("blocks_movement", false)) and (obstacle.get("rect", Rect2()) as Rect2).intersects(cell_rect):
+		if (
+			_obstacle_is_active(obstacle)
+			and bool(obstacle.get("blocks_movement", false))
+			and bool(obstacle.get("blocks_cells", true))
+			and (obstacle.get("rect", Rect2()) as Rect2).intersects(cell_rect)
+		):
 			return true
 	for value: Variant in dynamic_hazards.values():
 		if value is Dictionary and bool((value as Dictionary).get("blocks_movement", false)) and ((value as Dictionary).get("rect", Rect2()) as Rect2).intersects(cell_rect):
@@ -205,7 +306,7 @@ func is_jumpable_cell(grid: BattleGrid, cell: Vector2i) -> bool:
 	var center: Vector2 = to_local(grid.cell_to_world_center(cell))
 	var cell_rect := Rect2(center - Vector2(size, size) * 0.5, Vector2(size, size)).grow(-2.0)
 	for obstacle: Dictionary in cover_objects:
-		if not _obstacle_is_active(obstacle) or not bool(obstacle.get("blocks_movement", false)):
+		if not _obstacle_is_active(obstacle) or not bool(obstacle.get("blocks_movement", false)) or not bool(obstacle.get("blocks_cells", true)):
 			continue
 		if (obstacle.get("rect", Rect2()) as Rect2).intersects(cell_rect):
 			return bool(obstacle.get("jumpable", false))
@@ -223,9 +324,10 @@ func get_jump_landing_cell(
 		return INVALID_CELL
 	var crossed_obstacle: bool = false
 	var crossed_cells: int = 0
+	var previous_cell: Vector2i = origin_cell
 	for distance: int in range(1, maximum_crossed_cells + 2):
 		var candidate: Vector2i = origin_cell + direction * distance
-		if not grid.is_cell_valid(candidate):
+		if not grid.is_cell_valid(candidate) or is_transition_blocked(grid, previous_cell, candidate):
 			return INVALID_CELL
 		if is_cell_blocked(grid, candidate):
 			if not is_jumpable_cell(grid, candidate):
@@ -234,10 +336,9 @@ func get_jump_landing_cell(
 			crossed_cells += 1
 			if crossed_cells > maximum_crossed_cells:
 				return INVALID_CELL
+			previous_cell = candidate
 			continue
-		if not crossed_obstacle:
-			return INVALID_CELL
-		if occupied_cells.has(candidate):
+		if not crossed_obstacle or occupied_cells.has(candidate):
 			return INVALID_CELL
 		return candidate
 	return INVALID_CELL
