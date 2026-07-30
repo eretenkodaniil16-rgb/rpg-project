@@ -2,6 +2,7 @@ extends "res://scripts/game/game_presented_rolls.gd"
 
 var _spellcasting_runtime: SpellcastingSystem = SpellcastingSystem.new()
 var _world_time_runtime: WorldTimeSystem = WorldTimeSystem.new()
+var _dying_turn_recovery_queued: bool = false
 
 
 func _ready() -> void:
@@ -20,3 +21,30 @@ func _ready() -> void:
 		_attack_popup.remove_from_group("combat_ui")
 	_add_exploration_hud_node(_d20_overlay)
 	_add_exploration_hud_node(_combat_feed)
+
+
+func _process(delta: float) -> void:
+	super._process(delta)
+	_queue_dying_turn_recovery_if_needed()
+
+
+func _queue_dying_turn_recovery_if_needed() -> void:
+	if _dying_turn_recovery_queued or _turn_system == null or not _turn_system.active:
+		return
+	if _enemy_turn_running or _turn_system.current_actor() == player:
+		return
+	if GameState.player_character.current_health > 0 or _player_combat_state.dead:
+		return
+	_dying_turn_recovery_queued = true
+	call_deferred("_recover_stalled_dying_turn")
+
+
+func _recover_stalled_dying_turn() -> void:
+	_dying_turn_recovery_queued = false
+	if _turn_system == null or not _turn_system.active or _enemy_turn_running:
+		return
+	if _turn_system.current_actor() == player:
+		return
+	if GameState.player_character.current_health > 0 or _player_combat_state.dead:
+		return
+	_advance_combat_turn()
