@@ -1,4 +1,4 @@
-name: Apply squad runtime test codemod
+name: Apply squad runtime indentation fix
 
 on:
   push:
@@ -20,40 +20,30 @@ jobs:
           ref: feature/squad-tactical-plans
           fetch-depth: 0
 
-      - name: Synchronize top runtime references and typed array conversion
+      - name: Repair typed actor-id conversion indentation
         shell: bash
         run: |
           python - <<'PY'
           from pathlib import Path
 
-          old_runtime = "res://scripts/game/game_environment_reactive_ai_runtime.gd"
-          new_runtime = "res://scripts/game/game_squad_tactical_plans_runtime.gd"
-          changed = []
-          for path in sorted(Path("tests").glob("*.gd")):
-              text = path.read_text(encoding="utf-8")
-              if old_runtime not in text:
-                  continue
-              path.write_text(text.replace(old_runtime, new_runtime), encoding="utf-8")
-              changed.append(str(path))
-
           runtime = Path("scripts/game/game_squad_tactical_plans_runtime.gd")
           text = runtime.read_text(encoding="utf-8")
-          old = 'var actor_ids: Array[String] = squad_context.get("member_ids", []) as Array[String]'
-          new = '''var actor_ids: Array[String] = []
+          broken = '''\tvar actor_ids: Array[String] = []
           for member_id_value: Variant in squad_context.get("member_ids", []) as Array:
               actor_ids.append(str(member_id_value))'''
-          if old not in text:
-              raise SystemExit("Typed actor-id conversion marker was not found")
-          runtime.write_text(text.replace(old, new), encoding="utf-8")
-          changed.append(str(runtime))
-          print("Updated:", changed)
+          fixed = '''\tvar actor_ids: Array[String] = []
+\tfor member_id_value: Variant in squad_context.get("member_ids", []) as Array:
+\t\tactor_ids.append(str(member_id_value))'''
+          if broken not in text:
+              raise SystemExit("Broken indentation marker was not found")
+          runtime.write_text(text.replace(broken, fixed), encoding="utf-8")
           PY
 
-      - name: Commit synchronized contracts
+      - name: Commit repaired runtime
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add tests scripts/game/game_squad_tactical_plans_runtime.gd
-          git commit -m "test: синхронизировать squad planning runtime"
+          git add scripts/game/game_squad_tactical_plans_runtime.gd
+          git commit -m "fix: восстановить отступы squad planning runtime"
           git push origin HEAD:feature/squad-tactical-plans
