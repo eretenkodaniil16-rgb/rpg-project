@@ -1,7 +1,7 @@
 class_name EnvironmentReactiveNpcAiSystem
 extends AdvancedNpcCombatAiSystem
 
-const DATA_PATH: String = "res://data/ai/environment_reactions.json"
+const ENVIRONMENT_DATA_PATH: String = "res://data/ai/environment_reactions.json"
 
 const ACTION_AVOID_HAZARD: String = "avoid_hazard"
 const ACTION_EXPLOIT_OPENING: String = "exploit_opening"
@@ -63,7 +63,7 @@ func choose_combat_intent(actor_id: String, context: Dictionary) -> Dictionary:
 	var score: float = float(reaction.get("score", 100.0)) * lerpf(0.55, 1.0, relevance) * lerpf(0.8, 1.2, clampf(severity / 2.0, 0.0, 1.0))
 	if score <= float(baseline.get("score", BLOCKED_SCORE)) + 0.0001:
 		return baseline
-	var result: Dictionary = {
+	return {
 		"intent": intent,
 		"score": score,
 		"role": str(combat_profile.get("role", ROLE_MELEE)),
@@ -76,7 +76,6 @@ func choose_combat_intent(actor_id: String, context: Dictionary) -> Dictionary:
 		"environment_event_type": event_type,
 		"environment_event_position": event.get("position", Vector2.ZERO)
 	}
-	return result
 
 
 func _environment_reaction_allowed(action: String, event: Dictionary, context: Dictionary) -> bool:
@@ -121,9 +120,9 @@ func _reaction_reason(action: String, event_type: String) -> String:
 func _load_environment_profiles() -> void:
 	_environment_roles.clear()
 	_environment_actors.clear()
-	if not FileAccess.file_exists(DATA_PATH):
+	if not FileAccess.file_exists(ENVIRONMENT_DATA_PATH):
 		return
-	var file: FileAccess = FileAccess.open(DATA_PATH, FileAccess.READ)
+	var file: FileAccess = FileAccess.open(ENVIRONMENT_DATA_PATH, FileAccess.READ)
 	if file == null:
 		return
 	var parsed: Variant = JSON.parse_string(file.get_as_text())
