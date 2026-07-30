@@ -39,17 +39,19 @@ func receive_player_attack(result: AttackResult, show_interface: bool = true) ->
 
 func reset_combat_state(full_restore: bool = true) -> void:
 	stop_body_drag(false)
-	if full_restore:
-		var state: Node = _body_game_state()
-		if state != null:
-			_corpse_system.clear_record(state, _body_actor_id(), false)
-		_body_state = CorpseInteractionSystem.BODY_ALIVE
-		remove_from_group("corpse_targets")
-		remove_from_group("context_action_targets")
-		remove_from_group("visible_bodies")
-		remove_from_group("bound_bodies")
-		add_to_group("combat_targets")
 	super.reset_combat_state(full_restore)
+	if not full_restore:
+		return
+	var state: Node = _body_game_state()
+	if state != null:
+		_corpse_system.clear_record(state, _body_actor_id(), false)
+	_body_state = CorpseInteractionSystem.BODY_ALIVE
+	remove_from_group("corpse_targets")
+	remove_from_group("context_action_targets")
+	remove_from_group("visible_bodies")
+	remove_from_group("bound_bodies")
+	add_to_group("combat_targets")
+	_update_combat_visuals()
 
 
 func interact() -> void:
