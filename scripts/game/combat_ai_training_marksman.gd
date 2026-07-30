@@ -2,7 +2,7 @@ class_name CombatAiTrainingMarksman
 extends "res://scripts/game/stealth_patrol_observer.gd"
 
 
-func is_player_targetable() -> bool:
+func is_combat_active() -> bool:
 	return not defeated
 
 
