@@ -98,7 +98,7 @@ class CombatIdleDownWeaponVariantsV09Tests(unittest.TestCase):
         self.assertNotIn("scale.x = -1", self.adapter_source)
         self.assertNotIn("scale[0] = -1", self.adapter_source)
 
-    def test_v09_remains_selected_static_source_under_v11(self) -> None:
+    def test_v09_remains_selected_static_source_under_v12(self) -> None:
         launcher = (self.tool_root / "run_blender_sprite_pilot.ps1").read_text(
             encoding="ascii"
         )
@@ -114,10 +114,10 @@ class CombatIdleDownWeaponVariantsV09Tests(unittest.TestCase):
         )
         self.assertIn("render-combat-idle-down-weapon-variants-v09", workflow)
         self.assertIn(
-            '$FactoryScript = Join-Path $ToolRoot "blender_sprite_factory_combat_idle_directional_v11.py"',
+            '$FactoryScript = Join-Path $ToolRoot "blender_sprite_factory_combat_idle_directional_weapon_v12.py"',
             launcher,
         )
-        self.assertIn("render-combat-idle-directional-v11", workflow)
+        self.assertIn("render-combat-idle-directional-weapon-v12", workflow)
 
     def test_unknown_character_is_rejected(self) -> None:
         with self.assertRaisesRegex(KeyError, "No weapon stance v09"):
