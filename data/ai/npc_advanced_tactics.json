@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "role_profiles": {
+    "melee": {
+      "tactical_actions": ["shove", "dodge", "regroup", "rally"],
+      "leadership": 0.35,
+      "cover_preference": 0.2,
+      "shove_preference": 0.82,
+      "corpse_awareness_feet": 55,
+      "corpse_response": "adaptive",
+      "rally_duration_rounds": 2
+    },
+    "ranged": {
+      "tactical_actions": ["take_cover", "dodge", "regroup", "rally"],
+      "leadership": 0.3,
+      "cover_preference": 0.9,
+      "shove_preference": 0.1,
+      "corpse_awareness_feet": 70,
+      "corpse_response": "adaptive",
+      "rally_duration_rounds": 2
+    },
+    "defender": {
+      "tactical_actions": ["shove", "take_cover", "dodge", "rally"],
+      "leadership": 0.78,
+      "cover_preference": 0.45,
+      "shove_preference": 0.88,
+      "corpse_awareness_feet": 60,
+      "corpse_response": "hold_or_rally",
+      "rally_duration_rounds": 3
+    },
+    "caster": {
+      "role": "caster",
+      "attack_range_feet": 120,
+      "minimum_range_feet": 20,
+      "preferred_range_feet": 45,
+      "retreat_health_ratio": 0.28,
+      "outnumbered_retreat_health_ratio": 0.68,
+      "retreat_when_outnumbered": true,
+      "aggression": 0.66,
+      "morale": 0.64,
+      "memory_rounds": 4,
+      "shares_target_information": true,
+      "spacing_feet": 15,
+      "tactical_actions": ["cast_spell", "take_cover", "dodge", "regroup", "rally"],
+      "leadership": 0.5,
+      "cover_preference": 1.0,
+      "corpse_awareness_feet": 80,
+      "corpse_response": "adaptive",
+      "rally_duration_rounds": 2,
+      "friendly_fire_tolerance": 0,
+      "slot_reserve": 1,
+      "spell_ids": ["magic_missile", "ray_of_sickness", "burning_hands", "thunderwave", "sorcerous_burst"],
+      "position_weights": {
+        "attack_ready": 128.0,
+        "range_error": 1.35,
+        "line_of_sight": 34.0,
+        "cover": 18.0,
+        "mobility": 2.1,
+        "movement_cost": 0.05,
+        "ally_spacing": 3.2,
+        "retreat_distance": 2.2,
+        "retreat_mobility": 2.9,
+        "search": 1.55,
+        "reacquire_target": 170.0
+      },
+      "utility": {
+        "cast_spell": 104.0,
+        "advance": 58.0,
+        "reposition": 100.0,
+        "take_cover": 86.0,
+        "search": 74.0,
+        "dodge": 70.0,
+        "retreat": 40.0,
+        "wait": 5.0
+      }
+    }
+  },
+  "profiles": {
+    "caretaker": {
+      "leadership": 0.92,
+      "corpse_response": "rally_then_hold",
+      "tactical_actions": ["shove", "take_cover", "dodge", "rally"]
+    },
+    "service_guard": {
+      "leadership": 0.28,
+      "corpse_response": "adaptive"
+    },
+    "training_marksman": {
+      "leadership": 0.25,
+      "corpse_response": "adaptive"
+    },
+    "training_mage": {
+      "actor_id": "training_mage",
+      "role": "caster",
+      "squad_id": "vault_watch",
+      "leadership": 0.56,
+      "morale": 0.68,
+      "minimum_range_feet": 20,
+      "preferred_range_feet": 45,
+      "attack_range_feet": 120,
+      "friendly_fire_tolerance": 0,
+      "slot_reserve": 1,
+      "spell_ids": ["magic_missile", "ray_of_sickness", "burning_hands", "thunderwave", "sorcerous_burst"],
+      "join_combat_on_alert": false,
+      "combat_join_radius_feet": 0
+    }
+  }
+}

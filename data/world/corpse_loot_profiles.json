@@ -26,6 +26,15 @@
         {"item_id": "arrow", "quantity": 12},
         {"item_id": "gold_coin", "quantity": 2}
       ]
+    },
+    "training_mage": {
+      "corpse_id": "corpse_training_mage",
+      "defeat_outcome": "dead",
+      "drag_weight": "medium",
+      "loot": [
+        {"item_id": "quarterstaff_focus", "quantity": 1},
+        {"item_id": "gold_coin", "quantity": 3}
+      ]
     }
   }
 }
