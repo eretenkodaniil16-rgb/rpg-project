@@ -39,6 +39,8 @@ func reset_combat_state(full_restore: bool = true) -> void:
 		_body_state = CorpseInteractionSystem.BODY_ALIVE
 		remove_from_group("corpse_targets")
 		remove_from_group("context_action_targets")
+		remove_from_group("visible_bodies")
+		add_to_group("combat_targets")
 	super.reset_combat_state(full_restore)
 
 
@@ -125,7 +127,8 @@ func get_context_status_text() -> String:
 		return "Мёртв. %s Тело можно перетащить." % loot_text
 	if is_unconscious_body():
 		return "Без сознания. Предметы нельзя снимать, но тело можно перетащить."
-	return super.get_context_status_text() if super.has_method("get_context_status_text") else "Состояние неясно."
+	var relation: String = "враждебен" if is_hostile() else "не проявляет открытой враждебности"
+	return "Жив. Отношение: %s." % relation
 
 
 func _activate_body_from_defeat() -> void:
