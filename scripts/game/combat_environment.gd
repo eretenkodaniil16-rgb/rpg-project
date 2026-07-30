@@ -1,20 +1,24 @@
 class_name CombatEnvironment
 extends Node2D
 
+signal environment_object_changed(event_type: String, object_id: String, world_position: Vector2, payload: Dictionary)
+
 const DIFFICULT_COLOR: Color = Color(0.46, 0.34, 0.22, 0.34)
 const HALF_COVER_COLOR: Color = Color(0.38, 0.42, 0.46, 0.94)
 const HEAVY_COVER_COLOR: Color = Color(0.24, 0.27, 0.31, 0.98)
+const HAZARD_COLOR: Color = Color(0.9, 0.24, 0.08, 0.34)
 const INVALID_CELL: Vector2i = Vector2i(-99999, -99999)
 
 var difficult_terrain: Array[Rect2] = []
 var cover_objects: Array[Dictionary] = []
+var dynamic_hazards: Dictionary = {}
 var _collision_root: Node2D
 
 
 func _ready() -> void:
 	add_to_group("combat_environment")
 	_build_test_lobby_layout()
-	_build_collision_bodies()
+	_rebuild_collision_bodies()
 	queue_redraw()
 
 
@@ -29,7 +33,8 @@ func _build_test_lobby_layout() -> void:
 			"cover_bonus": 2,
 			"blocks_movement": true,
 			"blocks_line_of_sight": false,
-			"jumpable": true
+			"jumpable": true,
+			"active": true
 		},
 		{
 			"id": "high_barricade",
@@ -37,7 +42,8 @@ func _build_test_lobby_layout() -> void:
 			"cover_bonus": 5,
 			"blocks_movement": true,
 			"blocks_line_of_sight": false,
-			"jumpable": true
+			"jumpable": true,
+			"active": true
 		},
 		{
 			"id": "solid_wall",
@@ -45,9 +51,113 @@ func _build_test_lobby_layout() -> void:
 			"cover_bonus": 0,
 			"blocks_movement": true,
 			"blocks_line_of_sight": true,
-			"jumpable": false
+			"jumpable": false,
+			"active": true
 		}
 	]
+
+
+func set_cover_object_active(object_id: String, active: bool, report_change: bool = true) -> bool:
+	for index: int in range(cover_objects.size()):
+		if str(cover_objects[index].get("id", "")) != object_id:
+			continue
+		var previous: bool = bool(cover_objects[index].get("active", true))
+		if previous == active:
+			return false
+		cover_objects[index]["active"] = active
+		_rebuild_collision_bodies()
+		queue_redraw()
+		if report_change:
+			var rect: Rect2 = cover_objects[index].get("rect", Rect2()) as Rect2
+			var event_type: String = EnvironmentEventSystem.EVENT_COVER_RESTORED if active else EnvironmentEventSystem.EVENT_COVER_DESTROYED
+			_report_environment_change(event_type, object_id, to_global(rect.get_center()), {
+				"cover_bonus": int(cover_objects[index].get("cover_bonus", 0)),
+				"blocks_line_of_sight": bool(cover_objects[index].get("blocks_line_of_sight", false)),
+				"active": active
+			})
+		return true
+	return false
+
+
+func destroy_cover_object(object_id: String) -> bool:
+	return set_cover_object_active(object_id, false, true)
+
+
+func restore_cover_object(object_id: String) -> bool:
+	return set_cover_object_active(object_id, true, true)
+
+
+func add_hazard(
+	hazard_id: String,
+	world_rect: Rect2,
+	hazard_type: String = "fire",
+	severity: float = 1.0,
+	blocks_movement: bool = false,
+	audible_radius_feet: int = 35
+) -> bool:
+	if hazard_id.is_empty():
+		return false
+	var local_rect := Rect2(to_local(world_rect.position), world_rect.size)
+	dynamic_hazards[hazard_id] = {
+		"id": hazard_id,
+		"rect": local_rect,
+		"hazard_type": hazard_type,
+		"severity": clampf(severity, 0.0, 3.0),
+		"blocks_movement": blocks_movement
+	}
+	_rebuild_collision_bodies()
+	queue_redraw()
+	_report_environment_change(EnvironmentEventSystem.EVENT_HAZARD_ADDED, hazard_id, to_global(local_rect.get_center()), {
+		"hazard_type": hazard_type,
+		"severity": severity,
+		"blocks_movement": blocks_movement,
+		"audible_radius_feet": maxi(audible_radius_feet, 0),
+		"rect": [world_rect.position.x, world_rect.position.y, world_rect.size.x, world_rect.size.y]
+	})
+	return true
+
+
+func remove_hazard(hazard_id: String) -> bool:
+	var value: Variant = dynamic_hazards.get(hazard_id, {})
+	if not value is Dictionary:
+		return false
+	var hazard: Dictionary = value as Dictionary
+	var rect: Rect2 = hazard.get("rect", Rect2()) as Rect2
+	var hazard_type: String = str(hazard.get("hazard_type", "hazard"))
+	dynamic_hazards.erase(hazard_id)
+	_rebuild_collision_bodies()
+	queue_redraw()
+	_report_environment_change(EnvironmentEventSystem.EVENT_HAZARD_REMOVED, hazard_id, to_global(rect.get_center()), {
+		"hazard_type": hazard_type,
+		"severity": float(hazard.get("severity", 1.0))
+	})
+	return true
+
+
+func is_hazardous_position(world_position: Vector2) -> bool:
+	return not get_hazard_at_position(world_position).is_empty()
+
+
+func get_hazard_at_position(world_position: Vector2) -> Dictionary:
+	var local_position: Vector2 = to_local(world_position)
+	for value: Variant in dynamic_hazards.values():
+		if value is Dictionary and ((value as Dictionary).get("rect", Rect2()) as Rect2).has_point(local_position):
+			return (value as Dictionary).duplicate(true)
+	return {}
+
+
+func is_hazardous_cell(grid: BattleGrid, cell: Vector2i) -> bool:
+	return grid != null and grid.is_cell_valid(cell) and is_hazardous_position(grid.cell_to_world_center(cell))
+
+
+func get_environment_object_position(object_id: String) -> Vector2:
+	for obstacle: Dictionary in cover_objects:
+		if str(obstacle.get("id", "")) == object_id:
+			return to_global((obstacle.get("rect", Rect2()) as Rect2).get_center())
+	var hazard_value: Variant = dynamic_hazards.get(object_id, {})
+	if hazard_value is Dictionary:
+		return to_global(((hazard_value as Dictionary).get("rect", Rect2()) as Rect2).get_center())
+	return Vector2.INF
 
 
 func is_difficult_position(world_position: Vector2) -> bool:
@@ -60,11 +170,16 @@ func is_difficult_position(world_position: Vector2) -> bool:
 func is_position_blocked(world_position: Vector2, actor_radius: float = 18.0) -> bool:
 	var local_position: Vector2 = to_local(world_position)
 	for obstacle: Dictionary in cover_objects:
-		if not bool(obstacle.get("blocks_movement", false)):
+		if not _obstacle_is_active(obstacle) or not bool(obstacle.get("blocks_movement", false)):
 			continue
 		var rect: Rect2 = obstacle.get("rect", Rect2()) as Rect2
 		if rect.grow(actor_radius).has_point(local_position):
 			return true
+	for value: Variant in dynamic_hazards.values():
+		if value is Dictionary and bool((value as Dictionary).get("blocks_movement", false)):
+			var hazard_rect: Rect2 = (value as Dictionary).get("rect", Rect2()) as Rect2
+			if hazard_rect.grow(actor_radius).has_point(local_position):
+				return true
 	return false
 
 
@@ -75,7 +190,10 @@ func is_cell_blocked(grid: BattleGrid, cell: Vector2i) -> bool:
 	var center: Vector2 = to_local(grid.cell_to_world_center(cell))
 	var cell_rect := Rect2(center - Vector2(size, size) * 0.5, Vector2(size, size)).grow(-2.0)
 	for obstacle: Dictionary in cover_objects:
-		if bool(obstacle.get("blocks_movement", false)) and (obstacle.get("rect", Rect2()) as Rect2).intersects(cell_rect):
+		if _obstacle_is_active(obstacle) and bool(obstacle.get("blocks_movement", false)) and (obstacle.get("rect", Rect2()) as Rect2).intersects(cell_rect):
+			return true
+	for value: Variant in dynamic_hazards.values():
+		if value is Dictionary and bool((value as Dictionary).get("blocks_movement", false)) and ((value as Dictionary).get("rect", Rect2()) as Rect2).intersects(cell_rect):
 			return true
 	return false
 
@@ -87,7 +205,7 @@ func is_jumpable_cell(grid: BattleGrid, cell: Vector2i) -> bool:
 	var center: Vector2 = to_local(grid.cell_to_world_center(cell))
 	var cell_rect := Rect2(center - Vector2(size, size) * 0.5, Vector2(size, size)).grow(-2.0)
 	for obstacle: Dictionary in cover_objects:
-		if not bool(obstacle.get("blocks_movement", false)):
+		if not _obstacle_is_active(obstacle) or not bool(obstacle.get("blocks_movement", false)):
 			continue
 		if (obstacle.get("rect", Rect2()) as Rect2).intersects(cell_rect):
 			return bool(obstacle.get("jumpable", false))
@@ -131,6 +249,8 @@ func get_cover(attacker_position: Vector2, target_position: Vector2) -> Dictiona
 	var best_bonus: int = 0
 	var total_cover: bool = false
 	for obstacle: Dictionary in cover_objects:
+		if not _obstacle_is_active(obstacle):
+			continue
 		var rect: Rect2 = obstacle.get("rect", Rect2()) as Rect2
 		if not _segment_crosses_rect(start, finish, rect):
 			continue
@@ -149,25 +269,44 @@ func has_line_of_sight(attacker_position: Vector2, target_position: Vector2) -> 
 	return not bool(get_cover(attacker_position, target_position).get("total_cover", false))
 
 
-func _build_collision_bodies() -> void:
+func _rebuild_collision_bodies() -> void:
+	if is_instance_valid(_collision_root):
+		_collision_root.queue_free()
 	_collision_root = Node2D.new()
 	_collision_root.name = "ObstacleCollisions"
 	add_child(_collision_root)
 	for obstacle: Dictionary in cover_objects:
-		if not bool(obstacle.get("blocks_movement", false)):
+		if not _obstacle_is_active(obstacle) or not bool(obstacle.get("blocks_movement", false)):
 			continue
-		var rect: Rect2 = obstacle.get("rect", Rect2()) as Rect2
-		var body := StaticBody2D.new()
-		body.name = "%sCollision" % str(obstacle.get("id", "obstacle")).to_pascal_case()
-		body.position = rect.get_center()
-		body.collision_layer = 1
-		body.collision_mask = 1
-		var shape := RectangleShape2D.new()
-		shape.size = rect.size
-		var collision := CollisionShape2D.new()
-		collision.shape = shape
-		body.add_child(collision)
-		_collision_root.add_child(body)
+		_add_collision_rect(str(obstacle.get("id", "obstacle")), obstacle.get("rect", Rect2()) as Rect2)
+	for value: Variant in dynamic_hazards.values():
+		if value is Dictionary and bool((value as Dictionary).get("blocks_movement", false)):
+			_add_collision_rect(str((value as Dictionary).get("id", "hazard")), (value as Dictionary).get("rect", Rect2()) as Rect2)
+
+
+func _add_collision_rect(object_id: String, rect: Rect2) -> void:
+	var body := StaticBody2D.new()
+	body.name = "%sCollision" % object_id.to_pascal_case()
+	body.position = rect.get_center()
+	body.collision_layer = 1
+	body.collision_mask = 1
+	var shape := RectangleShape2D.new()
+	shape.size = rect.size
+	var collision := CollisionShape2D.new()
+	collision.shape = shape
+	body.add_child(collision)
+	_collision_root.add_child(body)
+
+
+func _report_environment_change(event_type: String, object_id: String, world_position: Vector2, payload: Dictionary) -> void:
+	var event_payload: Dictionary = payload.duplicate(true)
+	event_payload["object_id"] = object_id
+	environment_object_changed.emit(event_type, object_id, world_position, event_payload)
+	get_tree().call_group("game_world", "report_environment_change", event_type, world_position, event_payload)
+
+
+func _obstacle_is_active(obstacle: Dictionary) -> bool:
+	return bool(obstacle.get("active", true))
 
 
 func _segment_crosses_rect(start: Vector2, finish: Vector2, rect: Rect2) -> bool:
@@ -186,6 +325,8 @@ func _draw() -> void:
 		draw_rect(terrain_rect, Color(0.78, 0.58, 0.31, 0.72), false, 2.0)
 		_draw_cross_hatch(terrain_rect)
 	for obstacle: Dictionary in cover_objects:
+		if not _obstacle_is_active(obstacle):
+			continue
 		var rect: Rect2 = obstacle.get("rect", Rect2()) as Rect2
 		var blocks_sight: bool = bool(obstacle.get("blocks_line_of_sight", false))
 		var bonus: int = int(obstacle.get("cover_bonus", 0))
@@ -194,6 +335,14 @@ func _draw() -> void:
 		draw_rect(rect, Color(0.76, 0.8, 0.84, 0.86), false, 2.0)
 		if bool(obstacle.get("jumpable", false)):
 			draw_string(ThemeDB.fallback_font, rect.position + Vector2(4.0, 18.0), "ПРЫЖОК", HORIZONTAL_ALIGNMENT_LEFT, rect.size.x - 8.0, 11, Color(0.9, 0.88, 0.55, 0.8))
+	for value: Variant in dynamic_hazards.values():
+		if not value is Dictionary:
+			continue
+		var hazard: Dictionary = value as Dictionary
+		var rect: Rect2 = hazard.get("rect", Rect2()) as Rect2
+		draw_rect(rect, HAZARD_COLOR, true)
+		draw_rect(rect, Color(1.0, 0.5, 0.18, 0.86), false, 2.0)
+		draw_string(ThemeDB.fallback_font, rect.position + Vector2(4.0, 18.0), str(hazard.get("hazard_type", "ОПАСНОСТЬ")).to_upper(), HORIZONTAL_ALIGNMENT_LEFT, rect.size.x - 8.0, 11, Color(1.0, 0.78, 0.42, 0.9))
 
 
 func _draw_cross_hatch(rect: Rect2) -> void:
