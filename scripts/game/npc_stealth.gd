@@ -1,6 +1,8 @@
 class_name StealthCombatNpc
 extends "res://scripts/game/npc_body_runtime.gd"
 
+const TACTICAL_SQUAD_TRIGGER_ACTOR_IDS: Array[String] = ["caretaker", "service_guard"]
+
 @export var actor_id: String = "caretaker"
 @export var default_facing_direction: Vector2 = Vector2.LEFT
 
@@ -128,6 +130,8 @@ func get_context_status_text() -> String:
 
 
 func enter_combat_hostile() -> void:
+	if actor_id in TACTICAL_SQUAD_TRIGGER_ACTOR_IDS:
+		get_tree().call_group("stealth_world", "activate_tactical_training_squad")
 	super.enter_combat_hostile()
 	detection_state = StealthAlertSystem.STATE_COMBAT
 	suspicion = StealthAlertSystem.SUSPICION_ALERTED
@@ -177,10 +181,3 @@ func _build_alert_label() -> void:
 	_alert_label.z_index = 8
 	_alert_label.hide()
 	add_child(_alert_label)
-
-
-func _update_alert_visuals() -> void:
-	# Точное или текстовое состояние NPC раскрывается только через контекстное действие игрока.
-	if _alert_label != null:
-		_alert_label.text = ""
-		_alert_label.hide()
