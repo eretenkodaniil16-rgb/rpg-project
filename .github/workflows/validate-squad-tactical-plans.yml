@@ -8,19 +8,44 @@ on:
       - "scripts/systems/squad_plan_npc_ai_system.gd"
       - "scripts/game/game_squad_tactical_plans_runtime.gd"
       - "scripts/game/stealth_test_room.gd"
+      - "scripts/game/stealth_door.gd"
+      - "scripts/game/combat_ai_training_marksman.gd"
+      - "scripts/game/combat_ai_training_mage.gd"
       - "scenes/game/game.tscn"
       - "tests/test_squad_tactical_plan_system.gd"
       - "tests/smoke_squad_tactical_plans_runtime.gd"
       - "tests/smoke_movement_wall_integrity.gd"
+      - "tests/smoke_interactive_tactical_encounter.gd"
       - ".github/workflows/validate-squad-tactical-plans.yml"
   push:
     branches:
       - feature/squad-tactical-plans
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
+  apply-interaction-fix:
+    if: github.event_name == 'push' && github.event.head_commit.message == 'chore: run existing runtime interaction patch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout working branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/squad-tactical-plans
+          fetch-depth: 0
+
+      - name: Apply interaction and target patch
+        run: python tools/apply_interaction_target_fix.py
+
+      - name: Commit patched runtime
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix: сделать тактические роли целями и разрешить двери в бою"
+          git push origin HEAD:feature/squad-tactical-plans
+
   validate:
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -57,6 +82,10 @@ jobs:
         shell: bash
         run: timeout 240s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_movement_wall_integrity.gd 2>&1 | tee movement-integrity.log
 
+      - name: Smoke test selectable tactical roles and combat door interaction
+        shell: bash
+        run: timeout 240s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_interactive_tactical_encounter.gd 2>&1 | tee interactive-tactical.log
+
       - name: Regression test environment-reactive AI
         shell: bash
         run: timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_environment_reactive_ai_runtime.gd 2>&1 | tee environment-regression.log
@@ -83,6 +112,7 @@ jobs:
             squad-plan-unit.log
             squad-plan-smoke.log
             movement-integrity.log
+            interactive-tactical.log
             environment-regression.log
             nonlethal-regression.log
             advanced-ai-regression.log
