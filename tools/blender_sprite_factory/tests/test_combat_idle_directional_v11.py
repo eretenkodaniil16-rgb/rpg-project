@@ -62,7 +62,7 @@ class CombatIdleDirectionalV11Tests(unittest.TestCase):
         self.assertNotIn("factory._cylinder_between", self.adapter_source)
         self.assertNotIn("factory._ellipsoid", self.adapter_source)
 
-    def test_active_launcher_and_workflow_use_directional_v11(self) -> None:
+    def test_v11_is_historical_rejected_source_for_active_v12(self) -> None:
         launcher = (self.tool_root / "run_blender_sprite_pilot.ps1").read_text(
             encoding="ascii"
         )
@@ -73,14 +73,18 @@ class CombatIdleDirectionalV11Tests(unittest.TestCase):
             / "validate-blender-sprite-factory.yml"
         ).read_text(encoding="utf-8")
         self.assertIn(
-            '$FactoryScript = Join-Path $ToolRoot "blender_sprite_factory_combat_idle_directional_v11.py"',
+            "Rejected raw directional rotation: blender_sprite_factory_combat_idle_directional_v11.py",
             launcher,
         )
-        self.assertIn("render-combat-idle-directional-v11", workflow)
         self.assertIn(
-            "blender_sprite_factory_combat_idle_directional_v11.py",
+            "render-combat-idle-directional-v11 (rejected: raw rotation caused one-hand occlusion and boundary touches)",
             workflow,
         )
+        self.assertIn(
+            '$FactoryScript = Join-Path $ToolRoot "blender_sprite_factory_combat_idle_directional_weapon_v12.py"',
+            launcher,
+        )
+        self.assertIn("render-combat-idle-directional-weapon-v12", workflow)
 
     def test_unknown_character_is_rejected(self) -> None:
         with self.assertRaisesRegex(KeyError, "No combat idle directional v11"):
