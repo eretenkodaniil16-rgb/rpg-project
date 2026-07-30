@@ -1,0 +1,49 @@
+name: Apply corpse runtime test codemod
+
+on:
+  push:
+    branches:
+      - feature/corpse-interactions
+    paths:
+      - ".github/workflows/apply-corpse-runtime-codemod.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  update-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout corpse branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/corpse-interactions
+          fetch-depth: 0
+
+      - name: Replace only obsolete top-runtime references in tests
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          old = "res://scripts/game/game_combat_ai_runtime.gd"
+          new = "res://scripts/game/game_corpse_interactions_runtime.gd"
+          changed = []
+          for path in sorted(Path("tests").glob("*.gd")):
+              text = path.read_text(encoding="utf-8")
+              if old not in text:
+                  continue
+              path.write_text(text.replace(old, new), encoding="utf-8")
+              changed.append(str(path))
+          print("Updated:", changed)
+          if not changed:
+              raise SystemExit("No obsolete runtime references found")
+          PY
+
+      - name: Commit synchronized test contracts
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests
+          git commit -m "test: синхронизировать верхний runtime тел"
+          git push origin HEAD:feature/corpse-interactions
