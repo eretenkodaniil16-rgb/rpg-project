@@ -82,6 +82,7 @@ func _run() -> void:
 		return
 
 	game.call("force_player_turn_for_testing")
+	game.set("_enemy_turn_running", false)
 	if not turn_system.is_player_turn(player):
 		_fail("Player turn could not be forced for interaction checks.")
 		return
@@ -139,13 +140,14 @@ func _run() -> void:
 	if player_state == null:
 		_fail("Player combat state is unavailable for death-save flow.")
 		return
-	state.get("player_character").current_health = 0
+	var hero: PlayerCharacter = state.get("player_character") as PlayerCharacter
+	hero.current_health = 0
 	player_state.enter_dying()
 	game.set("_enemy_turn_running", false)
 	game.call("_queue_dying_turn_recovery_if_needed")
 	await process_frame
 	var death_save_resolved: bool = (
-		state.get("player_character").current_health == 1
+		hero.current_health == 1
 		or player_state.death_save_successes > 0
 		or player_state.death_save_failures > 0
 		or player_state.stable
@@ -156,7 +158,7 @@ func _run() -> void:
 		return
 
 	turn_system.stop_combat()
-	state.get("player_character").current_health = state.get("player_character").maximum_health
+	hero.current_health = hero.maximum_health
 	player_state.recover_from_zero_hit_points()
 	door.call("_on_body_entered", player)
 	door.call("interact")
