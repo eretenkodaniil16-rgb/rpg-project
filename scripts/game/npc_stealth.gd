@@ -1,5 +1,5 @@
 class_name StealthCombatNpc
-extends "res://scripts/game/npc.gd"
+extends "res://scripts/game/npc_body_runtime.gd"
 
 @export var actor_id: String = "caretaker"
 @export var default_facing_direction: Vector2 = Vector2.LEFT
@@ -106,7 +106,9 @@ func get_observable_alert_state_label() -> String:
 
 
 func get_observable_health_label() -> String:
-	if defeated or current_health <= 0:
+	if is_dead_body():
+		return "мёртв"
+	if is_unconscious_body() or current_health <= 0:
 		return "без сознания"
 	var ratio: float = float(current_health) / float(maxi(maximum_health, 1))
 	if ratio >= 0.85:
@@ -119,6 +121,8 @@ func get_observable_health_label() -> String:
 
 
 func get_context_status_text() -> String:
+	if is_body_interactable():
+		return super.get_context_status_text()
 	var relation: String = "враждебен" if is_hostile() else "не проявляет открытой враждебности"
 	return "Поведение: %s. Отношение: %s. Состояние: %s." % [get_observable_alert_state_label(), relation, get_observable_health_label()]
 
