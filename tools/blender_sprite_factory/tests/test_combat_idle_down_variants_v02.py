@@ -33,7 +33,7 @@ class CombatIdleDownVariantsV02Tests(unittest.TestCase):
         self.assertEqual(len(self.profile.variants), 3)
         self.profile.assert_valid()
 
-    def test_all_variants_open_arms_and_move_weapon_arm_inward(self) -> None:
+    def test_all_variants_open_arms_but_rotate_weapon_chain_outward(self) -> None:
         baseline = HUMAN_WARRIOR_M01_COMBAT_IDLE_DOWN_V01.pose
         for item in self.profile.variants:
             with self.subTest(variant=item.variant_id):
@@ -47,7 +47,7 @@ class CombatIdleDownVariantsV02Tests(unittest.TestCase):
                 )
                 self.assertLessEqual(abs(item.pose.upper_arm_left_x_degrees), 18.0)
 
-    def test_sword_moves_progressively_toward_active_center_guard(self) -> None:
+    def test_rejected_outward_rotation_progresses_monotonically(self) -> None:
         right_arm_z = tuple(
             item.pose.upper_arm_right_z_degrees for item in self.profile.variants
         )
@@ -66,7 +66,7 @@ class CombatIdleDownVariantsV02Tests(unittest.TestCase):
         self.assertNotIn("scale.x = -1", self.builder_source)
         self.assertNotIn("scale[0] = -1", self.builder_source)
 
-    def test_adapter_keeps_v01_as_baseline_and_writes_comparison_sheet(self) -> None:
+    def test_adapter_remains_reproducible_as_rejected_comparison_pass(self) -> None:
         ast.parse(self.adapter_source)
         self.assertIn("BASE_RENDER", self.adapter_source)
         self.assertIn('"combat_idle"', self.adapter_source)
@@ -76,7 +76,7 @@ class CombatIdleDownVariantsV02Tests(unittest.TestCase):
         self.assertNotIn("scale.x = -1", self.adapter_source)
         self.assertNotIn("scale[0] = -1", self.adapter_source)
 
-    def test_active_launcher_and_workflow_use_variants_v02(self) -> None:
+    def test_active_entrypoints_advance_to_v03_and_document_v02_rejection(self) -> None:
         launcher = (self.tool_root / "run_blender_sprite_pilot.ps1").read_text(
             encoding="ascii"
         )
@@ -86,15 +86,18 @@ class CombatIdleDownVariantsV02Tests(unittest.TestCase):
             / "workflows"
             / "validate-blender-sprite-factory.yml"
         ).read_text(encoding="utf-8")
+        self.assertTrue(
+            (
+                self.tool_root
+                / "blender_sprite_factory_combat_idle_down_variants_v02.py"
+            ).is_file()
+        )
         self.assertIn(
-            "blender_sprite_factory_combat_idle_down_variants_v02.py",
+            "Previous rejected variant stage: blender_sprite_factory_combat_idle_down_variants_v02.py",
             launcher,
         )
-        self.assertIn("render-combat-idle-down-variants-v02", workflow)
-        self.assertIn(
-            "blender_sprite_factory_combat_idle_down_variants_v02.py",
-            workflow,
-        )
+        self.assertIn("render-combat-idle-down-variants-v02 (rejected", workflow)
+        self.assertIn("render-combat-idle-down-variants-v03", workflow)
 
     def test_unknown_character_is_rejected(self) -> None:
         with self.assertRaisesRegex(KeyError, "No combat_idle_down variants v02"):
