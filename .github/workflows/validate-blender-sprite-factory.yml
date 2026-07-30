@@ -95,11 +95,12 @@ jobs:
   # render-combat-idle-down-variants-v02 (rejected: insufficient lateral stance)
   # render-combat-idle-down-variants-v03 (rejected: guard converged toward torso center)
   # render-combat-idle-down-variants-v04 (wide-side stance without weapon-family split)
+  # render-combat-idle-down-weapon-variants-v05 (rejected: two-hand blade crossed face)
   # historical adapters remain reproducible as separate files
-  render-combat-idle-down-weapon-variants-v05:
+  render-combat-idle-down-weapon-variants-v06:
     if: github.event_name == 'pull_request' && github.head_ref == 'tools/blender-sprite-pilot'
     runs-on: ubuntu-latest
-    timeout-minutes: 75
+    timeout-minutes: 80
 
     steps:
       - name: Checkout repository
@@ -138,18 +139,18 @@ jobs:
             --background \
             --factory-startup \
             --python-exit-code 1 \
-            --python tools/blender_sprite_factory/blender_sprite_factory_combat_idle_down_weapon_variants_v05.py \
+            --python tools/blender_sprite_factory/blender_sprite_factory_combat_idle_down_weapon_variants_v06.py \
             -- \
             --repo-root "$GITHUB_WORKSPACE" \
             --config tools/blender_sprite_factory/configs/human_warrior_m01.json \
             --run-id "$run_id" \
             --mode all 2>&1 | tee blender_pilot.log
 
-      - name: Upload combat weapon variants v05 run and diagnostics
+      - name: Upload corrected combat weapon variants v06 run and diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: human_warrior_m01_proxy_v25_appearance_v03_walk_down_v04_walk_left_v01_walk_right_v01_walk_up_v02_combat_weapon_variants_v05_${{ github.run_id }}_${{ github.run_attempt }}
+          name: human_warrior_m01_proxy_v25_appearance_v03_walk_down_v04_walk_left_v01_walk_right_v01_walk_up_v02_combat_weapon_variants_v06_${{ github.run_id }}_${{ github.run_attempt }}
           path: |
             art/blender_pipeline_runs/human_warrior_m01/**
             blender_pilot.log
