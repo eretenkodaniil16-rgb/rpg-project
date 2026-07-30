@@ -1,7 +1,7 @@
 extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
-const EXPECTED_RUNTIME: String = "res://scripts/game/game_interactive_tactical_runtime.gd"
+const EXPECTED_RUNTIME: String = "res://scripts/game/game_squad_tactical_plans_runtime.gd"
 
 
 func _init() -> void:
@@ -29,14 +29,16 @@ func _run() -> void:
 		await process_frame
 	var game_script: Script = game.get_script() as Script
 	if game_script == null or game_script.resource_path != EXPECTED_RUNTIME:
-		_fail("Game scene does not use the interactive tactical runtime.")
+		_fail("Game scene does not use the squad tactical runtime.")
 		return
 	game.set_process(false)
 
 	var player: Node2D = game.get_node_or_null("Player") as Node2D
 	var room: Node = game.get_node_or_null("StealthTestRoom")
 	var environment: CombatEnvironment = game.get_tree().get_first_node_in_group("combat_environment") as CombatEnvironment
-	if player == null or room == null or environment == null:
+	var catalog_ui: ActionCatalogUI = game.get_node_or_null("Interface/ActionCatalogUI") as ActionCatalogUI
+	var grid: BattleGrid = game.call("_get_battle_grid") as BattleGrid
+	if player == null or room == null or environment == null or catalog_ui == null or grid == null:
 		_fail("Interactive encounter fixtures are incomplete.")
 		return
 	var marksman: Node2D = room.call("get_training_marksman") as Node2D
@@ -84,14 +86,15 @@ func _run() -> void:
 		return
 
 	door.call("set_door_state", "closed", false)
+	door.call("_on_body_entered", player)
 	await process_frame
-	var door_cell: Vector2i = (game.call("_get_battle_grid") as BattleGrid).world_to_cell((door as Node2D).global_position)
-	if not environment.is_cell_blocked(game.call("_get_battle_grid") as BattleGrid, door_cell):
+	var door_cell: Vector2i = grid.world_to_cell((door as Node2D).global_position)
+	if not environment.is_cell_blocked(grid, door_cell):
 		_fail("Closed door is not registered as a combat blocker.")
 		return
-	player.call("set_interactable", door)
-	var catalog: Dictionary = game.call("_build_catalog_entries") as Dictionary
-	var world_entry: Dictionary = _find_action(catalog, "world_interact")
+	game.call("_refresh_action_catalog")
+	await process_frame
+	var world_entry: Dictionary = _find_action(catalog_ui.get_entries_for_testing(), "world_interact")
 	if world_entry.is_empty() or not bool(world_entry.get("enabled", false)):
 		_fail("Door interaction is missing or disabled in the combat world group.")
 		return
@@ -99,17 +102,15 @@ func _run() -> void:
 		_fail("Combat door action has an unexpected label: %s" % JSON.stringify(world_entry))
 		return
 
-	if not bool(game.call("request_world_interaction", door)):
-		_fail("Combat world interaction request was not handled.")
-		return
+	door.call("interact")
 	await process_frame
 	if str(door.call("get_door_state")) != "open":
 		_fail("Door did not open during the player turn.")
 		return
-	if environment.is_cell_blocked(game.call("_get_battle_grid") as BattleGrid, door_cell):
+	if environment.is_cell_blocked(grid, door_cell):
 		_fail("Opened combat door remains blocked in the movement grid.")
 		return
-	if bool(game.call("is_world_interaction_available_for_testing")):
+	if bool(door.call("can_perform_world_interaction")):
 		_fail("Object interaction was not consumed for the current turn.")
 		return
 
@@ -118,8 +119,9 @@ func _run() -> void:
 	if str(door.call("get_door_state")) != "open":
 		_fail("The same combat turn allowed a second door interaction.")
 		return
-	catalog = game.call("_build_catalog_entries") as Dictionary
-	world_entry = _find_action(catalog, "world_interact")
+	game.call("_refresh_action_catalog")
+	await process_frame
+	world_entry = _find_action(catalog_ui.get_entries_for_testing(), "world_interact")
 	if world_entry.is_empty() or bool(world_entry.get("enabled", true)):
 		_fail("Consumed combat door interaction remains enabled in the catalog.")
 		return
