@@ -2,6 +2,10 @@ class_name CombatAiTrainingMarksman
 extends "res://scripts/game/stealth_patrol_observer.gd"
 
 
+func is_player_targetable() -> bool:
+	return not defeated
+
+
 func enter_combat_hostile() -> void:
 	if not is_combat_participant_active():
 		get_tree().call_group("stealth_world", "activate_tactical_training_squad")
