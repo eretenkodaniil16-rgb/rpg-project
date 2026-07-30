@@ -89,7 +89,7 @@ class CombatIdleDownWeaponVariantsV08Tests(unittest.TestCase):
         self.assertNotIn("scale.x = -1", self.adapter_source)
         self.assertNotIn("scale[0] = -1", self.adapter_source)
 
-    def test_active_launcher_and_workflow_use_weapon_variants_v08(self) -> None:
+    def test_v08_adapter_remains_reproducible_after_v09_activation(self) -> None:
         launcher = (self.tool_root / "run_blender_sprite_pilot.ps1").read_text(
             encoding="ascii"
         )
@@ -105,9 +105,10 @@ class CombatIdleDownWeaponVariantsV08Tests(unittest.TestCase):
         )
         self.assertIn("render-combat-idle-down-weapon-variants-v08", workflow)
         self.assertIn(
-            "blender_sprite_factory_combat_idle_down_weapon_variants_v08.py",
-            workflow,
+            "blender_sprite_factory_combat_idle_down_weapon_variants_v09.py",
+            launcher,
         )
+        self.assertIn("render-combat-idle-down-weapon-variants-v09", workflow)
 
     def test_unknown_character_is_rejected(self) -> None:
         with self.assertRaisesRegex(KeyError, "No weapon stance v08"):
