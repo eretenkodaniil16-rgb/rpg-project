@@ -17,7 +17,8 @@ $RepoRoot = (Resolve-Path (Join-Path $ToolRoot "..\..")).Path
 # Historical rejected adapter: blender_sprite_factory_combat_idle_down_weapon_variants_v05.py
 # Previous mixed candidate: blender_sprite_factory_combat_idle_down_weapon_variants_v06.py
 # Rejected occluded one-hand candidate: blender_sprite_factory_combat_idle_down_weapon_variants_v07.py
-$FactoryScript = Join-Path $ToolRoot "blender_sprite_factory_combat_idle_down_weapon_variants_v08.py"
+# Rejected cross-torso one-hand candidate: blender_sprite_factory_combat_idle_down_weapon_variants_v08.py
+$FactoryScript = Join-Path $ToolRoot "blender_sprite_factory_combat_idle_down_weapon_variants_v09.py"
 $FactoryConfig = Join-Path $ToolRoot "configs\human_warrior_m01.json"
 
 function Resolve-BlenderExecutable {
