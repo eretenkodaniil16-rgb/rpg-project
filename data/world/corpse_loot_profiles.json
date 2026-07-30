@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "profiles": {
+    "caretaker": {
+      "corpse_id": "body_caretaker",
+      "defeat_outcome": "unconscious",
+      "drag_weight": "medium",
+      "loot": []
+    },
+    "service_guard": {
+      "corpse_id": "corpse_service_guard",
+      "defeat_outcome": "dead",
+      "drag_weight": "medium",
+      "loot": [
+        {"item_id": "shortsword", "quantity": 1},
+        {"item_id": "leather_armor", "quantity": 1},
+        {"item_id": "gold_coin", "quantity": 4}
+      ]
+    },
+    "training_marksman": {
+      "corpse_id": "corpse_training_marksman",
+      "defeat_outcome": "dead",
+      "drag_weight": "medium",
+      "loot": [
+        {"item_id": "shortbow", "quantity": 1},
+        {"item_id": "arrow", "quantity": 12},
+        {"item_id": "gold_coin", "quantity": 2}
+      ]
+    }
+  }
+}
