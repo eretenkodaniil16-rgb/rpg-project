@@ -16,8 +16,11 @@ func choose_combat_intent(actor_id: String, context: Dictionary) -> Dictionary:
 	var plan_score: float = float(assignment.get("score", BLOCKED_SCORE))
 	var baseline_score: float = float(baseline.get("score", BLOCKED_SCORE))
 	var baseline_environment_action: String = str(baseline.get("environment_action", ""))
-	if baseline_environment_action == ACTION_AVOID_HAZARD and baseline_score >= plan_score - 0.0001:
+	if baseline_environment_action == ACTION_AVOID_HAZARD:
 		return baseline
+	if intent_id == INTENT_CAST_SPELL and float(context.get("spell_plan_score", BLOCKED_SCORE)) <= BLOCKED_SCORE * 0.5:
+		intent_id = INTENT_REPOSITION
+		plan_score -= 24.0
 	if plan_score <= baseline_score + 0.0001:
 		return baseline
 	var profile: Dictionary = get_profile(actor_id)
