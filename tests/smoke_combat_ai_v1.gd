@@ -1,7 +1,7 @@
 extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
-const EXPECTED_RUNTIME: String = "res://scripts/game/game_advanced_combat_ai_runtime.gd"
+const EXPECTED_RUNTIME: String = "res://scripts/game/game_nonlethal_restraints_runtime.gd"
 
 
 func _init() -> void:
