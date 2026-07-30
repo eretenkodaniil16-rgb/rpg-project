@@ -43,7 +43,9 @@ jobs:
       - name: Apply edge LOS and named observer patch
         shell: bash
         run: |
+          cp .github/workflows/validate-squad-tactical-plans.yml /tmp/validate-squad-tactical-plans.yml
           python3 tools/apply_edge_los_patch.py
+          cp /tmp/validate-squad-tactical-plans.yml .github/workflows/validate-squad-tactical-plans.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
