@@ -19,7 +19,8 @@ $RepoRoot = (Resolve-Path (Join-Path $ToolRoot "..\..")).Path
 # Rejected occluded one-hand candidate: blender_sprite_factory_combat_idle_down_weapon_variants_v07.py
 # Rejected cross-torso one-hand candidate: blender_sprite_factory_combat_idle_down_weapon_variants_v08.py
 # Selected static source adapter: blender_sprite_factory_combat_idle_down_weapon_variants_v09.py
-$FactoryScript = Join-Path $ToolRoot "blender_sprite_factory_combat_idle_down_cycles_v10.py"
+# Artist-approved down cycles: blender_sprite_factory_combat_idle_down_cycles_v10.py
+$FactoryScript = Join-Path $ToolRoot "blender_sprite_factory_combat_idle_directional_v11.py"
 $FactoryConfig = Join-Path $ToolRoot "configs\human_warrior_m01.json"
 
 function Resolve-BlenderExecutable {
@@ -99,4 +100,4 @@ if ($LASTEXITCODE -ne 0) {
 $ResultRoot = Join-Path $RepoRoot "art\blender_pipeline_runs\human_warrior_m01\$RunId"
 Write-Host ""
 Write-Host "Completed: $ResultRoot"
-Write-Host "Review contact_sheet.png, combat_idle_down_cycles_v10.png and the generated .blend file in source."
+Write-Host "Review combat_idle_directional_v11.png and the generated .blend file in source."
