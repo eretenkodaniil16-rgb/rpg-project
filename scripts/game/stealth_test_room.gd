@@ -20,6 +20,7 @@ var _west_navigation_region: NavigationRegion2D
 var _hall_navigation_region: NavigationRegion2D
 var _door_navigation_link: NavigationLink2D
 var _combat_environment: CombatEnvironment
+var _activating_tactical_squad: bool = false
 
 
 func _ready() -> void:
@@ -70,6 +71,20 @@ func set_navigation_door_state(door_id: String, door_state: String) -> void:
 		_combat_environment.set_cover_object_active(WEST_SERVICE_DOOR_BLOCKER_ID, should_block, false)
 
 
+func activate_tactical_training_squad() -> void:
+	if _activating_tactical_squad:
+		return
+	_activating_tactical_squad = true
+	for actor: Node2D in [_training_marksman, _training_mage]:
+		if not is_instance_valid(actor):
+			continue
+		if not actor.is_in_group("stealth_alert_actors"):
+			actor.add_to_group("stealth_alert_actors")
+		if actor.has_method("activate_combat_participant"):
+			actor.call("activate_combat_participant")
+	_activating_tactical_squad = false
+
+
 func _build_patrol_observer() -> void:
 	_patrol_observer = PATROL_GUARD_SCENE.instantiate() as StealthPatrolObserver
 	if _patrol_observer == null:
@@ -86,15 +101,19 @@ func _build_tactical_training_squad() -> void:
 		_training_marksman.name = "TrainingMarksman"
 		add_child(_training_marksman)
 		_training_marksman.global_position = Vector2(1035.0, 185.0)
-		if _training_marksman.has_method("activate_combat_participant"):
-			_training_marksman.call("activate_combat_participant")
+		_prepare_dormant_training_actor(_training_marksman)
 	_training_mage = TRAINING_MAGE_SCENE.instantiate() as Node2D
 	if _training_mage != null:
 		_training_mage.name = "TrainingMage"
 		add_child(_training_mage)
 		_training_mage.global_position = Vector2(1035.0, 535.0)
-		if _training_mage.has_method("activate_combat_participant"):
-			_training_mage.call("activate_combat_participant")
+		_prepare_dormant_training_actor(_training_mage)
+
+
+func _prepare_dormant_training_actor(actor: Node2D) -> void:
+	actor.remove_from_group("stealth_alert_actors")
+	if not actor.is_in_group("combat_targets"):
+		actor.add_to_group("combat_targets")
 
 
 func _register_combat_obstacles() -> void:
