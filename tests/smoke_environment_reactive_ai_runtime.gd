@@ -71,8 +71,13 @@ func _run() -> void:
 	var guard_context: Dictionary = _base_context()
 	game.call("_enrich_advanced_context", guard_context, guard, guard, "service_guard", guard_profile, {})
 	var guard_decision: Dictionary = game.call("get_environment_decision_for_testing", "service_guard") as Dictionary
-	if str(guard_decision.get("environment_action", "")) != EnvironmentReactiveNpcAiSystem.ACTION_EXPLOIT_OPENING:
-		_fail("Melee guard did not choose to exploit the opening: %s" % JSON.stringify(guard_decision))
+	var local_exploit: bool = str(guard_decision.get("environment_action", "")) == EnvironmentReactiveNpcAiSystem.ACTION_EXPLOIT_OPENING
+	var coordinated_support: bool = (
+		str(guard_decision.get("squad_plan_id", "")) == SquadTacticalPlanSystem.PLAN_HOLD_CHOKEPOINT
+		and str(guard_decision.get("squad_plan_action", "")) == "support_choke"
+	)
+	if not local_exploit and not coordinated_support:
+		_fail("Melee guard neither exploited nor supported the opened passage: %s" % JSON.stringify(guard_decision))
 		return
 
 	var marksman: Node2D = _instantiate_actor(MARKSMAN_SCENE, game, Vector2(590.0, 230.0))
