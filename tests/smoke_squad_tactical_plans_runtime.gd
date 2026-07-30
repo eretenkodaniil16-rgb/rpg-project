@@ -43,7 +43,10 @@ func _run() -> void:
 	if player == null or caretaker == null or guard == null or marksman == null or mage == null:
 		_fail("Squad runtime fixtures are incomplete.")
 		return
-	guard.call("activate_combat_participant")
+	for participant: Node2D in [guard, marksman, mage]:
+		if not participant.has_method("activate_combat_participant") or not bool(participant.call("activate_combat_participant")):
+			_fail("Prepared squad member could not be activated: %s" % participant.name)
+			return
 	player.global_position = Vector2(510.0, 360.0)
 	guard.global_position = Vector2(710.0, 360.0)
 	caretaker.global_position = Vector2(760.0, 430.0)
