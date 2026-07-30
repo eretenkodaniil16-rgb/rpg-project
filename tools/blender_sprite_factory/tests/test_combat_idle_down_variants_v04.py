@@ -89,7 +89,7 @@ class CombatIdleDownVariantsV04Tests(unittest.TestCase):
         self.assertNotIn("scale.x = -1", self.adapter_source)
         self.assertNotIn("scale[0] = -1", self.adapter_source)
 
-    def test_active_launcher_and_workflow_use_variants_v04(self) -> None:
+    def test_v04_remains_reproducible_while_active_stage_uses_v05(self) -> None:
         launcher = (self.tool_root / "run_blender_sprite_pilot.ps1").read_text(
             encoding="ascii"
         )
@@ -99,15 +99,18 @@ class CombatIdleDownVariantsV04Tests(unittest.TestCase):
             / "workflows"
             / "validate-blender-sprite-factory.yml"
         ).read_text(encoding="utf-8")
+        self.assertTrue(
+            (
+                self.tool_root
+                / "blender_sprite_factory_combat_idle_down_variants_v04.py"
+            ).is_file()
+        )
         self.assertIn(
-            "blender_sprite_factory_combat_idle_down_variants_v04.py",
+            "blender_sprite_factory_combat_idle_down_weapon_variants_v05.py",
             launcher,
         )
         self.assertIn("render-combat-idle-down-variants-v04", workflow)
-        self.assertIn(
-            "blender_sprite_factory_combat_idle_down_variants_v04.py",
-            workflow,
-        )
+        self.assertIn("render-combat-idle-down-weapon-variants-v05", workflow)
 
     def test_unknown_character_is_rejected(self) -> None:
         with self.assertRaisesRegex(KeyError, "No combat_idle_down variants v04"):
