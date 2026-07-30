@@ -2,10 +2,11 @@ class_name StealthDoor
 extends StaticBody2D
 
 const WORLD_INTERACTION_ACTION_ID: String = "world_interact"
+const ADJACENCY_MARGIN: float = 6.0
 
 @export var door_id: String = "west_service_door"
 @export var door_label: String = "Дверь служебной комнаты"
-@export var door_size: Vector2 = Vector2(36.0, 120.0)
+@export var door_size: Vector2 = Vector2(4.0, 128.0)
 
 var _door_state: String = "closed"
 var _collision: CollisionShape2D
@@ -23,9 +24,18 @@ func _ready() -> void:
 	if state != null and state.has_method("get_stealth_door_state"):
 		_door_state = str(state.call("get_stealth_door_state", door_id))
 	_apply_state(false)
+	call_deferred("_refresh_player_proximity")
+
+
+func _process(_delta: float) -> void:
+	_refresh_player_proximity()
 
 
 func interact() -> void:
+	_refresh_player_proximity()
+	if not is_instance_valid(_player_in_range):
+		get_tree().call_group("game_world", "show_combat_message", "Чтобы взаимодействовать с дверью, встаньте в соседнюю с ней клетку.", false)
+		return
 	if _is_combat_active():
 		if not _combat_player_can_interact_now():
 			get_tree().call_group("game_world", "show_combat_message", "Открыть или закрыть дверь можно только на своём ходу.", false)
@@ -42,7 +52,8 @@ func interact() -> void:
 
 
 func can_perform_world_interaction() -> bool:
-	if not _door_state_allows_interaction():
+	_refresh_player_proximity()
+	if not is_instance_valid(_player_in_range) or not _door_state_allows_interaction():
 		return false
 	if not _is_combat_active():
 		return true
@@ -59,6 +70,8 @@ func get_combat_interaction_label() -> String:
 
 
 func get_combat_interaction_description() -> String:
+	if not is_instance_valid(_player_in_range):
+		return "Встаньте в соседнюю с дверью клетку с любой стороны."
 	if _is_combat_active() and not _combat_player_can_interact_now():
 		return "Взаимодействовать с дверью можно только на своём ходу."
 	if _is_combat_active() and _current_combat_turn_token() == _last_combat_interaction_turn_token:
@@ -109,6 +122,11 @@ func blocks_line_of_sight() -> bool:
 
 func get_world_rect() -> Rect2:
 	return Rect2(global_position - door_size * 0.5, door_size)
+
+
+func is_player_adjacent_for_testing() -> bool:
+	_refresh_player_proximity()
+	return is_instance_valid(_player_in_range)
 
 
 func _door_state_allows_interaction() -> bool:
@@ -173,8 +191,8 @@ func _build_nodes() -> void:
 
 	_state_label = Label.new()
 	_state_label.name = "StateLabel"
-	_state_label.position = Vector2(-94.0, -86.0)
-	_state_label.size = Vector2(188.0, 30.0)
+	_state_label.position = Vector2(-118.0, -88.0)
+	_state_label.size = Vector2(236.0, 30.0)
 	_state_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_state_label.add_theme_font_size_override("font_size", 13)
 	_state_label.z_index = 6
@@ -183,7 +201,7 @@ func _build_nodes() -> void:
 	_interaction_area = Area2D.new()
 	_interaction_area.name = "InteractionArea"
 	var interaction_shape := RectangleShape2D.new()
-	interaction_shape.size = door_size + Vector2(48.0, 64.0)
+	interaction_shape.size = Vector2(92.0, door_size.y + 16.0)
 	var interaction_collision := CollisionShape2D.new()
 	interaction_collision.shape = interaction_shape
 	_interaction_area.add_child(interaction_collision)
@@ -214,9 +232,37 @@ func _apply_state(report_noise: bool) -> void:
 	get_tree().call_group("stealth_world", "set_navigation_door_state", door_id, _door_state)
 
 
-func _on_body_entered(body: Node2D) -> void:
-	if not body.is_in_group("player"):
+func _refresh_player_proximity() -> void:
+	if not is_inside_tree():
 		return
+	var player: Node2D = get_tree().get_first_node_in_group("player") as Node2D
+	if player != null and _player_is_adjacent_to_door(player):
+		_set_player_in_range(player)
+	elif is_instance_valid(_player_in_range):
+		_clear_player_in_range(_player_in_range)
+
+
+func _player_is_adjacent_to_door(player: Node2D) -> bool:
+	var grid: BattleGrid = get_tree().get_first_node_in_group("battle_grid") as BattleGrid
+	if grid == null or player == null:
+		return false
+	var local_player: Vector2 = to_local(player.global_position)
+	var half_cell: float = grid.get_cell_size() * 0.5
+	var horizontal_distance: float = absf(local_player.x)
+	var vertical_distance: float = absf(local_player.y)
+	return (
+		horizontal_distance <= half_cell + ADJACENCY_MARGIN
+		and vertical_distance <= door_size.y * 0.5 - half_cell + ADJACENCY_MARGIN
+	)
+
+
+func _set_player_in_range(body: Node) -> void:
+	if body == null or not body.is_in_group("player"):
+		return
+	if body == _player_in_range:
+		return
+	if is_instance_valid(_player_in_range):
+		_clear_player_in_range(_player_in_range)
 	_player_in_range = body
 	if body.has_method("set_interactable"):
 		body.call("set_interactable", self)
@@ -230,7 +276,7 @@ func _on_body_entered(body: Node2D) -> void:
 	)
 
 
-func _on_body_exited(body: Node2D) -> void:
+func _clear_player_in_range(body: Node) -> void:
 	if body != _player_in_range:
 		return
 	_disconnect_action_catalog()
@@ -238,6 +284,16 @@ func _on_body_exited(body: Node2D) -> void:
 		body.call("clear_interactable", self)
 	_player_in_range = null
 	get_tree().call_group("game_world", "set_interaction_action", false, "", "ДЕЙСТВИЕ")
+
+
+func _on_body_entered(body: Node2D) -> void:
+	if _player_is_adjacent_to_door(body):
+		_set_player_in_range(body)
+
+
+func _on_body_exited(body: Node2D) -> void:
+	if body == _player_in_range and not _player_is_adjacent_to_door(body):
+		_clear_player_in_range(body)
 
 
 func _connect_action_catalog() -> void:
@@ -257,6 +313,8 @@ func _disconnect_action_catalog() -> void:
 
 
 func _on_catalog_action_requested(action_id: String) -> void:
-	if action_id != WORLD_INTERACTION_ACTION_ID or not is_instance_valid(_player_in_range):
+	if action_id != WORLD_INTERACTION_ACTION_ID:
 		return
-	interact()
+	_refresh_player_proximity()
+	if is_instance_valid(_player_in_range):
+		interact()
