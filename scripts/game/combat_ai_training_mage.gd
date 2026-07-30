@@ -21,6 +21,12 @@ func _ready() -> void:
 	super._ready()
 
 
+func enter_combat_hostile() -> void:
+	if not is_combat_participant_active():
+		get_tree().call_group("stealth_world", "activate_tactical_training_squad")
+	super.enter_combat_hostile()
+
+
 func get_spell_save_dc() -> int:
 	return maxi(spell_save_dc, 1)
 
