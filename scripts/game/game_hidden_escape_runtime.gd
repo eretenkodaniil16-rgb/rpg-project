@@ -190,7 +190,7 @@ func _on_hide_requested() -> void:
 	if not visible_observers.is_empty():
 		for observer: Node in observers:
 			_set_observer_state(observer, DETECTION_AWARE, player.global_position)
-		show_combat_message("Скрыться не удалось: хотя бы один противник сохраняет прямую линию обзора.", false)
+		show_combat_message(_line_of_sight_failure_message(visible_observers), false)
 		_refresh_turn_interface()
 		_refresh_action_catalog()
 		return
@@ -241,6 +241,20 @@ func _on_hide_requested() -> void:
 	_refresh_escape_overlay()
 	_refresh_turn_interface()
 	_refresh_action_catalog()
+
+
+func _line_of_sight_failure_message(observers: Array[Node]) -> String:
+	var names: Array[String] = []
+	for observer: Node in observers:
+		if not is_instance_valid(observer):
+			continue
+		var observer_name: String = _target_name(observer)
+		if not observer_name.is_empty() and observer_name not in names:
+			names.append(observer_name)
+	if names.is_empty():
+		return "Скрыться не удалось: противник сохраняет прямую линию обзора."
+	var verb: String = "сохраняет" if names.size() == 1 else "сохраняют"
+	return "Скрыться не удалось: прямую линию обзора %s %s." % [verb, ", ".join(names)]
 
 
 func _execute_planned_path() -> void:

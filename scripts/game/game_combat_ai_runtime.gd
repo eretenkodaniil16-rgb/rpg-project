@@ -197,6 +197,8 @@ func _build_combat_ai_reachable_candidates(actor: Node2D, movement_feet: int) ->
 			var next_cost: int = current_cost + GRID_STEP_FEET
 			if next_cost > maximum_cost or not _combat_ai_cell_is_available(grid, destination_cell, occupied):
 				continue
+			if _combat_ai_transition_is_blocked(grid, current_cell, destination_cell):
+				continue
 			if abs(step.x) == 1 and abs(step.y) == 1 and not _combat_ai_diagonal_step_allowed(grid, current_cell, step, occupied):
 				continue
 			if costs.has(destination_cell) and int(costs[destination_cell]) <= next_cost:
@@ -215,7 +217,14 @@ func _combat_ai_cell_is_available(grid: BattleGrid, cell: Vector2i, occupied: Di
 	return _combat_environment == null or not _combat_environment.is_cell_blocked(grid, cell)
 
 
+func _combat_ai_transition_is_blocked(grid: BattleGrid, origin: Vector2i, destination: Vector2i) -> bool:
+	return _combat_environment != null and _combat_environment.is_transition_blocked(grid, origin, destination)
+
+
 func _combat_ai_diagonal_step_allowed(grid: BattleGrid, origin: Vector2i, step: Vector2i, occupied: Dictionary) -> bool:
+	var destination: Vector2i = origin + step
+	if _combat_ai_transition_is_blocked(grid, origin, destination):
+		return false
 	var horizontal: Vector2i = origin + Vector2i(step.x, 0)
 	var vertical: Vector2i = origin + Vector2i(0, step.y)
 	return _combat_ai_cell_is_available(grid, horizontal, occupied) and _combat_ai_cell_is_available(grid, vertical, occupied)
@@ -243,6 +252,11 @@ func _execute_combat_ai_path(actor: Node2D, path: Array, intent_id: String) -> v
 		if not value is Vector2i:
 			continue
 		var cell: Vector2i = value as Vector2i
+		var current_cell: Vector2i = grid.world_to_cell(actor.global_position)
+		if not _combat_ai_cell_is_available(grid, cell, _occupied_cells(actor)):
+			break
+		if _combat_ai_transition_is_blocked(grid, current_cell, cell):
+			break
 		actor.global_position = grid.cell_to_world_center(cell)
 		await get_tree().create_timer(0.1).timeout
 		if intent_id == NpcCombatAiSystem.INTENT_SEARCH and _combat_ai_can_see_player_from(actor.global_position):
@@ -346,7 +360,7 @@ func _combat_ai_mobility_from(actor: Node2D, position: Vector2) -> int:
 	var count: int = 0
 	for step: Vector2i in AI_GRID_DIRECTIONS:
 		var destination: Vector2i = origin + step
-		if _combat_ai_cell_is_available(grid, destination, occupied):
+		if _combat_ai_cell_is_available(grid, destination, occupied) and not _combat_ai_transition_is_blocked(grid, origin, destination):
 			count += 1
 	return count
 

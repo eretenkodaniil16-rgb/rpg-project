@@ -61,6 +61,7 @@ func _ready() -> void:
 	$Interface.add_child(_experience_reward_toast)
 	_register_exploration_hud()
 	_add_exploration_hud_node(_player_status_hud)
+	_raise_combat_message()
 	_sync_exploration_hud_visibility()
 
 
@@ -139,6 +140,27 @@ func _move_top_menu_buttons() -> void:
 		_character_button.offset_right = -364.0
 		_character_button.offset_bottom = 78.0
 		_character_button.add_theme_font_size_override("font_size", 15)
+
+
+func _raise_combat_message() -> void:
+	if _combat_message == null:
+		return
+	_combat_message.offset_left = 300.0
+	_combat_message.offset_top = 492.0
+	_combat_message.offset_right = 980.0
+	_combat_message.offset_bottom = 550.0
+	_combat_message.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_combat_message.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_combat_message.z_as_relative = false
+	_combat_message.z_index = 700
+	_combat_message.add_theme_font_size_override("font_size", 19)
+	_combat_message.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 1.0))
+	_combat_message.add_theme_constant_override("shadow_offset_x", 2)
+	_combat_message.add_theme_constant_override("shadow_offset_y", 2)
+	_combat_message.add_theme_constant_override("outline_size", 3)
+	_combat_message.add_theme_color_override("font_outline_color", Color(0.02, 0.03, 0.04, 0.96))
+	var interface: CanvasLayer = $Interface
+	interface.move_child(_combat_message, interface.get_child_count() - 1)
 
 
 func _open_character_sheet() -> void:

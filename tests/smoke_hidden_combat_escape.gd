@@ -1,7 +1,7 @@
 extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
-const RUNTIME_PATH: String = "res://scripts/game/game_environment_reactive_ai_runtime.gd"
+const RUNTIME_PATH: String = "res://scripts/game/game_squad_tactical_plans_runtime.gd"
 const ENCOUNTER_ID: String = "training_construct"
 
 var _failed: bool = false
@@ -63,7 +63,7 @@ func _run() -> void:
 	await process_frame
 	if FileAccess.file_exists(save_path):
 		DirAccess.remove_absolute(save_path)
-	print("Deep hideout, last-seen pursuit, trail tracking, room transition, re-hide and multi-sweep escape smoke test passed.")
+	print("Deep hideout, last-seen pursuit, trail tracking, room transition, re-hide and multi-observer escape smoke test passed.")
 	quit(0)
 
 
@@ -102,11 +102,15 @@ func _test_hideout_route(
 	if str(progress.get("route_id", "")) != "collapsed_wall_niche" or not bool(progress.get("objective_ready", false)):
 		_fail("The deep hideout did not become the active objective.")
 		return
-	if bool(game.call("resolve_search_for_testing", caretaker, 1)):
-		_fail("One failed search ended the encounter too early.")
+	var observers: Array[Node] = _active_enemy_observers(game)
+	if observers.size() < 3:
+		_fail("The linked tactical squad did not join the pursuit search.")
 		return
-	if not bool(game.call("resolve_search_for_testing", caretaker, 1)):
-		_fail("Two failed searches did not complete the hideout escape.")
+	if _resolve_failed_search_sweep(game, observers):
+		_fail("One failed search sweep ended the encounter too early.")
+		return
+	if not _resolve_failed_search_sweep(game, observers):
+		_fail("Two failed search sweeps by every active enemy did not complete the hideout escape.")
 		return
 	await process_frame
 	if str(state.call("get_encounter_status", ENCOUNTER_ID)) != EncounterSystem.STATUS_ABANDONED:
@@ -157,11 +161,12 @@ func _test_room_route(
 	if str(game.call("get_detection_state_for_testing", caretaker)) != "tracking":
 		_fail("Successful tracking did not change the enemy state.")
 		return
-	if bool(game.call("resolve_search_for_testing", caretaker, 1)):
-		_fail("One failed search after tracking ended the encounter too early.")
+	var observers: Array[Node] = _active_enemy_observers(game)
+	if _resolve_failed_search_sweep(game, observers):
+		_fail("One failed search sweep after tracking ended the encounter too early.")
 		return
-	if not bool(game.call("resolve_search_for_testing", caretaker, 1)):
-		_fail("The enemy did not lose the trail after two failed searches.")
+	if not _resolve_failed_search_sweep(game, observers):
+		_fail("The complete enemy squad did not lose the trail after two failed sweeps.")
 		return
 	await process_frame
 	if str(state.call("get_encounter_status", ENCOUNTER_ID)) != EncounterSystem.STATUS_ABANDONED:
@@ -178,8 +183,6 @@ func _test_room_route(
 func _begin_pursuit_attempt(game: Node, state: Node, caretaker: Node, source_id: String) -> void:
 	if caretaker.has_method("reset_combat_state"):
 		caretaker.call("reset_combat_state", true)
-	# This smoke validates one observer. Reset the new reinforcement so a previous
-	# abandoned attempt does not intentionally add a second searcher.
 	var guard: Node = game.call("get_patrol_actor_for_testing", "service_guard") as Node
 	if guard != null:
 		if guard.has_method("reset_combat_state"):
@@ -203,12 +206,39 @@ func _begin_pursuit_attempt(game: Node, state: Node, caretaker: Node, source_id:
 	game.call("_start_turn_based_combat", caretaker)
 	game.call("force_active_escape_encounter_for_testing", ENCOUNTER_ID)
 	game.call("force_player_turn_for_testing")
+	game.set("_enemy_turn_running", false)
 	await process_frame
 	if not bool(game.call("is_turn_based_combat_active")):
-		_fail("Turn-based combat did not start with the mobile enemy observer.")
+		_fail("Turn-based combat did not start with the mobile enemy observers.")
 		return
 	if str(state.call("get_encounter_status", ENCOUNTER_ID)) != EncounterSystem.STATUS_ACTIVE:
 		_fail("Encounter registry is not active during pursuit.")
+
+
+func _active_enemy_observers(game: Node) -> Array[Node]:
+	var result: Array[Node] = []
+	var turn_system: TurnBasedCombatSystem = game.get("_turn_system") as TurnBasedCombatSystem
+	if turn_system == null:
+		return result
+	for entry: Dictionary in turn_system.entries:
+		if bool(entry.get("is_player", false)):
+			continue
+		var actor: Node = entry.get("node") as Node
+		if not is_instance_valid(actor):
+			continue
+		var hostile: bool = bool(actor.call("is_hostile")) if actor.has_method("is_hostile") else true
+		if hostile:
+			result.append(actor)
+	return result
+
+
+func _resolve_failed_search_sweep(game: Node, observers: Array[Node]) -> bool:
+	var completed: bool = false
+	for observer: Node in observers:
+		if bool(game.call("resolve_search_for_testing", observer, 1)):
+			completed = true
+			break
+	return completed
 
 
 func _test_persistence(state: Node, save_path: String) -> void:

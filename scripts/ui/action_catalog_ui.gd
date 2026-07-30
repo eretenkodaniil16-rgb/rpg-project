@@ -19,6 +19,7 @@ const ACTION_GROUP_LABELS: Dictionary = {
 	"spell": "ЗАКЛИНАНИЯ",
 	"tactic": "ТАКТИКА"
 }
+const WORLD_INTERACTION_ACTION_ID: String = "world_interact"
 
 var catalog_button: Button
 var confirm_move_button: Button
@@ -38,6 +39,7 @@ var _selected_category: String = "action"
 var _selected_action_group: String = "target"
 var _last_signature: String = ""
 var _combat_active: bool = false
+var _player_turn: bool = false
 var _group_buttons: Dictionary = {}
 var _category_buttons: Dictionary = {}
 
@@ -61,6 +63,7 @@ func refresh(
 ) -> void:
 	var mode_changed: bool = _combat_active != combat_active
 	_combat_active = combat_active
+	_player_turn = player_turn
 	var show_catalog_controls: bool = not overlay_visible
 	catalog_button.hide()
 	end_turn_button.visible = combat_active and show_catalog_controls
@@ -69,6 +72,7 @@ func refresh(
 	if overlay_visible and panel.visible:
 		panel.hide()
 	_entries = entries.duplicate(true)
+	_append_world_interaction_entry()
 	resource_label.text = resource_text
 	header_label.text = "БОЕВЫЕ ДЕЙСТВИЯ · %s" % movement_plan_text if combat_active else "ДЕЙСТВИЯ"
 	catalog_button.disabled = true
@@ -107,6 +111,39 @@ func toggle_catalog() -> void:
 func close_catalog() -> void:
 	panel.hide()
 	_last_signature = ""
+
+
+func get_entries_for_testing() -> Dictionary:
+	return _entries.duplicate(true)
+
+
+func _append_world_interaction_entry() -> void:
+	if not _combat_active:
+		return
+	var player: Node = get_tree().get_first_node_in_group("player")
+	if not is_instance_valid(player):
+		return
+	var interactable_value: Variant = player.get("interactable")
+	var interactable: Node = interactable_value as Node if interactable_value is Node and is_instance_valid(interactable_value as Node) else null
+	var label: String = "НЕТ ОБЪЕКТА РЯДОМ"
+	var description: String = "Подойдите к двери или другому доступному объекту мира."
+	var enabled: bool = false
+	if interactable != null and interactable.has_method("perform_world_interaction"):
+		label = str(interactable.call("get_combat_interaction_label")) if interactable.has_method("get_combat_interaction_label") else "ВЗАИМОДЕЙСТВОВАТЬ"
+		description = str(interactable.call("get_combat_interaction_description")) if interactable.has_method("get_combat_interaction_description") else "Взаимодействовать с соседним объектом мира."
+		enabled = _player_turn
+		if interactable.has_method("can_perform_world_interaction"):
+			enabled = enabled and bool(interactable.call("can_perform_world_interaction"))
+	var action_value: Variant = _entries.get("action", [])
+	var action_entries: Array = action_value as Array if action_value is Array else []
+	action_entries.append({
+		"id": WORLD_INTERACTION_ACTION_ID,
+		"label": label,
+		"enabled": enabled,
+		"description": description,
+		"group": "world"
+	})
+	_entries["action"] = action_entries
 
 
 func _build_interface() -> void:
@@ -336,6 +373,11 @@ func _emit_action(action_id: String, description: String, available: bool) -> vo
 		description_label.text = "Сейчас недоступно: %s" % description
 		return
 	close_catalog()
+	if action_id == WORLD_INTERACTION_ACTION_ID:
+		var player: Node = get_tree().get_first_node_in_group("player")
+		if is_instance_valid(player) and player.has_method("request_interaction"):
+			player.call("request_interaction")
+		return
 	action_requested.emit(action_id)
 
 
