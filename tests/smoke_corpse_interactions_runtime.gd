@@ -1,7 +1,7 @@
 extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
-const EXPECTED_RUNTIME: String = "res://scripts/game/game_advanced_combat_ai_runtime.gd"
+const EXPECTED_RUNTIME: String = "res://scripts/game/game_nonlethal_restraints_runtime.gd"
 
 
 func _init() -> void:
@@ -29,7 +29,7 @@ func _run() -> void:
 		await process_frame
 	var script: Script = game.get_script() as Script
 	if script == null or script.resource_path != EXPECTED_RUNTIME:
-		_fail("Game scene does not use corpse interaction runtime.")
+		_fail("Game scene does not use nonlethal restraint runtime.")
 		return
 	game.set_process(false)
 
@@ -38,14 +38,16 @@ func _run() -> void:
 	if player == null or guard == null:
 		_fail("Player or service guard is missing.")
 		return
-	var result := AttackResult.new()
-	result.hit = true
-	result.damage = 99
-	result.damage_before_mitigation = 99
-	guard.call("receive_player_attack", result, false)
+
+	var lethal := AttackResult.new()
+	lethal.hit = true
+	lethal.melee_attack = true
+	lethal.damage = 99
+	lethal.damage_before_mitigation = 99
+	guard.call("receive_player_attack", lethal, false)
 	await process_frame
 	if not bool(guard.call("is_dead_body")):
-		_fail("Defeated service guard did not become a dead body.")
+		_fail("Normal zero-HP defeat did not become a dead body.")
 		return
 	if not guard.is_in_group("corpse_targets") or guard.is_in_group("combat_targets"):
 		_fail("Dead body groups are invalid.")
@@ -54,10 +56,7 @@ func _run() -> void:
 	player.global_position = guard.global_position + Vector2(48.0, 0.0)
 	game.call("_set_selected_target", guard)
 	var entries: Dictionary = game.call("_build_catalog_entries") as Dictionary
-	var action_ids: Array[String] = []
-	for entry_value: Variant in entries.get("action", []) as Array:
-		if entry_value is Dictionary:
-			action_ids.append(str((entry_value as Dictionary).get("id", "")))
+	var action_ids: Array[String] = _action_ids(entries)
 	if "corpse_loot_all" not in action_ids or "corpse_drag_toggle" not in action_ids or "corpse_loot_item__shortsword" not in action_ids:
 		_fail("Corpse action catalog is incomplete: %s" % JSON.stringify(action_ids))
 		return
@@ -81,18 +80,92 @@ func _run() -> void:
 	if game.call("get_dragged_body_for_testing") != null:
 		_fail("Body drag did not stop.")
 		return
+
+	guard.call("reset_combat_state", true)
+	await process_frame
+	if bool(guard.call("is_body_interactable")) or not guard.is_in_group("combat_targets"):
+		_fail("Full reset did not restore the living combat target.")
+		return
+	state.call("add_item", "explorer_pack", 1, false)
+	game.call("_set_selected_target", guard)
+	game.call("_on_catalog_action_requested", "toggle_nonlethal_attack")
+	if not bool(game.call("is_nonlethal_mode_enabled_for_testing")):
+		_fail("Nonlethal mode did not enable through the action catalog handler.")
+		return
+
+	var knockout := AttackResult.new()
+	knockout.hit = true
+	knockout.melee_attack = true
+	knockout.damage = 99
+	knockout.damage_before_mitigation = 99
+	game.call("_prepare_nonlethal_knockout", knockout, guard)
+	if not knockout.nonlethal_knockout:
+		_fail("Eligible lethal melee damage was not converted to a nonlethal knockout.")
+		return
+	guard.call("receive_player_attack", knockout, false)
+	await process_frame
+	if not bool(guard.call("is_unconscious_body")) or bool(guard.call("is_dead_body")):
+		_fail("Nonlethal melee defeat did not create a living unconscious body.")
+		return
+	if int(guard.call("get_current_health")) != 1:
+		_fail("2024 SRD knockout did not leave the target at 1 HP.")
+		return
+
+	player.global_position = guard.global_position + Vector2(48.0, 0.0)
+	game.call("_set_selected_target", guard)
+	entries = game.call("_build_catalog_entries") as Dictionary
+	action_ids = _action_ids(entries)
+	if "bind_unconscious__explorer_pack" not in action_ids:
+		_fail("Binding action is missing for an available restraint source: %s" % JSON.stringify(action_ids))
+		return
+	game.call("_on_catalog_action_requested", "bind_unconscious__explorer_pack")
+	if not bool(guard.call("is_bound_body")):
+		_fail("Unconscious target was not bound.")
+		return
+	var binding: Dictionary = guard.call("get_binding_context") as Dictionary
+	if str(binding.get("item_id", "")) != "explorer_pack" or int(binding.get("escape_dc", 0)) <= 0:
+		_fail("Binding context is incomplete: %s" % JSON.stringify(binding))
+		return
+
+	entries = game.call("_build_catalog_entries") as Dictionary
+	action_ids = _action_ids(entries)
+	if "release_body_restraint" not in action_ids:
+		_fail("Release restraint action is missing.")
+		return
+	game.call("_on_catalog_action_requested", "release_body_restraint")
+	if bool(guard.call("is_bound_body")):
+		_fail("Release action did not free the restraint source.")
+		return
+
+	var ranged := AttackResult.new()
+	ranged.hit = true
+	ranged.melee_attack = false
+	ranged.damage = 99
+	game.call("_prepare_nonlethal_knockout", ranged, guard)
+	if ranged.nonlethal_knockout:
+		_fail("Ranged damage incorrectly received the nonlethal knockout option.")
+		return
+
 	var registry := CorpseInteractionSystem.new()
 	var stored: Dictionary = registry.get_record(state, "service_guard")
 	if registry.get_body_position(stored).distance_to(guard.global_position) > 1.0:
-		_fail("Released body position was not persisted.")
+		_fail("Body position was not persisted.")
 		return
 
 	game.queue_free()
 	await process_frame
 	if FileAccess.file_exists(save_path):
 		DirAccess.remove_absolute(save_path)
-	print("Corpse target, loot catalog, drag movement and persisted position passed.")
+	print("Lethal default, nonlethal melee knockout, restraint actions and corpse regression passed.")
 	quit(0)
+
+
+func _action_ids(entries: Dictionary) -> Array[String]:
+	var result: Array[String] = []
+	for entry_value: Variant in entries.get("action", []) as Array:
+		if entry_value is Dictionary:
+			result.append(str((entry_value as Dictionary).get("id", "")))
+	return result
 
 
 func _make_hero() -> PlayerCharacter:
