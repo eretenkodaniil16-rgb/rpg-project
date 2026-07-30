@@ -66,14 +66,16 @@ func _run() -> void:
 	mage.global_position = grid.cell_to_world_center(doorway_right + Vector2i(4, 3))
 	await process_frame
 
+	guard.call("enter_combat_hostile")
 	game.call("_start_turn_based_combat", caretaker)
 	game.call("force_player_turn_for_testing")
 	game.set("_enemy_turn_running", false)
 	await process_frame
 	var observers: Array[Node] = game.call("_active_observers") as Array[Node]
-	if observers.size() < 4:
-		_fail("The complete hostile squad did not join the visibility simulation.")
-		return
+	for expected_observer: Node2D in [caretaker, guard, marksman, mage]:
+		if not observers.has(expected_observer):
+			_fail("Expected hostile observer did not join the visibility simulation: %s" % str(game.call("_target_name", expected_observer)))
+			return
 	for observer: Node in observers:
 		if bool(game.call("_observer_can_see_position", observer, player.global_position)):
 			_fail("Closed edge partition still gives line of sight to %s." % str(game.call("_target_name", observer)))
