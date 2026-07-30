@@ -9,6 +9,8 @@ var damage_type: String = "дробящий"
 var is_spell: bool = false
 var is_reaction: bool = false
 var automatic_hit: bool = false
+var melee_attack: bool = false
+var nonlethal_knockout: bool = false
 var natural_roll: int = 1
 var first_roll: int = 1
 var second_roll: int = 0
@@ -45,6 +47,8 @@ func to_dict() -> Dictionary:
 		"is_spell": is_spell,
 		"is_reaction": is_reaction,
 		"automatic_hit": automatic_hit,
+		"melee_attack": melee_attack,
+		"nonlethal_knockout": nonlethal_knockout,
 		"natural_roll": natural_roll,
 		"first_roll": first_roll,
 		"second_roll": second_roll,
