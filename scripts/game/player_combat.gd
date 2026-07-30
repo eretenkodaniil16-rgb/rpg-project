@@ -68,11 +68,15 @@ func get_effective_movement_speed_at(world_position: Vector2) -> float:
 	var character: PlayerCharacter = GameState.player_character
 	var racial_multiplier: float = float(maxi(character.base_speed_feet, 0)) / 30.0
 	var environment: CombatEnvironment = get_tree().get_first_node_in_group("combat_environment") as CombatEnvironment
-	if environment == null:
-		return movement_speed * racial_multiplier
-	var difficult: bool = environment.is_difficult_position(world_position) or environment.is_difficult_position(global_position)
-	var terrain_multiplier: float = _terrain_class_data.exploration_speed_multiplier(character, difficult, false)
-	return movement_speed * racial_multiplier * terrain_multiplier
+	var terrain_multiplier: float = 1.0
+	if environment != null:
+		var difficult: bool = environment.is_difficult_position(world_position) or environment.is_difficult_position(global_position)
+		terrain_multiplier = _terrain_class_data.exploration_speed_multiplier(character, difficult, false)
+	var drag_multiplier: float = 1.0
+	var game: Node = get_parent()
+	if game != null and game.has_method("get_body_drag_speed_multiplier"):
+		drag_multiplier = clampf(float(game.call("get_body_drag_speed_multiplier")), 0.1, 1.0)
+	return movement_speed * racial_multiplier * terrain_multiplier * drag_multiplier
 
 
 func ignores_nonmagical_difficult_terrain() -> bool:
