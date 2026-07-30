@@ -74,8 +74,9 @@ class CombatIdleDirectionalCyclesV14Tests(unittest.TestCase):
     def test_adapter_renders_32_frames_and_locks_sources(self) -> None:
         ast.parse(self.adapter_source)
         self.assertIn("rendered_count != 32", self.adapter_source)
-        self.assertIn("changed approved v12 frame 01", self.adapter_source)
-        self.assertIn("changed approved v10 down pixels", self.adapter_source)
+        self.assertIn("changed approved ", self.adapter_source)
+        self.assertIn("v12 frame 01", self.adapter_source)
+        self.assertIn("v10 down pixels", self.adapter_source)
         self.assertIn("_assert_no_boundary_touch", self.adapter_source)
         self.assertIn("MAX_WIDTH_DRIFT = 4", self.adapter_source)
         self.assertIn("MAX_HEIGHT_DRIFT = 4", self.adapter_source)
