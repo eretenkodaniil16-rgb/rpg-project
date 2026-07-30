@@ -34,18 +34,20 @@ func _run() -> void:
 	game.set_process(false)
 
 	var player: Node2D = game.get_node_or_null("Player") as Node2D
+	var caretaker: Node2D = game.get_node_or_null("Caretaker") as Node2D
 	var room: Node = game.get_node_or_null("StealthTestRoom")
 	var environment: CombatEnvironment = game.get_tree().get_first_node_in_group("combat_environment") as CombatEnvironment
 	var catalog_ui: ActionCatalogUI = game.get_node_or_null("Interface/ActionCatalogUI") as ActionCatalogUI
 	var grid: BattleGrid = game.call("_get_battle_grid") as BattleGrid
-	if player == null or room == null or environment == null or catalog_ui == null or grid == null:
+	if player == null or caretaker == null or room == null or environment == null or catalog_ui == null or grid == null:
 		_fail("Interactive encounter fixtures are incomplete.")
 		return
+	var guard: Node2D = room.call("get_patrol_observer") as Node2D
 	var marksman: Node2D = room.call("get_training_marksman") as Node2D
 	var mage: Node2D = room.call("get_training_mage") as Node2D
 	var door: Node = room.call("get_test_door") as Node
-	if marksman == null or mage == null or door == null:
-		_fail("Marksman, mage or door is missing from the playable scene.")
+	if guard == null or marksman == null or mage == null or door == null:
+		_fail("Guard, marksman, mage or door is missing from the playable scene.")
 		return
 
 	if bool(marksman.call("is_combat_participant_active")) or bool(mage.call("is_combat_participant_active")):
@@ -63,26 +65,25 @@ func _run() -> void:
 		_fail("Marksman could not be selected as the current target.")
 		return
 
-	marksman.call("enter_combat_hostile")
+	game.call("_start_turn_based_combat", caretaker)
+	await process_frame
+	var turn_system: TurnBasedCombatSystem = game.get("_turn_system") as TurnBasedCombatSystem
+	if turn_system == null or not turn_system.active:
+		_fail("Combat did not start through the caretaker.")
+		return
 	if not bool(marksman.call("is_combat_participant_active")) or not bool(mage.call("is_combat_participant_active")):
-		_fail("Provoking one tactical role did not activate the complete squad.")
+		_fail("Caretaker provocation did not activate the complete tactical squad.")
 		return
 	if not bool(marksman.call("is_hostile")) or not bool(mage.call("is_hostile")):
 		_fail("Activated tactical squad is not hostile.")
 		return
-
-	var turn_system: TurnBasedCombatSystem = game.get("_turn_system") as TurnBasedCombatSystem
-	if turn_system == null:
-		_fail("Turn system is unavailable.")
+	if not _turn_contains_actor(turn_system, caretaker) or not _turn_contains_actor(turn_system, marksman) or not _turn_contains_actor(turn_system, mage):
+		_fail("Caretaker, marksman and mage were not all added to initiative.")
 		return
-	var initiative_overrides: Dictionary = {
-		player.get_instance_id(): 20,
-		marksman.get_instance_id(): 2,
-		mage.get_instance_id(): 1
-	}
-	turn_system.start_combat(player, [marksman, mage], 0, initiative_overrides)
+
+	game.call("force_player_turn_for_testing")
 	if not turn_system.is_player_turn(player):
-		_fail("Deterministic player initiative was not applied.")
+		_fail("Player turn could not be forced for interaction checks.")
 		return
 
 	door.call("set_door_state", "closed", false)
@@ -102,10 +103,10 @@ func _run() -> void:
 		_fail("Combat door action has an unexpected label: %s" % JSON.stringify(world_entry))
 		return
 
-	door.call("interact")
+	catalog_ui.action_requested.emit("world_interact")
 	await process_frame
 	if str(door.call("get_door_state")) != "open":
-		_fail("Door did not open during the player turn.")
+		_fail("Catalog world action did not open the door during the player turn.")
 		return
 	if environment.is_cell_blocked(grid, door_cell):
 		_fail("Opened combat door remains blocked in the movement grid.")
@@ -114,7 +115,7 @@ func _run() -> void:
 		_fail("Object interaction was not consumed for the current turn.")
 		return
 
-	door.call("interact")
+	catalog_ui.action_requested.emit("world_interact")
 	await process_frame
 	if str(door.call("get_door_state")) != "open":
 		_fail("The same combat turn allowed a second door interaction.")
@@ -126,19 +127,58 @@ func _run() -> void:
 		_fail("Consumed combat door interaction remains enabled in the catalog.")
 		return
 
+	door.call("_on_body_exited", player)
 	turn_system.stop_combat()
+	var initiative_overrides: Dictionary = {
+		player.get_instance_id(): 10,
+		marksman.get_instance_id(): 20
+	}
+	turn_system.start_combat(player, [marksman], 0, initiative_overrides)
+	turn_system.force_current_actor_for_testing(marksman)
+	var player_state: CombatantState = game.call("get_player_combat_state") as CombatantState
+	if player_state == null:
+		_fail("Player combat state is unavailable for death-save flow.")
+		return
+	state.get("player_character").current_health = 0
+	player_state.enter_dying()
+	game.set("_enemy_turn_running", false)
+	game.call("_queue_dying_turn_recovery_if_needed")
+	await process_frame
+	var death_save_resolved: bool = (
+		state.get("player_character").current_health == 1
+		or player_state.death_save_successes > 0
+		or player_state.death_save_failures > 0
+		or player_state.stable
+		or player_state.dead
+	)
+	if not death_save_resolved:
+		_fail("Initiative stalled at 0 HP instead of resolving a death saving throw.")
+		return
+
+	turn_system.stop_combat()
+	state.get("player_character").current_health = state.get("player_character").maximum_health
+	player_state.recover_from_zero_hit_points()
+	door.call("_on_body_entered", player)
 	door.call("interact")
 	await process_frame
 	if str(door.call("get_door_state")) != "closed":
 		_fail("Exploration door interaction no longer works outside combat.")
 		return
+	door.call("_on_body_exited", player)
 
 	game.queue_free()
 	await process_frame
 	if FileAccess.file_exists(save_path):
 		DirAccess.remove_absolute(save_path)
-	print("Selectable marksman/mage and one-per-turn combat door interaction passed.")
+	print("Caretaker-linked tactical squad, catalog-routed combat door interaction and dying turn recovery passed.")
 	quit(0)
+
+
+func _turn_contains_actor(turn_system: TurnBasedCombatSystem, actor: Node) -> bool:
+	for entry: Dictionary in turn_system.entries:
+		if entry.get("node") == actor:
+			return true
+	return false
 
 
 func _find_action(catalog: Dictionary, action_id: String) -> Dictionary:
