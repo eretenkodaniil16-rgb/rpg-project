@@ -53,6 +53,10 @@ class WalkHistoricalEntrypointsTests(unittest.TestCase):
                 "blender_sprite_factory_combat_idle_down_weapon_variants_v08.py",
                 "render_weapon_stance_variants_v08",
             ),
+            (
+                "blender_sprite_factory_combat_idle_down_weapon_variants_v09.py",
+                "render_weapon_stance_variants_v09",
+            ),
         ):
             adapter = self.tool_root / adapter_name
             self.assertTrue(adapter.is_file())
@@ -61,33 +65,34 @@ class WalkHistoricalEntrypointsTests(unittest.TestCase):
             (self.tool_root / "blender_sprite_factory_walk_up_v02.py").is_file()
         )
 
-    def test_windows_launcher_advances_to_weapon_variants_v09_adapter(self) -> None:
+    def test_windows_launcher_advances_to_combat_idle_cycles_v10_adapter(self) -> None:
         self.assertIn(
-            '$FactoryScript = Join-Path $ToolRoot "blender_sprite_factory_combat_idle_down_weapon_variants_v09.py"',
+            '$FactoryScript = Join-Path $ToolRoot "blender_sprite_factory_combat_idle_down_cycles_v10.py"',
             self.launcher,
         )
         self.assertIn(
-            "Rejected cross-torso one-hand candidate: blender_sprite_factory_combat_idle_down_weapon_variants_v08.py",
+            "Selected static source adapter: blender_sprite_factory_combat_idle_down_weapon_variants_v09.py",
             self.launcher,
         )
 
-    def test_ci_uses_weapon_variants_v09_real_blender_render(self) -> None:
+    def test_ci_uses_combat_idle_cycles_v10_real_blender_render(self) -> None:
         self.assertIn(
-            "render-combat-idle-down-weapon-variants-v09:",
+            "render-combat-idle-down-cycles-v10:",
             self.workflow,
         )
         self.assertIn(
-            "--python tools/blender_sprite_factory/blender_sprite_factory_combat_idle_down_weapon_variants_v09.py",
+            "--python tools/blender_sprite_factory/blender_sprite_factory_combat_idle_down_cycles_v10.py",
             self.workflow,
         )
         self.assertIn(
-            "human_warrior_m01_proxy_v25_appearance_v03_walk_down_v04_walk_left_v01_walk_right_v01_walk_up_v02_combat_weapon_variants_v09_",
+            "human_warrior_m01_proxy_v25_appearance_v03_walk_down_v04_walk_left_v01_walk_right_v01_walk_up_v02_combat_idle_cycles_v10_",
             self.workflow,
         )
         self.assertIn("render-combat-idle-down-v01 (technical baseline)", self.workflow)
         self.assertIn("render-combat-idle-down-weapon-variants-v06", self.workflow)
         self.assertIn("render-combat-idle-down-weapon-variants-v07", self.workflow)
         self.assertIn("render-combat-idle-down-weapon-variants-v08", self.workflow)
+        self.assertIn("render-combat-idle-down-weapon-variants-v09", self.workflow)
 
 
 if __name__ == "__main__":
