@@ -199,13 +199,19 @@ class ReferenceHairProfileV08Tests(unittest.TestCase):
             / "validate-blender-sprite-factory.yml"
         ).read_text(encoding="utf-8")
         self.assertTrue((tool_root / "blender_sprite_factory_walk_up_v02.py").is_file())
+        self.assertTrue(
+            (
+                tool_root
+                / "blender_sprite_factory_combat_idle_down_variants_v03.py"
+            ).is_file()
+        )
         self.assertIn(
-            "blender_sprite_factory_combat_idle_down_variants_v02.py",
+            "blender_sprite_factory_combat_idle_down_variants_v04.py",
             launcher,
         )
-        self.assertIn("render-combat-idle-down-variants-v02", workflow)
+        self.assertIn("render-combat-idle-down-variants-v04", workflow)
         self.assertIn(
-            "blender_sprite_factory_combat_idle_down_variants_v02.py",
+            "blender_sprite_factory_combat_idle_down_variants_v04.py",
             workflow,
         )
         self.assertIn(
