@@ -14,8 +14,8 @@ Set-StrictMode -Version Latest
 
 $ToolRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $RepoRoot = (Resolve-Path (Join-Path $ToolRoot "..\..")).Path
-# Previous centered variant stage: blender_sprite_factory_combat_idle_down_variants_v03.py
-$FactoryScript = Join-Path $ToolRoot "blender_sprite_factory_combat_idle_down_variants_v04.py"
+# Previous wide-side stage: blender_sprite_factory_combat_idle_down_variants_v04.py
+$FactoryScript = Join-Path $ToolRoot "blender_sprite_factory_combat_idle_down_weapon_variants_v05.py"
 $FactoryConfig = Join-Path $ToolRoot "configs\human_warrior_m01.json"
 
 function Resolve-BlenderExecutable {
