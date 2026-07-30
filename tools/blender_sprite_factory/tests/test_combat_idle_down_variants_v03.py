@@ -65,7 +65,7 @@ class CombatIdleDownVariantsV03Tests(unittest.TestCase):
         self.assertNotIn("scale.x = -1", self.builder_source)
         self.assertNotIn("scale[0] = -1", self.builder_source)
 
-    def test_adapter_records_outward_v02_rejection_and_comparison(self) -> None:
+    def test_adapter_remains_reproducible_as_centered_historical_pass(self) -> None:
         ast.parse(self.adapter_source)
         self.assertIn("blade_moved_outward_instead_of_toward_center", self.adapter_source)
         self.assertIn("combat_idle_down_variants_v03.png", self.adapter_source)
@@ -74,7 +74,7 @@ class CombatIdleDownVariantsV03Tests(unittest.TestCase):
         self.assertNotIn("scale.x = -1", self.adapter_source)
         self.assertNotIn("scale[0] = -1", self.adapter_source)
 
-    def test_active_launcher_and_workflow_use_variants_v03(self) -> None:
+    def test_active_launcher_and_workflow_advance_to_wide_side_v04(self) -> None:
         launcher = (self.tool_root / "run_blender_sprite_pilot.ps1").read_text(
             encoding="ascii"
         )
@@ -84,15 +84,18 @@ class CombatIdleDownVariantsV03Tests(unittest.TestCase):
             / "workflows"
             / "validate-blender-sprite-factory.yml"
         ).read_text(encoding="utf-8")
+        self.assertTrue(
+            (
+                self.tool_root
+                / "blender_sprite_factory_combat_idle_down_variants_v03.py"
+            ).is_file()
+        )
         self.assertIn(
-            "blender_sprite_factory_combat_idle_down_variants_v03.py",
+            "Previous centered variant stage: blender_sprite_factory_combat_idle_down_variants_v03.py",
             launcher,
         )
-        self.assertIn("render-combat-idle-down-variants-v03", workflow)
-        self.assertIn(
-            "blender_sprite_factory_combat_idle_down_variants_v03.py",
-            workflow,
-        )
+        self.assertIn("render-combat-idle-down-variants-v03 (rejected", workflow)
+        self.assertIn("render-combat-idle-down-variants-v04", workflow)
 
     def test_unknown_character_is_rejected(self) -> None:
         with self.assertRaisesRegex(KeyError, "No combat_idle_down variants v03"):
