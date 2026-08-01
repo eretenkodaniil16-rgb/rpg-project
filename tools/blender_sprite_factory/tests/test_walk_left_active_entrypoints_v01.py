@@ -73,6 +73,10 @@ class WalkHistoricalEntrypointsTests(unittest.TestCase):
                 "blender_sprite_factory_combat_idle_directional_weapon_v13.py",
                 "render_combat_idle_directional_weapon_v13",
             ),
+            (
+                "blender_sprite_factory_combat_idle_directional_cycles_v14.py",
+                "render_combat_idle_directional_cycles_v14",
+            ),
         ):
             adapter = self.tool_root / adapter_name
             self.assertTrue(adapter.is_file())
@@ -81,9 +85,13 @@ class WalkHistoricalEntrypointsTests(unittest.TestCase):
             (self.tool_root / "blender_sprite_factory_walk_up_v02.py").is_file()
         )
 
-    def test_windows_launcher_advances_to_directional_cycles_v14_adapter(self) -> None:
+    def test_windows_launcher_advances_to_armed_walk_v15_adapter(self) -> None:
         self.assertIn(
-            '$FactoryScript = Join-Path $ToolRoot "blender_sprite_factory_combat_idle_directional_cycles_v14.py"',
+            '$FactoryScript = Join-Path $ToolRoot "blender_sprite_factory_walk_directional_weapon_v15.py"',
+            self.launcher,
+        )
+        self.assertIn(
+            "Artist-approved directional combat idle cycles: blender_sprite_factory_combat_idle_directional_cycles_v14.py",
             self.launcher,
         )
         self.assertIn(
@@ -95,16 +103,17 @@ class WalkHistoricalEntrypointsTests(unittest.TestCase):
             self.launcher,
         )
 
-    def test_ci_uses_directional_cycles_v14_real_blender_render(self) -> None:
-        self.assertIn("render-combat-idle-directional-cycles-v14:", self.workflow)
+    def test_ci_uses_armed_walk_v15_real_blender_render(self) -> None:
+        self.assertIn("render-walk-directional-weapon-v15:", self.workflow)
         self.assertIn(
-            "--python tools/blender_sprite_factory/blender_sprite_factory_combat_idle_directional_cycles_v14.py",
+            "--python tools/blender_sprite_factory/blender_sprite_factory_walk_directional_weapon_v15.py",
             self.workflow,
         )
         self.assertIn(
-            "human_warrior_m01_proxy_v25_appearance_v03_walk_down_v04_walk_left_v01_walk_right_v01_walk_up_v02_combat_idle_directional_cycles_v14_",
+            "human_warrior_m01_proxy_v25_appearance_v03_walk_directional_weapon_v15_",
             self.workflow,
         )
+        self.assertIn("Upload 48 armed directional walk frames v15", self.workflow)
         for marker in (
             "render-combat-idle-down-v01 (technical baseline)",
             "render-combat-idle-down-weapon-variants-v06",
@@ -115,6 +124,7 @@ class WalkHistoricalEntrypointsTests(unittest.TestCase):
             "render-combat-idle-directional-v11",
             "render-combat-idle-directional-weapon-v12",
             "render-combat-idle-directional-weapon-v13",
+            "render-combat-idle-directional-cycles-v14",
         ):
             self.assertIn(marker, self.workflow)
 
