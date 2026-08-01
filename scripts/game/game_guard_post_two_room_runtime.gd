@@ -27,6 +27,76 @@ func _ready() -> void:
 	_sync_room_from_persistent_state()
 
 
+func _build_catalog_entries() -> Dictionary:
+	var entries: Dictionary = super._build_catalog_entries()
+	_remove_single_prop_entries(entries)
+	var held_record: Dictionary = _throwable_props.get_held_record(_throwable_registry)
+	if not held_record.is_empty():
+		return entries
+	var nearby_props: Array[ThrowableWorldProp] = _registered_nearby_props()
+	var category_id: String = "bonus" if _turn_system.active else "action"
+	var category_entries: Array = entries.get(category_id, []) as Array
+	for prop: ThrowableWorldProp in nearby_props:
+		var enabled: bool = true
+		if _turn_system.active:
+			enabled = _turn_system.is_player_turn(player) and _turn_system.bonus_action_available
+		category_entries.append(_entry(
+			"%s%s" % [PICKUP_ACTION_PREFIX, prop.get_prop_id()],
+			"ПОДНЯТЬ: %s" % prop.get_prop_label().to_upper(),
+			enabled,
+			"Поднять этот предмет из его собственной зоны взаимодействия.%s" % (
+				" В бою расходует дополнительное действие; в руках можно нести только один предмет." if _turn_system.active
+				else " Вне боя действие не расходует боевой ресурс."
+			),
+			"world"
+		))
+	if nearby_props.is_empty():
+		category_entries.append(_entry(
+			"pickup_throwable_unavailable",
+			"НЕТ ПРЕДМЕТА РЯДОМ",
+			false,
+			"Войдите в зону кружки, подсвечника или табуретки.",
+			"world"
+		))
+	entries[category_id] = category_entries
+	return entries
+
+
+func _remove_single_prop_entries(entries: Dictionary) -> void:
+	for category_id: String in ["action", "bonus"]:
+		var values: Variant = entries.get(category_id, [])
+		if not values is Array:
+			continue
+		var filtered: Array = []
+		for value: Variant in values as Array:
+			if not value is Dictionary:
+				filtered.append(value)
+				continue
+			var action_id: String = str((value as Dictionary).get("id", ""))
+			if action_id.begins_with(PICKUP_ACTION_PREFIX) or action_id == "pickup_throwable_unavailable":
+				continue
+			filtered.append(value)
+		entries[category_id] = filtered
+
+
+func _registered_nearby_props() -> Array[ThrowableWorldProp]:
+	var result: Array[ThrowableWorldProp] = []
+	if player == null or not player.has_method("get_nearby_interactables"):
+		var fallback: ThrowableWorldProp = _nearest_available_prop()
+		if fallback != null:
+			result.append(fallback)
+		return result
+	var value: Variant = player.call("get_nearby_interactables")
+	if not value is Array:
+		return result
+	for target: Variant in value as Array:
+		if target is ThrowableWorldProp and is_instance_valid(target as ThrowableWorldProp):
+			var prop: ThrowableWorldProp = target as ThrowableWorldProp
+			if prop.is_available_for_pickup():
+				result.append(prop)
+	return result
+
+
 func _broadcast_actor_alert(actor: Node, record: Dictionary) -> void:
 	if _caretaker_should_remain_neutral(actor):
 		return
