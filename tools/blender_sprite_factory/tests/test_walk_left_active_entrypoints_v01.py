@@ -110,7 +110,7 @@ class WalkHistoricalEntrypointsTests(unittest.TestCase):
             self.workflow,
         )
         self.assertIn(
-            "human_warrior_m01_proxy_v25_appearance_v03_walk_directional_weapon_v15_",
+            "human_warrior_m01_proxy_v25_appearance_v03_walk_down_v04_walk_left_v01_walk_right_v01_walk_up_v02_walk_directional_weapon_v15_",
             self.workflow,
         )
         self.assertIn("Upload 48 armed directional walk frames v15", self.workflow)
