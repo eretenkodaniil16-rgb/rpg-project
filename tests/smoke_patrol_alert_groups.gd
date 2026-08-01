@@ -1,6 +1,8 @@
 extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
+const MANUAL_SLOT_ID: int = 3
+const MANUAL_SAVE_PATH: String = "user://save_slots/manual_03.json"
 
 
 func _init() -> void:
@@ -17,7 +19,7 @@ func _run() -> void:
 	if state == null or not state.has_method("get_stealth_alert_record"):
 		_fail("Stealth-aware GameState is missing.")
 		return
-	var save_path: String = ProjectSettings.globalize_path("user://savegame.json")
+	var save_path: String = ProjectSettings.globalize_path(MANUAL_SAVE_PATH)
 	if FileAccess.file_exists(save_path):
 		DirAccess.remove_absolute(save_path)
 	state.call("new_game")
@@ -91,16 +93,21 @@ func _run() -> void:
 	if str(through_open_door.get("state", "")) != StealthAlertSystem.STATE_INVESTIGATING:
 		_fail("Open door did not allow an audible alert relay.")
 		return
-
-	game.call("_persist_all_alert_records", true)
-	if not bool(state.call("save_game")):
-		_fail("Patrol alert state could not be saved.")
+	if bool(game.call("is_turn_based_combat_active")):
+		_fail("Audible alert relay incorrectly started active initiative.")
 		return
+
+	game.call("_persist_all_alert_records", false)
+	state.set("input_locked", true)
+	if not bool(state.call("save_manual_slot", MANUAL_SLOT_ID)):
+		_fail("Patrol alert state could not be saved to a manual slot.")
+		return
+	state.set("input_locked", false)
 	state.set("story_flags", {})
 	state.set("quest_states", {})
 	state.set("inventory", {})
-	if not bool(state.call("load_game")):
-		_fail("Patrol alert save could not be loaded.")
+	if not bool(state.call("load_manual_slot", MANUAL_SLOT_ID)):
+		_fail("Patrol alert manual save could not be loaded.")
 		return
 	var restored: Dictionary = state.call("get_stealth_alert_record", "caretaker") as Dictionary
 	if str(restored.get("last_alert_source_id", "")) != "service_guard":
@@ -111,7 +118,7 @@ func _run() -> void:
 	await process_frame
 	if FileAccess.file_exists(save_path):
 		DirAccess.remove_absolute(save_path)
-	print("Patrol movement, local alert relay, door audibility, non-combat investigation and persistence smoke test passed.")
+	print("Patrol movement, local alert relay, door audibility, non-combat investigation and manual persistence smoke test passed.")
 	quit(0)
 
 
