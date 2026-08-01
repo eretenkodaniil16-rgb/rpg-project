@@ -128,21 +128,18 @@ func _run() -> void:
 	player.call("clear_mobile_input")
 	player.call("set_visual_preview_mode", &"unarmed")
 	player.call("set_mobile_direction", &"right", true)
+	await get_tree().create_timer(0.08).timeout
 	for sample_index: int in range(12):
-		await get_tree().physics_frame
-		await get_tree().process_frame
 		if sprite.animation != &"walk_right":
 			_fail("Continuous right movement flickered away from walk_right at sample %d." % sample_index)
 			return
+		await get_tree().create_timer(0.025).timeout
 	player.call("set_mobile_direction", &"right", false)
-	await get_tree().physics_frame
-	await get_tree().process_frame
+	await get_tree().create_timer(0.03).timeout
 	if sprite.animation != &"walk_right":
-		_fail("A single zero-motion physics sample caused an immediate walk-to-idle flicker.")
+		_fail("A short zero-motion interval caused an immediate walk-to-idle flicker.")
 		return
-	for _sample_index: int in range(10):
-		await get_tree().physics_frame
-	await get_tree().process_frame
+	await get_tree().create_timer(0.12).timeout
 	if sprite.animation != &"idle_right":
 		_fail("The visual controller did not settle to idle_right after the stop grace period.")
 		return
