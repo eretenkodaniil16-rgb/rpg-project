@@ -48,8 +48,8 @@ def render_walk_directional_weapon_v16(
     down_scale = calibrations["down"].scale
     raw_dir = run_dir / "raw"
     frame_dir = run_dir / "frames"
-    raw_dir.mkdir()
-    frame_dir.mkdir()
+    raw_dir.mkdir(exist_ok=True)
+    frame_dir.mkdir(exist_ok=True)
     artifacts: list[factory.FrameArtifact] = []
     idle_action = factory.bpy.data.actions[f"{config.character_id}_idle"]
 
