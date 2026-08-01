@@ -1,37 +1,6 @@
 class_name SafeWorldStateNpcNavigationController
 extends WorldStateNpcNavigationController
 
-var _restore_trace_positions: Dictionary = {}
-var _restore_drift_reported: Dictionary = {}
-
-
-func _process(delta: float) -> void:
-	super._process(delta)
-	for actor_id_value: Variant in _restore_trace_positions.keys():
-		var actor_id: String = str(actor_id_value)
-		if bool(_restore_drift_reported.get(actor_id, false)):
-			continue
-		var expected: Vector2 = _restore_trace_positions.get(actor_id, Vector2.ZERO) as Vector2
-		for actor: Node in _persistent_world_actors():
-			if _actor_id(actor) != actor_id or not actor is Node2D:
-				continue
-			var actual: Vector2 = (actor as Node2D).global_position
-			if actual.distance_to(expected) <= 0.5:
-				break
-			var input_locked: bool = is_instance_valid(_state) and bool(_state.get("input_locked"))
-			var alert_state: String = str(actor.call("get_detection_state")) if actor.has_method("get_detection_state") else ""
-			print("WORLD_DRIFT actor=%s expected=%s actual=%s input_locked=%s alert=%s restored=%s restore_running=%s" % [
-				actor_id,
-				str(expected),
-				str(actual),
-				str(input_locked),
-				alert_state,
-				str(_restored),
-				str(_restore_running)
-			])
-			_restore_drift_reported[actor_id] = true
-			break
-
 
 func get_visibility_render_order_for_testing() -> Dictionary:
 	var fog: CanvasItem = get_tree().get_first_node_in_group("player_visibility") as CanvasItem
@@ -58,7 +27,6 @@ func get_visibility_render_order_for_testing() -> Dictionary:
 func _restore_actor(actor: Node, state: Dictionary) -> void:
 	var requested_position: Vector2 = Vector2.ZERO
 	var exact_position_is_valid: bool = false
-	var actor_id: String = _actor_id(actor)
 	if actor is Node2D:
 		var actor_node: Node2D = actor as Node2D
 		requested_position = _vector_from_value(state.get("position", []), actor_node.global_position)
@@ -74,21 +42,33 @@ func _restore_actor(actor: Node, state: Dictionary) -> void:
 			)
 		)
 	super._restore_actor(actor, state)
-	# A save file represents a continuous world position, not only a coarse grid
-	# cell. Preserve that exact position whenever it is physically valid. The
-	# inherited nearest-cell repair remains the fallback for corrupted or legacy
-	# coordinates placed inside an obstacle.
+	# Save files store continuous world coordinates. Preserve an exact valid
+	# coordinate instead of snapping it to the centre of a coarse combat cell.
 	if exact_position_is_valid and actor is Node2D:
 		(actor as Node2D).global_position = requested_position
-	if actor_id in ["service_guard", "training_marksman"] and actor is Node2D:
-		_restore_trace_positions[actor_id] = (actor as Node2D).global_position
-		_restore_drift_reported.erase(actor_id)
-		print("WORLD_RESTORE actor=%s requested=%s valid=%s result=%s" % [
-			actor_id,
-			str(requested_position),
-			str(exact_position_is_valid),
-			str((actor as Node2D).global_position)
-		])
+
+
+func _restore_doors(doors: Dictionary) -> void:
+	# The world snapshot is authoritative during scene restoration. Applying a
+	# door through its public gameplay setter would immediately request another
+	# autosave while the snapshot is still being restored and could reintroduce
+	# the previous scene state. Synchronize the registry without saving, then
+	# rebuild the physical and visual door state once.
+	for door: Node in get_tree().get_nodes_in_group("stealth_doors"):
+		if not is_instance_valid(door) or not door.has_method("get_door_id"):
+			continue
+		var door_id: String = str(door.call("get_door_id"))
+		var value: Variant = doors.get(door_id, {})
+		if not value is Dictionary:
+			continue
+		var desired_state: String = str((value as Dictionary).get("state", "closed"))
+		if desired_state not in ["open", "closed", "locked", "blocked", "broken"]:
+			desired_state = "closed"
+		door.set("_door_state", desired_state)
+		if is_instance_valid(_state) and _state.has_method("set_stealth_door_state"):
+			_state.call("set_stealth_door_state", door_id, desired_state, false)
+		if door.has_method("_apply_state"):
+			door.call("_apply_state", false)
 
 
 func _repair_invalid_actor_positions() -> void:
@@ -106,17 +86,9 @@ func _repair_invalid_actor_positions() -> void:
 		var actor_id: String = _actor_id(actor)
 		var previous: Vector2 = _last_valid_positions.get(actor_id, actor_node.global_position) as Vector2
 		if environment.is_position_blocked(actor_node.global_position, ObstacleAwareNpcNavigationSystem.ACTOR_RADIUS_PIXELS):
-			var before: Vector2 = actor_node.global_position
 			actor_node.global_position = (
 				previous
 				if not environment.is_position_blocked(previous, ObstacleAwareNpcNavigationSystem.ACTOR_RADIUS_PIXELS)
 				else _navigation.resolve_safe_position(actor_node, actor_node.global_position)
 			)
-			if actor_id in ["service_guard", "training_marksman"]:
-				print("WORLD_REPAIR actor=%s before=%s previous=%s result=%s" % [
-					actor_id,
-					str(before),
-					str(previous),
-					str(actor_node.global_position)
-				])
 		_last_valid_positions[actor_id] = actor_node.global_position
