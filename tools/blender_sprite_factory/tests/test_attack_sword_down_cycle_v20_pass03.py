@@ -47,6 +47,10 @@ class AttackSwordDownCycleV20Pass03Tests(unittest.TestCase):
         self.assertIn("ATTACK_SWORD_DOWN_CYCLE_V20_PASS03_ATTEMPT", self.adapter_source)
         self.assertIn("export_space_validated", self.adapter_source)
 
+    def test_projected_geometry_uses_tuple_coordinates(self) -> None:
+        self.assertIn("float(point[0])", self.adapter_source)
+        self.assertNotIn("float(point.x)", self.adapter_source)
+
     def test_candidate_order_prefers_minimal_inward_rotation(self) -> None:
         self.assertIn("ordered: list[float] = [0.0]", self.adapter_source)
         self.assertIn("ANGLE_SEARCH_STEP_DEGREES", self.adapter_source)
