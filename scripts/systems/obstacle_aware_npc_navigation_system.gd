@@ -77,12 +77,16 @@ func resolve_safe_position(actor: Node2D, requested_position: Vector2) -> Vector
 	var environment: CombatEnvironment = actor.get_tree().get_first_node_in_group("combat_environment") as CombatEnvironment
 	if grid == null or environment == null:
 		return requested_position
-	var safe_cell: Vector2i = nearest_safe_cell(
-		grid,
-		environment,
-		grid.world_to_cell(requested_position),
-		occupied_cells(actor, grid)
-	)
+	var occupied: Dictionary = occupied_cells(actor, grid)
+	var requested_cell: Vector2i = grid.world_to_cell(requested_position)
+	if (
+		grid.is_cell_valid(requested_cell)
+		and not occupied.has(requested_cell)
+		and not environment.is_cell_blocked(grid, requested_cell)
+		and not environment.is_position_blocked(requested_position, ACTOR_RADIUS_PIXELS)
+	):
+		return requested_position
+	var safe_cell: Vector2i = nearest_safe_cell(grid, environment, requested_cell, occupied)
 	return grid.cell_to_world_center(safe_cell) if grid.is_cell_valid(safe_cell) else actor.global_position
 
 
