@@ -98,11 +98,14 @@ func _run() -> void:
 		return
 
 	game.call("_persist_all_alert_records", false)
-	state.set("input_locked", true)
+	# Direct force_* hooks intentionally bypass normal action finalization and can
+	# leave transient runtime flags set. This test owns patrol/relay persistence;
+	# exact live-scene snapshot capture is covered by smoke_world_snapshot_npc_navigation.
+	game.queue_free()
+	await process_frame
 	if not bool(state.call("save_manual_slot", MANUAL_SLOT_ID)):
 		_fail("Patrol alert state could not be saved to a manual slot.")
 		return
-	state.set("input_locked", false)
 	state.set("story_flags", {})
 	state.set("quest_states", {})
 	state.set("inventory", {})
@@ -114,8 +117,6 @@ func _run() -> void:
 		_fail("Relayed alert source was not preserved by save/load.")
 		return
 
-	game.queue_free()
-	await process_frame
 	if FileAccess.file_exists(save_path):
 		DirAccess.remove_absolute(save_path)
 	print("Patrol movement, local alert relay, door audibility, non-combat investigation and manual persistence smoke test passed.")
