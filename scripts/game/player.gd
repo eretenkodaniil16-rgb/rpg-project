@@ -6,7 +6,10 @@ extends CharacterBody2D
 @onready var body_visual: Polygon2D = $Body
 @onready var name_label: Label = $NameLabel
 
+# Compatibility pointer for older systems. It always references the nearest
+# registered interaction target, while _interactables stores every active zone.
 var interactable: Node = null
+var _interactables: Dictionary = {}
 var _mobile_up: bool = false
 var _mobile_down: bool = false
 var _mobile_left: bool = false
@@ -44,8 +47,45 @@ func _unhandled_input(event: InputEvent) -> void:
 func request_interaction() -> void:
 	if GameState.input_locked:
 		return
-	if is_instance_valid(interactable) and interactable.has_method("interact"):
-		interactable.call("interact")
+	_refresh_primary_interactable()
+	_interact_with_target(interactable)
+
+
+func request_interaction_with_instance(instance_id: int) -> void:
+	if GameState.input_locked:
+		return
+	_prune_interactables()
+	var target_value: Variant = _interactables.get(instance_id, null)
+	var target: Node = target_value as Node if target_value is Node and is_instance_valid(target_value as Node) else null
+	_interact_with_target(target)
+
+
+func register_interactable(target: Node) -> void:
+	if target == null or not is_instance_valid(target):
+		return
+	_interactables[target.get_instance_id()] = target
+	_refresh_primary_interactable()
+
+
+func unregister_interactable(target: Node) -> void:
+	if target == null:
+		return
+	_interactables.erase(target.get_instance_id())
+	_refresh_primary_interactable()
+
+
+func get_nearby_interactables() -> Array[Node]:
+	_prune_interactables()
+	var result: Array[Node] = []
+	for value: Variant in _interactables.values():
+		if value is Node and is_instance_valid(value as Node):
+			result.append(value as Node)
+	result.sort_custom(_interaction_target_before)
+	return result
+
+
+func has_registered_interactable(target: Node) -> bool:
+	return target != null and is_instance_valid(target) and _interactables.has(target.get_instance_id())
 
 
 func set_mobile_direction(direction: StringName, is_pressed: bool) -> void:
@@ -73,12 +113,11 @@ func clear_mobile_input() -> void:
 
 
 func set_interactable(target: Node) -> void:
-	interactable = target
+	register_interactable(target)
 
 
 func clear_interactable(target: Node) -> void:
-	if interactable == target:
-		interactable = null
+	unregister_interactable(target)
 
 
 func play_attack_animation(target_global_position: Vector2) -> void:
@@ -108,6 +147,45 @@ func apply_character_appearance() -> void:
 		var shape: RectangleShape2D = (collision.shape as RectangleShape2D).duplicate() as RectangleShape2D
 		shape.size = Vector2(30.0, 30.0) if character.size_category == "small" else Vector2(38.0, 38.0)
 		collision.shape = shape
+
+
+func _interact_with_target(target: Node) -> void:
+	if not is_instance_valid(target):
+		return
+	if target.has_method("interact"):
+		target.call("interact")
+		return
+	if target.has_method("perform_world_interaction"):
+		target.call("perform_world_interaction")
+
+
+func _refresh_primary_interactable() -> void:
+	var nearby: Array[Node] = get_nearby_interactables()
+	interactable = nearby[0] if not nearby.is_empty() else null
+
+
+func _prune_interactables() -> void:
+	var stale_ids: Array[int] = []
+	for key: Variant in _interactables.keys():
+		var value: Variant = _interactables.get(key, null)
+		if not value is Node or not is_instance_valid(value as Node):
+			stale_ids.append(int(key))
+	for instance_id: int in stale_ids:
+		_interactables.erase(instance_id)
+
+
+func _interaction_target_before(first: Node, second: Node) -> bool:
+	var first_distance: float = _interaction_distance_squared(first)
+	var second_distance: float = _interaction_distance_squared(second)
+	if not is_equal_approx(first_distance, second_distance):
+		return first_distance < second_distance
+	return first.get_instance_id() < second.get_instance_id()
+
+
+func _interaction_distance_squared(target: Node) -> float:
+	if target is Node2D:
+		return global_position.distance_squared_to((target as Node2D).global_position)
+	return INF
 
 
 func _get_mobile_direction() -> Vector2:
