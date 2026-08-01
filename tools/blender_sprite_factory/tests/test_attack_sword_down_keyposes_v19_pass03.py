@@ -29,23 +29,22 @@ class AttackSwordDownKeyposesV19Pass03Tests(unittest.TestCase):
             / "blender_sprite_factory_attack_sword_down_keyposes_v19_pass03.py"
         ).read_text(encoding="utf-8")
 
-    def test_identity_and_follow_containment(self) -> None:
+    def test_identity_and_cross_body_follow(self) -> None:
         self.assertEqual(CORRECTION_PASS, "v19_pass03")
         self.assertEqual(
             ONEHAND_FOLLOW_CONTAINMENT_REVISION,
-            "inward_follow_clear_canvas_v19_pass03",
+            "cross_body_low_follow_v19_pass03",
         )
         onehand = self.profile.grips[0]
         follow = onehand.poses[3]
         previous_follow = self.previous.grips[0].poses[3]
-        self.assertEqual(follow.pelvis_x, 0.0)
-        self.assertEqual(follow.hand_right_z_degrees, 20.0)
-        self.assertEqual(follow.hand_right_x_degrees, -12.0)
-        self.assertLess(
-            abs(follow.hand_right_z_degrees),
-            abs(previous_follow.hand_right_z_degrees),
-        )
-        self.assertGreater(follow.upper_arm_right_x_degrees, previous_follow.upper_arm_right_x_degrees)
+        self.assertEqual(follow.pelvis_x, 0.02)
+        self.assertEqual(follow.chest_yaw_z_degrees, 20.0)
+        self.assertEqual(follow.hand_right_z_degrees, 28.0)
+        self.assertEqual(follow.hand_right_x_degrees, -16.0)
+        self.assertNotEqual(follow, previous_follow)
+        self.assertGreater(follow.chest_yaw_z_degrees, 0.0)
+        self.assertLess(follow.upper_arm_right_x_degrees, 0.0)
 
     def test_only_onehand_follow_changed_from_pass02(self) -> None:
         current_onehand = self.profile.grips[0]
@@ -62,7 +61,7 @@ class AttackSwordDownKeyposesV19Pass03Tests(unittest.TestCase):
         self.assertLess(anticipation.hand_right_z_degrees, contact.hand_right_z_degrees)
         self.assertLess(contact.hand_right_z_degrees, follow.hand_right_z_degrees)
         self.assertLess(contact.chest_yaw_z_degrees, 0.0)
-        self.assertLess(follow.chest_yaw_z_degrees, 0.0)
+        self.assertGreater(follow.chest_yaw_z_degrees, 0.0)
         self.assertLessEqual(abs(recovery.hand_right_z_degrees), 8.0)
 
     def test_adapter_delegates_to_pass02_and_preserves_twohand(self) -> None:
