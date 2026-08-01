@@ -4,6 +4,7 @@ const GAME_SCENE: String = "res://scenes/game/game.tscn"
 const MUG_ID: String = "guard_post_mug_01"
 const PICKUP_ACTION_ID: String = "pickup_throwable_prop__guard_post_mug_01"
 const WORLD_ACTION_PREFIX: String = "world_interact__"
+const AUTOSAVE_PATH: String = "user://save_slots/autosave.json"
 
 
 func _init() -> void:
@@ -15,7 +16,7 @@ func _run() -> void:
 	if state == null:
 		_fail("GameState autoload is missing.")
 		return
-	var save_path: String = ProjectSettings.globalize_path("user://savegame.json")
+	var save_path: String = ProjectSettings.globalize_path(AUTOSAVE_PATH)
 	if FileAccess.file_exists(save_path):
 		DirAccess.remove_absolute(save_path)
 	state.call("new_game")
@@ -34,16 +35,18 @@ func _run() -> void:
 	var player: Node2D = game.get_node_or_null("Player") as Node2D
 	var caretaker: Node2D = game.get_node_or_null("Caretaker") as Node2D
 	var room: Node = game.get_node_or_null("StealthTestRoom")
+	var controller: WorldStateNpcNavigationController = game.get_node_or_null("WorldStateNpcNavigationController") as WorldStateNpcNavigationController
 	var catalog: ActionCatalogUI = game.get_node_or_null("Interface/ActionCatalogUI") as ActionCatalogUI
 	var dialogue: Control = game.get_node_or_null("Interface/DialogueUI") as Control
 	var grid: BattleGrid = game.call("_get_battle_grid") as BattleGrid
 	var mug: ThrowableWorldProp = game.call("get_throwable_prop_node_for_testing", MUG_ID) as ThrowableWorldProp
 	var door: Node = room.call("get_test_door") if room != null and room.has_method("get_test_door") else null
-	if player == null or caretaker == null or room == null or catalog == null or dialogue == null or grid == null or mug == null or door == null:
+	if player == null or caretaker == null or room == null or controller == null or catalog == null or dialogue == null or grid == null or mug == null or door == null:
 		_fail("Overlapping interaction fixtures are incomplete.")
 		return
 
-	var door_edges: Array[Dictionary] = (get_first_node_in_group("combat_environment") as CombatEnvironment).get_edge_blocker_edges_for_testing("west_service_door_blocker")
+	var environment: CombatEnvironment = get_first_node_in_group("combat_environment") as CombatEnvironment
+	var door_edges: Array[Dictionary] = environment.get_edge_blocker_edges_for_testing("west_service_door_blocker")
 	if door_edges.is_empty():
 		_fail("West service door edge is missing.")
 		return
@@ -51,7 +54,13 @@ func _run() -> void:
 	var overlap_position: Vector2 = grid.cell_to_world_center(player_cell)
 	door.call("set_door_state", "closed", false)
 	player.global_position = overlap_position
-	caretaker.global_position = overlap_position + Vector2(20.0, -12.0)
+	# Keep the NPC on the same side of the closed doorway. The interaction areas
+	# still overlap, while the obstacle repair system is not asked to preserve an
+	# impossible actor position inside the door collision.
+	caretaker.global_position = controller.find_safe_world_position_for_testing(
+		caretaker,
+		overlap_position + Vector2(-70.0, 0.0)
+	)
 	mug.global_position = overlap_position + Vector2(-16.0, 14.0)
 	state.set("player_position", player.global_position)
 	for _frame: int in range(12):
