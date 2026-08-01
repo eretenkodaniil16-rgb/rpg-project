@@ -105,7 +105,7 @@ HUMAN_WARRIOR_M01_WALK_DIRECTIONAL_WEAPON_V15 = (
                 action_prefix="walk_twohand",
                 render_animation_prefix="walk_twohand",
                 free_arm_swing_scale=0.0,
-                weapon_arm_step_offsets_degrees=(0.0, -0.8, 0.4, 0.0, -0.8, 0.4),
+                weapon_arm_step_offsets_degrees=(0.0, -0.8, -0.2, 0.0, -0.8, -0.2),
             ),
         ),
         static_weapon_source_revision="directional_weapon_v12_artist_approved",
