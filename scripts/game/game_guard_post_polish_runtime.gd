@@ -25,7 +25,11 @@ func _process(delta: float) -> void:
 
 
 func _broadcast_actor_alert(actor: Node, record: Dictionary) -> void:
-	if _first_room_actor_should_remain_neutral(actor):
+	# The neutral caretaker does not raise a squad-wide hostile alert merely from
+	# seeing the hero. The service guard may still relay a confirmed local alert
+	# to the caretaker as an investigation; _begin_combat_from_alert keeps both
+	# actors non-hostile until explicit provocation.
+	if _actor_id(actor) == CARETAKER_ACTOR_ID and _first_room_actor_should_remain_neutral(actor):
 		return
 	super._broadcast_actor_alert(actor, record)
 
