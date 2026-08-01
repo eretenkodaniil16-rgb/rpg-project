@@ -21,9 +21,14 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	if not _turn_based_mode:
+	if _turn_based_mode:
+		_process_turn_based_movement(delta)
+	else:
 		_process_exploration_movement(delta)
-		return
+	_sample_visual_motion(delta)
+
+
+func _process_turn_based_movement(delta: float) -> void:
 	velocity = Vector2.ZERO
 	_grid_move_cooldown = maxf(_grid_move_cooldown - delta, 0.0)
 	if GameState.input_locked:
