@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/game/game_base.tscn" id="1_base"]
 [ext_resource type="Script" path="res://scripts/game/game_guard_post_polish_runtime.gd" id="2_feature"]
@@ -7,6 +7,7 @@
 [ext_resource type="Script" path="res://scripts/ui/mobile_controls_context_actions.gd" id="5_mobile_context"]
 [ext_resource type="Script" path="res://scripts/game/world_state_npc_navigation_controller.gd" id="6_world_controller"]
 [ext_resource type="Script" path="res://scripts/game/world_snapshot_readiness_guard.gd" id="7_snapshot_guard"]
+[ext_resource type="Script" path="res://scripts/game/world_alert_snapshot_synchronizer.gd" id="8_alert_sync"]
 
 [node name="Game" instance=ExtResource("1_base")]
 script = ExtResource("2_feature")
@@ -17,6 +18,9 @@ script = ExtResource("3_two_room")
 [node name="Caretaker" parent="." index="5"]
 position = Vector2(690, 360)
 script = ExtResource("4_context_npc")
+
+[node name="WorldAlertSnapshotSynchronizer" type="Node" parent="."]
+script = ExtResource("8_alert_sync")
 
 [node name="WorldStateNpcNavigationController" type="Node" parent="."]
 script = ExtResource("6_world_controller")
