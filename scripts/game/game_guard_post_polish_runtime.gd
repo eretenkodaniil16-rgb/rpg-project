@@ -28,6 +28,7 @@ func _process(delta: float) -> void:
 	# and clean the peaceful route before exploration detection receives a frame.
 	_settle_pending_peaceful_outcome()
 	super._process(delta)
+	_clear_concealed_manual_target()
 	_maintain_inner_watch_ai(delta)
 
 
@@ -53,21 +54,6 @@ func _any_overlay_visible() -> bool:
 
 func _target_is_valid(target: Node) -> bool:
 	return super._target_is_valid(target) and _target_is_visible_to_player(target)
-
-
-func _select_nearest_target() -> void:
-	var targets: Array[Node] = _visible_active_targets()
-	if targets.is_empty():
-		_set_selected_target(null)
-		return
-	var nearest: Node = targets[0]
-	var nearest_distance: float = player.global_position.distance_squared_to((nearest as Node2D).global_position)
-	for target: Node in targets:
-		var candidate_distance: float = player.global_position.distance_squared_to((target as Node2D).global_position)
-		if candidate_distance < nearest_distance:
-			nearest = target
-			nearest_distance = candidate_distance
-	_set_selected_target(nearest)
 
 
 func _cycle_target() -> void:
@@ -356,3 +342,8 @@ func _target_is_visible_to_player(target: Node) -> bool:
 	if visibility == null or not visibility.has_method("is_world_position_visible"):
 		return true
 	return bool(visibility.call("is_world_position_visible", (target as Node2D).global_position))
+
+
+func _clear_concealed_manual_target() -> void:
+	if is_instance_valid(_selected_target) and not _target_is_visible_to_player(_selected_target):
+		_set_selected_target(null)
