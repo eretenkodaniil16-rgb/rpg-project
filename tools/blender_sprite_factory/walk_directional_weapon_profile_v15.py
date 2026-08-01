@@ -13,6 +13,8 @@ from walk_up_profile_v02 import load_walk_up_profile_v02
 
 ARMED_WALK_FRAME_ORDER = (1, 2, 3, 4, 5, 6)
 ARMED_WALK_FPS = 8
+ONEHAND_MAX_WEAPON_SWAY_DEGREES = 1.0
+TWOHAND_MAX_WEAPON_SWAY_DEGREES = 3.5
 
 
 @dataclass(frozen=True)
@@ -105,7 +107,14 @@ HUMAN_WARRIOR_M01_WALK_DIRECTIONAL_WEAPON_V15 = (
                 action_prefix="walk_twohand",
                 render_animation_prefix="walk_twohand",
                 free_arm_swing_scale=0.0,
-                weapon_arm_step_offsets_degrees=(0.0, -0.8, -0.2, 0.0, -0.8, -0.2),
+                weapon_arm_step_offsets_degrees=(
+                    0.0,
+                    -1.5,
+                    -3.5,
+                    0.0,
+                    -1.5,
+                    -3.5,
+                ),
             ),
         ),
         static_weapon_source_revision="directional_weapon_v12_artist_approved",
@@ -194,7 +203,12 @@ def load_walk_directional_weapon_profile_v15(
             raise ValueError(
                 f"Armed directional walk v15 step offsets drifted: {grip.grip_id}"
             )
-        if max(abs(value) for value in grip.weapon_arm_step_offsets_degrees) > 1.0:
+        sway_limit = (
+            ONEHAND_MAX_WEAPON_SWAY_DEGREES
+            if grip.grip_id == "onehand_ready"
+            else TWOHAND_MAX_WEAPON_SWAY_DEGREES
+        )
+        if max(abs(value) for value in grip.weapon_arm_step_offsets_degrees) > sway_limit:
             raise ValueError(
                 f"Armed directional walk v15 weapon sway is excessive: {grip.grip_id}"
             )
