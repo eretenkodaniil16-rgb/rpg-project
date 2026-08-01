@@ -15,11 +15,15 @@ func new_game() -> void:
 
 
 func save_game() -> bool:
+	if not _world_snapshot_is_stable():
+		return false
 	_capture_world_snapshot_from_scene()
 	return super.save_game()
 
 
 func save_manual_slot(slot_id: int) -> bool:
+	if not _world_snapshot_is_stable():
+		return false
 	_capture_world_snapshot_from_scene()
 	return super.save_manual_slot(slot_id)
 
@@ -69,6 +73,17 @@ func _apply_save_data(original_data: Dictionary) -> bool:
 		return false
 	world_snapshot = loaded_snapshot
 	world_snapshot_changed.emit()
+	return true
+
+
+func _world_snapshot_is_stable() -> bool:
+	if not is_inside_tree():
+		return true
+	for serializer: Node in get_tree().get_nodes_in_group("world_state_serializers"):
+		if not is_instance_valid(serializer):
+			continue
+		if serializer.has_method("can_capture_stable_world_state") and not bool(serializer.call("can_capture_stable_world_state")):
+			return false
 	return true
 
 
