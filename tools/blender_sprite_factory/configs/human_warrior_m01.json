@@ -1,0 +1,172 @@
+{
+  "schema_version": 1,
+  "character_id": "human_warrior_m01",
+  "stage": "proxy_pilot",
+  "shared_sprite_manifest": "tools/sprite_pipeline/configs/human_warrior_m01.json",
+  "target_blender": {
+    "recommended_lts": "5.2",
+    "minimum_supported": "4.5"
+  },
+  "paths": {
+    "master_reference": "art/reference_packs/human_warrior_m01/approved/human_warrior_m01_master.png",
+    "idle_reference_root": "assets/characters/human/warrior_m01/gameplay/frames",
+    "texture_root": "art/blender_sources/human_warrior_m01/textures/pilot_v01",
+    "run_root": "art/blender_pipeline_runs/human_warrior_m01"
+  },
+  "camera": {
+    "projection": "ORTHOGRAPHIC",
+    "elevation_degrees": 47.0,
+    "horizontal_distance_units": 12.0,
+    "target_height_units": 2.55,
+    "orthographic_scale": 6.6,
+    "raw_render_scale": 2,
+    "transparent_background": true
+  },
+  "directions": {
+    "down": 0.0,
+    "left": -90.0,
+    "right": 90.0,
+    "up": 180.0
+  },
+  "rig": {
+    "required_bones": [
+      "root",
+      "pelvis",
+      "spine",
+      "chest",
+      "neck",
+      "head",
+      "upper_arm.L",
+      "forearm.L",
+      "hand.L",
+      "upper_arm.R",
+      "forearm.R",
+      "hand.R",
+      "thigh.L",
+      "shin.L",
+      "foot.L",
+      "thigh.R",
+      "shin.R",
+      "foot.R",
+      "cloth.L",
+      "cloth.C",
+      "cloth.R"
+    ]
+  },
+  "modules": {
+    "required": [
+      "body_base",
+      "head",
+      "hair",
+      "scarf",
+      "chainmail",
+      "torso_armor",
+      "pauldron_left_large",
+      "pauldron_right_small",
+      "arms",
+      "legs",
+      "boots",
+      "back_cloth",
+      "sword_scabbard",
+      "pouch"
+    ],
+    "physical_sides": {
+      "large_silver_pauldron": "left",
+      "small_dark_pauldron": "right",
+      "sword_scabbard": "left",
+      "pouch": "right"
+    }
+  },
+  "animations": {
+    "idle": {
+      "frames": [
+        1
+      ],
+      "fps": 1
+    },
+    "walk_down": {
+      "frames": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "fps": 8
+    }
+  },
+  "materials": {
+    "status": "pilot_derived_from_approved_master_not_final",
+    "slots": {
+      "skin": {
+        "base_color": "#D2BABB",
+        "texture": "skin.png",
+        "roughness": 0.82
+      },
+      "hair": {
+        "base_color": "#26180B",
+        "texture": "hair.png",
+        "roughness": 0.9
+      },
+      "scarf": {
+        "base_color": "#520B11",
+        "texture": "scarf.png",
+        "roughness": 0.92
+      },
+      "leather_dark": {
+        "base_color": "#26180B",
+        "texture": "leather_dark.png",
+        "roughness": 0.86
+      },
+      "leather_mid": {
+        "base_color": "#582A15",
+        "texture": "leather_mid.png",
+        "roughness": 0.84
+      },
+      "chainmail": {
+        "base_color": "#49443B",
+        "texture": "chainmail.png",
+        "roughness": 0.66
+      },
+      "silver": {
+        "base_color": "#84796C",
+        "texture": "silver.png",
+        "roughness": 0.42
+      },
+      "dark_steel": {
+        "base_color": "#2A2924",
+        "texture": "dark_steel.png",
+        "roughness": 0.58
+      },
+      "boots": {
+        "base_color": "#3C2411",
+        "texture": "boots.png",
+        "roughness": 0.88
+      }
+    },
+    "quantization_palette": [
+      "#000000",
+      "#060102",
+      "#0B0602",
+      "#180502",
+      "#190E04",
+      "#1A120A",
+      "#26180B",
+      "#270A05",
+      "#2A2924",
+      "#291E12",
+      "#3C2411",
+      "#49443B",
+      "#520B11",
+      "#582A15",
+      "#624B38",
+      "#7C4924",
+      "#84796C",
+      "#978687",
+      "#B09B9D",
+      "#D2BABB",
+      "#DDC9C6"
+    ]
+  }
+}

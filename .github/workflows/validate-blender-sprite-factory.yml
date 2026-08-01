@@ -1,0 +1,179 @@
+name: Validate Blender sprite factory
+
+on:
+  pull_request:
+    paths:
+      - "tools/blender_sprite_factory/**"
+      - "art/blender_sources/**"
+      - "art/reference_packs/human_warrior_m01/**"
+      - "assets/characters/human/warrior_m01/gameplay/frames/**"
+      - "02_RUN_BLENDER_SPRITE_PILOT.cmd"
+      - ".github/workflows/validate-blender-sprite-factory.yml"
+      - ".gitignore"
+  push:
+    branches:
+      - main
+    paths:
+      - "tools/blender_sprite_factory/**"
+      - "art/blender_sources/**"
+      - "art/reference_packs/human_warrior_m01/**"
+      - "assets/characters/human/warrior_m01/gameplay/frames/**"
+      - "02_RUN_BLENDER_SPRITE_PILOT.cmd"
+      - ".github/workflows/validate-blender-sprite-factory.yml"
+      - ".gitignore"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: blender-sprite-factory-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: tools/sprite_pipeline/requirements.txt
+
+      - name: Install Pillow
+        run: python -m pip install --disable-pip-version-check "Pillow>=11.1.0,<13.0.0"
+
+      - name: Compile factory sources
+        run: python -m compileall -q tools/blender_sprite_factory
+
+      - name: Run unit tests
+        env:
+          PYTHONPATH: tools/blender_sprite_factory
+        shell: bash
+        run: |
+          set -o pipefail
+          if ! python -m unittest discover -s tools/blender_sprite_factory/tests -p "test_*.py" -v > unit_tests.log 2>&1; then
+            tail -n 120 unit_tests.log
+            exit 1
+          fi
+          tail -n 30 unit_tests.log
+
+      - name: Upload unit test diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: blender_factory_unit_tests_${{ github.run_id }}_${{ github.run_attempt }}
+          path: unit_tests.log
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Validate shared contract and references
+        env:
+          PYTHONPATH: tools/blender_sprite_factory
+        run: python tools/blender_sprite_factory/validate_factory.py
+
+      - name: Verify deterministic pilot textures
+        env:
+          PYTHONPATH: tools/blender_sprite_factory
+        run: |
+          python tools/blender_sprite_factory/generate_pilot_textures.py
+          git diff --exit-code -- art/blender_sources/human_warrior_m01/textures/pilot_v01
+
+      - name: Document render boundary
+        run: |
+          echo "Contract, scripts and textures are validated here."
+          echo "A real Blender 5.2 LTS render is required before any frame can be approved."
+
+  # Historical stages retained in source history:
+  # render-walk-down-v04
+  # render-walk-left-v01
+  # render-walk-right-v01
+  # render-walk-up-v01 (rejected rear passing silhouette)
+  # render-walk-up-v02
+  # render-combat-idle-down-v01 (technical baseline)
+  # render-combat-idle-down-variants-v02 (rejected: insufficient lateral stance)
+  # render-combat-idle-down-variants-v03 (rejected: guard converged toward torso center)
+  # render-combat-idle-down-variants-v04 (wide-side stance without weapon-family split)
+  # render-combat-idle-down-weapon-variants-v05 (rejected: two-hand blade crossed face)
+  # historical adapter: blender_sprite_factory_combat_idle_down_weapon_variants_v05.py
+  # render-combat-idle-down-weapon-variants-v06 (two-hand retained; one-hand trajectory superseded)
+  # render-combat-idle-down-weapon-variants-v07 (rejected: one-hand blade over-occluded behind torso)
+  # render-combat-idle-down-weapon-variants-v08 (rejected: one-hand blade projected across lower torso)
+  # render-combat-idle-down-weapon-variants-v09 (selected static source stances)
+  # render-combat-idle-down-cycles-v10 (artist-approved one-hand and two-hand down cycles)
+  # render-combat-idle-directional-v11 (rejected: raw rotation caused one-hand occlusion and boundary touches)
+  # render-combat-idle-directional-weapon-v12 (artist-approved directional static source)
+  # render-combat-idle-directional-weapon-v13 (rejected: left frame touched canvas boundary)
+  # render-combat-idle-directional-cycles-v14 (artist-approved four-direction combat idle cycles)
+  # render-walk-directional-weapon-v15 (48-frame animation source; two-hand right tip exceeded canvas)
+  # historical adapters remain reproducible as separate files
+  render-walk-directional-weapon-v16:
+    if: github.event_name == 'pull_request' && github.head_ref == 'tools/blender-sprite-pilot'
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install headless render dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xvfb libgl1 libxi6 libxrender1 libxkbcommon-x11-0
+
+      - name: Download and verify Blender 5.2.0 LTS
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/blender-5.2.0-linux-x64.tar.xz"
+          extract="$RUNNER_TEMP/blender-5.2.0"
+          curl -L --fail --retry 3 --output "$archive" \
+            "https://download.blender.org/release/Blender5.2/blender-5.2.0-linux-x64.tar.xz"
+          actual="$(sha256sum "$archive" | cut -d' ' -f1)"
+          expected="96f6c181a30f4950607839dc84d42a354b250d8a0231b098b59b7bc69c351c48"
+          test "$actual" = "$expected"
+          mkdir -p "$extract"
+          tar -xJf "$archive" -C "$extract"
+          blender="$(find "$extract" -type f -name blender -perm -111 | head -n 1)"
+          test -n "$blender"
+          echo "BLENDER_EXE=$blender" >> "$GITHUB_ENV"
+
+      - name: Run complete Blender 5.2 armed walk render v16
+        id: blender-pilot
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          run_id="${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}"
+          xvfb-run -a "$BLENDER_EXE" \
+            --background \
+            --factory-startup \
+            --python-exit-code 1 \
+            --python tools/blender_sprite_factory/blender_sprite_factory_walk_directional_weapon_render_v16.py \
+            -- \
+            --repo-root "$GITHUB_WORKSPACE" \
+            --config tools/blender_sprite_factory/configs/human_warrior_m01.json \
+            --run-id "$run_id" \
+            --mode all 2>&1 | tee blender_pilot.log
+
+      - name: Upload complete 48-frame armed walk render v16
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: human_warrior_m01_proxy_v25_appearance_v03_walk_down_v04_walk_left_v01_walk_right_v01_walk_up_v02_walk_directional_weapon_render_v16_${{ github.run_id }}_${{ github.run_attempt }}
+          path: |
+            art/blender_pipeline_runs/human_warrior_m01/**
+            blender_pilot.log
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Require successful Blender pilot
+        if: steps.blender-pilot.outcome != 'success'
+        run: |
+          echo "Blender sprite pilot failed; inspect blender_pilot.log in the uploaded artifact."
+          exit 1
