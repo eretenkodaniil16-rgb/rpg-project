@@ -66,10 +66,10 @@ class WalkDirectionalWeaponV15Tests(unittest.TestCase):
         twohand = self.profile.grips[1]
         self.assertEqual(
             twohand.weapon_arm_step_offsets_degrees,
-            (0.0, -0.8, -0.2, 0.0, -0.8, -0.2),
+            (0.0, -1.5, -3.5, 0.0, -1.5, -3.5),
         )
-        self.assertLessEqual(twohand.weapon_arm_step_offsets_degrees[2], 0.0)
-        self.assertLessEqual(twohand.weapon_arm_step_offsets_degrees[5], 0.0)
+        self.assertLess(twohand.weapon_arm_step_offsets_degrees[2], -3.0)
+        self.assertLess(twohand.weapon_arm_step_offsets_degrees[5], -3.0)
 
     def test_builder_creates_eight_real_actions_without_new_geometry(self) -> None:
         ast.parse(self.builder_source)
