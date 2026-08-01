@@ -62,6 +62,15 @@ class WalkDirectionalWeaponV15Tests(unittest.TestCase):
             ("onehand_ready", "twohand_center_high"),
         )
 
+    def test_twohand_passing_guard_is_lowered_after_boundary_failure(self) -> None:
+        twohand = self.profile.grips[1]
+        self.assertEqual(
+            twohand.weapon_arm_step_offsets_degrees,
+            (0.0, -0.8, -0.2, 0.0, -0.8, -0.2),
+        )
+        self.assertLessEqual(twohand.weapon_arm_step_offsets_degrees[2], 0.0)
+        self.assertLessEqual(twohand.weapon_arm_step_offsets_degrees[5], 0.0)
+
     def test_builder_creates_eight_real_actions_without_new_geometry(self) -> None:
         ast.parse(self.builder_source)
         self.assertIn(
@@ -99,6 +108,26 @@ class WalkDirectionalWeaponV15Tests(unittest.TestCase):
         self.assertIn("weapon_adapter._set_v12_weapon", self.adapter_source)
         self.assertNotIn("scale.x = -1", self.adapter_source)
         self.assertNotIn("scale[0] = -1", self.adapter_source)
+
+    def test_adapter_renders_only_v15_frames_after_direction_calibration(self) -> None:
+        self.assertIn("raw_dir.mkdir()", self.adapter_source)
+        self.assertIn("frame_dir.mkdir()", self.adapter_source)
+        self.assertIn(
+            "directional_adapter._direction_calibrations(context, run_dir)",
+            self.adapter_source,
+        )
+        self.assertIn(
+            '"historical_frames_replayed": False',
+            self.adapter_source,
+        )
+        self.assertIn(
+            '"render_scope": "v15_frames_only_with_four_direction_calibration"',
+            self.adapter_source,
+        )
+        self.assertNotIn(
+            "previous_adapter.render_combat_idle_directional_cycles_v14",
+            self.adapter_source,
+        )
 
     def test_active_launcher_and_workflow_use_v15(self) -> None:
         launcher = (self.tool_root / "run_blender_sprite_pilot.ps1").read_text(
