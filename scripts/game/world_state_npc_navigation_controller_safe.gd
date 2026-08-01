@@ -2,6 +2,28 @@ class_name SafeWorldStateNpcNavigationController
 extends WorldStateNpcNavigationController
 
 
+func get_visibility_render_order_for_testing() -> Dictionary:
+	var fog: CanvasItem = get_tree().get_first_node_in_group("player_visibility") as CanvasItem
+	var wall_visual: Polygon2D = null
+	var room: Node = _game.get_node_or_null("StealthTestRoom") if is_instance_valid(_game) else null
+	if room != null:
+		var wall: Node = room.get_node_or_null("WestPartitionTop")
+		if wall != null:
+			for child: Node in wall.get_children():
+				if child is Polygon2D:
+					wall_visual = child as Polygon2D
+					break
+	var door_visual: Polygon2D = null
+	var doors: Array[Node] = get_tree().get_nodes_in_group("stealth_doors")
+	if not doors.is_empty() and is_instance_valid(doors[0]):
+		door_visual = doors[0].get_node_or_null("Visual") as Polygon2D
+	return {
+		"fog_z": fog.z_index if fog != null else -1,
+		"wall_z": wall_visual.z_index if wall_visual != null else -1,
+		"door_z": door_visual.z_index if door_visual != null else -1
+	}
+
+
 func _repair_invalid_actor_positions() -> void:
 	if _navigation == null:
 		return
