@@ -23,7 +23,8 @@ $RepoRoot = (Resolve-Path (Join-Path $ToolRoot "..\..")).Path
 # Rejected raw directional rotation: blender_sprite_factory_combat_idle_directional_v11.py
 # Artist-approved directional source: blender_sprite_factory_combat_idle_directional_weapon_v12.py
 # Rejected boundary-touch experiment: blender_sprite_factory_combat_idle_directional_weapon_v13.py
-$FactoryScript = Join-Path $ToolRoot "blender_sprite_factory_combat_idle_directional_cycles_v14.py"
+# Artist-approved directional combat idle cycles: blender_sprite_factory_combat_idle_directional_cycles_v14.py
+$FactoryScript = Join-Path $ToolRoot "blender_sprite_factory_walk_directional_weapon_v15.py"
 $FactoryConfig = Join-Path $ToolRoot "configs\human_warrior_m01.json"
 
 function Resolve-BlenderExecutable {
@@ -103,4 +104,4 @@ if ($LASTEXITCODE -ne 0) {
 $ResultRoot = Join-Path $RepoRoot "art\blender_pipeline_runs\human_warrior_m01\$RunId"
 Write-Host ""
 Write-Host "Completed: $ResultRoot"
-Write-Host "Review combat_idle_directional_cycles_v14.png and the generated .blend file in source."
+Write-Host "Review walk_directional_weapon_v15.png and the generated .blend file in source."
