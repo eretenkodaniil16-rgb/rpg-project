@@ -21,9 +21,6 @@ from attack_sword_down_cycle_correction_v20_pass05 import (
     TARGET_ANIMATION_ID,
     TARGET_FRAME,
 )
-from combat_idle_down_weapon_variants_builder_v09 import (
-    ONE_HAND_READY_V09_OBJECT_NAMES,
-)
 
 
 class AttackSwordDownCycleV20Pass05Tests(unittest.TestCase):
@@ -33,6 +30,9 @@ class AttackSwordDownCycleV20Pass05Tests(unittest.TestCase):
         cls.adapter_source = (
             cls.tool_root
             / "blender_sprite_factory_attack_sword_down_cycle_v20_pass05.py"
+        ).read_text(encoding="utf-8")
+        cls.weapon_builder_source = (
+            cls.tool_root / "combat_idle_down_weapon_variants_builder_v09.py"
         ).read_text(encoding="utf-8")
 
     def test_identity_and_active_weapon_contract(self) -> None:
@@ -48,8 +48,8 @@ class AttackSwordDownCycleV20Pass05Tests(unittest.TestCase):
         self.assertEqual(MISIDENTIFIED_WEAPON_SOURCE_REVISION, "v06")
         self.assertEqual(ACTIVE_BLADE_OBJECT_NAME, "combat_onehand_ready_v09_blade")
         self.assertEqual(ACTIVE_GRIP_OBJECT_NAME, "combat_onehand_ready_v09_grip")
-        self.assertIn(ACTIVE_BLADE_OBJECT_NAME, ONE_HAND_READY_V09_OBJECT_NAMES)
-        self.assertIn(ACTIVE_GRIP_OBJECT_NAME, ONE_HAND_READY_V09_OBJECT_NAMES)
+        self.assertIn(f'"{ACTIVE_BLADE_OBJECT_NAME}"', self.weapon_builder_source)
+        self.assertIn(f'"{ACTIVE_GRIP_OBJECT_NAME}"', self.weapon_builder_source)
 
     def test_search_and_safety_contract(self) -> None:
         self.assertEqual(ANGLE_SEARCH_LIMIT_DEGREES, 40)
@@ -62,6 +62,7 @@ class AttackSwordDownCycleV20Pass05Tests(unittest.TestCase):
 
     def test_adapter_targets_visible_v09_objects_only(self) -> None:
         ast.parse(self.adapter_source)
+        ast.parse(self.weapon_builder_source)
         self.assertIn("ONE_HAND_READY_V09_OBJECT_NAMES", self.adapter_source)
         self.assertIn("ACTIVE_BLADE_OBJECT_NAME", self.adapter_source)
         self.assertIn("ACTIVE_GRIP_OBJECT_NAME", self.adapter_source)
