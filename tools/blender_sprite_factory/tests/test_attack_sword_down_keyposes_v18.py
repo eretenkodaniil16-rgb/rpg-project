@@ -70,7 +70,7 @@ class AttackSwordDownKeyposesV18Tests(unittest.TestCase):
         )
         self.assertGreaterEqual(anticipation.hand_left_x_degrees, -12.0)
 
-    def test_v18_adapter_patches_only_profile_and_manifest(self) -> None:
+    def test_v18_adapter_patches_profile_boundary_and_manifest(self) -> None:
         ast.parse(self.adapter_source)
         self.assertIn(
             "action_builder.load_attack_sword_down_keyposes_profile_v17",
@@ -82,6 +82,22 @@ class AttackSwordDownKeyposesV18Tests(unittest.TestCase):
         )
         self.assertIn(
             "BASE_WRITE_MANIFEST_V17 = previous_adapter._write_manifest_v17",
+            self.adapter_source,
+        )
+        self.assertIn(
+            "BASE_ASSERT_BOUNDARY_V17 = previous_adapter._assert_boundary_contract",
+            self.adapter_source,
+        )
+        self.assertIn(
+            "artifact.frame_number not in (1, 5)",
+            self.adapter_source,
+        )
+        self.assertIn(
+            "previous_adapter._assert_boundary_contract = _assert_boundary_v18",
+            self.adapter_source,
+        )
+        self.assertIn(
+            "MAX_APPROVED_GUARD_EDGE_PIXELS = 12",
             self.adapter_source,
         )
         self.assertIn(
