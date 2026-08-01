@@ -111,8 +111,12 @@ func _move_along_exploration_click_path(delta: float) -> void:
 		_click_path_blocked_frames = 0
 
 
-func set_exploration_click_path(world_points: Array[Vector2]) -> void:
-	_exploration_click_path = world_points.duplicate()
+func set_exploration_click_path(world_points: Array) -> void:
+	var normalized_path: Array[Vector2] = []
+	for value: Variant in world_points:
+		if value is Vector2:
+			normalized_path.append(value as Vector2)
+	_exploration_click_path = normalized_path
 	_exploration_click_path_index = 0
 	_click_path_blocked_frames = 0
 	while _exploration_click_path_index < _exploration_click_path.size() and global_position.distance_to(_exploration_click_path[_exploration_click_path_index]) <= CLICK_PATH_REACHED_DISTANCE_PIXELS:
