@@ -13,7 +13,6 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 import blender_sprite_factory as factory
-import blender_sprite_factory_combat_idle_directional_cycles_v14 as previous_adapter
 import blender_sprite_factory_combat_idle_directional_v11 as directional_adapter
 import blender_sprite_factory_combat_idle_directional_weapon_v12 as weapon_adapter
 import blender_sprite_factory_combat_idle_down_v01 as base_adapter
@@ -22,15 +21,11 @@ from walk_directional_weapon_builder_v15 import (
     create_walk_directional_weapon_actions_v15,
 )
 from walk_directional_weapon_profile_v15 import (
-    ArmedWalkDirectionV15,
     ArmedWalkGripV15,
     load_walk_directional_weapon_profile_v15,
 )
 
 
-BASE_RENDER = previous_adapter.render_combat_idle_directional_cycles_v14
-BASE_CONTACT_SHEET = previous_adapter._write_contact_sheet_v14
-BASE_WRITE_MANIFEST = previous_adapter._write_manifest_v14
 PROFILE_PATH = SCRIPT_DIR / "walk_directional_weapon_profile_v15.py"
 BUILDER_PATH = SCRIPT_DIR / "walk_directional_weapon_builder_v15.py"
 COMPARISON_SHEET_NAME = "walk_directional_weapon_v15.png"
@@ -182,15 +177,19 @@ def render_walk_directional_weapon_v15(
     context: factory.BuildContext,
     run_dir: Path,
 ) -> list[factory.FrameArtifact]:
-    artifacts = BASE_RENDER(context, run_dir)
     config = context.config
     revision = context.proxy_revision
     profile = load_walk_directional_weapon_profile_v15(config.character_id)
-    calibrations = directional_adapter._direction_calibrations(context, run_dir)
-    down_scale = calibrations["down"].scale
     raw_dir = run_dir / "raw"
     frame_dir = run_dir / "frames"
+    raw_dir.mkdir()
+    frame_dir.mkdir()
+    artifacts: list[factory.FrameArtifact] = []
     idle_action = factory.bpy.data.actions[f"{config.character_id}_idle"]
+
+    weapon_adapter._set_v12_weapon(None, None)
+    calibrations = directional_adapter._direction_calibrations(context, run_dir)
+    down_scale = calibrations["down"].scale
 
     try:
         for grip in profile.grips:
@@ -351,12 +350,10 @@ def _write_contact_sheet_v15(
     artifacts: list[factory.FrameArtifact],
     output_path: Path,
 ) -> Path:
-    result = BASE_CONTACT_SHEET(config, artifacts, output_path)
-    _write_walk_sheet(
-        config,
-        artifacts,
-        output_path.parent / COMPARISON_SHEET_NAME,
-    )
+    result = _write_walk_sheet(config, artifacts, output_path)
+    comparison_path = output_path.parent / COMPARISON_SHEET_NAME
+    if comparison_path != output_path:
+        _write_walk_sheet(config, artifacts, comparison_path)
     return result
 
 
@@ -368,7 +365,7 @@ def _write_manifest_v15(
     artifacts: list[factory.FrameArtifact],
     contact_sheet: Path | None,
 ) -> Path:
-    manifest_path = BASE_WRITE_MANIFEST(
+    manifest_path = factory._write_run_manifest(
         context,
         run_dir,
         run_id,
@@ -425,6 +422,18 @@ def _write_manifest_v15(
             }
         )
 
+    row_names = [
+        f"{grip.grip_id}_{direction.direction}"
+        for grip in profile.grips
+        for direction in profile.directions
+    ]
+    payload["contact_sheet_review"] = {
+        "background_color": CONTACT_SHEET_BACKGROUND_HEX,
+        "rows_top_to_bottom": row_names,
+        "columns_left_to_right": [
+            f"f{frame:02d}" for frame in profile.frame_order
+        ],
+    }
     payload["walk_directional_weapon_v15"] = {
         "profile_revision": profile.revision,
         "animation_revision": profile.animation_revision,
@@ -435,13 +444,11 @@ def _write_manifest_v15(
         "adapter_path": context.config.relative_to_repo(SCRIPT_PATH),
         "adapter_sha256": hashlib.sha256(SCRIPT_PATH.read_bytes()).hexdigest(),
         "comparison_sheet": context.config.relative_to_repo(comparison_path),
+        "render_scope": "v15_frames_only_with_four_direction_calibration",
+        "historical_frames_replayed": False,
         "sheet_layout": {
             "columns": [f"f{frame:02d}" for frame in profile.frame_order],
-            "rows": [
-                f"{grip.grip_id}_{direction.direction}"
-                for grip in profile.grips
-                for direction in profile.directions
-            ],
+            "rows": row_names,
         },
         "total_rendered_frames": 48,
         "static_weapon_source_revision": profile.static_weapon_source_revision,
