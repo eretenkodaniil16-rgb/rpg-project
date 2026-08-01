@@ -12,5 +12,8 @@ func _ready() -> void:
 func prepare_world_state_for_save() -> void:
 	if not is_instance_valid(_game):
 		_game = get_parent()
+	var player: Node2D = get_tree().get_first_node_in_group("player") as Node2D
+	if player != null:
+		GameState.set("player_position", player.global_position)
 	if is_instance_valid(_game) and _game.has_method("_persist_all_alert_records"):
 		_game.call("_persist_all_alert_records", false)
