@@ -26,11 +26,12 @@ func _run() -> void:
 		await process_frame
 
 	var player: Node2D = game.get_node_or_null("Player") as Node2D
+	var caretaker: Node = game.get_node_or_null("Caretaker")
 	var room: GuardPostTwoRoomVisibility = game.get_node_or_null("StealthTestRoom") as GuardPostTwoRoomVisibility
 	var fog: RoomFogOverlay = room.get_room_fog_for_testing() if room != null else null
 	var inner_gate: StealthDoor = room.get_inner_gate() if room != null else null
 	var pause_menu: GamePauseSaveMenu = game.call("get_pause_save_menu_for_testing") as GamePauseSaveMenu
-	if player == null or room == null or fog == null or inner_gate == null or pause_menu == null:
+	if player == null or caretaker == null or room == null or fog == null or inner_gate == null or pause_menu == null:
 		_fail("Visibility or save-menu runtime fixtures are incomplete.")
 		return
 
@@ -38,6 +39,9 @@ func _run() -> void:
 	await process_frame
 	if not pause_menu.is_menu_open() or not bool(state.get("input_locked")):
 		_fail("Menu button did not open the in-game pause/save panel.")
+		return
+	if not pause_menu.is_save_available_for_testing() or not pause_menu.is_main_menu_available_for_testing():
+		_fail("Exploration menu incorrectly disabled stable save actions.")
 		return
 	pause_menu.close_menu()
 	await process_frame
@@ -85,6 +89,29 @@ func _run() -> void:
 	if restored_character.current_health != 29 or (state.get("player_position") as Vector2) != observer_position:
 		_fail("Death rollback contract restored autosave data instead of the manual checkpoint.")
 		return
+
+	game.call("_start_turn_based_combat", caretaker)
+	game.call("force_player_turn_for_testing")
+	await process_frame
+	game.call("return_to_menu")
+	await process_frame
+	if not pause_menu.is_menu_open():
+		_fail("Pause menu was not available during active combat.")
+		return
+	if pause_menu.is_save_available_for_testing() or pause_menu.is_main_menu_available_for_testing():
+		_fail("Pause menu allowed an incomplete checkpoint or menu exit during active initiative.")
+		return
+	if "боя" not in pause_menu.get_save_status_for_testing():
+		_fail("Combat save restriction did not explain why the checkpoint is unavailable.")
+		return
+	pause_menu.close_menu()
+	var turn_system: TurnBasedCombatSystem = game.get("_turn_system") as TurnBasedCombatSystem
+	if turn_system != null:
+		turn_system.stop_combat()
+	if player.has_method("set_turn_based_mode"):
+		player.call("set_turn_based_mode", false)
+	await process_frame
+
 	restored_character.current_health = 0
 	if bool(state.call("save_game")):
 		_fail("Autosave accepted an invalid zero-HP death state.")
@@ -93,7 +120,7 @@ func _run() -> void:
 	game.queue_free()
 	await process_frame
 	_cleanup_saves(state)
-	print("Obstacle-aware visibility, pause save menu and manual death rollback passed.")
+	print("Obstacle-aware visibility, stable pause saves, combat restriction and manual death rollback passed.")
 	quit(0)
 
 
