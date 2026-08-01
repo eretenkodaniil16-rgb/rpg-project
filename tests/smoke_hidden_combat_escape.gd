@@ -40,6 +40,7 @@ func _run() -> void:
 	if str(game.get_script().resource_path) != RUNTIME_PATH:
 		_fail("Game scene does not use the Combat AI runtime layered above pursuit escape.")
 		return
+	game.set_process(false)
 
 	var player: Node2D = game.get_node_or_null("Player") as Node2D
 	var caretaker: Node = game.get_node_or_null("Caretaker")
@@ -207,6 +208,7 @@ func _begin_pursuit_attempt(game: Node, state: Node, caretaker: Node, source_id:
 		_fail("Training encounter could not begin for pursuit smoke testing.")
 		return
 	game.call("_start_turn_based_combat", caretaker)
+	game.set("_active_combat_encounter_id", ENCOUNTER_ID)
 	game.call("force_active_escape_encounter_for_testing", ENCOUNTER_ID)
 	game.call("force_player_turn_for_testing")
 	game.set("_enemy_turn_running", false)
