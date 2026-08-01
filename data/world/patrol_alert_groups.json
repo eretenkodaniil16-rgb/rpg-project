@@ -35,8 +35,8 @@
       "waypoint_reached_distance_pixels": 10.0,
       "waypoints": [
         {"position": [760.0, 160.0], "wait_seconds": 0.8, "facing": [1.0, 0.0]},
-        {"position": [1080.0, 160.0], "wait_seconds": 1.0, "facing": [0.0, 1.0]},
-        {"position": [1080.0, 560.0], "wait_seconds": 1.0, "facing": [-1.0, 0.0]},
+        {"position": [820.0, 160.0], "wait_seconds": 1.0, "facing": [0.0, 1.0]},
+        {"position": [820.0, 560.0], "wait_seconds": 1.0, "facing": [-1.0, 0.0]},
         {"position": [760.0, 560.0], "wait_seconds": 0.8, "facing": [0.0, -1.0]}
       ]
     }
