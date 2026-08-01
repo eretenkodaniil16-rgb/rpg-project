@@ -20,7 +20,6 @@ from attack_sword_down_keyposes_builder_v17 import (
     create_attack_sword_down_keypose_actions_v17,
 )
 from attack_sword_down_keyposes_profile_v17 import (
-    AttackSwordDownGripV17,
     load_attack_sword_down_keyposes_profile_v17,
 )
 from factory_config import CONTACT_SHEET_BACKGROUND_HEX
@@ -30,6 +29,7 @@ PROFILE_PATH = SCRIPT_DIR / "attack_sword_down_keyposes_profile_v17.py"
 BUILDER_PATH = SCRIPT_DIR / "attack_sword_down_keyposes_builder_v17.py"
 CONTACT_SHEET_NAME = "attack_sword_01_down_keyposes_v17.png"
 MAX_ALLOWED_GUARD_LEFT_EDGE_PIXELS = 12
+BASE_WRITE_RUN_MANIFEST = factory._write_run_manifest
 
 
 def _find_frames(
@@ -151,6 +151,7 @@ def render_attack_sword_down_keyposes_v17(
                 raise RuntimeError(
                     f"attack sword down v17 action is missing: {grip.action_id}"
                 )
+            factory._assign_action(context.rig, action)
             weapon_adapter._set_v12_weapon(grip.weapon_cycle_id, "down")
             context.rig.rotation_euler[2] = math.radians(config.directions["down"])
 
@@ -271,7 +272,7 @@ def _write_manifest_v17(
     artifacts: list[factory.FrameArtifact],
     contact_sheet: Path | None,
 ) -> Path:
-    manifest_path = factory._write_run_manifest(
+    manifest_path = BASE_WRITE_RUN_MANIFEST(
         context,
         run_dir,
         run_id,
@@ -350,6 +351,7 @@ def _write_manifest_v17(
             "baseline_y_91_required": True,
             "manual_keypose_review_required": True,
             "full_attack_cycle_not_yet_approved": True,
+            "base_manifest_writer_restored": True,
         },
     }
     payload.setdefault("animation_contract", {}).update(
