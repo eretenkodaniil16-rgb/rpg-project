@@ -63,8 +63,14 @@ func _run() -> void:
 	if distance_line == null or distance_label == null or not distance_line.visible or not distance_label.visible:
 		_fail("Selected target measurement overlay is missing.")
 		return
-	if "50 футов" not in distance_label.text or "10 клеток" not in distance_label.text:
-		_fail("Grid measurement label does not match the combat distance: %s" % distance_label.text)
+	var player: Node2D = game.get_node_or_null("Player") as Node2D
+	if player == null or not caretaker is Node2D:
+		_fail("Player or measured target is unavailable.")
+		return
+	var expected_cells: int = DistanceSystem.grid_steps(player.global_position, (caretaker as Node2D).global_position)
+	var expected_feet: int = expected_cells * 5
+	if "%d футов" % expected_feet not in distance_label.text or "%d " % expected_cells not in distance_label.text:
+		_fail("Grid measurement label does not match the actual combat distance: %s" % distance_label.text)
 		return
 
 	var hub: Control = game.find_child("CharacterHub", true, false) as Control
