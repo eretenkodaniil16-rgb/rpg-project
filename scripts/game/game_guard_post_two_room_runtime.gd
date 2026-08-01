@@ -27,6 +27,12 @@ func _ready() -> void:
 	_sync_room_from_persistent_state()
 
 
+func _broadcast_actor_alert(actor: Node, record: Dictionary) -> void:
+	if _caretaker_should_remain_neutral(actor):
+		return
+	super._broadcast_actor_alert(actor, record)
+
+
 func _begin_combat_from_alert(actor: Node, record: Dictionary) -> void:
 	if _caretaker_should_remain_neutral(actor):
 		_handle_neutral_caretaker_detection(actor, record)
