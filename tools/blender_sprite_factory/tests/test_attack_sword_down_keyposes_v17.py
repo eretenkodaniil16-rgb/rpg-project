@@ -101,18 +101,34 @@ class AttackSwordDownKeyposesV17Tests(unittest.TestCase):
         self.assertNotIn("scale.x = -1", self.builder_source)
         self.assertNotIn("scale[0] = -1", self.builder_source)
 
-    def test_adapter_renders_only_ten_down_keyposes(self) -> None:
+    def test_adapter_renders_only_ten_assigned_down_keyposes(self) -> None:
         ast.parse(self.adapter_source)
         self.assertIn(
             "create_attack_sword_down_keypose_actions_v17",
             self.adapter_source,
         )
+        self.assertIn("factory._assign_action(context.rig, action)", self.adapter_source)
         self.assertIn("rendered_count != 10", self.adapter_source)
         self.assertIn('weapon_adapter._set_v12_weapon(grip.weapon_cycle_id, "down")', self.adapter_source)
         self.assertIn('CONTACT_SHEET_NAME = "attack_sword_01_down_keyposes_v17.png"', self.adapter_source)
         self.assertIn('"manual_keypose_review_required": True', self.adapter_source)
         self.assertIn('"full_attack_cycle_not_yet_approved": True', self.adapter_source)
         self.assertNotIn("walk_directional_weapon_render_v16", self.adapter_source)
+
+    def test_manifest_uses_unpatched_base_writer(self) -> None:
+        self.assertIn(
+            "BASE_WRITE_RUN_MANIFEST = factory._write_run_manifest",
+            self.adapter_source,
+        )
+        self.assertIn(
+            "manifest_path = BASE_WRITE_RUN_MANIFEST(",
+            self.adapter_source,
+        )
+        self.assertNotIn(
+            "manifest_path = factory._write_run_manifest(",
+            self.adapter_source,
+        )
+        self.assertIn('"base_manifest_writer_restored": True', self.adapter_source)
 
 
 if __name__ == "__main__":
