@@ -41,6 +41,8 @@ func _init() -> void:
 		_fail("Legacy test file could not be created.")
 		return
 	legacy_file.store_string(JSON.stringify(_sample_save("Старый герой", 333, 5)))
+	legacy_file.flush()
+	legacy_file = null
 	var legacy_directory: String = "user://save_slot_legacy_import_%s" % suffix
 	var legacy_system: SaveSlotSystem = SYSTEM_SCRIPT.new(legacy_directory, legacy_path) as SaveSlotSystem
 	if legacy_system.import_legacy_to_manual_slot() != 1:
