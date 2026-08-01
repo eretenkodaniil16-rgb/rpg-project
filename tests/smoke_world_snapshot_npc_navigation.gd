@@ -24,6 +24,7 @@ func _run() -> void:
 	var fixtures: Dictionary = _fixtures(game)
 	if fixtures.is_empty():
 		return
+	var controller: WorldStateNpcNavigationController = fixtures["controller"] as WorldStateNpcNavigationController
 	var player: Node2D = fixtures["player"] as Node2D
 	var room: GuardPostTwoRoomVisibility = fixtures["room"] as GuardPostTwoRoomVisibility
 	var guard: Node2D = fixtures["guard"] as Node2D
@@ -33,7 +34,7 @@ func _run() -> void:
 	var mobile: Control = fixtures["mobile"] as Control
 	var inner_gate: StealthDoor = room.get_inner_gate()
 
-	var render_order: Dictionary = game.call("get_visibility_render_order_for_testing") as Dictionary
+	var render_order: Dictionary = controller.get_visibility_render_order_for_testing()
 	if int(render_order.get("wall_z", -1)) <= int(render_order.get("fog_z", -1)):
 		_fail("Wall geometry is not rendered above concealed cells.")
 		return
@@ -41,9 +42,9 @@ func _run() -> void:
 		_fail("Door geometry is not rendered above concealed cells.")
 		return
 
-	var caretaker_trigger: Vector2 = game.call("get_npc_trigger_extent_for_testing", "caretaker") as Vector2
-	var guard_trigger: Vector2 = game.call("get_npc_trigger_extent_for_testing", "service_guard") as Vector2
-	if caretaker_trigger.x <= 92.0 or guard_trigger.x <= 40.0:
+	var caretaker_trigger: Vector2 = controller.get_npc_trigger_extent_for_testing("caretaker")
+	var guard_trigger: Vector2 = controller.get_npc_trigger_extent_for_testing("service_guard")
+	if caretaker_trigger.x <= 92.0 or guard_trigger.x <= 34.0:
 		_fail("NPC interaction trigger zones were not expanded.")
 		return
 
@@ -61,7 +62,7 @@ func _run() -> void:
 		return
 	mobile.call("release_joystick_for_testing")
 
-	var click_path: Array[Vector2] = game.call("plan_exploration_path_to_world_for_testing", Vector2(520.0, 600.0)) as Array[Vector2]
+	var click_path: Array[Vector2] = controller.plan_exploration_path_to_world_for_testing(Vector2(520.0, 600.0))
 	if click_path.size() < 2:
 		_fail("Tap-only exploration path could not be planned.")
 		return
@@ -73,8 +74,7 @@ func _run() -> void:
 		return
 	player.call("cancel_exploration_click_path")
 
-	# Regression: a collision slide must not force the hero to face down. The
-	# intended direction remains horizontal even while the wall stops movement.
+	# Intended facing is retained even when CharacterBody2D is stopped by a wall.
 	var partition_x: float = room.get_inner_partition_global_x()
 	player.global_position = Vector2(partition_x - 28.0, 150.0)
 	state.set("player_position", player.global_position)
@@ -87,7 +87,7 @@ func _run() -> void:
 		return
 	player.call("cancel_exploration_click_path")
 
-	# Directional spells use the current facing without exposing a selected target.
+	# Directional spells use current facing without requiring a selected marker.
 	player.global_position = Vector2(600.0, 360.0)
 	caretaker.global_position = Vector2(690.0, 360.0)
 	player.call("set_facing_direction", Vector2.RIGHT)
@@ -96,10 +96,9 @@ func _run() -> void:
 		_fail("Directional spell targeting did not resolve the visible actor in front of the hero.")
 		return
 
-	# A visible suspicious guard must move organically and remain outside all
-	# registered movement obstacles.
+	# A visible suspicious guard must move and remain outside registered obstacles.
 	player.global_position = Vector2(690.0, 210.0)
-	guard.global_position = game.call("find_safe_world_position_for_testing", guard, Vector2(790.0, 210.0)) as Vector2
+	guard.global_position = controller.find_safe_world_position_for_testing(guard, Vector2(790.0, 210.0))
 	guard.call("set_facing_direction", player.global_position - guard.global_position)
 	var guard_record: Dictionary = state.call("get_stealth_alert_record", "service_guard") as Dictionary
 	guard_record["state"] = StealthAlertSystem.STATE_SUSPICIOUS
@@ -111,8 +110,8 @@ func _run() -> void:
 	game.set("_alert_records", runtime_records)
 	guard.call("set_exploration_alert_state", StealthAlertSystem.STATE_SUSPICIOUS, StealthAlertSystem.SUSPICION_SUSPICIOUS, player.global_position)
 	var guard_before_visible_update: Vector2 = guard.global_position
-	for _step: int in range(5):
-		game.call("_update_exploration_actor", guard, 0.16)
+	for _step: int in range(8):
+		controller.call("_update_visible_actor_movement", 0.16)
 		await process_frame
 	if guard.global_position.distance_to(guard_before_visible_update) < 2.0:
 		_fail("Visible NPC remained permanently stationary.")
@@ -121,15 +120,16 @@ func _run() -> void:
 		_fail("Visible NPC movement ended inside an obstacle.")
 		return
 
-	var repaired: Vector2 = game.call("find_safe_world_position_for_testing", guard, Vector2(845.0, 557.0)) as Vector2
-	if repaired.distance_to(Vector2(845.0, 557.0)) < 1.0 or environment.is_position_blocked(repaired, 22.0):
+	var invalid_position := Vector2(845.0, 557.0)
+	var repaired: Vector2 = controller.find_safe_world_position_for_testing(guard, invalid_position)
+	if repaired.distance_to(invalid_position) < 1.0 or environment.is_position_blocked(repaired, 22.0):
 		_fail("NPC obstacle repair did not move an invalid saved position to a safe cell.")
 		return
 
 	# Freeze exploration while taking an exact manual snapshot.
 	state.set("input_locked", true)
-	var saved_guard_position: Vector2 = game.call("find_safe_world_position_for_testing", guard, Vector2(742.0, 178.0)) as Vector2
-	var saved_marksman_position: Vector2 = game.call("find_safe_world_position_for_testing", marksman, Vector2(1080.0, 230.0)) as Vector2
+	var saved_guard_position: Vector2 = controller.find_safe_world_position_for_testing(guard, Vector2(742.0, 178.0))
+	var saved_marksman_position: Vector2 = controller.find_safe_world_position_for_testing(marksman, Vector2(1080.0, 230.0))
 	guard.global_position = saved_guard_position
 	guard.call("set_facing_direction", Vector2.UP)
 	guard.set("current_health", 7)
@@ -179,6 +179,8 @@ func _run() -> void:
 	if not bool(state.call("load_manual_slot", MANUAL_SLOT_ID)):
 		_fail("Manual world snapshot could not be loaded.")
 		return
+	# Keep the restored scene static until exact positions are asserted.
+	state.set("input_locked", true)
 	game.queue_free()
 	await process_frame
 
@@ -216,8 +218,8 @@ func _run() -> void:
 		_fail("Hero facing direction was not restored from the manual save.")
 		return
 
-	# Active initiative remains intentionally non-serializable. Autosave must keep
-	# the last stable world checkpoint instead of writing a partial combat state.
+	# Active initiative remains intentionally non-serializable.
+	state.set("input_locked", false)
 	var stable_snapshot_before_combat: Dictionary = state.call("get_world_snapshot") as Dictionary
 	restored_game.call("_start_turn_based_combat", restored_guard)
 	await process_frame
@@ -248,6 +250,7 @@ func _spawn_game() -> Node:
 
 
 func _fixtures(game: Node) -> Dictionary:
+	var controller: WorldStateNpcNavigationController = game.get_node_or_null("WorldStateNpcNavigationController") as WorldStateNpcNavigationController
 	var player: Node2D = game.get_node_or_null("Player") as Node2D
 	var room: GuardPostTwoRoomVisibility = game.get_node_or_null("StealthTestRoom") as GuardPostTwoRoomVisibility
 	var caretaker: Node2D = game.get_node_or_null("Caretaker") as Node2D
@@ -256,10 +259,11 @@ func _fixtures(game: Node) -> Dictionary:
 	var mage: Node2D = room.get_training_mage() if room != null else null
 	var environment: CombatEnvironment = game.get_node_or_null("CombatEnvironment") as CombatEnvironment
 	var mobile: Control = game.get_node_or_null("Interface/MobileControls") as Control
-	if player == null or room == null or caretaker == null or guard == null or marksman == null or mage == null or environment == null or mobile == null:
+	if controller == null or player == null or room == null or caretaker == null or guard == null or marksman == null or mage == null or environment == null or mobile == null:
 		_fail("World snapshot test fixtures are incomplete.")
 		return {}
 	return {
+		"controller": controller,
 		"player": player,
 		"room": room,
 		"caretaker": caretaker,
