@@ -2,7 +2,7 @@ extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
 const EXPECTED_GAME_STATE_SCRIPT: String = "res://scripts/core/game_state_world_snapshot.gd"
-const EXPECTED_GAME_RUNTIME: String = "res://scripts/game/game_directional_touch_runtime.gd"
+const EXPECTED_GAME_RUNTIME: String = "res://scripts/game/game_guard_post_polish_runtime.gd"
 const SAVE_PATH: String = "user://save_slots/autosave.json"
 const EXPECTED_SAVE_VERSION: int = 7
 
@@ -177,12 +177,20 @@ func _run() -> void:
 		return
 	var game: Node = packed.instantiate()
 	root.add_child(game)
-	for _frame: int in range(12):
+	for _frame: int in range(14):
 		await process_frame
 	var game_script: Script = game.get_script() as Script
 	if game_script == null or game_script.resource_path != EXPECTED_GAME_RUNTIME:
-		_fail("Game scene does not use the final directional-touch world runtime.")
+		_fail("Game scene no longer preserves the canonical polished guard-post runtime.")
 		return
+	var world_controller: Node = game.get_node_or_null("WorldStateNpcNavigationController")
+	if world_controller == null:
+		_fail("World-state and NPC-navigation controller is missing from the game scene.")
+		return
+	for method_name: String in ["capture_world_state_for_save", "plan_exploration_path_to_world_for_testing", "get_visibility_render_order_for_testing"]:
+		if not world_controller.has_method(method_name):
+			_fail("World controller is missing method: %s" % method_name)
+			return
 	var level_up_panel: Control = game.find_child("LevelUpPanel", true, false) as Control
 	if level_up_panel == null:
 		_fail("Level-up panel is missing from the integrated game scene.")
@@ -203,5 +211,5 @@ func _run() -> void:
 	game.queue_free()
 	await process_frame
 	_cleanup_save()
-	print("v0.18 integration stack, world snapshot save format v7 and directional touch runtime passed.")
+	print("v0.18 integration stack, world snapshot v7, canonical runtime and modular controller passed.")
 	quit(0)
