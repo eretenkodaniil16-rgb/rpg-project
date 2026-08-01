@@ -60,6 +60,13 @@ func _run() -> void:
 		return
 	player.global_position = mug.global_position
 	state.set("player_position", player.global_position)
+	for _frame: int in range(6):
+		await physics_frame
+		await process_frame
+	var nearby_interactables: Array[Node] = player.call("get_nearby_interactables") as Array[Node]
+	if not nearby_interactables.has(mug):
+		_fail("Ceramic mug trigger zone did not register the player.")
+		return
 
 	game.call("_start_turn_based_combat", caretaker)
 	await process_frame
@@ -78,7 +85,7 @@ func _run() -> void:
 	await process_frame
 	var pickup_entry: Dictionary = _find_action(catalog.get_entries_for_testing(), "%s%s" % ["pickup_throwable_prop__", MUG_ID], "bonus")
 	if pickup_entry.is_empty() or not bool(pickup_entry.get("enabled", false)):
-		_fail("Nearby interior prop is not offered as a bonus action.")
+		_fail("Registered interior prop is not offered as a bonus action.")
 		return
 	catalog.action_requested.emit(str(pickup_entry.get("id", "")))
 	await process_frame
@@ -194,7 +201,7 @@ func _run() -> void:
 	await process_frame
 	if FileAccess.file_exists(save_path):
 		DirAccess.remove_absolute(save_path)
-	print("Combat route lock, throwable noise, door blocking and delayed unique reward passed.")
+	print("Combat route lock, trigger-based throwable noise, door blocking and delayed unique reward passed.")
 	quit(0)
 
 
