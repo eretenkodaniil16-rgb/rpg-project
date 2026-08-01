@@ -3,7 +3,8 @@ extends SceneTree
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
 const EXPECTED_GAME_STATE_SCRIPT: String = "res://scripts/core/game_state_stealth_alerts.gd"
 const EXPECTED_GAME_RUNTIME: String = "res://scripts/game/game_guard_post_polish_runtime.gd"
-const SAVE_PATH: String = "user://savegame.json"
+const SAVE_PATH: String = "user://save_slots/autosave.json"
+const EXPECTED_SAVE_VERSION: int = 6
 
 
 func _init() -> void:
@@ -40,7 +41,10 @@ func _run() -> void:
 		"set_stealth_alert_record",
 		"get_stealth_alert_record",
 		"set_stealth_door_state",
-		"get_stealth_door_state"
+		"get_stealth_door_state",
+		"load_autosave",
+		"save_manual_slot",
+		"list_manual_save_slots"
 	]
 	for method_name: String in required_methods:
 		if not state.has_method(method_name):
@@ -123,14 +127,14 @@ func _run() -> void:
 		return
 	var save_file: FileAccess = FileAccess.open(SAVE_PATH, FileAccess.READ)
 	if save_file == null:
-		_fail("Integration save file was not created.")
+		_fail("Integration autosave file was not created.")
 		return
 	var save_value: Variant = JSON.parse_string(save_file.get_as_text())
 	if not save_value is Dictionary:
-		_fail("Integration save file is not valid JSON.")
+		_fail("Integration autosave file is not valid JSON.")
 		return
 	var save_data: Dictionary = save_value as Dictionary
-	if int(save_data.get("version", 0)) != 5:
+	if int(save_data.get("version", 0)) != EXPECTED_SAVE_VERSION:
 		_fail("Unexpected save version in the integration candidate.")
 		return
 	var flags: Dictionary = save_data.get("story_flags", {}) as Dictionary
@@ -139,9 +143,10 @@ func _run() -> void:
 			_fail("Save file is missing integrated registry: %s" % registry_id)
 			return
 
-	state.call("new_game")
-	if not bool(state.call("load_game")):
-		_fail("Integrated save could not be loaded.")
+	state.set("story_flags", {})
+	state.set("player_character", PlayerCharacter.new())
+	if not bool(state.call("load_autosave")):
+		_fail("Integrated autosave could not be loaded.")
 		return
 	var loaded_hero: PlayerCharacter = state.get("player_character") as PlayerCharacter
 	if loaded_hero == null or loaded_hero.experience != expected_experience:
@@ -193,5 +198,5 @@ func _run() -> void:
 	game.queue_free()
 	await process_frame
 	_cleanup_save()
-	print("v0.18 integration stack, corpse runtime, save/load and HUD contract passed.")
+	print("v0.18 integration stack, corpse runtime, save format v6 and HUD contract passed.")
 	quit(0)
