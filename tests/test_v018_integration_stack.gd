@@ -1,10 +1,10 @@
 extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
-const EXPECTED_GAME_STATE_SCRIPT: String = "res://scripts/core/game_state_stealth_alerts.gd"
-const EXPECTED_GAME_RUNTIME: String = "res://scripts/game/game_guard_post_polish_runtime.gd"
+const EXPECTED_GAME_STATE_SCRIPT: String = "res://scripts/core/game_state_world_snapshot.gd"
+const EXPECTED_GAME_RUNTIME: String = "res://scripts/game/game_directional_touch_runtime.gd"
 const SAVE_PATH: String = "user://save_slots/autosave.json"
-const EXPECTED_SAVE_VERSION: int = 6
+const EXPECTED_SAVE_VERSION: int = 7
 
 
 func _init() -> void:
@@ -30,7 +30,7 @@ func _run() -> void:
 		return
 	var state_script: Script = state.get_script() as Script
 	if state_script == null or state_script.resource_path != EXPECTED_GAME_STATE_SCRIPT:
-		_fail("GameState does not use the final stealth-alert integration layer.")
+		_fail("GameState does not use the final world-snapshot integration layer.")
 		return
 	var required_methods: Array[String] = [
 		"grant_experience_reward",
@@ -44,7 +44,9 @@ func _run() -> void:
 		"get_stealth_door_state",
 		"load_autosave",
 		"save_manual_slot",
-		"list_manual_save_slots"
+		"list_manual_save_slots",
+		"get_world_snapshot",
+		"get_world_entity_state"
 	]
 	for method_name: String in required_methods:
 		if not state.has_method(method_name):
@@ -137,6 +139,9 @@ func _run() -> void:
 	if int(save_data.get("version", 0)) != EXPECTED_SAVE_VERSION:
 		_fail("Unexpected save version in the integration candidate.")
 		return
+	if not save_data.has("world_snapshot"):
+		_fail("Save format v7 is missing the world snapshot payload.")
+		return
 	var flags: Dictionary = save_data.get("story_flags", {}) as Dictionary
 	for registry_id: String in ["_claimed_experience_rewards_v1", "encounter_registry_v1", "stealth_alert_registry_v1"]:
 		if not flags.has(registry_id):
@@ -172,11 +177,11 @@ func _run() -> void:
 		return
 	var game: Node = packed.instantiate()
 	root.add_child(game)
-	for _frame: int in range(10):
+	for _frame: int in range(12):
 		await process_frame
 	var game_script: Script = game.get_script() as Script
 	if game_script == null or game_script.resource_path != EXPECTED_GAME_RUNTIME:
-		_fail("Game scene does not use the corpse interaction integration runtime.")
+		_fail("Game scene does not use the final directional-touch world runtime.")
 		return
 	var level_up_panel: Control = game.find_child("LevelUpPanel", true, false) as Control
 	if level_up_panel == null:
@@ -198,5 +203,5 @@ func _run() -> void:
 	game.queue_free()
 	await process_frame
 	_cleanup_save()
-	print("v0.18 integration stack, corpse runtime, save format v6 and HUD contract passed.")
+	print("v0.18 integration stack, world snapshot save format v7 and directional touch runtime passed.")
 	quit(0)
