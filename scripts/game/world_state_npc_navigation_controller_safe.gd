@@ -2,6 +2,12 @@ class_name SafeWorldStateNpcNavigationController
 extends WorldStateNpcNavigationController
 
 
+func capture_world_state_for_save() -> Dictionary:
+	var snapshot: Dictionary = super.capture_world_state_for_save()
+	print("WORLD_DOOR_CAPTURE %s" % JSON.stringify(snapshot.get("doors", {})))
+	return snapshot
+
+
 func get_visibility_render_order_for_testing() -> Dictionary:
 	var fog: CanvasItem = get_tree().get_first_node_in_group("player_visibility") as CanvasItem
 	var wall_visual: Polygon2D = null
@@ -42,18 +48,12 @@ func _restore_actor(actor: Node, state: Dictionary) -> void:
 			)
 		)
 	super._restore_actor(actor, state)
-	# Save files store continuous world coordinates. Preserve an exact valid
-	# coordinate instead of snapping it to the centre of a coarse combat cell.
 	if exact_position_is_valid and actor is Node2D:
 		(actor as Node2D).global_position = requested_position
 
 
 func _restore_doors(doors: Dictionary) -> void:
-	# The world snapshot is authoritative during scene restoration. Applying a
-	# door through its public gameplay setter would immediately request another
-	# autosave while the snapshot is still being restored and could reintroduce
-	# the previous scene state. Synchronize the registry without saving, then
-	# rebuild the physical and visual door state once.
+	print("WORLD_DOOR_RESTORE_INPUT %s" % JSON.stringify(doors))
 	for door: Node in get_tree().get_nodes_in_group("stealth_doors"):
 		if not is_instance_valid(door) or not door.has_method("get_door_id"):
 			continue
@@ -64,11 +64,14 @@ func _restore_doors(doors: Dictionary) -> void:
 		var desired_state: String = str((value as Dictionary).get("state", "closed"))
 		if desired_state not in ["open", "closed", "locked", "blocked", "broken"]:
 			desired_state = "closed"
+		var before_state: String = str(door.call("get_door_state")) if door.has_method("get_door_state") else ""
 		door.set("_door_state", desired_state)
 		if is_instance_valid(_state) and _state.has_method("set_stealth_door_state"):
 			_state.call("set_stealth_door_state", door_id, desired_state, false)
 		if door.has_method("_apply_state"):
 			door.call("_apply_state", false)
+		var after_state: String = str(door.call("get_door_state")) if door.has_method("get_door_state") else ""
+		print("WORLD_DOOR_RESTORE id=%s desired=%s before=%s after=%s" % [door_id, desired_state, before_state, after_state])
 
 
 func _repair_invalid_actor_positions() -> void:
