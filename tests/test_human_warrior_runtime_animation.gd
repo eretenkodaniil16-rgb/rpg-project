@@ -124,20 +124,25 @@ func _run() -> void:
 		_fail("Automatic exploration mode did not return to unarmed idle.")
 		return
 
+	player.set_physics_process(false)
+	game_state.set("input_locked", false)
+	player.call("set_turn_based_mode", false)
+	player.call("clear_mobile_input")
 	player.call("set_visual_preview_mode", &"unarmed")
 	player.call("set_visual_motion", false, Vector2.RIGHT)
+	player.call("set_mobile_direction", &"right", true)
 	for sample_index: int in range(12):
-		player.global_position += Vector2(3.0, 0.0)
-		player.call("_sample_visual_motion", 1.0 / 60.0)
+		player.call("_physics_process", 1.0 / 60.0)
 		if sprite.animation != &"walk_right":
-			_fail("Continuous right movement flickered away from walk_right at sample %d." % sample_index)
+			_fail("The real combat-player physics loop failed to sustain walk_right at sample %d." % sample_index)
 			return
-	player.call("_sample_visual_motion", 1.0 / 60.0)
+	player.call("set_mobile_direction", &"right", false)
+	player.call("_physics_process", 1.0 / 60.0)
 	if sprite.animation != &"walk_right":
 		_fail("A single zero-motion physics sample caused an immediate walk-to-idle flicker.")
 		return
 	for _sample_index: int in range(7):
-		player.call("_sample_visual_motion", 1.0 / 60.0)
+		player.call("_physics_process", 1.0 / 60.0)
 	if sprite.animation != &"idle_right":
 		_fail("The visual controller did not settle to idle_right after the stop grace period.")
 		return
