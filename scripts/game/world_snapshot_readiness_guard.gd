@@ -10,7 +10,8 @@ func _ready() -> void:
 
 
 func can_capture_stable_world_state() -> bool:
-	var snapshot: Dictionary = GameState.call("get_world_snapshot") as Dictionary if GameState.has_method("get_world_snapshot") else {}
+	var state: Node = get_tree().root.get_node_or_null("GameState")
+	var snapshot: Dictionary = state.call("get_world_snapshot") as Dictionary if state != null and state.has_method("get_world_snapshot") else {}
 	var entities_value: Variant = snapshot.get("entities", {})
 	var loaded_world_exists: bool = int(snapshot.get("captured_at_unix", 0)) > 0 or (entities_value is Dictionary and not (entities_value as Dictionary).is_empty())
 	if not loaded_world_exists:
