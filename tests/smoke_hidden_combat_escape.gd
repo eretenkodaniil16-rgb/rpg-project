@@ -78,6 +78,9 @@ func _test_hideout_route(
 	combat_state: CombatantState
 ) -> void:
 	(caretaker as Node2D).global_position = Vector2(930.0, 555.0)
+	var guard: Node = game.call("get_patrol_actor_for_testing", "service_guard") as Node
+	if guard is Node2D:
+		(guard as Node2D).global_position = Vector2(930.0, 470.0)
 	player.global_position = grid.cell_to_world_center(Vector2i(11, 8))
 	state.set("player_position", player.global_position)
 	await _begin_pursuit_attempt(game, state, caretaker, "hideout")
