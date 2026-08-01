@@ -2,6 +2,8 @@ extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
 const RUNTIME_PATH: String = "res://scripts/game/game_guard_post_polish_runtime.gd"
+const MANUAL_SLOT_ID: int = 1
+const MANUAL_SAVE_PATH: String = "user://save_slots/manual_01.json"
 
 
 func _init() -> void:
@@ -18,7 +20,7 @@ func _run() -> void:
 	if state == null or not state.has_method("get_stealth_alert_record"):
 		_fail("Stealth-aware GameState is missing.")
 		return
-	var save_path: String = ProjectSettings.globalize_path("user://savegame.json")
+	var save_path: String = ProjectSettings.globalize_path(MANUAL_SAVE_PATH)
 	if FileAccess.file_exists(save_path):
 		DirAccess.remove_absolute(save_path)
 	state.call("new_game")
@@ -31,7 +33,7 @@ func _run() -> void:
 		return
 	var game: Node = packed.instantiate()
 	root.add_child(game)
-	for _frame: int in range(8):
+	for _frame: int in range(14):
 		await process_frame
 	game.set_process(false)
 	if str(game.get_script().resource_path) != RUNTIME_PATH:
@@ -116,15 +118,17 @@ func _run() -> void:
 	if str(searching.get("state", "")) != StealthAlertSystem.STATE_SEARCHING:
 		_fail("Post-combat escape did not continue as exploration search.")
 		return
-	game.call("_persist_all_alert_records", true)
-	if not bool(state.call("save_game")):
-		_fail("Stealth alert save failed.")
+	game.call("_persist_all_alert_records", false)
+	state.set("input_locked", true)
+	if not bool(state.call("save_manual_slot", MANUAL_SLOT_ID)):
+		_fail("Stealth alert manual save failed.")
 		return
+	state.set("input_locked", false)
 	state.set("story_flags", {})
 	state.set("quest_states", {})
 	state.set("inventory", {})
-	if not bool(state.call("load_game")):
-		_fail("Stealth alert save could not be loaded.")
+	if not bool(state.call("load_manual_slot", MANUAL_SLOT_ID)):
+		_fail("Stealth alert manual save could not be loaded.")
 		return
 	var restored: Dictionary = state.call("get_stealth_alert_record", "caretaker") as Dictionary
 	if str(restored.get("state", "")) != StealthAlertSystem.STATE_SEARCHING:
@@ -138,7 +142,7 @@ func _run() -> void:
 	await process_frame
 	if FileAccess.file_exists(save_path):
 		DirAccess.remove_absolute(save_path)
-	print("Exploration vision, concealed enemy state, hiding, door acoustics, investigation, post-escape search and persistence smoke test passed.")
+	print("Exploration vision, concealed enemy state, hiding, door acoustics, investigation, post-escape search and manual persistence smoke test passed.")
 	quit(0)
 
 
