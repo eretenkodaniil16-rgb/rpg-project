@@ -51,6 +51,11 @@ func _run() -> void:
 	guard.global_position = Vector2(710.0, 360.0)
 	caretaker.global_position = Vector2(760.0, 430.0)
 
+	var environment_events: EnvironmentEventSystem = game.call("get_environment_event_system_for_testing") as EnvironmentEventSystem
+	if environment_events != null:
+		environment_events.clear_combat_memory()
+	game.call("_clear_squad_plan_runtime")
+
 	var guard_profile: Dictionary = game._squad_ai.get_profile("service_guard")
 	var guard_context: Dictionary = _base_context()
 	game.call("_enrich_advanced_context", guard_context, guard, guard, "service_guard", guard_profile, {})
