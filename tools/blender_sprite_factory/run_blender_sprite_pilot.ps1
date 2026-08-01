@@ -38,7 +38,7 @@ if ($Stage -eq "attack_down_keyposes_v18") {
     $ReviewFile = "attack_sword_01_down_keyposes_v18.png"
 }
 if ($Stage -eq "attack_down_keyposes_v19") {
-    $FactoryScript = Join-Path $ToolRoot "blender_sprite_factory_attack_sword_down_keyposes_v19_pass03.py"
+    $FactoryScript = Join-Path $ToolRoot "blender_sprite_factory_attack_sword_down_keyposes_v19_pass04.py"
     $ReviewFile = "attack_sword_01_down_keyposes_v19.png"
 }
 $FactoryConfig = Join-Path $ToolRoot "configs\human_warrior_m01.json"
