@@ -1,6 +1,12 @@
 extends "res://scripts/game/game_world_snapshot_npc_runtime.gd"
 
 const EXPLORATION_PATH_LIMIT: int = 512
+const NPC_TRIGGER_SCALE: float = 1.35
+
+
+func _ready() -> void:
+	super._ready()
+	call_deferred("_expand_npc_trigger_zones")
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -11,6 +17,21 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func plan_exploration_path_to_world_for_testing(world_position: Vector2) -> Array[Vector2]:
 	return _build_exploration_world_path(world_position)
+
+
+func get_npc_trigger_extent_for_testing(actor_id: String) -> Vector2:
+	for actor: Node in _persistent_world_actors():
+		if _persistent_entity_id(actor) != actor_id:
+			continue
+		var collision: CollisionShape2D = _interaction_collision_for_actor(actor)
+		if collision == null or collision.shape == null:
+			return Vector2.ZERO
+		if collision.shape is CircleShape2D:
+			var radius: float = (collision.shape as CircleShape2D).radius
+			return Vector2(radius, radius)
+		if collision.shape is RectangleShape2D:
+			return (collision.shape as RectangleShape2D).size
+	return Vector2.ZERO
 
 
 func _try_handle_exploration_pointer(event: InputEvent) -> bool:
@@ -58,3 +79,30 @@ func _build_exploration_world_path(world_position: Vector2) -> Array[Vector2]:
 	for cell: Vector2i in cells:
 		result.append(grid.cell_to_world_center(cell))
 	return result
+
+
+func _expand_npc_trigger_zones() -> void:
+	for actor: Node in _persistent_world_actors():
+		var collision: CollisionShape2D = _interaction_collision_for_actor(actor)
+		if collision == null or collision.shape == null or bool(collision.get_meta("npc_trigger_expanded", false)):
+			continue
+		var expanded: Shape2D = collision.shape.duplicate() as Shape2D
+		if expanded is CircleShape2D:
+			(expanded as CircleShape2D).radius *= NPC_TRIGGER_SCALE
+		elif expanded is RectangleShape2D:
+			(expanded as RectangleShape2D).size *= NPC_TRIGGER_SCALE
+		else:
+			continue
+		collision.shape = expanded
+		collision.set_meta("npc_trigger_expanded", true)
+
+
+func _interaction_collision_for_actor(actor: Node) -> CollisionShape2D:
+	if actor == null or not is_instance_valid(actor):
+		return null
+	var interaction_area: Area2D = actor.get_node_or_null("InteractionArea") as Area2D
+	if interaction_area != null:
+		var dedicated: CollisionShape2D = interaction_area.get_node_or_null("CollisionShape2D") as CollisionShape2D
+		if dedicated != null:
+			return dedicated
+	return actor.get_node_or_null("CollisionShape2D") as CollisionShape2D
