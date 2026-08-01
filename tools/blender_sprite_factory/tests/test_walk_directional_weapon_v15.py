@@ -24,6 +24,10 @@ class WalkDirectionalWeaponV15Tests(unittest.TestCase):
         cls.adapter_source = (
             cls.tool_root / "blender_sprite_factory_walk_directional_weapon_v15.py"
         ).read_text(encoding="utf-8")
+        cls.render_v16_source = (
+            cls.tool_root
+            / "blender_sprite_factory_walk_directional_weapon_render_v16.py"
+        ).read_text(encoding="utf-8")
 
     def test_profile_locks_two_grips_four_directions_and_six_frames(self) -> None:
         self.assertEqual(self.profile.revision, "v15")
@@ -128,6 +132,24 @@ class WalkDirectionalWeaponV15Tests(unittest.TestCase):
             "previous_adapter.render_combat_idle_directional_cycles_v14",
             self.adapter_source,
         )
+
+    def test_v16_applies_only_safe_twohand_right_framing(self) -> None:
+        ast.parse(self.render_v16_source)
+        self.assertIn(
+            "TWOHAND_RIGHT_RENDER_SCALE_FACTOR = 0.975",
+            self.render_v16_source,
+        )
+        self.assertIn(
+            'grip_id == "twohand_center_high" and direction == "right"',
+            self.render_v16_source,
+        )
+        self.assertIn("raw_dir.mkdir(exist_ok=True)", self.render_v16_source)
+        self.assertIn("frame_dir.mkdir(exist_ok=True)", self.render_v16_source)
+        self.assertIn("animation_channels_changed\": False", self.render_v16_source)
+        self.assertIn("weapon_geometry_changed\": False", self.render_v16_source)
+        self.assertNotIn("factory._new_action", self.render_v16_source)
+        self.assertNotIn("factory._cylinder_between", self.render_v16_source)
+        self.assertNotIn("scale.x = -1", self.render_v16_source)
 
     def test_active_launcher_and_workflow_use_v16_render_adapter(self) -> None:
         launcher = (self.tool_root / "run_blender_sprite_pilot.ps1").read_text(
