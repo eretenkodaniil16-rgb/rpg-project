@@ -183,12 +183,20 @@ func _run() -> void:
 	if not guard.is_in_group("combat_targets"):
 		_fail("Joined guard was not activated as a combat target.")
 		return
+	var visible_targets: Array = game.call("get_visible_targets_for_testing") as Array
 	var selected_before_cycle: Node = game.get("_selected_target") as Node
+	var current_visible_index: int = visible_targets.find(selected_before_cycle)
+	var expected_after_cycle: Node = null
+	if not visible_targets.is_empty():
+		if current_visible_index < 0:
+			expected_after_cycle = visible_targets[0] as Node
+		elif current_visible_index + 1 < visible_targets.size():
+			expected_after_cycle = visible_targets[current_visible_index + 1] as Node
 	target_button.emit_signal("pressed")
 	await process_frame
 	var selected_after_cycle: Node = game.get("_selected_target") as Node
-	if selected_after_cycle == null or selected_after_cycle == selected_before_cycle:
-		_fail("Upper-right target selector did not cycle between combat targets.")
+	if selected_after_cycle != expected_after_cycle:
+		_fail("Upper-right target selector did not follow the visible-target cycle contract.")
 		return
 	game.call("force_combat_join_check_for_testing")
 	var turn_system: Variant = game.get("_turn_system")
