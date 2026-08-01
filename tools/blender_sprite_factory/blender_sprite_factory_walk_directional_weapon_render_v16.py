@@ -24,6 +24,7 @@ from walk_directional_weapon_profile_v15 import (
 
 TWOHAND_RIGHT_RENDER_SCALE_FACTOR = 0.975
 RENDER_STAGE_ID = "walk_directional_weapon_render_v16"
+BASE_WRITE_RUN_MANIFEST = factory._write_run_manifest
 
 
 def _render_scale(
@@ -159,14 +160,20 @@ def _write_manifest_v16(
     artifacts: list[factory.FrameArtifact],
     contact_sheet: Path | None,
 ) -> Path:
-    manifest_path = previous_adapter._write_manifest_v15(
-        context,
-        run_dir,
-        run_id,
-        blend_path,
-        artifacts,
-        contact_sheet,
-    )
+    active_writer = factory._write_run_manifest
+    try:
+        factory._write_run_manifest = BASE_WRITE_RUN_MANIFEST
+        manifest_path = previous_adapter._write_manifest_v15(
+            context,
+            run_dir,
+            run_id,
+            blend_path,
+            artifacts,
+            contact_sheet,
+        )
+    finally:
+        factory._write_run_manifest = active_writer
+
     payload = json.loads(manifest_path.read_text(encoding="utf-8"))
     payload[RENDER_STAGE_ID] = {
         "adapter_path": context.config.relative_to_repo(SCRIPT_PATH),
@@ -179,6 +186,7 @@ def _write_manifest_v16(
         "weapon_geometry_changed": False,
         "materials_changed": False,
         "baseline_y_91_preserved": True,
+        "base_manifest_writer_restored": True,
         "manual_animation_review_required": True,
     }
     payload.setdefault("animation_contract", {}).update(
