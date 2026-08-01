@@ -45,7 +45,7 @@ jobs:
           test -n "$blender"
           echo "BLENDER_EXE=$blender" >> "$GITHUB_ENV"
 
-      - name: Render Blender 5.2 attack_sword_01 down key poses v19 pass 05
+      - name: Render Blender 5.2 attack_sword_01 down key poses v19 pass 06
         id: blender-attack
         continue-on-error: true
         shell: bash
@@ -56,7 +56,7 @@ jobs:
             --background \
             --factory-startup \
             --python-exit-code 1 \
-            --python tools/blender_sprite_factory/blender_sprite_factory_attack_sword_down_keyposes_v19_pass05.py \
+            --python tools/blender_sprite_factory/blender_sprite_factory_attack_sword_down_keyposes_v19_pass06.py \
             -- \
             --repo-root "$GITHUB_WORKSPACE" \
             --config tools/blender_sprite_factory/configs/human_warrior_m01.json \
@@ -67,7 +67,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: human_warrior_m01_proxy_v25_appearance_v03_attack_sword_01_down_keyposes_v19_pass05_${{ github.run_id }}_${{ github.run_attempt }}
+          name: human_warrior_m01_proxy_v25_appearance_v03_attack_sword_01_down_keyposes_v19_pass06_${{ github.run_id }}_${{ github.run_attempt }}
           path: |
             art/blender_pipeline_runs/human_warrior_m01/**
             blender_attack_keyposes_v19.log
@@ -77,5 +77,5 @@ jobs:
       - name: Require successful attack key-pose render
         if: steps.blender-attack.outcome != 'success'
         run: |
-          echo "Attack key-pose v19 pass05 render failed; inspect blender_attack_keyposes_v19.log in the uploaded artifact."
+          echo "Attack key-pose v19 pass06 render failed; inspect blender_attack_keyposes_v19.log in the uploaded artifact."
           exit 1
