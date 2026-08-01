@@ -26,6 +26,7 @@ const PERSISTED_GROUPS: Array[String] = [
 ]
 
 var _game: Node
+var _state: Node
 var _player: Node2D
 var _navigation: ObstacleAwareNpcNavigationSystem
 var _restored: bool = false
@@ -35,6 +36,7 @@ var _last_valid_positions: Dictionary = {}
 
 func _ready() -> void:
 	_game = get_parent()
+	_state = get_tree().root.get_node_or_null("GameState")
 	_player = get_tree().get_first_node_in_group("player") as Node2D
 	_navigation = NAVIGATION_SCRIPT.new() as ObstacleAwareNpcNavigationSystem
 	add_to_group("world_state_serializers")
@@ -47,6 +49,8 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if not is_instance_valid(_game):
 		return
+	if not is_instance_valid(_state):
+		_state = get_tree().root.get_node_or_null("GameState")
 	if not is_instance_valid(_player):
 		_player = get_tree().get_first_node_in_group("player") as Node2D
 	_install_navigation_backend()
@@ -174,7 +178,7 @@ func _install_navigation_backend() -> void:
 
 
 func _can_accept_exploration_pointer() -> bool:
-	if not is_instance_valid(_game) or not is_instance_valid(_player) or GameState.input_locked:
+	if not is_instance_valid(_game) or not is_instance_valid(_player) or not is_instance_valid(_state) or bool(_state.get("input_locked")):
 		return false
 	var turn_system_value: Variant = _game.get("_turn_system")
 	if turn_system_value is TurnBasedCombatSystem and (turn_system_value as TurnBasedCombatSystem).active:
@@ -198,9 +202,9 @@ func _restore_after_scene_ready() -> void:
 
 
 func _restore_world_snapshot() -> void:
-	if _restored or not GameState.has_method("get_world_snapshot"):
+	if _restored or not is_instance_valid(_state) or not _state.has_method("get_world_snapshot"):
 		return
-	var snapshot: Dictionary = GameState.call("get_world_snapshot") as Dictionary
+	var snapshot: Dictionary = _state.call("get_world_snapshot") as Dictionary
 	if snapshot.is_empty() or str(snapshot.get("location_id", "")) != WORLD_LOCATION_ID:
 		_restored = true
 		_initialize_valid_positions()
@@ -237,7 +241,7 @@ func _capture_actor(actor: Node) -> Dictionary:
 		if actor.is_in_group(group_id):
 			groups.append(group_id)
 	var actor_id: String = _actor_id(actor)
-	var alert: Dictionary = GameState.call("get_stealth_alert_record", actor_id) as Dictionary if GameState.has_method("get_stealth_alert_record") else {}
+	var alert: Dictionary = _state.call("get_stealth_alert_record", actor_id) as Dictionary if is_instance_valid(_state) and _state.has_method("get_stealth_alert_record") else {}
 	var result: Dictionary = {
 		"position": _vector_to_value(actor_node.global_position),
 		"facing": _vector_to_value(facing),
@@ -273,9 +277,9 @@ func _restore_actor(actor: Node, state: Dictionary) -> void:
 		actor.set("_body_state", str(state.get("body_state", "dead")))
 	var alert_value: Variant = state.get("alert_record", {})
 	var actor_id: String = _actor_id(actor)
-	if alert_value is Dictionary and not actor_id.is_empty() and GameState.has_method("set_stealth_alert_record"):
+	if alert_value is Dictionary and not actor_id.is_empty() and is_instance_valid(_state) and _state.has_method("set_stealth_alert_record"):
 		var alert: Dictionary = (alert_value as Dictionary).duplicate(true)
-		GameState.call("set_stealth_alert_record", actor_id, alert, false, false)
+		_state.call("set_stealth_alert_record", actor_id, alert, false, false)
 		var runtime_records_value: Variant = _game.get("_alert_records")
 		var runtime_records: Dictionary = runtime_records_value as Dictionary if runtime_records_value is Dictionary else {}
 		runtime_records[actor_id] = alert.duplicate(true)
@@ -306,7 +310,7 @@ func _restore_groups(actor: Node, stored: Array) -> void:
 
 
 func _update_visible_actor_movement(delta: float) -> void:
-	if not _restored or GameState.input_locked or not is_instance_valid(_player):
+	if not _restored or not is_instance_valid(_state) or bool(_state.get("input_locked")) or not is_instance_valid(_player):
 		return
 	var turn_system_value: Variant = _game.get("_turn_system")
 	if turn_system_value is TurnBasedCombatSystem and (turn_system_value as TurnBasedCombatSystem).active:
@@ -317,17 +321,17 @@ func _update_visible_actor_movement(delta: float) -> void:
 		if bool(actor.get("defeated")) or bool(actor.get("hostile")):
 			continue
 		var actor_id: String = str(actor.call("get_actor_id"))
-		var profile: Dictionary = GameState.call("get_stealth_profile", actor_id) as Dictionary if GameState.has_method("get_stealth_profile") else {}
+		var profile: Dictionary = _state.call("get_stealth_profile", actor_id) as Dictionary if _state.has_method("get_stealth_profile") else {}
 		if profile.is_empty() or not _game.has_method("_exploration_actor_can_see_player"):
 			continue
 		if not bool(_game.call("_exploration_actor_can_see_player", actor, profile)):
 			continue
-		var record: Dictionary = GameState.call("get_stealth_alert_record", actor_id) as Dictionary
-		var state: String = str(record.get("state", StealthAlertSystem.STATE_CALM))
+		var record: Dictionary = _state.call("get_stealth_alert_record", actor_id) as Dictionary
+		var state_name: String = str(record.get("state", StealthAlertSystem.STATE_CALM))
 		var updated: Dictionary = record
-		if state == StealthAlertSystem.STATE_CALM and _game.has_method("_advance_actor_patrol"):
+		if state_name == StealthAlertSystem.STATE_CALM and _game.has_method("_advance_actor_patrol"):
 			updated = _game.call("_advance_actor_patrol", actor, record, delta) as Dictionary
-		elif state in [StealthAlertSystem.STATE_SUSPICIOUS, StealthAlertSystem.STATE_INVESTIGATING, StealthAlertSystem.STATE_SEARCHING] and actor_id != "caretaker":
+		elif state_name in [StealthAlertSystem.STATE_SUSPICIOUS, StealthAlertSystem.STATE_INVESTIGATING, StealthAlertSystem.STATE_SEARCHING] and actor_id != "caretaker":
 			var actor_node: Node2D = actor as Node2D
 			var away: Vector2 = actor_node.global_position - _player.global_position
 			if away.length_squared() <= 0.0001:
@@ -347,7 +351,7 @@ func _update_visible_actor_movement(delta: float) -> void:
 			if direction.length_squared() > 0.0001 and actor.has_method("set_facing_direction"):
 				actor.call("set_facing_direction", direction)
 		if updated != record:
-			GameState.call("set_stealth_alert_record", actor_id, updated, false, false)
+			_state.call("set_stealth_alert_record", actor_id, updated, false, false)
 			var records_value: Variant = _game.get("_alert_records")
 			var records: Dictionary = records_value as Dictionary if records_value is Dictionary else {}
 			records[actor_id] = updated
