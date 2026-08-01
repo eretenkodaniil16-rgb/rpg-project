@@ -76,7 +76,7 @@ class CombatIdleDirectionalWeaponV12Tests(unittest.TestCase):
             self.adapter_source,
         )
 
-    def test_v12_is_artist_approved_static_source_for_v14(self) -> None:
+    def test_v12_is_artist_approved_weapon_source_for_active_v15(self) -> None:
         launcher = (self.tool_root / "run_blender_sprite_pilot.ps1").read_text(
             encoding="ascii"
         )
@@ -95,10 +95,10 @@ class CombatIdleDirectionalWeaponV12Tests(unittest.TestCase):
             workflow,
         )
         self.assertIn(
-            '$FactoryScript = Join-Path $ToolRoot "blender_sprite_factory_combat_idle_directional_cycles_v14.py"',
+            '$FactoryScript = Join-Path $ToolRoot "blender_sprite_factory_walk_directional_weapon_v15.py"',
             launcher,
         )
-        self.assertIn("render-combat-idle-directional-cycles-v14", workflow)
+        self.assertIn("render-walk-directional-weapon-v15", workflow)
 
     def test_unknown_character_is_rejected(self) -> None:
         with self.assertRaisesRegex(KeyError, "No combat idle directional weapon v12"):
