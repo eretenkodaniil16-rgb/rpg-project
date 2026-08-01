@@ -111,6 +111,7 @@ jobs:
   # render-combat-idle-directional-weapon-v13 (rejected: left frame touched canvas boundary)
   # render-combat-idle-directional-cycles-v14 (artist-approved four-direction combat idle cycles)
   # render-walk-directional-weapon-v15 (48-frame animation source; two-hand right tip exceeded canvas)
+  # render-walk-directional-weapon-v16 (artist-approved safe framing)
   # historical adapters remain reproducible as separate files
   render-walk-directional-weapon-v16:
     if: github.event_name == 'pull_request' && github.head_ref == 'tools/blender-sprite-pilot'
@@ -176,4 +177,70 @@ jobs:
         if: steps.blender-pilot.outcome != 'success'
         run: |
           echo "Blender sprite pilot failed; inspect blender_pilot.log in the uploaded artifact."
+          exit 1
+
+  render-attack-sword-down-keyposes-v17:
+    if: github.event_name == 'pull_request' && github.head_ref == 'tools/human-warrior-attack-sword-down-keyposes-v17'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install headless render dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xvfb libgl1 libxi6 libxrender1 libxkbcommon-x11-0
+
+      - name: Download and verify Blender 5.2.0 LTS
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/blender-5.2.0-linux-x64.tar.xz"
+          extract="$RUNNER_TEMP/blender-5.2.0"
+          curl -L --fail --retry 3 --output "$archive" \
+            "https://download.blender.org/release/Blender5.2/blender-5.2.0-linux-x64.tar.xz"
+          actual="$(sha256sum "$archive" | cut -d' ' -f1)"
+          expected="96f6c181a30f4950607839dc84d42a354b250d8a0231b098b59b7bc69c351c48"
+          test "$actual" = "$expected"
+          mkdir -p "$extract"
+          tar -xJf "$archive" -C "$extract"
+          blender="$(find "$extract" -type f -name blender -perm -111 | head -n 1)"
+          test -n "$blender"
+          echo "BLENDER_EXE=$blender" >> "$GITHUB_ENV"
+
+      - name: Render Blender 5.2 attack_sword_01 down key poses v17
+        id: blender-attack
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          run_id="${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}"
+          xvfb-run -a "$BLENDER_EXE" \
+            --background \
+            --factory-startup \
+            --python-exit-code 1 \
+            --python tools/blender_sprite_factory/blender_sprite_factory_attack_sword_down_keyposes_v17.py \
+            -- \
+            --repo-root "$GITHUB_WORKSPACE" \
+            --config tools/blender_sprite_factory/configs/human_warrior_m01.json \
+            --run-id "$run_id" \
+            --mode all 2>&1 | tee blender_attack_keyposes.log
+
+      - name: Upload ten attack key poses and source blend
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: human_warrior_m01_proxy_v25_appearance_v03_attack_sword_01_down_keyposes_v17_${{ github.run_id }}_${{ github.run_attempt }}
+          path: |
+            art/blender_pipeline_runs/human_warrior_m01/**
+            blender_attack_keyposes.log
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Require successful attack key-pose render
+        if: steps.blender-attack.outcome != 'success'
+        run: |
+          echo "Attack key-pose render failed; inspect blender_attack_keyposes.log in the uploaded artifact."
           exit 1
