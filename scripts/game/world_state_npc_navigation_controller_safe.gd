@@ -2,6 +2,14 @@ class_name SafeWorldStateNpcNavigationController
 extends WorldStateNpcNavigationController
 
 
+func _process(delta: float) -> void:
+	if not is_instance_valid(_state):
+		_state = get_tree().root.get_node_or_null("GameState")
+	if is_instance_valid(_state) and bool(_state.get("input_locked")):
+		return
+	super._process(delta)
+
+
 func capture_world_state_for_save() -> Dictionary:
 	var snapshot: Dictionary = super.capture_world_state_for_save()
 	var doors_value: Variant = snapshot.get("doors", {})
