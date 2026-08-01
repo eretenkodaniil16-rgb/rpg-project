@@ -3,6 +3,7 @@ extends SceneTree
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
 const EXPECTED_RUNTIME: String = "res://scripts/game/game_guard_post_two_room_runtime.gd"
 const DOOR_BLOCKER_ID: String = "west_service_door_blocker"
+const WORLD_ACTION_PREFIX: String = "world_interact__"
 
 
 func _init() -> void:
@@ -51,6 +52,7 @@ func _run() -> void:
 	if guard == null or marksman == null or mage == null or door == null:
 		_fail("Guard-post actors or west service door are missing.")
 		return
+	var door_action_id: String = "%s%d" % [WORLD_ACTION_PREFIX, door.get_instance_id()]
 
 	if combat_message.offset_top > 520.0 or combat_message.z_index <= catalog_ui.z_index:
 		_fail("Command message is not positioned above the action catalog.")
@@ -117,14 +119,14 @@ func _run() -> void:
 		return
 	game.call("_refresh_action_catalog")
 	await process_frame
-	var world_entry: Dictionary = _find_action(catalog_ui.get_entries_for_testing(), "world_interact")
+	var world_entry: Dictionary = _find_action(catalog_ui.get_entries_for_testing(), door_action_id)
 	if world_entry.is_empty() or not bool(world_entry.get("enabled", false)) or str(world_entry.get("label", "")) != "ОТКРЫТЬ ДВЕРЬ":
-		_fail("Door cannot be opened through the real mobile action catalog.")
+		_fail("Door cannot be opened through its specific mobile action-catalog entry.")
 		return
-	catalog_ui.action_requested.emit("world_interact")
+	catalog_ui.call("_emit_action", door_action_id, str(world_entry.get("description", "")), true)
 	await process_frame
 	if str(door.call("get_door_state")) != "open" or environment.is_transition_blocked(grid, left_cell, right_cell):
-		_fail("Catalog world action did not open the door edge.")
+		_fail("Door-specific catalog action did not open the door edge.")
 		return
 	if bool(door.call("can_perform_world_interaction")):
 		_fail("Object interaction was not consumed for the current turn.")
@@ -145,11 +147,11 @@ func _run() -> void:
 		await process_frame
 	game.call("_refresh_action_catalog")
 	await process_frame
-	world_entry = _find_action(catalog_ui.get_entries_for_testing(), "world_interact")
+	world_entry = _find_action(catalog_ui.get_entries_for_testing(), door_action_id)
 	if world_entry.is_empty() or not bool(world_entry.get("enabled", false)) or str(world_entry.get("label", "")) != "ЗАКРЫТЬ ДВЕРЬ":
-		_fail("Door cannot be closed from the opposite adjacent cell.")
+		_fail("Door cannot be closed from the opposite adjacent cell through its own entry.")
 		return
-	catalog_ui.action_requested.emit("world_interact")
+	catalog_ui.call("_emit_action", door_action_id, str(world_entry.get("description", "")), true)
 	await process_frame
 	if str(door.call("get_door_state")) != "closed" or not environment.is_transition_blocked(grid, left_cell, right_cell):
 		_fail("Reclosed door did not restore the blocked edge.")
@@ -187,7 +189,7 @@ func _run() -> void:
 	await process_frame
 	if FileAccess.file_exists(save_path):
 		DirAccess.remove_absolute(save_path)
-	print("First-room isolation, two-sided door interaction, layered messages and dying-turn recovery passed.")
+	print("First-room isolation, addressable two-sided door interaction, layered messages and dying-turn recovery passed.")
 	quit(0)
 
 
