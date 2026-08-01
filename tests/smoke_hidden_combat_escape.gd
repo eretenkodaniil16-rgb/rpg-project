@@ -3,6 +3,7 @@ extends SceneTree
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
 const RUNTIME_PATH: String = "res://scripts/game/game_guard_post_polish_runtime.gd"
 const ENCOUNTER_ID: String = "training_construct"
+const AUTOSAVE_PATH: String = "user://save_slots/autosave.json"
 
 var _failed: bool = false
 
@@ -22,7 +23,7 @@ func _run() -> void:
 	if state == null or not state.has_method("abandon_encounter"):
 		_fail("Encounter-aware GameState is missing.")
 		return
-	var save_path: String = ProjectSettings.globalize_path("user://savegame.json")
+	var save_path: String = ProjectSettings.globalize_path(AUTOSAVE_PATH)
 	if FileAccess.file_exists(save_path):
 		DirAccess.remove_absolute(save_path)
 	state.call("new_game")
@@ -266,7 +267,7 @@ func _test_persistence(state: Node, save_path: String) -> void:
 		_fail("Persistent alert flag was not preserved.")
 		return
 	if not FileAccess.file_exists(save_path):
-		_fail("Save file disappeared during persistence test.")
+		_fail("Autosave v6 disappeared during persistence test.")
 
 
 func _make_hero() -> PlayerCharacter:
