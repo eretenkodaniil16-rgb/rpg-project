@@ -15,6 +15,7 @@ var _inner_ai_turn_completed: Dictionary = {}
 var _peaceful_cleanup_applied: bool = false
 var _pause_save_menu: GamePauseSaveMenu
 var _defeat_transition_running: bool = false
+var _allow_hidden_combat_trigger: bool = false
 
 
 func _ready() -> void:
@@ -53,41 +54,18 @@ func _any_overlay_visible() -> bool:
 
 
 func _target_is_valid(target: Node) -> bool:
-	return super._target_is_valid(target) and _target_is_visible_to_player(target)
+	return super._target_is_valid(target) and (
+		_allow_hidden_combat_trigger or _target_is_visible_to_player(target)
+	)
 
 
 func _start_turn_based_combat(trigger_target: Node) -> void:
-	# Visibility constrains what the player may select or attack, not whether an
-	# already alerted pursuer remains a valid combat participant outside the
-	# hero's current field of view.
-	if _turn_system.active or not _combat_actor_is_active(trigger_target):
-		return
-	if trigger_target.has_method("enter_combat_hostile"):
-		trigger_target.call("enter_combat_hostile")
-	var opponents: Array[Node] = []
-	for target: Node in _available_targets():
-		var include_target: bool = target == trigger_target
-		if target.has_method("is_hostile") and bool(target.call("is_hostile")):
-			include_target = true
-		if include_target and not opponents.has(target):
-			opponents.append(target)
-	if opponents.is_empty():
-		return
-	_snap_combatants_to_cells()
-	_turn_system.start_combat(player, opponents, GameState.player_character.get_ability_modifier("dexterity"))
-	if player.has_method("set_turn_based_mode"):
-		player.call("set_turn_based_mode", true)
-	show_combat_message("Начинается пошаговый бой. Инициатива определила порядок ходов.", true)
-	_begin_current_turn()
-
-
-func _combat_actor_is_active(target: Node) -> bool:
-	return (
-		is_instance_valid(target)
-		and target is Node2D
-		and target.has_method("is_combat_active")
-		and bool(target.call("is_combat_active"))
-	)
+	# Preserve the full inherited combat/encounter pipeline. Visibility constrains
+	# player targeting, but an already alerted pursuer may initiate combat while
+	# outside the hero's current field of view.
+	_allow_hidden_combat_trigger = true
+	super._start_turn_based_combat(trigger_target)
+	_allow_hidden_combat_trigger = false
 
 
 func _cycle_target() -> void:
