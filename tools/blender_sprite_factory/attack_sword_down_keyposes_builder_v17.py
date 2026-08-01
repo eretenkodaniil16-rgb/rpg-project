@@ -59,7 +59,7 @@ def _value_pairs(
     base_value: float,
 ) -> list[tuple[int, float]]:
     return [
-        (int(pose.frame), float(base_value) + float(getattr(pose, attribute)))
+        (int(pose.frame), float(base_value) + float(getattr(pose, attribute, 0.0)))
         for pose in poses
     ]
 
@@ -73,7 +73,9 @@ def _degree_pairs(
     return [
         (
             int(pose.frame),
-            math.radians(float(base_degrees) + float(getattr(pose, attribute))),
+            math.radians(
+                float(base_degrees) + float(getattr(pose, attribute, 0.0))
+            ),
         )
         for pose in poses
     ]
@@ -176,6 +178,11 @@ def _attack_channels(
                 "upper_arm_left_x_degrees",
                 base_degrees=base.upper_arm_left_x_degrees,
             ),
+            1: _degree_pairs(
+                poses,
+                "upper_arm_left_y_degrees",
+                base_degrees=0.0,
+            ),
             2: _degree_pairs(
                 poses,
                 "upper_arm_left_z_degrees",
@@ -187,6 +194,11 @@ def _attack_channels(
                 poses,
                 "forearm_left_x_degrees",
                 base_degrees=base.forearm_left_x_degrees,
+            ),
+            1: _degree_pairs(
+                poses,
+                "forearm_left_y_degrees",
+                base_degrees=0.0,
             ),
             2: _degree_pairs(
                 poses,
@@ -200,6 +212,11 @@ def _attack_channels(
                 "hand_left_x_degrees",
                 base_degrees=stance.hand_left_x_degrees,
             ),
+            1: _degree_pairs(
+                poses,
+                "hand_left_y_degrees",
+                base_degrees=0.0,
+            ),
             2: _degree_pairs(
                 poses,
                 "hand_left_z_degrees",
@@ -211,6 +228,11 @@ def _attack_channels(
                 poses,
                 "upper_arm_right_x_degrees",
                 base_degrees=base.upper_arm_right_x_degrees,
+            ),
+            1: _degree_pairs(
+                poses,
+                "upper_arm_right_y_degrees",
+                base_degrees=0.0,
             ),
             2: _degree_pairs(
                 poses,
@@ -224,6 +246,11 @@ def _attack_channels(
                 "forearm_right_x_degrees",
                 base_degrees=base.forearm_right_x_degrees,
             ),
+            1: _degree_pairs(
+                poses,
+                "forearm_right_y_degrees",
+                base_degrees=0.0,
+            ),
             2: _degree_pairs(
                 poses,
                 "forearm_right_z_degrees",
@@ -235,6 +262,11 @@ def _attack_channels(
                 poses,
                 "hand_right_x_degrees",
                 base_degrees=base.hand_right_x_degrees,
+            ),
+            1: _degree_pairs(
+                poses,
+                "hand_right_y_degrees",
+                base_degrees=0.0,
             ),
             2: _degree_pairs(
                 poses,
