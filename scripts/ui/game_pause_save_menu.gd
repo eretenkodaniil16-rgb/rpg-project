@@ -25,8 +25,12 @@ func toggle_menu() -> void:
 
 
 func open_menu() -> void:
-	_was_input_locked = GameState.input_locked
-	GameState.input_locked = true
+	var state: Node = _game_state()
+	if state == null:
+		push_error("GameState autoload is unavailable to the pause menu.")
+		return
+	_was_input_locked = bool(state.get("input_locked"))
+	state.set("input_locked", true)
 	_menu_panel.show()
 	_save_slots_panel.hide()
 	show()
@@ -36,7 +40,9 @@ func close_menu() -> void:
 	if not visible:
 		return
 	hide()
-	GameState.input_locked = _was_input_locked
+	var state: Node = _game_state()
+	if state != null:
+		state.set("input_locked", _was_input_locked)
 	menu_closed.emit()
 
 
@@ -118,5 +124,11 @@ func _on_save_panel_closed() -> void:
 
 
 func _request_main_menu() -> void:
-	GameState.save_game()
+	var state: Node = _game_state()
+	if state != null:
+		state.call("save_game")
 	main_menu_requested.emit()
+
+
+func _game_state() -> Node:
+	return get_node_or_null("/root/GameState")
