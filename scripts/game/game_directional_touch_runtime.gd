@@ -19,6 +19,28 @@ func _unhandled_input(event: InputEvent) -> void:
 	super._unhandled_input(event)
 
 
+func can_capture_stable_world_state() -> bool:
+	return (
+		not _turn_system.active
+		and not _movement_execution_running
+		and not _attack_in_progress
+		and not _enemy_turn_running
+		and not _jump_in_progress
+	)
+
+
+func _restore_actor_state(actor: Node, state: Dictionary) -> void:
+	super._restore_actor_state(actor, state)
+	if not is_instance_valid(actor) or not bool(state.get("defeated", false)):
+		return
+	if state.has("body_state"):
+		actor.set("_body_state", str(state.get("body_state", "dead")))
+	if actor.has_method("_apply_body_groups"):
+		actor.call("_apply_body_groups")
+	if actor.has_method("_update_combat_visuals"):
+		actor.call("_update_combat_visuals")
+
+
 func plan_exploration_path_to_world_for_testing(world_position: Vector2) -> Array[Vector2]:
 	return _build_exploration_world_path(world_position)
 
