@@ -44,7 +44,11 @@ func _ready() -> void:
 	_inner_gate.door_label = "Внутренняя дверь караульного поста"
 	_inner_gate.door_size = INNER_GATE_SIZE
 	add_child(_inner_gate)
-	_inner_gate.set_door_state("open" if _inner_gate_should_start_open() else "locked", false)
+	# StealthDoor._ready() restores the registered state. Only an explicit story
+	# unlock may override it; forcing "locked" here would erase a loaded manual
+	# save that intentionally stored the gate as closed, open or broken.
+	if _inner_gate_should_start_open():
+		_inner_gate.set_door_state("open", false)
 	_apply_persisted_inner_watch_mode()
 	queue_redraw()
 
