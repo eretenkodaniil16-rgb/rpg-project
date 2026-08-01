@@ -24,7 +24,8 @@ $RepoRoot = (Resolve-Path (Join-Path $ToolRoot "..\..")).Path
 # Artist-approved directional source: blender_sprite_factory_combat_idle_directional_weapon_v12.py
 # Rejected boundary-touch experiment: blender_sprite_factory_combat_idle_directional_weapon_v13.py
 # Artist-approved directional combat idle cycles: blender_sprite_factory_combat_idle_directional_cycles_v14.py
-$FactoryScript = Join-Path $ToolRoot "blender_sprite_factory_walk_directional_weapon_v15.py"
+# Armed walk animation actions: blender_sprite_factory_walk_directional_weapon_v15.py
+$FactoryScript = Join-Path $ToolRoot "blender_sprite_factory_walk_directional_weapon_render_v16.py"
 $FactoryConfig = Join-Path $ToolRoot "configs\human_warrior_m01.json"
 
 function Resolve-BlenderExecutable {
