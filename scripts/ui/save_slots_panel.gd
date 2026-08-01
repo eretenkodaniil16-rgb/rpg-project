@@ -107,13 +107,19 @@ func _refresh_slots() -> void:
 	for child: Node in _slots_container.get_children():
 		child.queue_free()
 
+	var state: Node = _game_state()
+	if state == null:
+		_status_label.text = "Система сохранений недоступна."
+		return
 	if _mode == MODE_LOAD:
-		var autosave_entry: Dictionary = GameState.get_autosave_entry()
+		var autosave_entry: Dictionary = state.call("get_autosave_entry") as Dictionary
 		if bool(autosave_entry.get("exists", false)):
 			_add_slot_button(autosave_entry, true)
 
-	for entry: Dictionary in GameState.list_manual_save_slots():
-		_add_slot_button(entry, false)
+	var manual_entries: Array = state.call("list_manual_save_slots") as Array
+	for entry_value: Variant in manual_entries:
+		if entry_value is Dictionary:
+			_add_slot_button(entry_value as Dictionary, false)
 
 
 func _add_slot_button(entry: Dictionary, is_autosave: bool) -> void:
@@ -131,13 +137,17 @@ func _add_slot_button(entry: Dictionary, is_autosave: bool) -> void:
 
 
 func _on_slot_pressed(kind: String, slot_id: int) -> void:
+	var state: Node = _game_state()
+	if state == null:
+		_status_label.text = "Система сохранений недоступна."
+		return
 	if _mode == MODE_LOAD:
-		var loaded: bool = GameState.load_autosave() if kind == SaveSlotSystem.AUTOSAVE_ID else GameState.load_manual_slot(slot_id)
+		var loaded: bool = bool(state.call("load_autosave")) if kind == SaveSlotSystem.AUTOSAVE_ID else bool(state.call("load_manual_slot", slot_id))
 		_status_label.text = "Сохранение загружено." if loaded else "Не удалось загрузить выбранный файл."
 		load_completed.emit(loaded, kind, slot_id)
 		return
 
-	var saved: bool = GameState.save_manual_slot(slot_id)
+	var saved: bool = bool(state.call("save_manual_slot", slot_id))
 	_status_label.text = "Игра сохранена в ячейку %d." % slot_id if saved else "Не удалось сохранить игру."
 	_refresh_slots()
 	save_completed.emit(saved, slot_id)
@@ -178,3 +188,7 @@ func _format_timestamp(unix_time: int) -> String:
 		int(value.get("hour", 0)),
 		int(value.get("minute", 0))
 	]
+
+
+func _game_state() -> Node:
+	return get_node_or_null("/root/GameState")
