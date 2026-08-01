@@ -3,6 +3,8 @@ param(
     [string]$BlenderExe = "",
     [ValidateSet("all", "build")]
     [string]$Mode = "all",
+    [ValidateSet("walk_v16", "attack_down_keyposes_v17")]
+    [string]$Stage = "walk_v16",
     [string]$RunId = ""
 )
 
@@ -26,6 +28,11 @@ $RepoRoot = (Resolve-Path (Join-Path $ToolRoot "..\..")).Path
 # Artist-approved directional combat idle cycles: blender_sprite_factory_combat_idle_directional_cycles_v14.py
 # Armed walk animation actions: blender_sprite_factory_walk_directional_weapon_v15.py
 $FactoryScript = Join-Path $ToolRoot "blender_sprite_factory_walk_directional_weapon_render_v16.py"
+$ReviewFile = "walk_directional_weapon_v15.png"
+if ($Stage -eq "attack_down_keyposes_v17") {
+    $FactoryScript = Join-Path $ToolRoot "blender_sprite_factory_attack_sword_down_keyposes_v17.py"
+    $ReviewFile = "attack_sword_01_down_keyposes_v17.png"
+}
 $FactoryConfig = Join-Path $ToolRoot "configs\human_warrior_m01.json"
 
 function Resolve-BlenderExecutable {
@@ -85,6 +92,7 @@ if (-not $RunId) {
 
 Write-Host "Blender: $ResolvedBlender"
 Write-Host "Mode: $Mode"
+Write-Host "Stage: $Stage"
 Write-Host "Run ID: $RunId"
 
 & $ResolvedBlender `
@@ -105,4 +113,4 @@ if ($LASTEXITCODE -ne 0) {
 $ResultRoot = Join-Path $RepoRoot "art\blender_pipeline_runs\human_warrior_m01\$RunId"
 Write-Host ""
 Write-Host "Completed: $ResultRoot"
-Write-Host "Review walk_directional_weapon_v15.png and the generated .blend file in source."
+Write-Host "Review $ReviewFile and the generated .blend file in source."
