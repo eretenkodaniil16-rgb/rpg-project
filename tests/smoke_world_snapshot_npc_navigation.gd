@@ -218,15 +218,17 @@ func _run() -> void:
 		_fail("Hero facing direction was not restored from the manual save.")
 		return
 
-	# Active initiative remains intentionally non-serializable.
+	# Active initiative remains intentionally non-serializable. Starting combat
+	# may create a valid pre-combat checkpoint, so verify the rejected save is
+	# side-effect-free from the moment active initiative actually exists.
 	state.set("input_locked", false)
-	var stable_snapshot_before_combat: Dictionary = state.call("get_world_snapshot") as Dictionary
 	restored_game.call("_start_turn_based_combat", restored_guard)
 	await process_frame
+	var stable_snapshot_before_rejected_save: Dictionary = state.call("get_world_snapshot") as Dictionary
 	if bool(state.call("save_game")):
 		_fail("Autosave accepted an unstable active-combat world snapshot.")
 		return
-	if (state.call("get_world_snapshot") as Dictionary) != stable_snapshot_before_combat:
+	if (state.call("get_world_snapshot") as Dictionary) != stable_snapshot_before_rejected_save:
 		_fail("Rejected combat autosave still changed the stable world snapshot.")
 		return
 
