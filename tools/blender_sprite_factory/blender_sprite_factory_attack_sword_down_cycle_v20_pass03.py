@@ -54,7 +54,7 @@ def _projected_min_x(objects: tuple[object, ...]) -> float:
         )
         for point in points:
             found = True
-            minimum = min(minimum, float(point.x))
+            minimum = min(minimum, float(point[0]))
     if not found or not math.isfinite(minimum):
         raise RuntimeError("attack sword down v20 pass03 could not project weapon")
     return minimum
