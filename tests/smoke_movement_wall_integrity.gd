@@ -1,7 +1,7 @@
 extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
-const EXPECTED_RUNTIME: String = "res://scripts/game/game_squad_tactical_plans_runtime.gd"
+const EXPECTED_RUNTIME: String = "res://scripts/game/game_guard_post_two_room_runtime.gd"
 const TOP_WALL_ID: String = "west_partition_top"
 const BOTTOM_WALL_ID: String = "west_partition_bottom"
 const DOOR_BLOCKER_ID: String = "west_service_door_blocker"
@@ -28,16 +28,16 @@ func _run() -> void:
 		return
 	var game: Node = packed.instantiate()
 	root.add_child(game)
-	for _frame: int in range(30):
+	for _frame: int in range(35):
 		await process_frame
 	var game_script: Script = game.get_script() as Script
 	if game_script == null or game_script.resource_path != EXPECTED_RUNTIME:
-		_fail("Game scene does not use squad tactical runtime.")
+		_fail("Game scene does not use the two-room tactical runtime.")
 		return
 	game.set_process(false)
 
 	var grid: BattleGrid = game.call("_get_battle_grid") as BattleGrid
-	var environment: CombatEnvironment = game.get_tree().get_first_node_in_group("combat_environment") as CombatEnvironment
+	var environment: CombatEnvironment = get_first_node_in_group("combat_environment") as CombatEnvironment
 	var room: Node = game.get_node_or_null("StealthTestRoom")
 	var player: Node2D = game.get_node_or_null("Player") as Node2D
 	if grid == null or environment == null or room == null or player == null:
@@ -50,18 +50,21 @@ func _run() -> void:
 	var marksman: Node2D = room.call("get_training_marksman") as Node2D
 	var mage: Node2D = room.call("get_training_mage") as Node2D
 	if top_wall == null or bottom_wall == null or door == null or guard == null or marksman == null or mage == null:
-		_fail("Walls, door or visible tactical squad are missing.")
+		_fail("Walls, door or tactical actors are missing.")
 		return
 
 	for actor: Node2D in [marksman, mage]:
-		if not actor.visible or not actor.is_in_group("combat_targets"):
-			_fail("Training role is not visible or selectable: %s" % actor.name)
+		if not actor.visible:
+			_fail("Second-room role is not visible: %s" % actor.name)
+			return
+		if actor.is_in_group("combat_targets"):
+			_fail("Second-room role is targetable through the sealed room: %s" % actor.name)
 			return
 		if actor.has_method("is_hostile") and bool(actor.call("is_hostile")):
-			_fail("Dormant training role became hostile before provocation: %s" % actor.name)
+			_fail("Second-room role became hostile before entry: %s" % actor.name)
 			return
 		if actor.is_in_group("stealth_alert_actors"):
-			_fail("Dormant training role affects exploration stealth: %s" % actor.name)
+			_fail("Sealed second-room role affects first-room stealth: %s" % actor.name)
 			return
 
 	if not _is_on_vertical_grid_edge(grid, top_wall.global_position.x):
@@ -181,21 +184,21 @@ func _run() -> void:
 		_fail("Explicitly jumpable low barricade lost its legal jump.")
 		return
 
-	marksman.call("enter_combat_hostile")
+	room.call("activate_inner_watch_combat")
 	await process_frame
 	for actor: Node2D in [marksman, mage]:
 		if actor.has_method("is_hostile") and not bool(actor.call("is_hostile")):
-			_fail("Provocation did not activate the tactical squad: %s" % actor.name)
+			_fail("Inner-room activation did not make the tactical role hostile: %s" % actor.name)
 			return
-		if not actor.is_in_group("stealth_alert_actors"):
-			_fail("Active tactical role did not join alert perception: %s" % actor.name)
+		if not actor.is_in_group("stealth_alert_actors") or not actor.is_in_group("combat_targets"):
+			_fail("Active inner-room role did not join perception and targeting: %s" % actor.name)
 			return
 
 	game.queue_free()
 	await process_frame
 	if FileAccess.file_exists(save_path):
 		DirAccess.remove_absolute(save_path)
-	print("Cell-edge walls, two-sided door traversal, jump restrictions and AI path parity passed.")
+	print("Cell-edge walls, two-sided door traversal, jump restrictions, AI path parity and sealed inner roles passed.")
 	quit(0)
 
 

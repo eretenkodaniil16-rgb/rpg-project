@@ -1,7 +1,7 @@
 extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
-const RUNTIME_PATH: String = "res://scripts/game/game_squad_tactical_plans_runtime.gd"
+const RUNTIME_PATH: String = "res://scripts/game/game_guard_post_two_room_runtime.gd"
 const ENCOUNTER_ID: String = "training_construct"
 
 var _failed: bool = false
@@ -63,7 +63,7 @@ func _run() -> void:
 	await process_frame
 	if FileAccess.file_exists(save_path):
 		DirAccess.remove_absolute(save_path)
-	print("Deep hideout, last-seen pursuit, trail tracking, room transition, re-hide and multi-observer escape smoke test passed.")
+	print("Deep hideout, last-seen pursuit, trail tracking, room transition, re-hide and two-observer escape smoke test passed.")
 	quit(0)
 
 
@@ -103,14 +103,14 @@ func _test_hideout_route(
 		_fail("The deep hideout did not become the active objective.")
 		return
 	var observers: Array[Node] = _active_enemy_observers(game)
-	if observers.size() < 3:
-		_fail("The linked tactical squad did not join the pursuit search.")
+	if observers.size() < 2:
+		_fail("Caretaker and service guard did not both join the pursuit search.")
 		return
 	if _resolve_failed_search_sweep(game, observers):
 		_fail("One failed search sweep ended the encounter too early.")
 		return
 	if not _resolve_failed_search_sweep(game, observers):
-		_fail("Two failed search sweeps by every active enemy did not complete the hideout escape.")
+		_fail("Two failed search sweeps by every active first-room enemy did not complete the hideout escape.")
 		return
 	await process_frame
 	if str(state.call("get_encounter_status", ENCOUNTER_ID)) != EncounterSystem.STATUS_ABANDONED:
@@ -162,11 +162,14 @@ func _test_room_route(
 		_fail("Successful tracking did not change the enemy state.")
 		return
 	var observers: Array[Node] = _active_enemy_observers(game)
+	if observers.size() < 2:
+		_fail("Both first-room observers were not available for the second escape attempt.")
+		return
 	if _resolve_failed_search_sweep(game, observers):
 		_fail("One failed search sweep after tracking ended the encounter too early.")
 		return
 	if not _resolve_failed_search_sweep(game, observers):
-		_fail("The complete enemy squad did not lose the trail after two failed sweeps.")
+		_fail("The active first-room observers did not lose the trail after two failed sweeps.")
 		return
 	await process_frame
 	if str(state.call("get_encounter_status", ENCOUNTER_ID)) != EncounterSystem.STATUS_ABANDONED:

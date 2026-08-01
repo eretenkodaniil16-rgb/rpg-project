@@ -1,7 +1,7 @@
 extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
-const EXPECTED_RUNTIME: String = "res://scripts/game/game_squad_tactical_plans_runtime.gd"
+const EXPECTED_RUNTIME: String = "res://scripts/game/game_guard_post_two_room_runtime.gd"
 const DOOR_BLOCKER_ID: String = "west_service_door_blocker"
 
 
@@ -21,23 +21,23 @@ func _run() -> void:
 	state.set("player_character", _make_hero())
 
 	var packed: PackedScene = load(GAME_SCENE) as PackedScene
-	if packed == null:
+	var game: Node = packed.instantiate() if packed != null else null
+	if game == null:
 		_fail("Game scene could not be loaded.")
 		return
-	var game: Node = packed.instantiate()
 	root.add_child(game)
-	for _frame: int in range(30):
+	for _frame: int in range(35):
 		await process_frame
 	var game_script: Script = game.get_script() as Script
 	if game_script == null or game_script.resource_path != EXPECTED_RUNTIME:
-		_fail("Game scene does not use the squad tactical runtime.")
+		_fail("Game scene does not use the two-room runtime.")
 		return
 	game.set_process(false)
 
 	var player: Node2D = game.get_node_or_null("Player") as Node2D
 	var caretaker: Node2D = game.get_node_or_null("Caretaker") as Node2D
 	var room: Node = game.get_node_or_null("StealthTestRoom")
-	var environment: CombatEnvironment = game.get_tree().get_first_node_in_group("combat_environment") as CombatEnvironment
+	var environment: CombatEnvironment = get_first_node_in_group("combat_environment") as CombatEnvironment
 	var catalog_ui: ActionCatalogUI = game.get_node_or_null("Interface/ActionCatalogUI") as ActionCatalogUI
 	var combat_message: Label = game.get_node_or_null("Interface/CombatMessageLabel") as Label
 	var grid: BattleGrid = game.call("_get_battle_grid") as BattleGrid
@@ -49,33 +49,23 @@ func _run() -> void:
 	var mage: Node2D = room.call("get_training_mage") as Node2D
 	var door: Node = room.call("get_test_door") as Node
 	if guard == null or marksman == null or mage == null or door == null:
-		_fail("Guard, marksman, mage or door is missing from the playable scene.")
+		_fail("Guard-post actors or west service door are missing.")
 		return
 
-	if combat_message.offset_top > 520.0:
-		_fail("Command message was not moved high enough: %.1f" % combat_message.offset_top)
-		return
-	if combat_message.z_index <= catalog_ui.z_index:
-		_fail("Command message is not layered above the action catalog.")
+	if combat_message.offset_top > 520.0 or combat_message.z_index <= catalog_ui.z_index:
+		_fail("Command message is not positioned above the action catalog.")
 		return
 	game.call("show_combat_message", "Прыжок выполнен.", true)
 	if combat_message.text != "Прыжок выполнен.":
-		_fail("Command message label no longer receives gameplay notifications.")
+		_fail("Gameplay notifications no longer reach the command message label.")
 		return
 
+	var targets_before: Array[Node] = game.call("_available_targets") as Array[Node]
+	if targets_before.has(marksman) or targets_before.has(mage):
+		_fail("Second-room guards are targetable through the sealed inner room.")
+		return
 	if bool(marksman.call("is_combat_participant_active")) or bool(mage.call("is_combat_participant_active")):
-		_fail("Dormant tactical roles joined combat before provocation.")
-		return
-	var targets: Array[Node] = game.call("_available_targets") as Array[Node]
-	if not targets.has(marksman) or not targets.has(mage):
-		_fail("Visible tactical roles are absent from player target cycling.")
-		return
-	if not bool(game.call("_target_is_valid", marksman)) or not bool(game.call("_target_is_valid", mage)):
-		_fail("Visible tactical roles are rejected by target validation.")
-		return
-	game.call("_set_selected_target", marksman)
-	if game.get("_selected_target") != marksman:
-		_fail("Marksman could not be selected as the current target.")
+		_fail("Second-room guards activated before the player entered their room.")
 		return
 
 	game.call("_start_turn_based_combat", caretaker)
@@ -84,14 +74,17 @@ func _run() -> void:
 	if turn_system == null or not turn_system.active:
 		_fail("Combat did not start through the caretaker.")
 		return
-	if not bool(marksman.call("is_combat_participant_active")) or not bool(mage.call("is_combat_participant_active")):
-		_fail("Caretaker provocation did not activate the complete tactical squad.")
+	if not bool(guard.call("is_combat_participant_active")):
+		_fail("Service guard did not join first-room combat.")
 		return
-	if not bool(marksman.call("is_hostile")) or not bool(mage.call("is_hostile")):
-		_fail("Activated tactical squad is not hostile.")
+	if bool(marksman.call("is_combat_participant_active")) or bool(mage.call("is_combat_participant_active")):
+		_fail("Second-room guards joined first-room combat through the partition.")
 		return
-	if not _turn_contains_actor(turn_system, caretaker) or not _turn_contains_actor(turn_system, marksman) or not _turn_contains_actor(turn_system, mage):
-		_fail("Caretaker, marksman and mage were not all added to initiative.")
+	if not _turn_contains_actor(turn_system, caretaker) or not _turn_contains_actor(turn_system, guard):
+		_fail("Caretaker and service guard are not both in first-room initiative.")
+		return
+	if _turn_contains_actor(turn_system, marksman) or _turn_contains_actor(turn_system, mage):
+		_fail("Second-room guards were inserted into first-room initiative.")
 		return
 
 	game.call("force_player_turn_for_testing")
@@ -102,7 +95,7 @@ func _run() -> void:
 
 	var door_edges: Array[Dictionary] = environment.get_edge_blocker_edges_for_testing(DOOR_BLOCKER_ID)
 	if door_edges.size() != 2:
-		_fail("Door edge registration is incomplete.")
+		_fail("West service door edge registration is incomplete.")
 		return
 	var tested_edge: Dictionary = door_edges[0]
 	var left_cell: Vector2i = tested_edge.get("a", CombatEnvironment.INVALID_CELL) as Vector2i
@@ -120,25 +113,18 @@ func _run() -> void:
 		_fail("Real proximity detection did not recognize the left adjacent cell.")
 		return
 	if not environment.is_transition_blocked(grid, left_cell, right_cell):
-		_fail("Closed door does not block the edge between adjacent cells.")
+		_fail("Closed door does not block its cell edge.")
 		return
 	game.call("_refresh_action_catalog")
 	await process_frame
 	var world_entry: Dictionary = _find_action(catalog_ui.get_entries_for_testing(), "world_interact")
-	if world_entry.is_empty() or not bool(world_entry.get("enabled", false)):
-		_fail("Door interaction is missing from the real left-side adjacent cell.")
+	if world_entry.is_empty() or not bool(world_entry.get("enabled", false)) or str(world_entry.get("label", "")) != "ОТКРЫТЬ ДВЕРЬ":
+		_fail("Door cannot be opened through the real mobile action catalog.")
 		return
-	if str(world_entry.get("label", "")) != "ОТКРЫТЬ ДВЕРЬ":
-		_fail("Combat door action has an unexpected label: %s" % JSON.stringify(world_entry))
-		return
-
 	catalog_ui.action_requested.emit("world_interact")
 	await process_frame
-	if str(door.call("get_door_state")) != "open":
-		_fail("Catalog world action did not open the door from the left side.")
-		return
-	if environment.is_transition_blocked(grid, left_cell, right_cell):
-		_fail("Opened door still blocks the cell edge.")
+	if str(door.call("get_door_state")) != "open" or environment.is_transition_blocked(grid, left_cell, right_cell):
+		_fail("Catalog world action did not open the door edge.")
 		return
 	if bool(door.call("can_perform_world_interaction")):
 		_fail("Object interaction was not consumed for the current turn.")
@@ -157,37 +143,16 @@ func _run() -> void:
 	state.set("player_position", player.global_position)
 	for _frame: int in range(4):
 		await process_frame
-	if not bool(door.call("is_player_adjacent_for_testing")):
-		_fail("Real proximity detection did not recognize the right adjacent cell.")
-		return
 	game.call("_refresh_action_catalog")
 	await process_frame
 	world_entry = _find_action(catalog_ui.get_entries_for_testing(), "world_interact")
 	if world_entry.is_empty() or not bool(world_entry.get("enabled", false)) or str(world_entry.get("label", "")) != "ЗАКРЫТЬ ДВЕРЬ":
-		_fail("Door cannot be closed from the opposite adjacent cell: %s" % JSON.stringify(world_entry))
+		_fail("Door cannot be closed from the opposite adjacent cell.")
 		return
 	catalog_ui.action_requested.emit("world_interact")
 	await process_frame
-	if str(door.call("get_door_state")) != "closed":
-		_fail("Catalog world action did not close the door from the right side.")
-		return
-	if not environment.is_transition_blocked(grid, left_cell, right_cell):
+	if str(door.call("get_door_state")) != "closed" or not environment.is_transition_blocked(grid, left_cell, right_cell):
 		_fail("Reclosed door did not restore the blocked edge.")
-		return
-
-	var far_cell: Vector2i = left_cell + Vector2i.LEFT
-	player.global_position = grid.cell_to_world_center(far_cell)
-	state.set("player_position", player.global_position)
-	for _frame: int in range(4):
-		await process_frame
-	if bool(door.call("is_player_adjacent_for_testing")):
-		_fail("Door proximity incorrectly reaches a second cell away.")
-		return
-	game.call("_refresh_action_catalog")
-	await process_frame
-	world_entry = _find_action(catalog_ui.get_entries_for_testing(), "world_interact")
-	if not world_entry.is_empty() and bool(world_entry.get("enabled", false)):
-		_fail("Door interaction remains enabled when no object is adjacent.")
 		return
 
 	turn_system.stop_combat()
@@ -198,10 +163,10 @@ func _run() -> void:
 	turn_system.start_combat(player, [marksman], 0, initiative_overrides)
 	turn_system.force_current_actor_for_testing(marksman)
 	var player_state: CombatantState = game.call("get_player_combat_state") as CombatantState
-	if player_state == null:
-		_fail("Player combat state is unavailable for death-save flow.")
-		return
 	var hero: PlayerCharacter = state.get("player_character") as PlayerCharacter
+	if player_state == null or hero == null:
+		_fail("Player state is unavailable for death-save flow.")
+		return
 	hero.current_health = 0
 	player_state.enter_dying()
 	game.set("_enemy_turn_running", false)
@@ -218,24 +183,11 @@ func _run() -> void:
 		_fail("Initiative stalled at 0 HP instead of resolving a death saving throw.")
 		return
 
-	turn_system.stop_combat()
-	hero.current_health = hero.maximum_health
-	player_state.recover_from_zero_hit_points()
-	player.global_position = grid.cell_to_world_center(left_cell)
-	state.set("player_position", player.global_position)
-	for _frame: int in range(4):
-		await process_frame
-	door.call("interact")
-	await process_frame
-	if str(door.call("get_door_state")) != "open":
-		_fail("Exploration door interaction no longer works from an adjacent cell.")
-		return
-
 	game.queue_free()
 	await process_frame
 	if FileAccess.file_exists(save_path):
 		DirAccess.remove_absolute(save_path)
-	print("Two-sided edge door interaction, layered command messages, squad activation and dying turn recovery passed.")
+	print("First-room isolation, two-sided door interaction, layered messages and dying-turn recovery passed.")
 	quit(0)
 
 

@@ -40,7 +40,7 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 
-	if str(game.get_script().resource_path) != "res://scripts/game/game_squad_tactical_plans_runtime.gd":
+	if str(game.get_script().resource_path) != "res://scripts/game/game_guard_post_two_room_runtime.gd":
 		_fail("Game scene does not use the corpse runtime layered above Combat AI, pursuit, encounters and fighter subclasses.")
 		return
 	if FighterSubclassSystem.TACTICAL_ABILITY_ID not in hero.known_features:

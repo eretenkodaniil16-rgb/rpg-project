@@ -18,6 +18,12 @@
       "label": "Открытие тайны Смотрителя",
       "source_type": "dialogue",
       "source_id": "caretaker_intro"
+    },
+    "encounter_vault_guard_post_01": {
+      "experience": 180,
+      "label": "Караульный пост хранилища",
+      "source_type": "encounter",
+      "source_id": "vault_guard_post_01"
     }
   }
 }

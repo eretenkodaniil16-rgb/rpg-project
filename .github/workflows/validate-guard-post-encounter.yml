@@ -1,0 +1,110 @@
+name: Validate guard post encounter
+
+on:
+  pull_request:
+    paths:
+      - "data/encounters/encounters.json"
+      - "data/rewards/experience_rewards.json"
+      - "data/world/throwable_props.json"
+      - "scripts/systems/throwable_prop_system.gd"
+      - "scripts/game/throwable_world_prop.gd"
+      - "scripts/game/game_guard_post_encounter_runtime.gd"
+      - "scripts/game/game_guard_post_two_room_runtime.gd"
+      - "scripts/game/guard_post_two_room.gd"
+      - "scenes/game/game.tscn"
+      - "scenes/game/game_base.tscn"
+      - "tests/test_throwable_prop_system.gd"
+      - "tests/test_guard_post_outcome_selection.gd"
+      - "tests/smoke_guard_post_encounter_runtime.gd"
+      - "tests/smoke_guard_post_two_room_consequences.gd"
+      - "tests/smoke_throwable_prop_save_restore.gd"
+      - ".github/workflows/validate-guard-post-encounter.yml"
+  push:
+    branches:
+      - feature/guard-post-encounter-v1
+
+concurrency:
+  group: guard-post-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Godot 4.7.1 Standard
+        shell: bash
+        run: |
+          curl --location --fail --retry 3 --output godot.zip "https://downloads.godotengine.org/?flavor=stable&platform=linux.64&slug=linux.x86_64.zip&version=4.7.1"
+          unzip -q godot.zip
+          chmod +x Godot_v4.7.1-stable_linux.x86_64
+
+      - name: Import project and reject parser errors
+        shell: bash
+        run: |
+          rm -rf .godot
+          set -o pipefail
+          timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --editor --path "$GITHUB_WORKSPACE" --quit 2>&1 | tee guard-post-import.log
+          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script" guard-post-import.log; then
+            exit 1
+          fi
+
+      - name: Validate throwable prop state
+        shell: bash
+        run: timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_throwable_prop_system.gd 2>&1 | tee throwable-props-unit.log
+
+      - name: Validate lethal, nonlethal and mixed outcomes
+        shell: bash
+        run: timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_guard_post_outcome_selection.gd 2>&1 | tee guard-post-outcomes.log
+
+      - name: Simulate guard post encounter and thrown noise
+        shell: bash
+        run: timeout 300s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_guard_post_encounter_runtime.gd 2>&1 | tee guard-post-smoke.log
+
+      - name: Simulate two-room consequence branches
+        shell: bash
+        run: timeout 360s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_guard_post_two_room_consequences.gd 2>&1 | tee guard-post-two-room.log
+
+      - name: Validate throwable prop save restoration
+        shell: bash
+        run: timeout 300s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_throwable_prop_save_restore.gd 2>&1 | tee throwable-props-save.log
+
+      - name: Regression test squad tactical plans
+        shell: bash
+        run: timeout 240s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_squad_tactical_plans_runtime.gd 2>&1 | tee squad-regression.log
+
+      - name: Regression test interactive door and dying flow
+        shell: bash
+        run: timeout 240s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_interactive_tactical_encounter.gd 2>&1 | tee interaction-regression.log
+
+      - name: Regression test exploration stealth alerts
+        shell: bash
+        run: timeout 240s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_exploration_stealth_alerts.gd 2>&1 | tee stealth-regression.log
+
+      - name: Regression test encounter persistence
+        shell: bash
+        run: timeout 210s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_encounter_runtime.gd 2>&1 | tee encounter-regression.log
+
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: guard-post-encounter-diagnostics
+          path: |
+            guard-post-import.log
+            throwable-props-unit.log
+            guard-post-outcomes.log
+            guard-post-smoke.log
+            guard-post-two-room.log
+            throwable-props-save.log
+            squad-regression.log
+            interaction-regression.log
+            stealth-regression.log
+            encounter-regression.log
+          retention-days: 7

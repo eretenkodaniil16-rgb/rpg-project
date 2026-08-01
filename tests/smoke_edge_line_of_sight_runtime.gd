@@ -1,8 +1,8 @@
 extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
-const EXPECTED_RUNTIME: String = "res://scripts/game/game_squad_tactical_plans_runtime.gd"
-const DOOR_BLOCKER_ID: String = "west_service_door_blocker"
+const EXPECTED_RUNTIME: String = "res://scripts/game/game_guard_post_two_room_runtime.gd"
+const INNER_GATE_BLOCKER_ID: String = "inner_watch_gate_blocker"
 
 
 func _init() -> void:
@@ -21,93 +21,86 @@ func _run() -> void:
 	state.set("player_character", _make_hero())
 
 	var packed: PackedScene = load(GAME_SCENE) as PackedScene
-	if packed == null:
+	var game: Node = packed.instantiate() if packed != null else null
+	if game == null:
 		_fail("Game scene could not be loaded.")
 		return
-	var game: Node = packed.instantiate()
 	root.add_child(game)
-	for _frame: int in range(30):
+	for _frame: int in range(40):
 		await process_frame
-	if str((game.get_script() as Script).resource_path) != EXPECTED_RUNTIME:
-		_fail("Game scene does not use the expected tactical runtime.")
+	var game_script: Script = game.get_script() as Script
+	if game_script == null or game_script.resource_path != EXPECTED_RUNTIME:
+		_fail("Game scene does not use the two-room runtime.")
 		return
+	game.set_process(false)
 
 	var grid: BattleGrid = game.call("_get_battle_grid") as BattleGrid
 	var environment: CombatEnvironment = get_first_node_in_group("combat_environment") as CombatEnvironment
 	var room: Node = game.get_node_or_null("StealthTestRoom")
 	var player: Node2D = game.get_node_or_null("Player") as Node2D
-	var caretaker: Node2D = game.get_node_or_null("Caretaker") as Node2D
 	var message_label: Label = game.get_node_or_null("Interface/CombatMessageLabel") as Label
-	if grid == null or environment == null or room == null or player == null or caretaker == null or message_label == null:
+	if grid == null or environment == null or room == null or player == null or message_label == null:
 		_fail("Line-of-sight simulation fixtures are incomplete.")
 		return
-
-	var door: Node = room.call("get_test_door") as Node
-	var guard: Node2D = room.call("get_patrol_observer") as Node2D
+	var gate: Node = room.call("get_inner_gate") if room.has_method("get_inner_gate") else null
 	var marksman: Node2D = room.call("get_training_marksman") as Node2D
 	var mage: Node2D = room.call("get_training_mage") as Node2D
-	if door == null or guard == null or marksman == null or mage == null:
-		_fail("Door or tactical observers are missing.")
+	if gate == null or marksman == null or mage == null:
+		_fail("Inner gate, marksman or mage is missing.")
 		return
 
-	var door_edges: Array[Dictionary] = environment.get_edge_blocker_edges_for_testing(DOOR_BLOCKER_ID)
-	if door_edges.is_empty():
-		_fail("Door edge blocker was not registered.")
+	var gate_edges: Array[Dictionary] = environment.get_edge_blocker_edges_for_testing(INNER_GATE_BLOCKER_ID)
+	if gate_edges.is_empty():
+		_fail("Inner gate edge blocker was not registered.")
 		return
-	var doorway_edge: Dictionary = door_edges[0]
+	var doorway_edge: Dictionary = gate_edges[0]
 	var doorway_left: Vector2i = doorway_edge.get("a", CombatEnvironment.INVALID_CELL) as Vector2i
 	var doorway_right: Vector2i = doorway_edge.get("b", CombatEnvironment.INVALID_CELL) as Vector2i
-
-	door.call("set_door_state", "closed", false)
+	gate.call("set_door_state", "locked", false)
+	room.call("set_inner_watch_mode", "watching")
 	player.global_position = grid.cell_to_world_center(doorway_left)
-	caretaker.global_position = grid.cell_to_world_center(doorway_right + Vector2i(3, 0))
-	guard.global_position = grid.cell_to_world_center(doorway_right + Vector2i(2, -2))
-	marksman.global_position = grid.cell_to_world_center(doorway_right + Vector2i(4, -3))
-	mage.global_position = grid.cell_to_world_center(doorway_right + Vector2i(4, 3))
+	marksman.global_position = grid.cell_to_world_center(doorway_right + Vector2i(2, -2))
+	mage.global_position = grid.cell_to_world_center(doorway_right + Vector2i(2, 2))
 	await process_frame
 
-	guard.call("activate_combat_participant")
-	game.call("_start_turn_based_combat", caretaker)
-	game.call("force_player_turn_for_testing")
-	game.set("_enemy_turn_running", false)
-	await process_frame
-	var observers: Array[Node] = game.call("_active_observers") as Array[Node]
-	for expected_observer: Node2D in [caretaker, guard, marksman, mage]:
-		if not observers.has(expected_observer):
-			_fail("Expected hostile observer did not join the visibility simulation: %s" % str(game.call("_target_name", expected_observer)))
-			return
-	for observer: Node in observers:
-		if bool(game.call("_observer_can_see_position", observer, player.global_position)):
-			_fail("Closed edge partition still gives line of sight to %s." % str(game.call("_target_name", observer)))
-			return
-
-	game.call("set_hide_roll_overrides_for_testing", [20])
-	game.call("_on_hide_requested")
-	await process_frame
-	var combat_state: CombatantState = game.get("_player_combat_state") as CombatantState
-	if combat_state == null or not combat_state.hidden:
-		_fail("The player could not hide while every observer was behind the closed partition.")
+	if not environment.is_transition_blocked(grid, doorway_left, doorway_right):
+		_fail("Locked inner gate does not block the edge between rooms.")
 		return
+	for observer: Node2D in [marksman, mage]:
+		if bool(game.call("_observer_can_see_position", observer, player.global_position)):
+			_fail("Locked inner partition still gives line of sight to %s." % str(game.call("_target_name", observer)))
+			return
 
-	combat_state.hidden = false
-	door.call("set_door_state", "open", false)
+	gate.call("set_door_state", "open", false)
 	player.global_position = grid.cell_to_world_center(doorway_left)
-	caretaker.global_position = grid.cell_to_world_center(doorway_right)
-	game.call("force_player_turn_for_testing")
-	game.set("_enemy_turn_running", false)
+	marksman.global_position = grid.cell_to_world_center(doorway_right)
+	mage.global_position = grid.cell_to_world_center(doorway_right + Vector2i(1, 1))
 	await process_frame
-
+	if environment.is_transition_blocked(grid, doorway_left, doorway_right):
+		_fail("Opened inner gate still blocks the edge between rooms.")
+		return
 	var visible_observers: Array[Node] = []
-	for observer: Node in game.call("_active_observers") as Array[Node]:
+	for observer: Node2D in [marksman, mage]:
 		if bool(game.call("_observer_can_see_position", observer, player.global_position)):
 			visible_observers.append(observer)
 	if visible_observers.is_empty():
-		_fail("Opening the doorway did not restore line of sight for any observer.")
+		_fail("Opening the inner gate did not restore line of sight for the inner watch.")
 		return
+
+	room.call("activate_inner_watch_combat")
+	game.call("_start_turn_based_combat", marksman)
+	game.call("force_player_turn_for_testing")
+	game.set("_enemy_turn_running", false)
+	await process_frame
+	var combat_state: CombatantState = game.get("_player_combat_state") as CombatantState
+	if combat_state == null:
+		_fail("Player combat state is unavailable for hide checks.")
+		return
+	combat_state.hidden = false
 	game.call("_on_hide_requested")
 	await process_frame
 	if combat_state.hidden:
-		_fail("The player hid successfully while an observer had direct line of sight through the open doorway.")
+		_fail("The player hid while the inner watch had direct line of sight through the open gate.")
 		return
 	if message_label.text.contains("хотя бы один противник"):
 		_fail("Hide failure still uses the anonymous observer message.")
@@ -122,7 +115,7 @@ func _run() -> void:
 	await process_frame
 	if FileAccess.file_exists(save_path):
 		DirAccess.remove_absolute(save_path)
-	print("Cell-edge line of sight and named hide observers passed.")
+	print("Inner-room edge line of sight and named observers passed.")
 	quit(0)
 
 

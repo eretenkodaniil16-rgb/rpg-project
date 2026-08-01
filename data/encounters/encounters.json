@@ -10,7 +10,10 @@
       "escape": {
         "policy": "pursuit_routes",
         "default_required_search_sweeps": 2,
-        "safe_anchor": [320.0, 360.0],
+        "safe_anchor": [
+          320.0,
+          360.0
+        ],
         "reason_id": "player_escaped_after_pursuit",
         "alert_flag": "training_construct_alerted",
         "restore_participants": true,
@@ -19,27 +22,81 @@
             "id": "collapsed_wall_niche",
             "type": "hideout",
             "label": "Ниша за обвалившейся стеной",
-            "objective_cells": [[11, 8]],
+            "objective_cells": [
+              [
+                11,
+                8
+              ]
+            ],
             "concealment_bonus": 6,
             "trace_dc_bonus": 4,
             "required_search_sweeps": 2,
             "reason_id": "player_vanished_in_hideout",
-            "safe_anchor": [320.0, 360.0]
+            "safe_anchor": [
+              320.0,
+              360.0
+            ]
           },
           {
             "id": "west_service_room",
             "type": "room_transition",
             "label": "Западная служебная комната",
-            "transition_cells": [[1, 4], [1, 5]],
-            "destination_cells": [[0, 3], [0, 4], [0, 5], [1, 3], [1, 4], [1, 5]],
-            "hide_cells": [[0, 3], [0, 5]],
+            "transition_cells": [
+              [
+                1,
+                4
+              ],
+              [
+                1,
+                5
+              ]
+            ],
+            "destination_cells": [
+              [
+                0,
+                3
+              ],
+              [
+                0,
+                4
+              ],
+              [
+                0,
+                5
+              ],
+              [
+                1,
+                3
+              ],
+              [
+                1,
+                4
+              ],
+              [
+                1,
+                5
+              ]
+            ],
+            "hide_cells": [
+              [
+                0,
+                3
+              ],
+              [
+                0,
+                5
+              ]
+            ],
             "requires_rehide": true,
             "blocks_cross_room_los": true,
             "concealment_bonus": 3,
             "trace_dc_bonus": 2,
             "required_search_sweeps": 2,
             "reason_id": "player_escaped_through_adjacent_room",
-            "safe_anchor": [320.0, 360.0]
+            "safe_anchor": [
+              320.0,
+              360.0
+            ]
           }
         ]
       },
@@ -53,7 +110,10 @@
             "training_construct_destroyed": true
           },
           "items": [
-            {"item_id": "straw_scrap", "quantity": 1}
+            {
+              "item_id": "straw_scrap",
+              "quantity": 1
+            }
           ]
         },
         "disabled": {
@@ -113,6 +173,237 @@
           "set_flags": {
             "met_caretaker": true,
             "caretaker_revelation_resolved": true
+          }
+        }
+      }
+    },
+    "vault_guard_post_01": {
+      "id": "vault_guard_post_01",
+      "title": "Внешняя комната караульного поста",
+      "repeatable": false,
+      "combat_resolution_id": "guards_defeated",
+      "participants": [
+        "caretaker",
+        "service_guard"
+      ],
+      "approach": {
+        "trigger_x": 610.0,
+        "stealth_exit_x": 813.0
+      },
+      "escape": {
+        "policy": "pursuit_routes",
+        "default_required_search_sweeps": 2,
+        "safe_anchor": [
+          320.0,
+          360.0
+        ],
+        "reason_id": "guard_post_escape",
+        "alert_flag": "vault_guard_post_alerted",
+        "restore_participants": false,
+        "routes": [
+          {
+            "id": "west_service_room",
+            "type": "room_transition",
+            "label": "Западная служебная комната",
+            "transition_cells": [
+              [
+                1,
+                4
+              ],
+              [
+                1,
+                5
+              ]
+            ],
+            "destination_cells": [
+              [
+                0,
+                3
+              ],
+              [
+                0,
+                4
+              ],
+              [
+                0,
+                5
+              ],
+              [
+                1,
+                3
+              ],
+              [
+                1,
+                4
+              ],
+              [
+                1,
+                5
+              ]
+            ],
+            "hide_cells": [
+              [
+                0,
+                3
+              ],
+              [
+                0,
+                5
+              ]
+            ],
+            "requires_rehide": true,
+            "blocks_cross_room_los": true,
+            "concealment_bonus": 3,
+            "trace_dc_bonus": 2,
+            "required_search_sweeps": 2,
+            "reason_id": "guard_post_escaped_through_service_room",
+            "safe_anchor": [
+              320.0,
+              360.0
+            ]
+          }
+        ]
+      },
+      "resolutions": {
+        "peaceful_passage": {
+          "type": "dialogue",
+          "label": "Смотритель разрешил пройти",
+          "message": "Смотритель открывает внутреннюю дверь и передаёт охране разрешение пропустить героя.",
+          "set_flags": {
+            "vault_guard_post_room1_resolved": true,
+            "vault_guard_post_room1_outcome": "peaceful",
+            "vault_inner_gate_open": true,
+            "vault_inner_watch_hostile": false
+          }
+        },
+        "stealth_bypass": {
+          "type": "stealth",
+          "label": "Внешняя охрана обойдена",
+          "message": "Герой незаметно добрался до внутренней двери.",
+          "set_flags": {
+            "vault_guard_post_room1_resolved": true,
+            "vault_guard_post_room1_outcome": "stealth",
+            "vault_inner_gate_open": true,
+            "vault_inner_watch_hostile": false
+          }
+        },
+        "guards_subdued": {
+          "type": "combat_nonlethal",
+          "label": "Внешняя охрана обезврежена",
+          "message": "Смотритель и дозорный выведены из боя. Внутренняя охрана будет считать героя нападавшим.",
+          "set_flags": {
+            "vault_guard_post_room1_resolved": true,
+            "vault_guard_post_room1_outcome": "combat",
+            "vault_inner_gate_open": true,
+            "vault_inner_watch_hostile": true
+          }
+        },
+        "guards_defeated": {
+          "type": "combat",
+          "label": "Внешняя охрана погибла",
+          "message": "Смотритель и дозорный погибли. Стрелок и Рунный тактик готовы немедленно атаковать.",
+          "set_flags": {
+            "vault_guard_post_room1_resolved": true,
+            "vault_guard_post_room1_outcome": "combat",
+            "vault_inner_gate_open": true,
+            "vault_inner_watch_hostile": true,
+            "vault_guard_post_bloodshed": true,
+            "vault_alarm_persistent": true
+          }
+        },
+        "mixed_neutralization": {
+          "type": "combat",
+          "label": "Внешняя охрана нейтрализована",
+          "message": "Сражение во внешней комнате завершено. Внутренняя охрана воспринимает героя как угрозу.",
+          "set_flags": {
+            "vault_guard_post_room1_resolved": true,
+            "vault_guard_post_room1_outcome": "combat",
+            "vault_inner_gate_open": true,
+            "vault_inner_watch_hostile": true,
+            "vault_guard_post_bloodshed": true,
+            "vault_alarm_persistent": true
+          }
+        }
+      }
+    },
+    "vault_inner_watch_01": {
+      "id": "vault_inner_watch_01",
+      "title": "Внутренний пост хранилища",
+      "repeatable": false,
+      "combat_resolution_id": "inner_watch_defeated",
+      "reward_id": "encounter_vault_guard_post_01",
+      "participants": [
+        "training_marksman",
+        "training_mage"
+      ],
+      "approach": {
+        "trigger_x": 941.0,
+        "stealth_exit_x": 1170.0
+      },
+      "escape": {
+        "policy": "pursuit_routes",
+        "default_required_search_sweeps": 2,
+        "safe_anchor": [
+          780.0,
+          360.0
+        ],
+        "reason_id": "inner_watch_escape",
+        "alert_flag": "vault_inner_watch_alerted",
+        "restore_participants": false,
+        "routes": []
+      },
+      "resolutions": {
+        "authorized_passage": {
+          "type": "dialogue",
+          "label": "Внутренняя охрана пропустила героя",
+          "message": "Стрелок и Рунный тактик получили разрешение Смотрителя и спокойно освобождают проход.",
+          "set_flags": {
+            "vault_guard_post_resolved": true,
+            "vault_guard_post_peaceful": true,
+            "vault_inner_watch_authorized": true,
+            "vault_passage_open": true
+          }
+        },
+        "stealth_bypass": {
+          "type": "stealth",
+          "label": "Внутренний пост пройден скрытно",
+          "message": "Герой незаметно миновал стрелка и Рунного тактика.",
+          "set_flags": {
+            "vault_guard_post_resolved": true,
+            "vault_guard_post_stealth": true,
+            "vault_passage_open": true
+          }
+        },
+        "inner_watch_subdued": {
+          "type": "combat_nonlethal",
+          "label": "Внутренняя охрана обезврежена",
+          "message": "Стрелок и Рунный тактик выведены из боя без убийств.",
+          "set_flags": {
+            "vault_guard_post_resolved": true,
+            "vault_guard_post_subdued": true,
+            "vault_passage_open": true
+          }
+        },
+        "inner_watch_defeated": {
+          "type": "combat",
+          "label": "Внутренняя охрана побеждена",
+          "message": "Стрелок и Рунный тактик погибли. Караульный пост захвачен силой.",
+          "set_flags": {
+            "vault_guard_post_resolved": true,
+            "vault_guard_post_bloodshed": true,
+            "vault_alarm_persistent": true,
+            "vault_passage_open": true
+          }
+        },
+        "inner_watch_mixed": {
+          "type": "combat",
+          "label": "Внутренняя охрана нейтрализована",
+          "message": "Внутренний пост нейтрализован смешанным смертельным и несмертельным исходом.",
+          "set_flags": {
+            "vault_guard_post_resolved": true,
+            "vault_guard_post_bloodshed": true,
+            "vault_alarm_persistent": true,
+            "vault_passage_open": true
           }
         }
       }
