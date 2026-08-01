@@ -129,7 +129,7 @@ class WalkDirectionalWeaponV15Tests(unittest.TestCase):
             self.adapter_source,
         )
 
-    def test_active_launcher_and_workflow_use_v15(self) -> None:
+    def test_active_launcher_and_workflow_use_v16_render_adapter(self) -> None:
         launcher = (self.tool_root / "run_blender_sprite_pilot.ps1").read_text(
             encoding="ascii"
         )
@@ -140,15 +140,19 @@ class WalkDirectionalWeaponV15Tests(unittest.TestCase):
             / "validate-blender-sprite-factory.yml"
         ).read_text(encoding="utf-8")
         self.assertIn(
-            '$FactoryScript = Join-Path $ToolRoot "blender_sprite_factory_walk_directional_weapon_v15.py"',
+            '$FactoryScript = Join-Path $ToolRoot "blender_sprite_factory_walk_directional_weapon_render_v16.py"',
             launcher,
         )
-        self.assertIn("render-walk-directional-weapon-v15", workflow)
+        self.assertIn("render-walk-directional-weapon-v16", workflow)
         self.assertIn(
-            "blender_sprite_factory_walk_directional_weapon_v15.py",
+            "blender_sprite_factory_walk_directional_weapon_render_v16.py",
             workflow,
         )
-        self.assertIn("Upload 48 armed directional walk frames v15", workflow)
+        self.assertIn("Upload complete 48-frame armed walk render v16", workflow)
+        self.assertIn(
+            "blender_sprite_factory_walk_directional_weapon_v15.py",
+            launcher,
+        )
 
     def test_unknown_character_is_rejected(self) -> None:
         with self.assertRaisesRegex(KeyError, "No armed directional walk v15"):
