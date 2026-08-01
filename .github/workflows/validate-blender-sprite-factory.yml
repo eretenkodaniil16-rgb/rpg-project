@@ -105,11 +105,12 @@ jobs:
   # render-combat-idle-directional-v11 (rejected: raw rotation caused one-hand occlusion and boundary touches)
   # render-combat-idle-directional-weapon-v12 (artist-approved directional static source)
   # render-combat-idle-directional-weapon-v13 (rejected: left frame touched canvas boundary)
+  # render-combat-idle-directional-cycles-v14 (artist-approved four-direction combat idle cycles)
   # historical adapters remain reproducible as separate files
-  render-combat-idle-directional-cycles-v14:
+  render-walk-directional-weapon-v15:
     if: github.event_name == 'pull_request' && github.head_ref == 'tools/blender-sprite-pilot'
     runs-on: ubuntu-latest
-    timeout-minutes: 150
+    timeout-minutes: 180
 
     steps:
       - name: Checkout repository
@@ -137,7 +138,7 @@ jobs:
           test -n "$blender"
           echo "BLENDER_EXE=$blender" >> "$GITHUB_ENV"
 
-      - name: Run real Blender 5.2 four-direction combat idle cycles
+      - name: Run real Blender 5.2 armed walk cycles
         id: blender-pilot
         continue-on-error: true
         shell: bash
@@ -148,18 +149,18 @@ jobs:
             --background \
             --factory-startup \
             --python-exit-code 1 \
-            --python tools/blender_sprite_factory/blender_sprite_factory_combat_idle_directional_cycles_v14.py \
+            --python tools/blender_sprite_factory/blender_sprite_factory_walk_directional_weapon_v15.py \
             -- \
             --repo-root "$GITHUB_WORKSPACE" \
             --config tools/blender_sprite_factory/configs/human_warrior_m01.json \
             --run-id "$run_id" \
             --mode all 2>&1 | tee blender_pilot.log
 
-      - name: Upload 32 directional combat idle frames v14
+      - name: Upload 48 armed directional walk frames v15
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: human_warrior_m01_proxy_v25_appearance_v03_walk_down_v04_walk_left_v01_walk_right_v01_walk_up_v02_combat_idle_directional_cycles_v14_${{ github.run_id }}_${{ github.run_attempt }}
+          name: human_warrior_m01_proxy_v25_appearance_v03_walk_directional_weapon_v15_${{ github.run_id }}_${{ github.run_attempt }}
           path: |
             art/blender_pipeline_runs/human_warrior_m01/**
             blender_pilot.log
