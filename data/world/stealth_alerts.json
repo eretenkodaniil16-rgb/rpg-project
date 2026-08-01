@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "profiles": {
     "caretaker": {
       "actor_id": "caretaker",
@@ -43,6 +43,18 @@
       "rect": [45.0, 45.0, 190.0, 630.0],
       "ambient_noise_multiplier": 0.8
     },
+    "outer_guard_room": {
+      "id": "outer_guard_room",
+      "label": "Внешняя комната караульного поста",
+      "rect": [255.0, 45.0, 622.0, 630.0],
+      "ambient_noise_multiplier": 1.0
+    },
+    "inner_watch_room": {
+      "id": "inner_watch_room",
+      "label": "Внутренний пост",
+      "rect": [877.0, 45.0, 358.0, 630.0],
+      "ambient_noise_multiplier": 0.9
+    },
     "main_hall": {
       "id": "main_hall",
       "label": "Главный зал",
@@ -55,10 +67,21 @@
       "id": "west_service_door",
       "label": "Дверь служебной комнаты",
       "rect": [227.0, 300.0, 36.0, 120.0],
-      "rooms": ["west_service_room", "main_hall"],
+      "rooms": ["west_service_room", "outer_guard_room"],
       "initial_state": "closed",
       "blocks_line_of_sight_when_closed": true,
       "closed_noise_multiplier": 0.38,
+      "open_noise_multiplier": 0.9,
+      "interaction_noise_feet": 25
+    },
+    "inner_watch_gate": {
+      "id": "inner_watch_gate",
+      "label": "Внутренняя дверь караульного поста",
+      "rect": [875.0, 296.0, 4.0, 128.0],
+      "rooms": ["outer_guard_room", "inner_watch_room"],
+      "initial_state": "locked",
+      "blocks_line_of_sight_when_closed": true,
+      "closed_noise_multiplier": 0.32,
       "open_noise_multiplier": 0.9,
       "interaction_noise_feet": 25
     }
