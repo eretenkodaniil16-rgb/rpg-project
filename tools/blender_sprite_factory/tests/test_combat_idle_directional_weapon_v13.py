@@ -82,10 +82,10 @@ class CombatIdleDirectionalWeaponV13Tests(unittest.TestCase):
             workflow,
         )
         self.assertIn(
-            '$FactoryScript = Join-Path $ToolRoot "blender_sprite_factory_combat_idle_directional_cycles_v14.py"',
+            '$FactoryScript = Join-Path $ToolRoot "blender_sprite_factory_walk_directional_weapon_v15.py"',
             launcher,
         )
-        self.assertIn("render-combat-idle-directional-cycles-v14", workflow)
+        self.assertIn("render-walk-directional-weapon-v15", workflow)
 
     def test_unknown_character_is_rejected(self) -> None:
         with self.assertRaisesRegex(KeyError, "No combat idle directional weapon v13"):
