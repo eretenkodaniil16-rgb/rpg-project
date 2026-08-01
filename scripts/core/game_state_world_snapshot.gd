@@ -95,6 +95,11 @@ func _capture_world_snapshot_from_scene() -> void:
 		# Loading and migration can save before the gameplay scene exists. Keep the
 		# loaded snapshot instead of replacing it with an empty dictionary.
 		return
+	# Preparation is a separate deterministic phase. Runtime systems can flush
+	# their current in-memory records before any serializer reads them.
+	for serializer: Node in serializers:
+		if is_instance_valid(serializer) and serializer.has_method("prepare_world_state_for_save"):
+			serializer.call("prepare_world_state_for_save")
 	var merged: Dictionary = _empty_world_snapshot()
 	var captured_any: bool = false
 	for serializer: Node in serializers:
