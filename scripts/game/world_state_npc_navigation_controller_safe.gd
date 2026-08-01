@@ -24,6 +24,32 @@ func get_visibility_render_order_for_testing() -> Dictionary:
 	}
 
 
+func _restore_actor(actor: Node, state: Dictionary) -> void:
+	var requested_position: Vector2 = Vector2.ZERO
+	var exact_position_is_valid: bool = false
+	if actor is Node2D:
+		var actor_node: Node2D = actor as Node2D
+		requested_position = _vector_from_value(state.get("position", []), actor_node.global_position)
+		var grid: BattleGrid = get_tree().get_first_node_in_group("battle_grid") as BattleGrid
+		var environment: CombatEnvironment = get_tree().get_first_node_in_group("combat_environment") as CombatEnvironment
+		exact_position_is_valid = (
+			grid != null
+			and environment != null
+			and grid.is_cell_valid(grid.world_to_cell(requested_position))
+			and not environment.is_position_blocked(
+				requested_position,
+				ObstacleAwareNpcNavigationSystem.ACTOR_RADIUS_PIXELS
+			)
+		)
+	super._restore_actor(actor, state)
+	# A save file represents a continuous world position, not only a coarse grid
+	# cell. Preserve that exact position whenever it is physically valid. The
+	# inherited nearest-cell repair remains the fallback for corrupted or legacy
+	# coordinates placed inside an obstacle.
+	if exact_position_is_valid and actor is Node2D:
+		(actor as Node2D).global_position = requested_position
+
+
 func _repair_invalid_actor_positions() -> void:
 	if _navigation == null:
 		return
