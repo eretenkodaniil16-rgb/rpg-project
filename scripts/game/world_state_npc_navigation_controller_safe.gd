@@ -27,6 +27,7 @@ func get_visibility_render_order_for_testing() -> Dictionary:
 func _restore_actor(actor: Node, state: Dictionary) -> void:
 	var requested_position: Vector2 = Vector2.ZERO
 	var exact_position_is_valid: bool = false
+	var actor_id: String = _actor_id(actor)
 	if actor is Node2D:
 		var actor_node: Node2D = actor as Node2D
 		requested_position = _vector_from_value(state.get("position", []), actor_node.global_position)
@@ -48,6 +49,13 @@ func _restore_actor(actor: Node, state: Dictionary) -> void:
 	# coordinates placed inside an obstacle.
 	if exact_position_is_valid and actor is Node2D:
 		(actor as Node2D).global_position = requested_position
+	if actor_id in ["service_guard", "training_marksman"] and actor is Node2D:
+		print("WORLD_RESTORE actor=%s requested=%s valid=%s result=%s" % [
+			actor_id,
+			str(requested_position),
+			str(exact_position_is_valid),
+			str((actor as Node2D).global_position)
+		])
 
 
 func _repair_invalid_actor_positions() -> void:
@@ -65,9 +73,17 @@ func _repair_invalid_actor_positions() -> void:
 		var actor_id: String = _actor_id(actor)
 		var previous: Vector2 = _last_valid_positions.get(actor_id, actor_node.global_position) as Vector2
 		if environment.is_position_blocked(actor_node.global_position, ObstacleAwareNpcNavigationSystem.ACTOR_RADIUS_PIXELS):
+			var before: Vector2 = actor_node.global_position
 			actor_node.global_position = (
 				previous
 				if not environment.is_position_blocked(previous, ObstacleAwareNpcNavigationSystem.ACTOR_RADIUS_PIXELS)
 				else _navigation.resolve_safe_position(actor_node, actor_node.global_position)
 			)
+			if actor_id in ["service_guard", "training_marksman"]:
+				print("WORLD_REPAIR actor=%s before=%s previous=%s result=%s" % [
+					actor_id,
+					str(before),
+					str(previous),
+					str(actor_node.global_position)
+				])
 		_last_valid_positions[actor_id] = actor_node.global_position
