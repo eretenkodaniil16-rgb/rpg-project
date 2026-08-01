@@ -7,6 +7,8 @@ on:
       - "data/rewards/experience_rewards.json"
       - "data/world/throwable_props.json"
       - "scripts/systems/throwable_prop_system.gd"
+      - "scripts/game/player.gd"
+      - "scripts/ui/action_catalog_ui.gd"
       - "scripts/game/throwable_world_prop.gd"
       - "scripts/game/game_guard_post_encounter_runtime.gd"
       - "scripts/game/game_guard_post_two_room_runtime.gd"
@@ -18,6 +20,7 @@ on:
       - "tests/smoke_guard_post_encounter_runtime.gd"
       - "tests/smoke_guard_post_two_room_consequences.gd"
       - "tests/smoke_caretaker_neutral_detection.gd"
+      - "tests/smoke_overlapping_interaction_zones.gd"
       - "tests/smoke_throwable_prop_save_restore.gd"
       - ".github/workflows/validate-guard-post-encounter.yml"
   push:
@@ -76,6 +79,10 @@ jobs:
         shell: bash
         run: timeout 240s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_caretaker_neutral_detection.gd 2>&1 | tee caretaker-neutral.log
 
+      - name: Verify overlapping interaction zones
+        shell: bash
+        run: timeout 300s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_overlapping_interaction_zones.gd 2>&1 | tee overlapping-interactions.log
+
       - name: Validate throwable prop save restoration
         shell: bash
         run: timeout 300s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_throwable_prop_save_restore.gd 2>&1 | tee throwable-props-save.log
@@ -108,6 +115,7 @@ jobs:
             guard-post-smoke.log
             guard-post-two-room.log
             caretaker-neutral.log
+            overlapping-interactions.log
             throwable-props-save.log
             squad-regression.log
             interaction-regression.log
