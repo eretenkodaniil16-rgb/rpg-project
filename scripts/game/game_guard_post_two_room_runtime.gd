@@ -385,7 +385,14 @@ func _sync_room_from_persistent_state() -> void:
 	if room == null:
 		return
 	var outcome: String = str(GameState.get_flag(ROOM_ONE_OUTCOME_FLAG, ""))
-	if not outcome.is_empty() and room.has_method("open_inner_gate"):
+	var gate_state: String = ""
+	if room.has_method("get_inner_gate"):
+		var gate: Node = room.call("get_inner_gate") as Node
+		if is_instance_valid(gate) and gate.has_method("get_door_state"):
+			gate_state = str(gate.call("get_door_state"))
+	# Story progression unlocks a still-locked gate, but it must not repeatedly
+	# overwrite an exact saved physical state such as closed, open or broken.
+	if not outcome.is_empty() and gate_state in ["", "locked"] and room.has_method("open_inner_gate"):
 		room.call("open_inner_gate", outcome)
 	match outcome:
 		"peaceful": _set_inner_watch_mode("authorized")
