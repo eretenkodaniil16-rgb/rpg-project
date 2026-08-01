@@ -149,7 +149,7 @@ func _entry_label(entry: Dictionary, is_autosave: bool) -> String:
 	if not exists:
 		return "%s\n    Пустая ячейка" % heading
 	var character_name: String = str(entry.get("character_name", "Герой"))
-	var class_name: String = str(entry.get("character_class_name", ""))
+	var character_class_label: String = str(entry.get("character_class_name", ""))
 	var level: int = int(entry.get("level", 1))
 	var current_health: int = int(entry.get("current_health", 0))
 	var maximum_health: int = int(entry.get("maximum_health", 0))
@@ -158,7 +158,7 @@ func _entry_label(entry: Dictionary, is_autosave: bool) -> String:
 	return "%s\n    %s · %s · ур. %d · HP %d/%d\n    %s · %s" % [
 		heading,
 		character_name,
-		class_name,
+		character_class_label,
 		level,
 		current_health,
 		maximum_health,
