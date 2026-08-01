@@ -2,7 +2,7 @@ extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
 const FIRST_ROOM_ID: String = "vault_guard_post_01"
-const CARETAKER_ID: String = "caretaker"
+const GUARD_ID: String = "service_guard"
 const COMBAT_STARTED_FLAG: String = "vault_guard_post_room1_combat_started"
 const NOTICED_FLAG: String = "vault_guard_post_caretaker_noticed"
 
@@ -34,25 +34,28 @@ func _run() -> void:
 	game.set_process(false)
 
 	var player: Node2D = game.get_node_or_null("Player") as Node2D
-	var caretaker: Node = game.get_node_or_null("Caretaker")
+	var caretaker: Node2D = game.get_node_or_null("Caretaker") as Node2D
+	var room: Node = game.get_node_or_null("StealthTestRoom")
+	var service_guard: Node = room.call("get_patrol_observer") if room != null and room.has_method("get_patrol_observer") else null
 	var turn_system: TurnBasedCombatSystem = game.get("_turn_system") as TurnBasedCombatSystem
 	var message_label: Label = game.get_node_or_null("Interface/CombatMessageLabel") as Label
-	if player == null or caretaker == null or turn_system == null or message_label == null:
+	if player == null or caretaker == null or service_guard == null or turn_system == null or message_label == null:
 		_fail("Neutral caretaker test fixtures are incomplete.")
 		return
 
+	caretaker.global_position = Vector2(700.0, 360.0)
 	player.global_position = Vector2(620.0, 360.0)
 	state.set("player_position", player.global_position)
+	if caretaker.has_method("set_facing_direction"):
+		caretaker.call("set_facing_direction", player.global_position - caretaker.global_position)
 	game.call("_evaluate_guard_post_state")
 	if str(state.call("get_encounter_status", FIRST_ROOM_ID)) != EncounterSystem.STATUS_ACTIVE:
 		_fail("First-room encounter did not activate before visual detection.")
 		return
 
-	var record: Dictionary = state.call("get_stealth_alert_record", CARETAKER_ID) as Dictionary
-	record["state"] = StealthAlertSystem.STATE_ALERTED
-	record["suspicion"] = StealthAlertSystem.SUSPICION_ALERTED
-	record["last_known_position"] = [player.global_position.x, player.global_position.y]
-	game.call("_begin_combat_from_alert", caretaker, record)
+	# Run the real visual-observation path. A three-second observation exceeds the
+	# old automatic-hostility threshold and also exercises squad alert broadcast.
+	game.call("_update_exploration_actor", caretaker, 3.0)
 	await process_frame
 
 	if turn_system.active:
@@ -60,6 +63,13 @@ func _run() -> void:
 		return
 	if caretaker.has_method("is_hostile") and bool(caretaker.call("is_hostile")):
 		_fail("Caretaker became hostile from line of sight alone.")
+		return
+	if service_guard.has_method("is_hostile") and bool(service_guard.call("is_hostile")):
+		_fail("Neutral caretaker detection indirectly made the service guard hostile.")
+		return
+	var guard_record: Dictionary = state.call("get_stealth_alert_record", GUARD_ID) as Dictionary
+	if str(guard_record.get("state", StealthAlertSystem.STATE_CALM)) in [StealthAlertSystem.STATE_ALERTED, StealthAlertSystem.STATE_COMBAT]:
+		_fail("Neutral caretaker detection broadcast a hostile squad alert to the service guard.")
 		return
 	if bool(state.call("get_flag", COMBAT_STARTED_FLAG, false)):
 		_fail("Visual detection incorrectly locked the first room to the combat route.")
@@ -88,7 +98,7 @@ func _run() -> void:
 	await process_frame
 	if FileAccess.file_exists(save_path):
 		DirAccess.remove_absolute(save_path)
-	print("Neutral caretaker detection and explicit provocation combat transition passed.")
+	print("Neutral caretaker detection, suppressed squad broadcast and explicit provocation transition passed.")
 	quit(0)
 
 
