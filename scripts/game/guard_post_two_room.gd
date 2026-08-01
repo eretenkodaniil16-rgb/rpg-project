@@ -5,8 +5,8 @@ const INNER_GATE_SCRIPT: Script = preload("res://scripts/game/stealth_door.gd")
 
 const INNER_PARTITION_LOCAL_X: float = 632.0
 const INNER_PARTITION_THICKNESS: float = 4.0
-const INNER_PARTITION_TOP_SIZE: Vector2 = Vector2(INNER_PARTITION_THICKNESS, 251.0)
-const INNER_PARTITION_BOTTOM_SIZE: Vector2 = Vector2(INNER_PARTITION_THICKNESS, 251.0)
+const INNER_PARTITION_TOP_SIZE: Vector2 = Vector2(INNER_PARTITION_THICKNESS, 256.0)
+const INNER_PARTITION_BOTTOM_SIZE: Vector2 = Vector2(INNER_PARTITION_THICKNESS, 246.0)
 const INNER_GATE_SIZE: Vector2 = Vector2(INNER_PARTITION_THICKNESS, 128.0)
 const INNER_PARTITION_TOP_ID: String = "inner_partition_top"
 const INNER_PARTITION_BOTTOM_ID: String = "inner_partition_bottom"
@@ -29,17 +29,17 @@ func _ready() -> void:
 	super._ready()
 	_build_wall(
 		"InnerPartitionTop",
-		Vector2(INNER_PARTITION_LOCAL_X, -189.5),
+		Vector2(INNER_PARTITION_LOCAL_X, -187.0),
 		INNER_PARTITION_TOP_SIZE
 	)
 	_build_wall(
 		"InnerPartitionBottom",
-		Vector2(INNER_PARTITION_LOCAL_X, 189.5),
+		Vector2(INNER_PARTITION_LOCAL_X, 192.0),
 		INNER_PARTITION_BOTTOM_SIZE
 	)
 	_inner_gate = INNER_GATE_SCRIPT.new() as StealthDoor
 	_inner_gate.name = "InnerWatchGate"
-	_inner_gate.position = Vector2(INNER_PARTITION_LOCAL_X, 0.0)
+	_inner_gate.position = Vector2(INNER_PARTITION_LOCAL_X, 5.0)
 	_inner_gate.door_id = INNER_GATE_ID
 	_inner_gate.door_label = "Внутренняя дверь караульного поста"
 	_inner_gate.door_size = INNER_GATE_SIZE
@@ -209,8 +209,8 @@ func _build_navigation() -> void:
 	add_child(_door_navigation_link)
 	_inner_gate_navigation_link = NavigationLink2D.new()
 	_inner_gate_navigation_link.name = "InnerWatchGateNavigationLink"
-	_inner_gate_navigation_link.start_position = Vector2(INNER_PARTITION_LOCAL_X - 32.0, 0.0)
-	_inner_gate_navigation_link.end_position = Vector2(INNER_PARTITION_LOCAL_X + 32.0, 0.0)
+	_inner_gate_navigation_link.start_position = Vector2(INNER_PARTITION_LOCAL_X - 32.0, 5.0)
+	_inner_gate_navigation_link.end_position = Vector2(INNER_PARTITION_LOCAL_X + 32.0, 5.0)
 	_inner_gate_navigation_link.bidirectional = true
 	_inner_gate_navigation_link.enter_cost = 0.0
 	_inner_gate_navigation_link.travel_cost = 1.0
