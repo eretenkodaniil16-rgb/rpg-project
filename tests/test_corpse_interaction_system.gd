@@ -1,6 +1,6 @@
 extends SceneTree
 
-const SAVE_PATH: String = "user://savegame.json"
+const SAVE_PATH: String = "user://save_slots/autosave.json"
 
 
 func _init() -> void:
@@ -16,6 +16,7 @@ func _run() -> void:
 	if FileAccess.file_exists(save_path):
 		DirAccess.remove_absolute(save_path)
 	state.call("new_game")
+	state.set("player_character", _make_hero())
 	var system := CorpseInteractionSystem.new()
 	var guard_profile: Dictionary = system.get_profile("service_guard")
 	assert(str(guard_profile.get("defeat_outcome", "")) == CorpseInteractionSystem.BODY_DEAD)
@@ -41,7 +42,7 @@ func _run() -> void:
 	assert(system.update_body_position(state, "service_guard", Vector2(700.0, 505.0), true))
 	state.set("story_flags", {})
 	state.set("inventory", {})
-	assert(bool(state.call("load_game")))
+	assert(bool(state.call("load_autosave")))
 	var loaded_record: Dictionary = system.get_record(state, "service_guard")
 	assert(system.get_body_position(loaded_record) == Vector2(700.0, 505.0))
 	assert(int(state.call("get_item_count", "gold_coin")) == 4)
@@ -81,9 +82,9 @@ func _run() -> void:
 	for source: Dictionary in second_sources:
 		assert(str(source.get("item_id", "")) != "explorer_pack")
 
-	state.call("save_game")
+	assert(bool(state.call("save_game")))
 	state.set("story_flags", {})
-	assert(bool(state.call("load_game")))
+	assert(bool(state.call("load_autosave")))
 	assert(system.is_bound(state, "caretaker"))
 	var release_result: Dictionary = system.release_restraint(state, "caretaker")
 	assert(bool(release_result.get("success", false)))
@@ -97,8 +98,20 @@ func _run() -> void:
 
 	if FileAccess.file_exists(save_path):
 		DirAccess.remove_absolute(save_path)
-	print("Corpse death, nonlethal override, restraint reservation and save/load passed.")
+	print("Corpse death, nonlethal override, restraint reservation and autosave load passed.")
 	quit(0)
+
+
+func _make_hero() -> PlayerCharacter:
+	var hero := PlayerCharacter.new()
+	hero.character_name = "Испытатель тел"
+	hero.character_class_id = "fighter"
+	hero.character_class_name = "Воин"
+	hero.race_id = "human"
+	hero.race_name = "Человек"
+	hero.maximum_health = 20
+	hero.current_health = 20
+	return hero
 
 
 func _fail(message: String) -> void:
