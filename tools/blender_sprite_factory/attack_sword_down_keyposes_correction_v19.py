@@ -14,7 +14,7 @@ from attack_sword_down_keyposes_profile_v17 import (
 CORRECTION_REVISION = "v19"
 ONEHAND_TRAJECTORY_REVISION = "continuous_diagonal_cut_v19"
 TWOHAND_TRAJECTORY_REVISION = "outside_head_descending_arc_v19"
-MIN_TWOHAND_HEAD_CLEARANCE_PIXELS = 8.0
+MIN_TWOHAND_HEAD_CLEARANCE_PIXELS = 4.0
 
 
 def _correct_onehand_poses(
