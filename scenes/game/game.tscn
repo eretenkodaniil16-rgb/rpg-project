@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/game/game_base.tscn" id="1_base"]
 [ext_resource type="Script" path="res://scripts/game/game_guard_post_polish_runtime.gd" id="2_feature"]
@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://scripts/game/npc_stealth_context_dialogue.gd" id="4_context_npc"]
 [ext_resource type="Script" path="res://scripts/ui/mobile_controls_context_actions.gd" id="5_mobile_context"]
 [ext_resource type="Script" path="res://scripts/game/world_state_npc_navigation_controller.gd" id="6_world_controller"]
+[ext_resource type="Script" path="res://scripts/game/world_snapshot_readiness_guard.gd" id="7_snapshot_guard"]
 
 [node name="Game" instance=ExtResource("1_base")]
 script = ExtResource("2_feature")
@@ -19,6 +20,9 @@ script = ExtResource("4_context_npc")
 
 [node name="WorldStateNpcNavigationController" type="Node" parent="."]
 script = ExtResource("6_world_controller")
+
+[node name="WorldSnapshotReadinessGuard" type="Node" parent="."]
+script = ExtResource("7_snapshot_guard")
 
 [node name="MobileControls" parent="Interface" index="3"]
 script = ExtResource("5_mobile_context")
