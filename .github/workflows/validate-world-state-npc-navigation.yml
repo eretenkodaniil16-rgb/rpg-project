@@ -7,6 +7,7 @@ on:
       - "scenes/game/game.tscn"
       - "scripts/core/game_state_world_snapshot.gd"
       - "scripts/game/world_state_npc_navigation_controller.gd"
+      - "scripts/game/world_snapshot_readiness_guard.gd"
       - "scripts/systems/obstacle_aware_npc_navigation_system.gd"
       - "scripts/game/player_combat.gd"
       - "scripts/game/game_target_free_attacks.gd"
