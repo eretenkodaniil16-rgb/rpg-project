@@ -14,6 +14,8 @@ const ROOM_ONE_OUTCOME_FLAG: String = "vault_guard_post_room1_outcome"
 const ROOM_ONE_COMBAT_STARTED_FLAG: String = "vault_guard_post_room1_combat_started"
 const ROOM_ONE_HOSTILE_FLAG: String = "vault_inner_watch_hostile"
 const INNER_GATE_OPEN_FLAG: String = "vault_inner_gate_open"
+const CARETAKER_ACTOR_ID: String = "caretaker"
+const CARETAKER_NOTICED_FLAG: String = "vault_guard_post_caretaker_noticed"
 
 var _inner_watch_combat_starting: bool = false
 var _two_room_resolution_in_progress: bool = false
@@ -23,6 +25,44 @@ func _ready() -> void:
 	_ensure_two_room_migration()
 	super._ready()
 	_sync_room_from_persistent_state()
+
+
+func _begin_combat_from_alert(actor: Node, record: Dictionary) -> void:
+	if _caretaker_should_remain_neutral(actor):
+		_handle_neutral_caretaker_detection(actor, record)
+		return
+	super._begin_combat_from_alert(actor, record)
+
+
+func _caretaker_should_remain_neutral(actor: Node) -> bool:
+	if _actor_id(actor) != CARETAKER_ACTOR_ID:
+		return false
+	if bool(GameState.get_flag(ROOM_ONE_COMBAT_STARTED_FLAG, false)):
+		return false
+	if actor.has_method("is_hostile") and bool(actor.call("is_hostile")):
+		return false
+	var status: String = str(GameState.get_encounter_status(FIRST_ROOM_ENCOUNTER_ID))
+	return status not in [EncounterSystem.STATUS_RESOLVED, EncounterSystem.STATUS_REWARDED]
+
+
+func _handle_neutral_caretaker_detection(actor: Node, record: Dictionary) -> void:
+	var actor_id: String = _actor_id(actor)
+	var first_contact: bool = not bool(GameState.get_flag(CARETAKER_NOTICED_FLAG, false))
+	record["state"] = StealthAlertSystem.STATE_ALERTED
+	record["suspicion"] = StealthAlertSystem.SUSPICION_ALERTED
+	_alert_records[actor_id] = record
+	if actor.has_method("set_exploration_alert_state"):
+		actor.call(
+			"set_exploration_alert_state",
+			StealthAlertSystem.STATE_ALERTED,
+			StealthAlertSystem.SUSPICION_ALERTED,
+			_stealth_alerts.vector_from_value(record.get("last_known_position", []))
+		)
+	actor.set("hostile", false)
+	GameState.set_flag(CARETAKER_NOTICED_FLAG, true)
+	_persist_alert_record(actor_id, first_contact)
+	if first_contact:
+		show_combat_message("Смотритель замечает героя, но не нападает. С ним можно поговорить.", true)
 
 
 func _start_turn_based_combat(trigger_target: Node) -> void:
