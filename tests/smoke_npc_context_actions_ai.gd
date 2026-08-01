@@ -2,6 +2,7 @@ extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
 const RUNTIME_PATH: String = "res://scripts/game/game_guard_post_polish_runtime.gd"
+const AUTOSAVE_PATH: String = "user://save_slots/autosave.json"
 
 
 func _init() -> void:
@@ -18,7 +19,7 @@ func _run() -> void:
 	if state == null:
 		_fail("GameState autoload is missing.")
 		return
-	var save_path: String = ProjectSettings.globalize_path("user://savegame.json")
+	var save_path: String = ProjectSettings.globalize_path(AUTOSAVE_PATH)
 	if FileAccess.file_exists(save_path):
 		DirAccess.remove_absolute(save_path)
 	state.call("new_game")
@@ -115,6 +116,11 @@ func _run() -> void:
 		if forbidden in inspected:
 			_fail("Inspect action exposed exact combat values: %s" % forbidden)
 			return
+	# Exploration simulation intentionally pauses while the action catalog is
+	# open. Close the overlay before validating autonomous patrol movement.
+	catalog.close_catalog()
+	state.set("input_locked", false)
+	await process_frame
 
 	var door: StealthDoor = room.get_test_door()
 	var navigation_link: NavigationLink2D = room.get_navigation_link_for_testing()
