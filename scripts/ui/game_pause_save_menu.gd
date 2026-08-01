@@ -9,6 +9,7 @@ const SAVE_SLOTS_PANEL_SCRIPT: Script = preload("res://scripts/ui/save_slots_pan
 var _menu_panel: PanelContainer
 var _save_slots_panel: SaveSlotsPanel
 var _save_button: Button
+var _main_menu_button: Button
 var _save_status_label: Label
 var _was_input_locked: bool = false
 var _save_allowed: bool = true
@@ -39,6 +40,7 @@ func open_menu() -> void:
 	if state == null:
 		push_error("GameState autoload is unavailable to the pause menu.")
 		return
+	_refresh_runtime_restrictions()
 	_was_input_locked = bool(state.get("input_locked"))
 	state.set("input_locked", true)
 	_menu_panel.show()
@@ -63,6 +65,10 @@ func is_menu_open() -> bool:
 
 func is_save_available_for_testing() -> bool:
 	return _save_allowed and is_instance_valid(_save_button) and not _save_button.disabled
+
+
+func is_main_menu_available_for_testing() -> bool:
+	return _save_allowed and is_instance_valid(_main_menu_button) and not _main_menu_button.disabled
 
 
 func get_save_status_for_testing() -> String:
@@ -127,12 +133,12 @@ func _build_ui() -> void:
 	_save_status_label.hide()
 	vbox.add_child(_save_status_label)
 
-	var main_menu_button := Button.new()
-	main_menu_button.custom_minimum_size = Vector2(0.0, 62.0)
-	main_menu_button.text = "В ГЛАВНОЕ МЕНЮ"
-	main_menu_button.add_theme_font_size_override("font_size", 20)
-	main_menu_button.pressed.connect(_request_main_menu)
-	vbox.add_child(main_menu_button)
+	_main_menu_button = Button.new()
+	_main_menu_button.custom_minimum_size = Vector2(0.0, 62.0)
+	_main_menu_button.text = "В ГЛАВНОЕ МЕНЮ"
+	_main_menu_button.add_theme_font_size_override("font_size", 20)
+	_main_menu_button.pressed.connect(_request_main_menu)
+	vbox.add_child(_main_menu_button)
 
 	_save_slots_panel = SAVE_SLOTS_PANEL_SCRIPT.new() as SaveSlotsPanel
 	_save_slots_panel.name = "SaveSlotsPanel"
@@ -141,11 +147,28 @@ func _build_ui() -> void:
 	_refresh_save_availability()
 
 
+func _refresh_runtime_restrictions() -> void:
+	var runtime: Node = _game_runtime()
+	var combat_active: bool = (
+		runtime != null
+		and runtime.has_method("is_turn_based_combat_active")
+		and bool(runtime.call("is_turn_based_combat_active"))
+	)
+	if combat_active:
+		configure_save_availability(
+			false,
+			"Во время активного боя нельзя создавать файл сохранения или выходить в главное меню: незавершённая инициатива ещё не сериализуется."
+		)
+	else:
+		configure_save_availability(true)
+
+
 func _refresh_save_availability() -> void:
-	if not is_instance_valid(_save_button) or not is_instance_valid(_save_status_label):
+	if not is_instance_valid(_save_button) or not is_instance_valid(_main_menu_button) or not is_instance_valid(_save_status_label):
 		return
 	_save_button.disabled = not _save_allowed
 	_save_button.text = "СОХРАНИТЬ ИГРУ" if _save_allowed else "СОХРАНЕНИЕ НЕДОСТУПНО"
+	_main_menu_button.disabled = not _save_allowed
 	_save_status_label.text = _save_block_reason
 	_save_status_label.visible = not _save_allowed and not _save_block_reason.is_empty()
 
@@ -163,8 +186,19 @@ func _on_save_panel_closed() -> void:
 
 
 func _request_main_menu() -> void:
+	if not _save_allowed:
+		return
 	main_menu_requested.emit()
 
 
 func _game_state() -> Node:
 	return get_node_or_null("/root/GameState")
+
+
+func _game_runtime() -> Node:
+	var candidate: Node = get_parent()
+	while candidate != null:
+		if candidate.has_method("is_turn_based_combat_active"):
+			return candidate
+		candidate = candidate.get_parent()
+	return null
