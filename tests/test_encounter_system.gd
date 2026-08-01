@@ -1,5 +1,7 @@
 extends SceneTree
 
+const AUTOSAVE_PATH: String = "user://save_slots/autosave.json"
+
 
 func _init() -> void:
 	call_deferred("_run")
@@ -15,8 +17,8 @@ func _run() -> void:
 	if state == null or not state.has_method("begin_encounter") or not state.has_method("resolve_encounter"):
 		_fail("Encounter-aware GameState API is missing.")
 		return
-	var save_path: String = ProjectSettings.globalize_path("user://savegame.json")
-	if FileAccess.file_exists(save_path):
+	var save_path: String = ProjectSettings.globalize_path(AUTOSAVE_PATH)
+	if FileAccess.file_exists(AUTOSAVE_PATH):
 		DirAccess.remove_absolute(save_path)
 
 	state.call("new_game")
@@ -70,7 +72,12 @@ func _run() -> void:
 	if not bool(state.call("save_game")):
 		_fail("Encounter state could not be saved.")
 		return
-	state.call("new_game")
+	# new_game() intentionally discards autosave. Clear only in-memory values so
+	# this test verifies loading the existing campaign rather than starting one.
+	state.set("story_flags", {})
+	state.set("quest_states", {})
+	state.set("inventory", {})
+	state.set("player_character", PlayerCharacter.new())
 	if not bool(state.call("load_game")):
 		_fail("Encounter state could not be loaded.")
 		return
@@ -153,7 +160,7 @@ func _run() -> void:
 		_fail("Encounter migration is not idempotent.")
 		return
 
-	if FileAccess.file_exists(save_path):
+	if FileAccess.file_exists(AUTOSAVE_PATH):
 		DirAccess.remove_absolute(save_path)
 	print("Encounter lifecycle, consequences, save/load and migration tests passed.")
 	quit(0)
