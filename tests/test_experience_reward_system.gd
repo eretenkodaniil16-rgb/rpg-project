@@ -1,5 +1,7 @@
 extends SceneTree
 
+const AUTOSAVE_PATH: String = "user://save_slots/autosave.json"
+
 
 func _init() -> void:
 	call_deferred("_run")
@@ -15,8 +17,8 @@ func _run() -> void:
 	if state == null or not state.has_method("grant_experience_reward"):
 		_fail("Extended GameState experience reward API is missing.")
 		return
-	var save_path: String = ProjectSettings.globalize_path("user://savegame.json")
-	if FileAccess.file_exists(save_path):
+	var save_path: String = ProjectSettings.globalize_path(AUTOSAVE_PATH)
+	if FileAccess.file_exists(AUTOSAVE_PATH):
 		DirAccess.remove_absolute(save_path)
 
 	state.call("new_game")
@@ -45,7 +47,13 @@ func _run() -> void:
 	if not bool(state.call("save_game")):
 		_fail("Reward state could not be saved.")
 		return
-	state.call("new_game")
+	# Do not call new_game() here: the production contract deliberately removes
+	# autosave when a genuinely new campaign starts. Mutate the in-memory state
+	# instead, then verify that load_game() restores the existing autosave.
+	state.set("story_flags", {})
+	state.set("quest_states", {})
+	state.set("inventory", {})
+	state.set("player_character", PlayerCharacter.new())
 	if not bool(state.call("load_game")):
 		_fail("Reward state could not be loaded.")
 		return
@@ -105,7 +113,7 @@ func _run() -> void:
 		_fail("Shared dialogue revelation reward was granted more than once.")
 		return
 
-	if FileAccess.file_exists(save_path):
+	if FileAccess.file_exists(AUTOSAVE_PATH):
 		DirAccess.remove_absolute(save_path)
 	print("Experience reward IDs, quest completion, migration and save/load tests passed.")
 	quit(0)
