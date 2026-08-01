@@ -71,12 +71,16 @@ func _run() -> void:
 			_fail("%s is missing from inner-room initiative." % actor.call("get_actor_id"))
 			return
 
-	# Let any initially scheduled turn finish before testing recovery from a
-	# deliberately unstarted NPC turn.
-	await create_timer(1.4).timeout
+	# Finish any initiative-selected turn before forcing isolated watchdog cases.
+	if not await _stabilize_on_player(game, turn_system, player, 8.0):
+		_fail("Initial inner-watch AI turn did not settle before isolated checks.")
+		return
 	await _verify_watchdog_turn(game, turn_system, marksman, MARKSMAN_ID)
 	if not turn_system.active:
 		_fail("Combat ended before the mage live-turn check.")
+		return
+	if not await _stabilize_on_player(game, turn_system, player, 8.0):
+		_fail("Could not stabilize initiative before the mage check.")
 		return
 	await _verify_watchdog_turn(game, turn_system, mage, MAGE_ID)
 
@@ -88,13 +92,32 @@ func _run() -> void:
 	quit(0)
 
 
+func _stabilize_on_player(
+	game: Node,
+	turn_system: TurnBasedCombatSystem,
+	player: Node,
+	timeout_seconds: float
+) -> bool:
+	var elapsed: float = 0.0
+	while elapsed < timeout_seconds and bool(game.get("_enemy_turn_running")):
+		await create_timer(0.1).timeout
+		elapsed += 0.1
+	if bool(game.get("_enemy_turn_running")) or not turn_system.active:
+		return false
+	turn_system.force_current_actor_for_testing(player)
+	game.set("_enemy_turn_running", false)
+	game.call("_begin_current_turn")
+	await process_frame
+	return turn_system.current_actor() == player and not bool(game.get("_enemy_turn_running"))
+
+
 func _verify_watchdog_turn(game: Node, turn_system: TurnBasedCombatSystem, actor: Node, actor_id: String) -> void:
 	var started_before: int = int(game.call("get_inner_watch_ai_turn_started_for_testing", actor_id))
 	var completed_before: int = int(game.call("get_inner_watch_ai_turn_completed_for_testing", actor_id))
 	turn_system.force_current_actor_for_testing(actor)
 	game.set("_enemy_turn_running", false)
 	var elapsed: float = 0.0
-	while elapsed < 7.0:
+	while elapsed < 8.0:
 		await create_timer(0.1).timeout
 		elapsed += 0.1
 		var completed_now: int = int(game.call("get_inner_watch_ai_turn_completed_for_testing", actor_id))
