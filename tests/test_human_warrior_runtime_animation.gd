@@ -13,7 +13,11 @@ func _fail(message: String) -> void:
 
 
 func _run() -> void:
-	GameState.new_game()
+	var game_state: Node = get_node_or_null("/root/GameState")
+	if game_state == null:
+		_fail("GameState autoload is unavailable.")
+		return
+	game_state.call("new_game")
 	var hero := PlayerCharacter.new()
 	hero.character_name = "Тестовый воин"
 	hero.character_class_id = "fighter"
@@ -23,7 +27,7 @@ func _run() -> void:
 	hero.abilities["constitution"] = 14
 	hero.maximum_health = 12
 	hero.current_health = 12
-	GameState.player_character = hero
+	game_state.set("player_character", hero)
 	ClassDataSystem.new().ensure_starting_loadout(hero)
 
 	var scene: PackedScene = load("res://scenes/game/game.tscn") as PackedScene
@@ -36,9 +40,12 @@ func _run() -> void:
 	await get_tree().process_frame
 
 	var player: CharacterBody2D = game.find_child("Player", true, false) as CharacterBody2D
+	if player == null:
+		_fail("Player node is missing from the game scene.")
+		return
 	var body: Polygon2D = player.get_node_or_null("Body") as Polygon2D
 	var sprite: AnimatedSprite2D = game.find_child("CharacterSprite", true, false) as AnimatedSprite2D
-	if player == null or body == null or sprite == null:
+	if body == null or sprite == null:
 		_fail("Authored human warrior runtime visual is missing.")
 		return
 	if sprite.get_parent() != body or not body.visible or body.color.a > 0.001:
