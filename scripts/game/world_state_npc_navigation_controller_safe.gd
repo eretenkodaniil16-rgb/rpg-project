@@ -4,7 +4,17 @@ extends WorldStateNpcNavigationController
 
 func capture_world_state_for_save() -> Dictionary:
 	var snapshot: Dictionary = super.capture_world_state_for_save()
-	print("WORLD_DOOR_CAPTURE %s" % JSON.stringify(snapshot.get("doors", {})))
+	var doors_value: Variant = snapshot.get("doors", {})
+	var doors: Dictionary = doors_value as Dictionary if doors_value is Dictionary else {}
+	# The inner gate is created programmatically. Capture it explicitly by stable
+	# door_id so its persistence does not depend on _ready() ordering or group
+	# registration timing.
+	var inner_gate: Node = _get_dynamic_inner_gate()
+	if is_instance_valid(inner_gate) and inner_gate.has_method("get_door_id") and inner_gate.has_method("get_door_state"):
+		var inner_gate_id: String = str(inner_gate.call("get_door_id"))
+		if not inner_gate_id.is_empty():
+			doors[inner_gate_id] = {"state": str(inner_gate.call("get_door_state"))}
+	snapshot["doors"] = doors
 	return snapshot
 
 
@@ -53,8 +63,11 @@ func _restore_actor(actor: Node, state: Dictionary) -> void:
 
 
 func _restore_doors(doors: Dictionary) -> void:
-	print("WORLD_DOOR_RESTORE_INPUT %s" % JSON.stringify(doors))
-	for door: Node in get_tree().get_nodes_in_group("stealth_doors"):
+	var candidates: Array[Node] = get_tree().get_nodes_in_group("stealth_doors")
+	var inner_gate: Node = _get_dynamic_inner_gate()
+	if is_instance_valid(inner_gate) and inner_gate not in candidates:
+		candidates.append(inner_gate)
+	for door: Node in candidates:
 		if not is_instance_valid(door) or not door.has_method("get_door_id"):
 			continue
 		var door_id: String = str(door.call("get_door_id"))
@@ -64,14 +77,23 @@ func _restore_doors(doors: Dictionary) -> void:
 		var desired_state: String = str((value as Dictionary).get("state", "closed"))
 		if desired_state not in ["open", "closed", "locked", "blocked", "broken"]:
 			desired_state = "closed"
-		var before_state: String = str(door.call("get_door_state")) if door.has_method("get_door_state") else ""
 		door.set("_door_state", desired_state)
+		# Only data-registered doors use the stealth registry. Dynamic doors remain
+		# authoritative in the world snapshot; the registry call is harmless when
+		# unsupported and keeps regular doors synchronized without writing a save.
 		if is_instance_valid(_state) and _state.has_method("set_stealth_door_state"):
 			_state.call("set_stealth_door_state", door_id, desired_state, false)
 		if door.has_method("_apply_state"):
 			door.call("_apply_state", false)
-		var after_state: String = str(door.call("get_door_state")) if door.has_method("get_door_state") else ""
-		print("WORLD_DOOR_RESTORE id=%s desired=%s before=%s after=%s" % [door_id, desired_state, before_state, after_state])
+
+
+func _get_dynamic_inner_gate() -> Node:
+	if not is_instance_valid(_game):
+		return null
+	var room: Node = _game.get_node_or_null("StealthTestRoom")
+	if room != null and room.has_method("get_inner_gate"):
+		return room.call("get_inner_gate") as Node
+	return null
 
 
 func _repair_invalid_actor_positions() -> void:
