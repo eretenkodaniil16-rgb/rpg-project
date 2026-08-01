@@ -4,6 +4,7 @@ const HUMAN_WARRIOR_LIBRARY_SCRIPT: Script = preload("res://scripts/game/human_w
 const HUMAN_WARRIOR_TEST_PANEL_SCRIPT: Script = preload("res://scripts/ui/human_warrior_animation_test_panel.gd")
 const AUTHORED_SPRITE_OFFSET: Vector2 = Vector2(0.0, -43.0)
 const VISUAL_MOVEMENT_EPSILON_SQUARED: float = 0.01
+const VISUAL_STOP_GRACE_SECONDS: float = 0.10
 const VISUAL_STATE_IDLE: StringName = &"idle"
 const VISUAL_STATE_WALK: StringName = &"walk"
 const VISUAL_MODE_AUTO: StringName = &"auto"
@@ -35,6 +36,7 @@ var _visual_combat_preview_enabled: bool = false
 var _visual_combat_preview: bool = false
 var _visual_sample_initialized: bool = false
 var _last_visual_sample_position: Vector2 = Vector2.ZERO
+var _visual_stop_grace_remaining: float = 0.0
 var _animation_library_error: String = ""
 var _visual_class_data: ClassDataSystem = ClassDataSystem.new()
 var _last_visual_weapon_id: String = ""
@@ -43,40 +45,33 @@ var _last_visual_weapon_id: String = ""
 func _ready() -> void:
 	_install_character_sprite()
 	apply_character_appearance()
+	_last_visual_sample_position = global_position
+	_last_visual_weapon_id = GameState.player_character.equipped_weapon_id
+	_visual_sample_initialized = true
 	_install_animation_test_panel()
 
 
 func _process(_delta: float) -> void:
-	if not _visual_sample_initialized:
-		_last_visual_sample_position = global_position
-		_last_visual_weapon_id = GameState.player_character.equipped_weapon_id
-		_visual_sample_initialized = true
-		return
-	var movement_delta: Vector2 = global_position - _last_visual_sample_position
-	_last_visual_sample_position = global_position
-	set_visual_motion(
-		movement_delta.length_squared() > VISUAL_MOVEMENT_EPSILON_SQUARED,
-		movement_delta
-	)
 	var equipped_weapon_id: String = GameState.player_character.equipped_weapon_id
 	if equipped_weapon_id != _last_visual_weapon_id:
 		_last_visual_weapon_id = equipped_weapon_id
 		_refresh_visual_animation()
 
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	if GameState.input_locked:
 		velocity = Vector2.ZERO
-		return
-	var keyboard_direction: Vector2 = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
-	var direction: Vector2 = keyboard_direction + _get_mobile_direction()
-	if direction.length_squared() > 1.0:
-		direction = direction.normalized()
-	velocity = direction * movement_speed
-	move_and_slide()
-	global_position.x = clampf(global_position.x, movement_bounds.position.x, movement_bounds.end.x)
-	global_position.y = clampf(global_position.y, movement_bounds.position.y, movement_bounds.end.y)
-	GameState.player_position = global_position
+	else:
+		var keyboard_direction: Vector2 = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
+		var direction: Vector2 = keyboard_direction + _get_mobile_direction()
+		if direction.length_squared() > 1.0:
+			direction = direction.normalized()
+		velocity = direction * movement_speed
+		move_and_slide()
+		global_position.x = clampf(global_position.x, movement_bounds.position.x, movement_bounds.end.x)
+		global_position.y = clampf(global_position.y, movement_bounds.position.y, movement_bounds.end.y)
+		GameState.player_position = global_position
+	_sample_visual_motion(delta)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -246,6 +241,25 @@ func get_visual_debug_state() -> Dictionary:
 		"animation": str(_character_sprite.animation) if is_instance_valid(_character_sprite) else "fallback",
 		"library_error": _animation_library_error
 	}
+
+
+func _sample_visual_motion(delta: float) -> void:
+	if not _visual_sample_initialized:
+		_last_visual_sample_position = global_position
+		_visual_sample_initialized = true
+		return
+	var movement_delta: Vector2 = global_position - _last_visual_sample_position
+	_last_visual_sample_position = global_position
+	if movement_delta.length_squared() > VISUAL_MOVEMENT_EPSILON_SQUARED:
+		_visual_stop_grace_remaining = VISUAL_STOP_GRACE_SECONDS
+		set_visual_motion(true, movement_delta)
+		return
+	if _visual_motion_state != VISUAL_STATE_WALK:
+		_visual_stop_grace_remaining = 0.0
+		return
+	_visual_stop_grace_remaining = maxf(_visual_stop_grace_remaining - delta, 0.0)
+	if _visual_stop_grace_remaining <= 0.0:
+		set_visual_motion(false)
 
 
 func _refresh_visual_animation() -> void:
