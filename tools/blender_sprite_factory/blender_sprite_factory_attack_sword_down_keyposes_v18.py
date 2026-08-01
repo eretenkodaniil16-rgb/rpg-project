@@ -23,7 +23,36 @@ from attack_sword_down_keyposes_correction_v18 import (
 
 CORRECTION_PATH = SCRIPT_DIR / "attack_sword_down_keyposes_correction_v18.py"
 BASE_WRITE_MANIFEST_V17 = previous_adapter._write_manifest_v17
+BASE_ASSERT_BOUNDARY_V17 = previous_adapter._assert_boundary_contract
 CONTACT_SHEET_NAME = "attack_sword_01_down_keyposes_v18.png"
+MAX_APPROVED_GUARD_EDGE_PIXELS = 12
+
+
+def _assert_boundary_v18(
+    artifact: object,
+    *,
+    grip_id: str,
+) -> None:
+    if grip_id != "onehand_ready" or artifact.frame_number not in (1, 5):
+        BASE_ASSERT_BOUNDARY_V17(artifact, grip_id=grip_id)
+        return
+    counts = previous_adapter._edge_alpha_counts(artifact.output_path)
+    forbidden = {
+        edge: count
+        for edge, count in counts.items()
+        if edge != "left" and count > 0
+    }
+    if forbidden:
+        raise RuntimeError(
+            "attack sword down v18 one-hand guard-family frame touches "
+            f"forbidden boundaries: f{artifact.frame_number:02d}={forbidden}"
+        )
+    if counts["left"] > MAX_APPROVED_GUARD_EDGE_PIXELS:
+        raise RuntimeError(
+            "attack sword down v18 one-hand guard-family frame exceeds "
+            f"approved left-edge budget: f{artifact.frame_number:02d}="
+            f"{counts['left']}"
+        )
 
 
 def _write_manifest_v18(
@@ -61,6 +90,10 @@ def _write_manifest_v18(
         "twohand_anticipation_revision": TWOHAND_ANTICIPATION_REVISION,
         "onehand_phase_order_corrected": True,
         "twohand_top_boundary_correction": True,
+        "onehand_guard_family_left_edge_frames": [1, 5],
+        "onehand_guard_family_left_edge_budget_pixels": (
+            MAX_APPROVED_GUARD_EDGE_PIXELS
+        ),
         "source_v17_preserved": True,
         "animation_action_ids_changed": False,
         "weapon_geometry_changed": False,
@@ -91,6 +124,7 @@ def main() -> int:
     previous_adapter.PROFILE_PATH = CORRECTION_PATH
     previous_adapter.SCRIPT_PATH = SCRIPT_PATH
     previous_adapter.CONTACT_SHEET_NAME = CONTACT_SHEET_NAME
+    previous_adapter._assert_boundary_contract = _assert_boundary_v18
     previous_adapter._write_manifest_v17 = _write_manifest_v18
     return previous_adapter.main()
 
