@@ -22,6 +22,12 @@ func _ready() -> void:
 		&"_on_hide_requested",
 		Callable(self, "_on_feedback_hide_requested")
 	)
+	_replace_bound_handler(
+		_target_button,
+		&"pressed",
+		&"_cycle_target",
+		Callable(self, "_on_feedback_target_requested")
+	)
 
 
 func _process(delta: float) -> void:
@@ -41,6 +47,26 @@ func is_player_combat_turn() -> bool:
 		and _turn_system.is_player_turn(player)
 		and not _enemy_turn_running
 	)
+
+
+func _on_feedback_target_requested() -> void:
+	# Target selection must remain usable even if a stale Actions panel survived
+	# a touch race. Close it first, restore the hostile inner-watch contract and
+	# then execute the visibility-aware target cycle.
+	_close_action_catalog_immediately()
+	_restore_hostile_inner_watch_target_contract()
+	super._cycle_target()
+
+
+func _restore_hostile_inner_watch_target_contract() -> void:
+	if not _turn_system.active:
+		return
+	var room: Node = _two_room_node()
+	if room == null or not room.has_method("get_inner_watch_mode_for_testing"):
+		return
+	if str(room.call("get_inner_watch_mode_for_testing")) != "hostile":
+		return
+	_prepare_inner_watch_combatants()
 
 
 func _sync_combat_alert_records() -> void:
