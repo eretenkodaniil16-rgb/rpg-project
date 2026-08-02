@@ -1,7 +1,7 @@
 extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
-const EXPECTED_RUNTIME: String = "res://scripts/game/game_guard_post_player_feedback_runtime.gd"
+const EXPECTED_RUNTIME: String = "res://scripts/game/game_guard_post_polish_runtime.gd"
 const FIRST_ROOM_ID: String = "vault_guard_post_01"
 const WORLD_ACTION_PREFIX: String = "world_interact__"
 
@@ -31,7 +31,7 @@ func _run() -> void:
 		await process_frame
 	var game_script: Script = game.get_script() as Script
 	if game_script == null or game_script.resource_path != EXPECTED_RUNTIME:
-		_fail("Guard post scene does not use the hide-to-pursuit polished runtime.")
+		_fail("Guard post scene does not use the polished runtime.")
 		return
 
 	var player: Node2D = game.get_node_or_null("Player") as Node2D
@@ -93,6 +93,8 @@ func _run() -> void:
 		_fail("Dialogue did not retain the caretaker as its concrete target.")
 		return
 
+	# Reproduce the stale-alert condition that previously started combat as soon
+	# as the successful dialogue was closed.
 	game.call("_update_exploration_actor", caretaker, 3.0)
 	game.call("_update_exploration_actor", guard, 3.0)
 	await process_frame

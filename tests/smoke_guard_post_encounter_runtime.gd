@@ -1,7 +1,7 @@
 extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
-const EXPECTED_RUNTIME: String = "res://scripts/game/game_guard_post_player_feedback_runtime.gd"
+const EXPECTED_RUNTIME: String = "res://scripts/game/game_guard_post_polish_runtime.gd"
 const FIRST_ROOM_ID: String = "vault_guard_post_01"
 const SECOND_ROOM_ID: String = "vault_inner_watch_01"
 const MUG_ID: String = "guard_post_mug_01"
@@ -29,7 +29,7 @@ func _run() -> void:
 		await process_frame
 	var game_script: Script = game.get_script() as Script
 	if game_script == null or game_script.resource_path != EXPECTED_RUNTIME:
-		_fail("Game scene does not use the guard-post runtime with hide-to-pursuit feedback.")
+		_fail("Game scene does not use the polished guard post runtime.")
 		return
 	var player: Node2D = game.get_node_or_null("Player") as Node2D
 	var caretaker: Node = game.get_node_or_null("Caretaker")
