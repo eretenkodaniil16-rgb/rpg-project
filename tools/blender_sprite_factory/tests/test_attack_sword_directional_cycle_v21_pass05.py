@@ -5,12 +5,15 @@ import unittest
 from pathlib import Path
 
 from attack_sword_directional_cycle_correction_v21_pass05 import (
+    ANGLE_SEARCH_LIMIT_DEGREES,
+    ANGLE_SEARCH_STEP_DEGREES,
     BLEND_CANDIDATES,
     CORRECTION_PASS,
     GUARD_FRAME,
     MIN_CAMERA_MARGIN_PIXELS,
     MIN_HEAD_CLEARANCE_PIXELS,
     RECOVERY_CLEARANCE_REVISION,
+    REQUIRE_ZERO_EDGE_ALPHA,
     SOURCE_FAILED_ARTIFACT_ID,
     SOURCE_FAILED_RUN_ID,
     TARGET_ACTION_ID,
@@ -39,7 +42,7 @@ class AttackSwordDirectionalCycleV21Pass05Tests(unittest.TestCase):
         self.assertEqual(CORRECTION_PASS, "v21_pass05")
         self.assertEqual(
             RECOVERY_CLEARANCE_REVISION,
-            "left_onehand_recovery_to_guard_blend_v21_pass05",
+            "left_onehand_recovery_arm_weapon_search_v21_pass05",
         )
         self.assertEqual(TARGET_ACTION_ID, "attack_sword_01_onehand_left_v21")
         self.assertEqual(TARGET_GRIP_ID, "onehand_ready")
@@ -48,20 +51,26 @@ class AttackSwordDirectionalCycleV21Pass05Tests(unittest.TestCase):
         self.assertEqual(GUARD_FRAME, 8)
         self.assertEqual(BLEND_CANDIDATES[0], 0.10)
         self.assertEqual(BLEND_CANDIDATES[-1], 1.00)
+        self.assertEqual(ANGLE_SEARCH_LIMIT_DEGREES, 60)
+        self.assertEqual(ANGLE_SEARCH_STEP_DEGREES, 2)
         self.assertGreater(MIN_HEAD_CLEARANCE_PIXELS, 0.0)
         self.assertGreater(MIN_CAMERA_MARGIN_PIXELS, 0.0)
-        self.assertEqual(SOURCE_FAILED_RUN_ID, 30741831909)
-        self.assertEqual(SOURCE_FAILED_ARTIFACT_ID, 8831682378)
+        self.assertTrue(REQUIRE_ZERO_EDGE_ALPHA)
+        self.assertEqual(SOURCE_FAILED_RUN_ID, 30742565310)
+        self.assertEqual(SOURCE_FAILED_ARTIFACT_ID, 8831822735)
 
-    def test_diagnostic_changes_only_right_arm_pose(self) -> None:
+    def test_diagnostic_changes_only_right_arm_and_rigid_weapon(self) -> None:
         ast.parse(self.diagnostic_source)
         self.assertIn(
             'TARGET_BONES = ("upper_arm.R", "forearm.R", "hand.R")',
             self.diagnostic_source,
         )
         self.assertIn("_shortest_angle_delta", self.diagnostic_source)
+        self.assertIn("pass07_adapter._apply_world_rotation", self.diagnostic_source)
+        self.assertIn("pass06_adapter._restore_weapon", self.diagnostic_source)
         self.assertIn("_weapon_head_clearance", self.diagnostic_source)
         self.assertIn("_camera_margin", self.diagnostic_source)
+        self.assertIn("_edge_alpha_counts", self.diagnostic_source)
         self.assertIn("_render_candidate", self.diagnostic_source)
         self.assertNotIn("obj.scale", self.diagnostic_source)
         self.assertNotIn("mesh.vertices", self.diagnostic_source)
