@@ -35,7 +35,7 @@ from attack_sword_directional_cycle_correction_v21_pass07 import (
     TARGET_DIRECTION,
     TARGET_FRAME,
     TARGET_GRIP_ID,
-    WEAPON_OFFSET_DEGREES,
+    WEAPON_OFFSET_CANDIDATES,
 )
 
 
@@ -99,6 +99,7 @@ def _render_diagnostic(
     selected: dict[str, object] | None = None
     selected_artifact: factory.FrameArtifact | None = None
     diagnostics: list[dict[str, object]] = []
+    attempt_number = 0
     try:
         weapon_adapter._set_v12_weapon(TARGET_GRIP_ID, TARGET_DIRECTION)
         factory._assign_action(context.rig, action)
@@ -127,7 +128,7 @@ def _render_diagnostic(
             TARGET_DIRECTION,
         )
 
-        for attempt_number, blend in enumerate(BLEND_CANDIDATES, start=1):
+        for blend in BLEND_CANDIDATES:
             _set_blend(
                 context,
                 windup_rotations,
@@ -137,79 +138,85 @@ def _render_diagnostic(
             saved_basis = {obj.name: obj.matrix_basis.copy() for obj in objects}
             current_direction = pass02._weapon_world_direction(objects)
             pivot = pass02._weapon_pivot(objects)
-            pass07_adapter._apply_world_rotation(
-                objects,
-                pivot=pivot,
-                current_direction=current_direction,
-                target_direction=export_adapter._target_direction(
-                    current_direction,
-                    offset_degrees=WEAPON_OFFSET_DEGREES,
-                ),
-            )
-            try:
-                clearance = export_adapter._weapon_head_clearance(objects)
-                margin = pass02._camera_margin(objects)
-                diagnostic: dict[str, object] = {
-                    "attempt": attempt_number,
-                    "arm_blend": float(blend),
-                    "offset_degrees": WEAPON_OFFSET_DEGREES,
-                    "head_clearance_pixels": float(clearance),
-                    "camera_margin_pixels": float(margin),
-                    "edge_counts": None,
-                    "accepted": False,
-                }
-                if (
-                    clearance < MIN_HEAD_CLEARANCE_PIXELS
-                    or margin < MIN_CAMERA_MARGIN_PIXELS
-                ):
-                    diagnostics.append(diagnostic)
-                    continue
 
-                artifact, _ = export_adapter._render_candidate(
-                    context,
-                    animation_id=(
-                        "attack_sword_01_twohand_left_"
-                        "arm_diagnostic_v21"
+            for offset_degrees in WEAPON_OFFSET_CANDIDATES:
+                attempt_number += 1
+                pass07_adapter._apply_world_rotation(
+                    objects,
+                    pivot=pivot,
+                    current_direction=current_direction,
+                    target_direction=export_adapter._target_direction(
+                        current_direction,
+                        offset_degrees=float(offset_degrees),
                     ),
-                    direction=TARGET_DIRECTION,
-                    frame_number=TARGET_FRAME,
-                    raw_dir=run_dir / "raw",
-                    frame_dir=run_dir / "frames",
-                    output_name=(
-                        f"{config.character_id}_attack_sword_01_twohand_left_"
-                        f"arm_diagnostic_v21_f02_proxy_"
-                        f"{context.proxy_revision}.png"
-                    ),
-                    fixed_scale=calibration.scale,
-                    fixed_center_x=calibration.source_center_x,
                 )
-                edge_counts = keypose_adapter._edge_alpha_counts(
-                    artifact.output_path
-                )
-                touched = {
-                    edge: count
-                    for edge, count in edge_counts.items()
-                    if count > 0
-                }
-                diagnostic["edge_counts"] = edge_counts
-                diagnostic["accepted"] = (
-                    not touched if REQUIRE_ZERO_EDGE_ALPHA else True
-                )
-                diagnostics.append(diagnostic)
-                print(
-                    "ATTACK_SWORD_TWOHAND_LEFT_ARM_DIAGNOSTIC_V21_ATTEMPT="
-                    f"blend:{float(blend):.2f};"
-                    f"offset:{WEAPON_OFFSET_DEGREES:.1f}deg;"
-                    f"clearance:{float(clearance):.3f}px;"
-                    f"margin:{float(margin):.3f}px;"
-                    f"edges:{touched}"
-                )
-                if bool(diagnostic["accepted"]):
-                    selected = diagnostic
-                    selected_artifact = artifact
-                    break
-            finally:
-                pass06_adapter._restore_weapon(saved_basis)
+                try:
+                    clearance = export_adapter._weapon_head_clearance(objects)
+                    margin = pass02._camera_margin(objects)
+                    diagnostic: dict[str, object] = {
+                        "attempt": attempt_number,
+                        "arm_blend": float(blend),
+                        "offset_degrees": float(offset_degrees),
+                        "head_clearance_pixels": float(clearance),
+                        "camera_margin_pixels": float(margin),
+                        "edge_counts": None,
+                        "accepted": False,
+                    }
+                    if (
+                        clearance < MIN_HEAD_CLEARANCE_PIXELS
+                        or margin < MIN_CAMERA_MARGIN_PIXELS
+                    ):
+                        diagnostics.append(diagnostic)
+                        continue
+
+                    artifact, _ = export_adapter._render_candidate(
+                        context,
+                        animation_id=(
+                            "attack_sword_01_twohand_left_"
+                            "arm_diagnostic_v21"
+                        ),
+                        direction=TARGET_DIRECTION,
+                        frame_number=TARGET_FRAME,
+                        raw_dir=run_dir / "raw",
+                        frame_dir=run_dir / "frames",
+                        output_name=(
+                            f"{config.character_id}_attack_sword_01_twohand_left_"
+                            f"arm_diagnostic_v21_f02_proxy_"
+                            f"{context.proxy_revision}.png"
+                        ),
+                        fixed_scale=calibration.scale,
+                        fixed_center_x=calibration.source_center_x,
+                    )
+                    edge_counts = keypose_adapter._edge_alpha_counts(
+                        artifact.output_path
+                    )
+                    touched = {
+                        edge: count
+                        for edge, count in edge_counts.items()
+                        if count > 0
+                    }
+                    diagnostic["edge_counts"] = edge_counts
+                    diagnostic["accepted"] = (
+                        not touched if REQUIRE_ZERO_EDGE_ALPHA else True
+                    )
+                    diagnostics.append(diagnostic)
+                    print(
+                        "ATTACK_SWORD_TWOHAND_LEFT_ARM_DIAGNOSTIC_V21_ATTEMPT="
+                        f"blend:{float(blend):.2f};"
+                        f"offset:{float(offset_degrees):.1f}deg;"
+                        f"clearance:{float(clearance):.3f}px;"
+                        f"margin:{float(margin):.3f}px;"
+                        f"edges:{touched}"
+                    )
+                    if bool(diagnostic["accepted"]):
+                        selected = diagnostic
+                        selected_artifact = artifact
+                        break
+                finally:
+                    pass06_adapter._restore_weapon(saved_basis)
+
+            if selected is not None:
+                break
 
         if selected is None or selected_artifact is None:
             raise RuntimeError(
@@ -227,7 +234,7 @@ def _render_diagnostic(
         print(
             "ATTACK_SWORD_TWOHAND_LEFT_ARM_DIAGNOSTIC_V21_SELECTED="
             f"blend:{float(selected['arm_blend']):.2f};"
-            f"offset:{WEAPON_OFFSET_DEGREES:.1f}deg;"
+            f"offset:{float(selected['offset_degrees']):.1f}deg;"
             f"clearance:{float(selected['head_clearance_pixels']):.3f}px;"
             f"margin:{float(selected['camera_margin_pixels']):.3f}px;"
             f"attempts:{len(diagnostics)}"
