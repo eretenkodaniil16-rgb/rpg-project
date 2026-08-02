@@ -1,17 +1,34 @@
 extends "res://scripts/ui/mobile_controls.gd"
 
+const COMBAT_ACTION_TURN_GUARD_SECONDS: float = 0.28
+
 var _last_joystick_direction: Vector2 = Vector2.ZERO
 var _control_mode_initialized: bool = false
 var _last_combat_mode: bool = false
+var _last_player_turn_active: bool = false
+var _action_turn_guard_remaining: float = 0.0
 
 
 func _process(delta: float) -> void:
 	super._process(delta)
 	var combat_active: bool = _is_combat_active()
+	var player_turn_active: bool = combat_active and _is_player_combat_turn()
 	if not _control_mode_initialized or combat_active != _last_combat_mode:
 		_control_mode_initialized = true
 		_last_combat_mode = combat_active
 		_apply_player_control_vector(_last_joystick_direction, combat_active)
+	if combat_active and player_turn_active != _last_player_turn_active:
+		_close_action_catalog()
+		_action_turn_guard_remaining = COMBAT_ACTION_TURN_GUARD_SECONDS if player_turn_active else 0.0
+	elif not combat_active:
+		_action_turn_guard_remaining = 0.0
+	_last_player_turn_active = player_turn_active
+	_action_turn_guard_remaining = maxf(_action_turn_guard_remaining - maxf(delta, 0.0), 0.0)
+	if is_instance_valid(interact_button):
+		interact_button.disabled = (
+			GameState.input_locked
+			or (combat_active and (not player_turn_active or _action_turn_guard_remaining > 0.0))
+		)
 
 
 func _set_player_vector(direction: Vector2) -> void:
@@ -42,6 +59,10 @@ func get_joystick_output_for_testing() -> Vector2:
 	if _player.has_method("get_mobile_direction"):
 		return _player.call("get_mobile_direction") as Vector2
 	return Vector2.ZERO
+
+
+func get_action_turn_guard_remaining_for_testing() -> float:
+	return _action_turn_guard_remaining
 
 
 func _apply_player_control_vector(direction: Vector2, combat_active: bool) -> void:
@@ -97,9 +118,11 @@ func _on_interact_pressed() -> void:
 		if is_instance_valid(_player) and _player.has_method("request_interaction"):
 			_player.call("request_interaction")
 		return
-	if _is_combat_active() and not _is_player_combat_turn():
-		if action_catalog.has_method("close_catalog"):
-			action_catalog.call("close_catalog")
+	if _is_combat_active() and (
+		not _is_player_combat_turn()
+		or _action_turn_guard_remaining > 0.0
+	):
+		_close_action_catalog()
 		return
 	if _game_world.has_method("_refresh_action_catalog"):
 		_game_world.call("_refresh_action_catalog")
@@ -119,3 +142,13 @@ func _nearby_interactable_count() -> int:
 		return 0
 	var value: Variant = _player.call("get_nearby_interactables")
 	return (value as Array).size() if value is Array else 0
+
+
+func _close_action_catalog() -> void:
+	if not is_instance_valid(_game_world):
+		_game_world = get_tree().get_first_node_in_group("game_world")
+	if not is_instance_valid(_game_world):
+		return
+	var action_catalog: Node = _game_world.get_node_or_null("Interface/ActionCatalogUI")
+	if action_catalog != null and action_catalog.has_method("close_catalog"):
+		action_catalog.call("close_catalog")
