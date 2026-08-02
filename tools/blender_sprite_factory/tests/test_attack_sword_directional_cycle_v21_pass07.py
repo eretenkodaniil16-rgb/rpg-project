@@ -19,7 +19,7 @@ from attack_sword_directional_cycle_correction_v21_pass07 import (
     TARGET_FRAME,
     TARGET_GRIP_ID,
     TWOHAND_LEFT_ARM_REVISION,
-    WEAPON_OFFSET_DEGREES,
+    WEAPON_OFFSET_CANDIDATES,
 )
 
 
@@ -65,18 +65,21 @@ class AttackSwordDirectionalCycleV21Pass07Tests(unittest.TestCase):
         )
         self.assertEqual(BLEND_CANDIDATES[0], 0.10)
         self.assertEqual(BLEND_CANDIDATES[-1], 1.00)
-        self.assertEqual(WEAPON_OFFSET_DEGREES, 46.0)
+        self.assertEqual(WEAPON_OFFSET_CANDIDATES[0], 46.0)
+        self.assertEqual(WEAPON_OFFSET_CANDIDATES[-1], 90.0)
+        self.assertEqual(len(WEAPON_OFFSET_CANDIDATES), 23)
         self.assertEqual(MIN_HEAD_CLEARANCE_PIXELS, 4.0)
         self.assertEqual(MIN_CAMERA_MARGIN_PIXELS, 1.0)
         self.assertTrue(REQUIRE_ZERO_EDGE_ALPHA)
-        self.assertEqual(SOURCE_FAILED_RUN_ID, 30743767105)
-        self.assertEqual(SOURCE_FAILED_ARTIFACT_ID, 8832298907)
+        self.assertEqual(SOURCE_FAILED_RUN_ID, 30744357391)
+        self.assertEqual(SOURCE_FAILED_ARTIFACT_ID, 8832432523)
 
-    def test_diagnostic_blends_both_arm_chains_and_checks_export(self) -> None:
+    def test_diagnostic_blends_both_arm_chains_and_checks_all_offsets(self) -> None:
         ast.parse(self.diagnostic_source)
         self.assertIn("TARGET_BONES", self.diagnostic_source)
         self.assertIn("_shortest_angle_delta", self.diagnostic_source)
         self.assertIn("GUARD_FRAME", self.diagnostic_source)
+        self.assertIn("for offset_degrees in WEAPON_OFFSET_CANDIDATES", self.diagnostic_source)
         self.assertIn("pass07_adapter._apply_world_rotation", self.diagnostic_source)
         self.assertIn("pass06_adapter._restore_weapon", self.diagnostic_source)
         self.assertIn("_weapon_head_clearance", self.diagnostic_source)
