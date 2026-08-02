@@ -11,13 +11,17 @@ on:
       - "scripts/ui/action_catalog_ui.gd"
       - "scripts/ui/mobile_controls_context_actions.gd"
       - "scripts/ui/mobile_controls_explicit_action_catalog.gd"
+      - "scripts/game/npc_body_runtime.gd"
       - "scripts/game/npc_stealth_context_dialogue.gd"
+      - "scripts/game/game_movement_reactions_runtime.gd"
+      - "scripts/game/game_all_reaction_prompts_runtime.gd"
       - "scripts/game/throwable_world_prop.gd"
       - "scripts/game/room_fog_overlay.gd"
       - "scripts/game/stealth_door.gd"
       - "scripts/game/stealth_door_visual_decorator.gd"
       - "scripts/game/game_guard_post_encounter_runtime.gd"
       - "scripts/game/game_guard_post_two_room_runtime.gd"
+      - "scripts/game/game_guard_post_polish_base_runtime.gd"
       - "scripts/game/game_guard_post_polish_runtime.gd"
       - "scripts/game/game_guard_post_stable_combat_start_runtime.gd"
       - "scripts/game/guard_post_two_room.gd"
@@ -31,6 +35,7 @@ on:
       - "tests/smoke_guard_post_integrity_betrayal.gd"
       - "tests/smoke_action_panel_no_flash.gd"
       - "tests/smoke_guard_post_runtime_regressions_v2.gd"
+      - "tests/smoke_combat_lifecycle_reactions.gd"
       - "tests/smoke_combat_start_position_stability.gd"
       - "tests/smoke_caretaker_neutral_detection.gd"
       - "tests/smoke_overlapping_interaction_zones.gd"
@@ -53,7 +58,7 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 45
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -95,13 +100,17 @@ jobs:
         shell: bash
         run: timeout 360s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_guard_post_integrity_betrayal.gd 2>&1 | tee guard-post-integrity-betrayal.log
 
-      - name: Verify Actions requires an explicit button touch
+      - name: Verify Actions requires an atomic button transaction
         shell: bash
         run: timeout 240s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_action_panel_no_flash.gd 2>&1 | tee action-panel-no-flash.log
 
       - name: Verify final target patrol and catalogue regressions
         shell: bash
         run: timeout 300s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_guard_post_runtime_regressions_v2.gd 2>&1 | tee guard-post-runtime-regressions-v2.log
+
+      - name: Simulate encounter roster corpse lifecycle and opportunity attacks
+        shell: bash
+        run: timeout 360s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_combat_lifecycle_reactions.gd 2>&1 | tee combat-lifecycle-reactions.log
 
       - name: Verify combat start position stability
         shell: bash
@@ -157,6 +166,7 @@ jobs:
             guard-post-integrity-betrayal.log
             action-panel-no-flash.log
             guard-post-runtime-regressions-v2.log
+            combat-lifecycle-reactions.log
             combat-start-position.log
             caretaker-neutral.log
             overlapping-interactions.log
