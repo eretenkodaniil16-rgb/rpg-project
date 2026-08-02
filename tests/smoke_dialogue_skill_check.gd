@@ -2,6 +2,7 @@ extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
 const CHECK_ID: String = "reward_smoke_strength"
+const FAILED_CHECK_ID: String = "failed_smoke_insight"
 
 
 func _init() -> void:
@@ -49,11 +50,7 @@ func _run() -> void:
 
 	var choices: VBoxContainer = dialogue.find_child("Choices", true, false) as VBoxContainer
 	assert(choices != null)
-	var check_button: Button = null
-	for child: Node in choices.get_children():
-		if child is Button and "Проверить" in (child as Button).text:
-			check_button = child as Button
-			break
+	var check_button: Button = _find_check_button(choices, "Проверить")
 	assert(check_button != null)
 	check_button.emit_signal("pressed")
 	await process_frame
@@ -74,9 +71,42 @@ func _run() -> void:
 	assert(actions_button.visible)
 	assert(actions_button.text == "ДЕЙСТВИЯ")
 
-	# Reopening the same dialogue in the same playthrough must not recreate the
-	# attempted check, regardless of whether the first roll succeeded or failed.
 	dialogue.call("start_dialogue", test_dialogue, caretaker)
+	await process_frame
+	assert(int(dialogue.call("get_available_checked_choice_count_for_testing")) == 0)
+	dialogue.call("_close_dialogue")
+	await process_frame
+
+	# A guaranteed failed check is also consumed permanently. This is the
+	# anti-reroll contract required for caretaker conversations.
+	var failed_dialogue: Dictionary = {
+		"id": "failed_dialogue_smoke",
+		"speaker": "Смотритель",
+		"text": "Проверка неудачи",
+		"choices": [{
+			"text": "[Проницательность] Неудачная проверка",
+			"check_id": FAILED_CHECK_ID,
+			"check": {"skill": "insight", "difficulty": 99},
+			"success": {"response": "Недостижимый успех"},
+			"failure": {
+				"response": "Проверка провалена",
+				"set_flags": {"failed_check_resolved": true}
+			}
+		}]
+	}
+	dialogue.call("start_dialogue", failed_dialogue, caretaker)
+	await process_frame
+	check_button = _find_check_button(choices, "Неудачная проверка")
+	assert(check_button != null)
+	check_button.emit_signal("pressed")
+	await process_frame
+	assert(bool(dialogue.call("has_check_attempt_for_testing", "failed_dialogue_smoke", FAILED_CHECK_ID)))
+	popup.call("_on_continue_pressed")
+	await process_frame
+	assert(bool(state.call("get_flag", "failed_check_resolved", false)))
+	dialogue.call("_close_dialogue")
+	await process_frame
+	dialogue.call("start_dialogue", failed_dialogue, caretaker)
 	await process_frame
 	assert(int(dialogue.call("get_available_checked_choice_count_for_testing")) == 0)
 	dialogue.call("_close_dialogue")
@@ -89,5 +119,12 @@ func _run() -> void:
 	await process_frame
 	assert(actions_button.visible)
 	assert(actions_button.text == "ДЕЙСТВИЯ")
-	print("One-shot checked dialogue, reward, portrait and persistent Actions button smoke test passed.")
+	print("Successful and failed one-shot dialogue checks, reward, portrait and persistent Actions button smoke test passed.")
 	quit(0)
+
+
+func _find_check_button(choices: VBoxContainer, text_fragment: String) -> Button:
+	for child: Node in choices.get_children():
+		if child is Button and text_fragment in (child as Button).text:
+			return child as Button
+	return null
