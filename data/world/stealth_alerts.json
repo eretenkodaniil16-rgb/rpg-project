@@ -3,6 +3,8 @@
   "profiles": {
     "caretaker": {
       "actor_id": "caretaker",
+      "movement_mode": "stationary",
+      "visible_behavior": "face",
       "view_distance_feet": 55,
       "view_angle_degrees": 105.0,
       "peripheral_distance_feet": 15,
@@ -14,12 +16,17 @@
       "suspicion_decay_per_second": 9.0,
       "noise_suspicion_multiplier": 0.72,
       "investigation_speed_pixels": 92.0,
+      "step_retarget_cooldown_seconds": 2.0,
       "search_duration_seconds": 12.0,
       "alert_cooldown_seconds": 24.0,
       "alert_radius_feet": 45
     },
     "service_guard": {
       "actor_id": "service_guard",
+      "movement_mode": "patrol",
+      "visible_behavior": "continue_patrol",
+      "visible_standoff_pixels": 82.0,
+      "visible_speed_multiplier": 0.72,
       "view_distance_feet": 50,
       "view_angle_degrees": 95.0,
       "peripheral_distance_feet": 12,
@@ -31,6 +38,7 @@
       "suspicion_decay_per_second": 8.0,
       "noise_suspicion_multiplier": 0.66,
       "investigation_speed_pixels": 82.0,
+      "step_retarget_cooldown_seconds": 1.5,
       "search_duration_seconds": 10.0,
       "alert_cooldown_seconds": 20.0,
       "alert_radius_feet": 40
