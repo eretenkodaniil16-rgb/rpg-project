@@ -51,7 +51,8 @@ func _run() -> void:
 	var combat_state: CombatantState = game.get("_player_combat_state") as CombatantState
 	combat_state.hidden = true
 	var last_known := Vector2(620.0, 180.0)
-	game.call("_suspend_combat_for_hidden_pursuit", [guard], last_known)
+	var observers: Array[Node] = [guard]
+	game.call("_suspend_combat_for_hidden_pursuit", observers, last_known)
 	await process_frame
 	if bool(game.call("is_turn_based_combat_active")):
 		_fail("Successful hiding did not end turn-based initiative.")
