@@ -17,6 +17,7 @@ import blender_sprite_factory_attack_sword_directional_cycle_v21_pass02 as pass0
 import blender_sprite_factory_attack_sword_down_cycle_v20_pass03 as export_adapter
 import blender_sprite_factory_combat_idle_directional_v11 as calibration_adapter
 import blender_sprite_factory_combat_idle_directional_weapon_v12 as weapon_adapter
+import blender_sprite_factory_combat_idle_down_v01 as base_entry
 from attack_sword_directional_cycle_builder_v21 import (
     create_attack_sword_directional_cycle_actions_v21,
 )
@@ -34,7 +35,6 @@ from attack_sword_directional_cycle_correction_v21_pass03 import (
 )
 
 
-BASE_BUILD_SCENE = factory.build_scene
 BASE_WRITE_CONTACT_SHEET = factory._write_contact_sheet
 BASE_WRITE_MANIFEST = factory._write_run_manifest
 BONE_FACTORS = {
@@ -42,12 +42,6 @@ BONE_FACTORS = {
     "forearm.R": ((1.00, 0.0, 0.0), (0.0, 1.00, 0.0), (0.0, 0.0, 1.00)),
     "hand.R": ((0.35, 0.0, 0.0), (0.0, 0.45, 0.0), (0.0, 0.0, 0.35)),
 }
-
-
-def _build_scene_with_directional_actions(config: object) -> factory.BuildContext:
-    context = BASE_BUILD_SCENE(config)
-    create_attack_sword_directional_cycle_actions_v21(context)
-    return context
 
 
 def _delta(candidate: dict[str, float], factors: tuple[float, float, float]) -> float:
@@ -228,11 +222,15 @@ def _write_manifest(
 
 
 def main() -> int:
-    factory.build_scene = _build_scene_with_directional_actions
-    factory.render_pilot = _render_diagnostic
-    factory._write_contact_sheet = BASE_WRITE_CONTACT_SHEET
-    factory._write_run_manifest = _write_manifest
-    return factory.main()
+    base_entry.create_combat_idle_down_actions_v01 = (
+        create_attack_sword_directional_cycle_actions_v21
+    )
+    base_entry.render_pilot_combat_idle_down_v01 = _render_diagnostic
+    base_entry._write_contact_sheet_combat_idle_down_v01 = (
+        BASE_WRITE_CONTACT_SHEET
+    )
+    base_entry._write_run_manifest_combat_idle_down_v01 = _write_manifest
+    return base_entry.main()
 
 
 if __name__ == "__main__":
