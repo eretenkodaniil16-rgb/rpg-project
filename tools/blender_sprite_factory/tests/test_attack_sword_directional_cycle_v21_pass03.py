@@ -93,12 +93,15 @@ class AttackSwordDirectionalCycleV21Pass03Tests(unittest.TestCase):
         self.assertIn('"weapon_geometry_changed": False', self.adapter_source)
         self.assertIn('"materials_changed": False', self.adapter_source)
 
-    def test_active_entrypoints_use_pass03(self) -> None:
-        target = (
+    def test_pass03_remains_active_source_during_pass04_diagnostic(self) -> None:
+        pass03_target = (
             "blender_sprite_factory_attack_sword_directional_cycle_v21_pass03.py"
         )
-        self.assertIn(target, self.workflow_source)
-        self.assertIn(target, self.launcher_source)
+        diagnostic_target = (
+            "blender_sprite_factory_attack_sword_left_anticipation_diagnostic_v21.py"
+        )
+        self.assertIn(diagnostic_target, self.workflow_source)
+        self.assertIn(pass03_target, self.launcher_source)
 
 
 if __name__ == "__main__":
