@@ -74,12 +74,15 @@ class AttackSwordDirectionalCycleV21Pass07Tests(unittest.TestCase):
         self.assertEqual(SOURCE_FAILED_RUN_ID, 30744357391)
         self.assertEqual(SOURCE_FAILED_ARTIFACT_ID, 8832432523)
 
-    def test_diagnostic_blends_both_arm_chains_and_checks_all_offsets(self) -> None:
+    def test_historical_diagnostic_blends_both_arm_chains(self) -> None:
         ast.parse(self.diagnostic_source)
         self.assertIn("TARGET_BONES", self.diagnostic_source)
         self.assertIn("_shortest_angle_delta", self.diagnostic_source)
         self.assertIn("GUARD_FRAME", self.diagnostic_source)
-        self.assertIn("for offset_degrees in WEAPON_OFFSET_CANDIDATES", self.diagnostic_source)
+        self.assertIn(
+            "for offset_degrees in WEAPON_OFFSET_CANDIDATES",
+            self.diagnostic_source,
+        )
         self.assertIn("pass07_adapter._apply_world_rotation", self.diagnostic_source)
         self.assertIn("pass06_adapter._restore_weapon", self.diagnostic_source)
         self.assertIn("_weapon_head_clearance", self.diagnostic_source)
@@ -89,10 +92,16 @@ class AttackSwordDirectionalCycleV21Pass07Tests(unittest.TestCase):
         self.assertNotIn("obj.scale", self.diagnostic_source)
         self.assertNotIn("mesh.vertices", self.diagnostic_source)
 
-    def test_workflow_runs_pass07_and_launcher_keeps_full_pass05(self) -> None:
-        diagnostic = "blender_sprite_factory_attack_sword_twohand_left_arm_diagnostic_v21.py"
+    def test_pass07_is_preserved_while_pass08_is_active(self) -> None:
+        active = (
+            "blender_sprite_factory_attack_sword_twohand_left_projection_diagnostic_v21.py"
+        )
+        historical = (
+            "blender_sprite_factory_attack_sword_twohand_left_arm_diagnostic_v21.py"
+        )
         full = "blender_sprite_factory_attack_sword_directional_cycle_v21_pass05.py"
-        self.assertIn(diagnostic, self.workflow_source)
+        self.assertTrue((self.tool_root / historical).is_file())
+        self.assertIn(active, self.workflow_source)
         self.assertIn(full, self.launcher_source)
 
 
