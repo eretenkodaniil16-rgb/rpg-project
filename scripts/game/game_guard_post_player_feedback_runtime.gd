@@ -50,12 +50,28 @@ func is_player_combat_turn() -> bool:
 
 
 func _on_feedback_target_requested() -> void:
-	# Target selection must remain usable even if a stale Actions panel survived
-	# a touch race. Close it first, restore the hostile inner-watch contract and
-	# then execute the visibility-aware target cycle.
+	# Target selection is informational and consumes no action. Keep it usable on
+	# every combat turn, including the first enemy turn when the inner watch has
+	# just activated. A stale Actions panel must not intercept the request.
 	_close_action_catalog_immediately()
 	_restore_hostile_inner_watch_target_contract()
-	super._cycle_target()
+	if GameState.input_locked or _attack_in_progress or _any_overlay_visible():
+		return
+	var targets: Array[Node] = _visible_active_targets()
+	if targets.is_empty():
+		_set_selected_target(null)
+		show_combat_message("В поле зрения нет доступных целей.", false)
+		return
+	var current_index: int = targets.find(_selected_target)
+	if current_index < 0:
+		_set_selected_target(targets[0])
+		show_combat_message("Цель выбрана. Расстояние показано на поле.", true)
+	elif current_index + 1 < targets.size():
+		_set_selected_target(targets[current_index + 1])
+		show_combat_message("Выбрана следующая видимая цель.", true)
+	else:
+		_set_selected_target(null)
+		show_combat_message("Цель снята.", true)
 
 
 func _restore_hostile_inner_watch_target_contract() -> void:
