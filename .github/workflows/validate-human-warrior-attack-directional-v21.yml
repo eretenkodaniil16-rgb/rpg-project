@@ -17,7 +17,7 @@ jobs:
   render-attack-sword-directional-v21:
     if: github.event_name == 'pull_request' && github.head_ref == 'tools/human-warrior-attack-sword-down-keyposes-v17'
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 180
 
     steps:
       - name: Checkout repository
@@ -45,7 +45,7 @@ jobs:
           test -n "$blender"
           echo "BLENDER_EXE=$blender" >> "$GITHUB_ENV"
 
-      - name: Diagnose Blender 5.2 left one-hand anticipation weight v21 pass04
+      - name: Render Blender 5.2 attack_sword_01 four-direction cycles v21 pass04
         id: blender-attack-directional
         continue-on-error: true
         shell: bash
@@ -56,26 +56,26 @@ jobs:
             --background \
             --factory-startup \
             --python-exit-code 1 \
-            --python tools/blender_sprite_factory/blender_sprite_factory_attack_sword_left_anticipation_diagnostic_v21.py \
+            --python tools/blender_sprite_factory/blender_sprite_factory_attack_sword_directional_cycle_v21_pass04.py \
             -- \
             --repo-root "$GITHUB_WORKSPACE" \
             --config tools/blender_sprite_factory/configs/human_warrior_m01.json \
             --run-id "$run_id" \
             --mode all 2>&1 | tee blender_attack_directional_v21.log
 
-      - name: Upload left anticipation diagnostic and source blend
+      - name: Upload directional cycles and source blend
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: human_warrior_m01_proxy_v25_attack_sword_01_left_anticipation_diagnostic_v21_${{ github.run_id }}_${{ github.run_attempt }}
+          name: human_warrior_m01_proxy_v25_attack_sword_01_directional_v21_pass04_${{ github.run_id }}_${{ github.run_attempt }}
           path: |
             art/blender_pipeline_runs/human_warrior_m01/**
             blender_attack_directional_v21.log
           if-no-files-found: error
           retention-days: 14
 
-      - name: Require successful anticipation diagnostic
+      - name: Require successful directional render
         if: steps.blender-attack-directional.outcome != 'success'
         run: |
-          echo "Directional attack v21 anticipation diagnostic failed; inspect blender_attack_directional_v21.log in the uploaded artifact."
+          echo "Directional attack v21 pass04 render failed; inspect blender_attack_directional_v21.log in the uploaded artifact."
           exit 1
