@@ -10,11 +10,20 @@ on:
       - "scripts/game/world_snapshot_readiness_guard.gd"
       - "scripts/game/world_state_npc_navigation_controller.gd"
       - "scripts/game/world_state_npc_navigation_controller_safe.gd"
-      - "scripts/systems/obstacle_aware_npc_navigation_system.gd"
+      - "scripts/game/guard_post_two_room_visibility.gd"
+      - "scripts/game/guard_post_wall_visibility_overlay.gd"
+      - "scripts/game/game_guard_post_player_feedback_runtime.gd"
       - "scripts/game/player_combat.gd"
+      - "scripts/game/player_control_modes.gd"
       - "scripts/game/game_target_free_attacks.gd"
+      - "scripts/systems/obstacle_aware_npc_navigation_system.gd"
       - "scripts/ui/mobile_controls.gd"
+      - "scripts/ui/mobile_controls_context_actions.gd"
+      - "scripts/ui/dialogue_ui.gd"
+      - "data/dialogues/caretaker_intro.json"
       - "tests/smoke_world_snapshot_npc_navigation.gd"
+      - "tests/smoke_hide_to_exploration_pursuit.gd"
+      - "tests/smoke_dialogue_skill_check.gd"
       - "tests/test_v018_integration_stack.gd"
       - ".github/workflows/validate-world-state-npc-navigation.yml"
   push:
@@ -57,6 +66,14 @@ jobs:
         shell: bash
         run: timeout 120s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_world_snapshot_npc_navigation.gd 2>&1 | tee world-state-smoke.log
 
+      - name: Simulate hide suspension and exploration pursuit
+        shell: bash
+        run: timeout 120s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_hide_to_exploration_pursuit.gd 2>&1 | tee hide-pursuit-smoke.log
+
+      - name: Validate one-shot dialogue checks
+        shell: bash
+        run: timeout 120s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_dialogue_skill_check.gd 2>&1 | tee dialogue-check-smoke.log
+
       - name: Validate integration stack and save version
         shell: bash
         run: timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_v018_integration_stack.gd 2>&1 | tee integration-stack.log
@@ -81,6 +98,8 @@ jobs:
           path: |
             world-state-import.log
             world-state-smoke.log
+            hide-pursuit-smoke.log
+            dialogue-check-smoke.log
             integration-stack.log
             visibility-save-regression.log
             wall-integrity-regression.log
