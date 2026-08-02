@@ -1,0 +1,26 @@
+from __future__ import annotations
+
+
+CORRECTION_PASS = "v21_pass03"
+ARM_CLEARANCE_REVISION = "left_onehand_windup_arm_clearance_v21_pass03"
+TARGET_ACTION_ID = "attack_sword_01_onehand_left_v21"
+TARGET_GRIP_ID = "onehand_ready"
+TARGET_DIRECTION = "left"
+TARGET_FRAME = 2
+SMOOTHING_WEIGHTS = {
+    1: 0.30,
+    2: 1.00,
+    3: 0.40,
+}
+LIFT_VALUES_DEGREES = (0, -10, 10, -20, 20, -30, 30, -40, 40, -50, 50)
+SWEEP_VALUES_DEGREES = (0, -10, 10, -20, 20, -30, 30, -40, 40)
+DEPTH_VALUES_DEGREES = (0, -10, 10, -20, 20, -30, 30, -40, 40)
+MIN_HEAD_CLEARANCE_PIXELS = 2.0
+MIN_CAMERA_MARGIN_PIXELS = 1.0
+MAX_CORRECTION_COST_DEGREES = 90.0
+SOURCE_FAILED_RUN_ID = 30739816428
+SOURCE_FAILED_ARTIFACT_ID = 8831060530
+SOURCE_FAILED_ARTIFACT_SHA256 = (
+    "51e454e3605184398a53b5dc6cf53a66156bd42ca64648b8950e475cedcd4b8f"
+)
+SOURCE_FAILURE = "onehand_ready/left/f02 no geometry-safe rigid weapon candidate"
