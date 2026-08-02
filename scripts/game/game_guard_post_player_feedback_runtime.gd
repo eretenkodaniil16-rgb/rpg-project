@@ -36,6 +36,24 @@ func is_player_combat_turn() -> bool:
 	)
 
 
+func _sync_combat_alert_records() -> void:
+	# Combat state remains synchronized every frame, but coordinates are updated
+	# only while the observer actually sees the hero. Otherwise a hidden position
+	# would incorrectly become the patrol's next destination just before Hide.
+	for actor: Node in _exploration_alert_actors():
+		var actor_id: String = str(actor.call("get_actor_id"))
+		var record: Dictionary = _record_for_actor(actor_id)
+		record["state"] = StealthAlertSystem.STATE_COMBAT
+		record["suspicion"] = StealthAlertSystem.SUSPICION_ALERTED
+		if _observer_can_see_position(actor, player.global_position):
+			_last_seen_player_position = player.global_position
+			record["last_known_position"] = _stealth_alerts.vector_to_value(player.global_position)
+		elif not record.has("last_known_position") or (record.get("last_known_position", []) as Array).is_empty():
+			record["last_known_position"] = _stealth_alerts.vector_to_value(_last_seen_player_position)
+		_alert_records[actor_id] = record
+		_apply_record_to_actor(actor, record)
+
+
 func _advance_combat_turn() -> void:
 	_close_action_catalog_immediately()
 	super._advance_combat_turn()
