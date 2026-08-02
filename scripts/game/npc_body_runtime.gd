@@ -72,6 +72,28 @@ func interact() -> void:
 	super.interact()
 
 
+func can_perform_world_interaction() -> bool:
+	# This is the common body contract. Living dialogue policies belong to more
+	# specialised NPC classes, but every defeated combatant remains inspectable.
+	return is_instance_valid(player_in_range) and is_body_interactable()
+
+
+func get_interaction_label() -> String:
+	if is_dead_body():
+		return "ОСМОТРЕТЬ ТРУП: %s" % combat_name.to_upper()
+	if is_unconscious_body():
+		return "ОСМОТРЕТЬ: %s" % combat_name.to_upper()
+	return "ВЗАИМОДЕЙСТВОВАТЬ: %s" % combat_name.to_upper()
+
+
+func get_interaction_description() -> String:
+	if is_dead_body():
+		return "Осмотреть тело персонажа %s, проверить и забрать доступную добычу." % combat_name
+	if is_unconscious_body():
+		return "Осмотреть персонажа %s без сознания; его можно связать или перетащить." % combat_name
+	return "Взаимодействовать с персонажем %s." % combat_name
+
+
 func is_body_interactable() -> bool:
 	return defeated and _body_state in [CorpseInteractionSystem.BODY_UNCONSCIOUS, CorpseInteractionSystem.BODY_DEAD]
 
