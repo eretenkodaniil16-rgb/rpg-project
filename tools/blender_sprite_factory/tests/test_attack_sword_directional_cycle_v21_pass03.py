@@ -93,16 +93,19 @@ class AttackSwordDirectionalCycleV21Pass03Tests(unittest.TestCase):
         self.assertIn('"weapon_geometry_changed": False', self.adapter_source)
         self.assertIn('"materials_changed": False', self.adapter_source)
 
-    def test_pass03_remains_source_under_pass04(self) -> None:
+    def test_pass03_remains_source_under_pass06_diagnostic(self) -> None:
         pass03_target = (
             "blender_sprite_factory_attack_sword_directional_cycle_v21_pass03.py"
         )
-        pass04_target = (
-            "blender_sprite_factory_attack_sword_directional_cycle_v21_pass04.py"
+        diagnostic_target = (
+            "blender_sprite_factory_attack_sword_twohand_left_windup_diagnostic_v21.py"
+        )
+        full_target = (
+            "blender_sprite_factory_attack_sword_directional_cycle_v21_pass05.py"
         )
         self.assertTrue((self.tool_root / pass03_target).is_file())
-        self.assertIn(pass04_target, self.workflow_source)
-        self.assertIn(pass04_target, self.launcher_source)
+        self.assertIn(diagnostic_target, self.workflow_source)
+        self.assertIn(full_target, self.launcher_source)
 
 
 if __name__ == "__main__":
