@@ -35,106 +35,70 @@ func _run() -> void:
 		_fail("Caretaker, action catalog or mobile controls are missing.")
 		return
 	mobile_controls.call("enable_for_testing")
+	catalog.require_explicit_open_for_testing(true)
 	await process_frame
 	var actions_button: Button = mobile_controls.call("get_actions_button_for_testing") as Button
-	var move_pad: Control = mobile_controls.get_node_or_null("MovePad") as Control
-	if actions_button == null or move_pad == null:
-		_fail("Mobile Actions button or joystick pad is missing.")
+	if actions_button == null:
+		_fail("Mobile Actions button is missing.")
 		return
 	if actions_button.action_mode != BaseButton.ACTION_MODE_BUTTON_PRESS:
 		_fail("Actions still triggers on release instead of the physical press.")
 		return
 
 	game.call("_start_turn_based_combat", caretaker)
-	await process_frame
 	if not bool(game.call("is_turn_based_combat_active")):
 		_fail("Combat did not start.")
 		return
 
-	# A finger that begins over the disabled Actions button during an enemy turn
-	# remains invalid even if the player turn begins before release.
-	game.set("_enemy_turn_running", true)
-	mobile_controls.call("_process", 0.0)
-	catalog.close_catalog()
-	var blocked_press := InputEventScreenTouch.new()
-	blocked_press.index = 17
-	blocked_press.position = actions_button.get_global_rect().get_center()
-	blocked_press.pressed = true
-	mobile_controls.call("_input", blocked_press)
-	if not bool(mobile_controls.call("action_press_started_blocked_for_testing")):
-		_fail("Raw touch origin during the enemy turn was not latched as blocked.")
-		return
-
-	game.set("_enemy_turn_running", false)
-	game.call("force_player_turn_for_testing")
-	mobile_controls.call("_process", 1.0)
-	var blocked_release := InputEventScreenTouch.new()
-	blocked_release.index = blocked_press.index
-	blocked_release.position = blocked_press.position
-	blocked_release.pressed = false
-	mobile_controls.call("_input", blocked_release)
+	# Generic catalogue calls and stale pressed signals must not be able to open
+	# the mobile catalogue, even when a player turn later becomes available.
+	catalog.toggle_catalog()
 	if catalog.panel.visible:
-		_fail("Carried touch opened the Actions panel on release.")
+		_fail("Generic toggle opened a catalogue that requires an Actions transaction.")
 		return
-
-	# Reproduce the uploaded Android video: the only real touch begins on the
-	# joystick, is released there, and a delayed/stale Button.pressed signal is
-	# delivered after the next player turn becomes available. Such a signal has
-	# no valid Actions-button origin and must be discarded immediately.
 	game.set("_enemy_turn_running", true)
 	mobile_controls.call("_process", 0.0)
-	var joystick_press := InputEventScreenTouch.new()
-	joystick_press.index = 31
-	joystick_press.position = move_pad.get_global_rect().get_center() + Vector2(-48.0, 0.0)
-	joystick_press.pressed = true
-	mobile_controls.call("_input", joystick_press)
-	var joystick_release := InputEventScreenTouch.new()
-	joystick_release.index = joystick_press.index
-	joystick_release.position = joystick_press.position
-	joystick_release.pressed = false
-	mobile_controls.call("_input", joystick_release)
+	actions_button.emit_signal("pressed")
+	if catalog.panel.visible:
+		_fail("A pressed signal without Button.button_down opened during enemy turn.")
+		return
+
 	game.set("_enemy_turn_running", false)
 	game.call("force_player_turn_for_testing")
 	mobile_controls.call("_process", 1.0)
 	actions_button.emit_signal("pressed")
 	if catalog.panel.visible:
-		_fail("A delayed signal with joystick origin opened the Actions panel.")
+		_fail("A stale combat pressed signal reused an old opening permission.")
 		return
-	await process_frame
-	if catalog.panel.visible:
-		_fail("The joystick-origin Actions panel appeared on the rendered frame.")
+	if catalog.has_open_authorization_for_testing():
+		_fail("The catalogue still stores a reusable authorization budget.")
 		return
 
-	# A new intentional press that actually begins inside the enabled Actions
-	# button remains the only valid way to open the catalogue.
-	var fresh_press := InputEventScreenTouch.new()
-	fresh_press.index = 18
-	fresh_press.position = actions_button.get_global_rect().get_center()
-	fresh_press.pressed = true
-	mobile_controls.call("_input", fresh_press)
+	# The atomic transaction is Button.button_down immediately followed by the
+	# matching pressed signal. Only this sequence may open the panel.
 	actions_button.emit_signal("button_down")
 	if bool(mobile_controls.call("action_press_started_blocked_for_testing")):
-		_fail("A fresh player-turn press remained blocked after the guard expired.")
+		_fail("A fresh player-turn button-down was incorrectly blocked.")
 		return
 	actions_button.emit_signal("pressed")
 	if not catalog.panel.visible:
-		_fail("A fresh intentional press did not open the Actions panel.")
+		_fail("A direct Actions-button transaction did not open the catalogue.")
 		return
 	if not bool(mobile_controls.call("is_actions_catalog_open_authorized_for_testing")):
-		_fail("The catalogue opened without retaining its explicit-input authorization.")
+		_fail("Mobile controls did not record the completed atomic transaction.")
 		return
 
-	var fresh_release := InputEventScreenTouch.new()
-	fresh_release.index = fresh_press.index
-	fresh_release.position = fresh_press.position
-	fresh_release.pressed = false
-	mobile_controls.call("_input", fresh_release)
 	catalog.close_catalog()
+	actions_button.emit_signal("pressed")
+	if catalog.panel.visible:
+		_fail("Closing the catalogue left a reusable permission behind.")
+		return
+
 	game.queue_free()
 	await process_frame
 	if FileAccess.file_exists(save_path):
 		DirAccess.remove_absolute(save_path)
-	print("Only a fresh Actions-button touch can open the catalogue; joystick and carried touches are rejected.")
+	print("Actions catalogue opens only inside an atomic BaseButton transaction; combat signals cannot flash it.")
 	quit(0)
 
 
