@@ -41,6 +41,10 @@ func _run() -> void:
 	if int(render_order.get("door_z", -1)) <= int(render_order.get("fog_z", -1)):
 		_fail("Door geometry is not rendered above concealed cells.")
 		return
+	var wall_overlay: GuardPostWallVisibilityOverlay = room.get_wall_visibility_overlay_for_testing()
+	if wall_overlay == null or wall_overlay.get_wall_segments_for_testing().size() != 8:
+		_fail("Full perimeter and both partition wall segments are not present above fog.")
+		return
 
 	var caretaker_trigger: Vector2 = controller.get_npc_trigger_extent_for_testing("caretaker")
 	var guard_trigger: Vector2 = controller.get_npc_trigger_extent_for_testing("service_guard")
@@ -48,44 +52,48 @@ func _run() -> void:
 		_fail("NPC interaction trigger zones were not expanded.")
 		return
 
+	# Exploration movement is joystick-only.
 	var player_start: Vector2 = player.global_position
 	mobile.call("enable_for_testing")
 	mobile.call("move_joystick_for_testing", Vector2.UP)
-	for _frame: int in range(5):
-		await process_frame
+	for _frame: int in range(8):
+		await physics_frame
 	var facing_after_joystick: Vector2 = player.call("get_facing_direction") as Vector2
 	if facing_after_joystick.dot(Vector2.UP) < 0.95:
-		_fail("Mobile joystick did not change the hero facing direction.")
+		_fail("Exploration joystick did not change the hero facing direction.")
 		return
-	if player.global_position.distance_to(player_start) > 0.5:
-		_fail("Mobile joystick still moved the hero instead of changing facing only.")
+	if player.global_position.distance_to(player_start) < 2.0:
+		_fail("Exploration joystick did not move the hero.")
 		return
 	mobile.call("release_joystick_for_testing")
 
+	var tap_start: Vector2 = player.global_position
 	var click_path: Array[Vector2] = controller.plan_exploration_path_to_world_for_testing(Vector2(520.0, 600.0))
-	if click_path.size() < 2:
-		_fail("Tap-only exploration path could not be planned.")
-		return
 	player.call("set_exploration_click_path", click_path)
-	for _frame: int in range(18):
-		await process_frame
-	if player.global_position.distance_to(player_start) < 4.0:
-		_fail("Tap-selected exploration route did not move the hero.")
+	for _frame: int in range(12):
+		await physics_frame
+	if player.global_position.distance_to(tap_start) > 0.5:
+		_fail("Exploration tap-to-move remained active outside combat.")
 		return
-	player.call("cancel_exploration_click_path")
+	if not (player.call("get_exploration_click_path_for_testing") as Array).is_empty():
+		_fail("Exploration tap route was retained despite joystick-only mode.")
+		return
 
 	# Intended facing is retained even when CharacterBody2D is stopped by a wall.
 	var partition_x: float = room.get_inner_partition_global_x()
 	player.global_position = Vector2(partition_x - 28.0, 150.0)
 	state.set("player_position", player.global_position)
-	player.call("set_exploration_click_path", [Vector2(partition_x + 80.0, 150.0)])
+	mobile.call("move_joystick_for_testing", Vector2.RIGHT)
 	for _frame: int in range(18):
-		await process_frame
+		await physics_frame
 	var wall_facing: Vector2 = player.call("get_facing_direction") as Vector2
 	if wall_facing.x < 0.8 or absf(wall_facing.y) > 0.35:
-		_fail("Wall collision changed the hero facing to the downward direction.")
+		_fail("Wall collision changed the hero facing away from joystick intent.")
 		return
-	player.call("cancel_exploration_click_path")
+	if player.global_position.x > partition_x - 18.0:
+		_fail("Exploration joystick pushed the hero through the partition wall.")
+		return
+	mobile.call("release_joystick_for_testing")
 
 	# Directional spells use current facing without requiring a selected marker.
 	player.global_position = Vector2(600.0, 360.0)
@@ -179,7 +187,6 @@ func _run() -> void:
 	if not bool(state.call("load_manual_slot", MANUAL_SLOT_ID)):
 		_fail("Manual world snapshot could not be loaded.")
 		return
-	# Keep the restored scene static until exact positions are asserted.
 	state.set("input_locked", true)
 	game.queue_free()
 	await process_frame
@@ -218,9 +225,6 @@ func _run() -> void:
 		_fail("Hero facing direction was not restored from the manual save.")
 		return
 
-	# Active initiative remains intentionally non-serializable. Starting combat
-	# may create a valid pre-combat checkpoint, so verify the rejected save is
-	# side-effect-free from the moment active initiative actually exists.
 	state.set("input_locked", false)
 	restored_game.call("_start_turn_based_combat", restored_guard)
 	await process_frame
@@ -235,7 +239,7 @@ func _run() -> void:
 	restored_game.queue_free()
 	await process_frame
 	_cleanup_saves(state)
-	print("Exact world snapshot, safe visible NPC movement, expanded triggers, wall occlusion and directional touch controls passed.")
+	print("Exact world snapshot, full wall silhouettes, joystick-only exploration, safe NPC movement and directional combat controls passed.")
 	quit(0)
 
 
