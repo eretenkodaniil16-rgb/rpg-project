@@ -26,15 +26,27 @@ func _process(delta: float) -> void:
 	if combat_active and player_turn_active != _last_player_turn_active:
 		_close_action_catalog()
 		_action_turn_guard_remaining = COMBAT_ACTION_TURN_GUARD_SECONDS if player_turn_active else 0.0
+		if is_instance_valid(interact_button):
+			interact_button.set_pressed_no_signal(false)
 	elif not combat_active:
 		_action_turn_guard_remaining = 0.0
 	_last_player_turn_active = player_turn_active
 	_action_turn_guard_remaining = maxf(_action_turn_guard_remaining - maxf(delta, 0.0), 0.0)
 	if is_instance_valid(interact_button):
-		interact_button.disabled = (
-			GameState.input_locked
-			or (combat_active and (not player_turn_active or _action_turn_guard_remaining > 0.0))
-		)
+		interact_button.disabled = _action_button_blocked_now()
+
+
+func _input(event: InputEvent) -> void:
+	if visible and _initialized and event is InputEventScreenTouch and is_instance_valid(interact_button):
+		var touch: InputEventScreenTouch = event as InputEventScreenTouch
+		if touch.pressed and interact_button.get_global_rect().has_point(touch.position):
+			_action_press_started_blocked = _action_button_blocked_now()
+			if _action_press_started_blocked:
+				interact_button.set_pressed_no_signal(false)
+				_close_action_catalog()
+				get_viewport().set_input_as_handled()
+				return
+	super._input(event)
 
 
 func _set_player_vector(direction: Vector2) -> void:
@@ -116,22 +128,9 @@ func _is_player_combat_turn() -> bool:
 	)
 
 
-func _install_action_press_origin_guard() -> void:
-	if not is_instance_valid(interact_button):
-		return
-	var callback := Callable(self, "_on_action_button_down")
-	if not interact_button.button_down.is_connected(callback):
-		interact_button.button_down.connect(callback)
-
-
-func _on_action_button_down() -> void:
+func _action_button_blocked_now() -> bool:
 	var combat_active: bool = _is_combat_active()
-	# A touch that begins while the button is blocked must stay blocked until its
-	# release. Otherwise the release can arrive just after the turn changes,
-	# emit `pressed`, open the panel for one rendered frame and be closed by the
-	# following process tick. `_last_player_turn_active` also rejects a press that
-	# starts before the first player-turn process tick arms the normal timer.
-	_action_press_started_blocked = (
+	return (
 		GameState.input_locked
 		or (
 			combat_active
@@ -142,7 +141,24 @@ func _on_action_button_down() -> void:
 			)
 		)
 	)
+
+
+func _install_action_press_origin_guard() -> void:
+	if not is_instance_valid(interact_button):
+		return
+	# Trigger on the physical press, not on release. A finger that went down while
+	# the button was disabled can therefore never open the catalog when it is
+	# lifted after the turn changes.
+	interact_button.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
+	var callback := Callable(self, "_on_action_button_down")
+	if not interact_button.button_down.is_connected(callback):
+		interact_button.button_down.connect(callback)
+
+
+func _on_action_button_down() -> void:
+	_action_press_started_blocked = _action_button_blocked_now()
 	if _action_press_started_blocked:
+		interact_button.set_pressed_no_signal(false)
 		_close_action_catalog()
 
 
