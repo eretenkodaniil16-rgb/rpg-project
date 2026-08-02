@@ -27,12 +27,14 @@ func _run() -> void:
 	var player: Node2D = game.get_node_or_null("Player") as Node2D
 	var room: GuardPostTwoRoomVisibility = game.get_node_or_null("StealthTestRoom") as GuardPostTwoRoomVisibility
 	var guard: Node = room.get_patrol_observer() if room != null else null
+	var west_door: StealthDoor = room.get_test_door() if room != null else null
 	var catalog: ActionCatalogUI = game.get_node_or_null("Interface/ActionCatalogUI") as ActionCatalogUI
-	if player == null or guard == null or catalog == null:
+	if player == null or guard == null or west_door == null or catalog == null:
 		_fail("Pursuit test fixtures are incomplete.")
 		return
 
-	player.global_position = Vector2(620.0, 180.0)
+	var last_known := Vector2(620.0, 180.0)
+	player.global_position = last_known
 	state.set("player_position", player.global_position)
 	(guard as Node2D).global_position = Vector2(760.0, 180.0)
 	guard.call("set_facing_direction", Vector2.LEFT)
@@ -48,9 +50,13 @@ func _run() -> void:
 		_fail("Action catalog did not open on the player turn.")
 		return
 
+	# Model a valid successful Hide: the hero leaves the observer's line of sight
+	# behind the closed service door while the guard retains the previous position.
+	west_door.set_door_state("closed", false)
+	player.global_position = Vector2(100.0, 110.0)
+	state.set("player_position", player.global_position)
 	var combat_state: CombatantState = game.get("_player_combat_state") as CombatantState
 	combat_state.hidden = true
-	var last_known := Vector2(620.0, 180.0)
 	var observers: Array[Node] = [guard]
 	game.call("_suspend_combat_for_hidden_pursuit", observers, last_known)
 	await process_frame
@@ -84,6 +90,7 @@ func _run() -> void:
 	# Leaving concealment and being seen again starts a new initiative. No
 	# unconditional advantage is granted here; visibility and the normal SRD
 	# combat rules determine any advantage later.
+	west_door.set_door_state("open", false)
 	game.call("_break_exploration_hidden", "")
 	player.global_position = Vector2(690.0, 180.0)
 	state.set("player_position", player.global_position)
