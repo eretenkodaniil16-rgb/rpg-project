@@ -113,13 +113,15 @@ class AttackSwordDirectionalCycleV21Tests(unittest.TestCase):
             "blender_sprite_factory_attack_sword_directional_cycle_v21_pass02.py",
             "blender_sprite_factory_attack_sword_left_windup_diagnostic_v21.py",
             "blender_sprite_factory_attack_sword_directional_cycle_v21_pass03.py",
+            "blender_sprite_factory_attack_sword_left_anticipation_diagnostic_v21.py",
         )
         self.assertTrue(
             any(target in self.workflow_source for target in workflow_entrypoints)
         )
         self.assertIn("attack_directional_cycle_v21", self.launcher_source)
-        self.assertTrue(
-            any(target in self.launcher_source for target in workflow_entrypoints)
+        self.assertIn(
+            "blender_sprite_factory_attack_sword_directional_cycle_v21_pass03.py",
+            self.launcher_source,
         )
 
 
