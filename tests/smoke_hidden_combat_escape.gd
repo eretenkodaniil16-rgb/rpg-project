@@ -36,10 +36,12 @@ func _run() -> void:
 
 	var player: Node2D = game.get_node_or_null("Player") as Node2D
 	var caretaker: Node = game.get_node_or_null("Caretaker")
+	var room: GuardPostTwoRoomVisibility = game.get_node_or_null("StealthTestRoom") as GuardPostTwoRoomVisibility
 	var guard: Node = game.call("get_patrol_actor_for_testing", "service_guard") as Node
 	var grid: BattleGrid = get_first_node_in_group("battle_grid") as BattleGrid
-	if player == null or caretaker == null or guard == null or grid == null:
-		_fail("Player, observers or battle grid is missing.")
+	var west_door: StealthDoor = room.get_test_door() if room != null else null
+	if player == null or caretaker == null or room == null or guard == null or grid == null or west_door == null:
+		_fail("Player, observers, room, door or battle grid is missing.")
 		return
 
 	(caretaker as Node2D).global_position = Vector2(930.0, 555.0)
@@ -90,6 +92,18 @@ func _run() -> void:
 			_fail("Observer %s did not retain an active post-hide search state." % actor_id)
 			return
 
+	# Isolate role behavior from incidental post-combat geometry. The hero is
+	# fully concealed behind a closed door and both observers receive the same
+	# fixed search stimulus. The stationary watcher must hold position while the
+	# patrol actor must physically advance toward that point.
+	west_door.set_door_state("closed", false)
+	player.global_position = Vector2(100.0, 110.0)
+	state.set("player_position", player.global_position)
+	(caretaker as Node2D).global_position = Vector2(930.0, 555.0)
+	(guard as Node2D).global_position = Vector2(930.0, 470.0)
+	var deterministic_search_target := Vector2(700.0, 470.0)
+	game.call("force_post_escape_search_for_testing", caretaker, deterministic_search_target)
+	game.call("force_post_escape_search_for_testing", guard, deterministic_search_target)
 	var caretaker_before_search: Vector2 = (caretaker as Node2D).global_position
 	var guard_before_search: Vector2 = (guard as Node2D).global_position
 	game.call("force_exploration_alert_tick_for_testing", 0.5)
@@ -97,11 +111,12 @@ func _run() -> void:
 		_fail("Stationary caretaker abandoned the post during hide pursuit.")
 		return
 	if (guard as Node2D).global_position.distance_to(guard_before_search) <= 0.1:
-		_fail("Patrolling service guard did not move toward the last known position.")
+		_fail("Patrolling service guard did not move toward the deterministic last known position.")
 		return
 
 	# Reacquisition starts a fresh initiative without an unconditional advantage.
 	game.call("_break_exploration_hidden", "")
+	west_door.set_door_state("open", false)
 	player.global_position = Vector2(700.0, 360.0)
 	state.set("player_position", player.global_position)
 	(caretaker as Node2D).global_position = Vector2(760.0, 360.0)
@@ -134,7 +149,7 @@ func _run() -> void:
 	await process_frame
 	if FileAccess.file_exists(save_path):
 		DirAccess.remove_absolute(save_path)
-	print("Successful Hide preserves a stationary watcher, moving patrol pursuit, reacquisition and active encounter persistence.")
+	print("Successful Hide preserves a stationary watcher, deterministic patrol pursuit, reacquisition and active encounter persistence.")
 	quit(0)
 
 
