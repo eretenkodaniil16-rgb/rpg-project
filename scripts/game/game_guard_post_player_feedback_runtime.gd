@@ -1,4 +1,4 @@
-extends "res://scripts/game/game_guard_post_polish_runtime.gd"
+extends "res://scripts/game/game_guard_post_polish_base_runtime.gd"
 
 var _hide_transition_running: bool = false
 
