@@ -10,6 +10,12 @@ func _process(delta: float) -> void:
 	super._process(delta)
 
 
+func _unhandled_input(_event: InputEvent) -> void:
+	# Exploration movement is joystick-only. Combat taps are processed by the
+	# game runtime's planned-movement handler, not by this exploration controller.
+	return
+
+
 func capture_world_state_for_save() -> Dictionary:
 	var snapshot: Dictionary = super.capture_world_state_for_save()
 	var doors_value: Variant = snapshot.get("doors", {})
@@ -28,9 +34,11 @@ func capture_world_state_for_save() -> Dictionary:
 
 func get_visibility_render_order_for_testing() -> Dictionary:
 	var fog: CanvasItem = get_tree().get_first_node_in_group("player_visibility") as CanvasItem
-	var wall_visual: Polygon2D = null
+	var wall_visual: CanvasItem = null
 	var room: Node = _game.get_node_or_null("StealthTestRoom") if is_instance_valid(_game) else null
-	if room != null:
+	if room != null and room.has_method("get_wall_visibility_overlay_for_testing"):
+		wall_visual = room.call("get_wall_visibility_overlay_for_testing") as CanvasItem
+	if wall_visual == null and room != null:
 		var wall: Node = room.get_node_or_null("WestPartitionTop")
 		if wall != null:
 			for child: Node in wall.get_children():
