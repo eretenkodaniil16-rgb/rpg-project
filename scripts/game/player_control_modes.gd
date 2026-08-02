@@ -22,5 +22,5 @@ func _process_exploration_movement(delta: float) -> void:
 	velocity = Vector2.ZERO
 
 
-func set_exploration_click_path(_world_points: Array) -> void:
+func set_exploration_click_path(_world_points: Array[Vector2]) -> void:
 	_cancel_exploration_click_path()
