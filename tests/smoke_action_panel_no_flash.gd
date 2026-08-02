@@ -40,6 +40,9 @@ func _run() -> void:
 	if actions_button == null:
 		_fail("Mobile Actions button is missing.")
 		return
+	if actions_button.action_mode != BaseButton.ACTION_MODE_BUTTON_PRESS:
+		_fail("Actions still triggers on release instead of the physical press.")
+		return
 
 	game.call("_start_turn_based_combat", caretaker)
 	await process_frame
@@ -47,23 +50,33 @@ func _run() -> void:
 		_fail("Combat did not start.")
 		return
 
-	# Model the real mobile race: the finger goes down while an enemy owns the
-	# turn, then the turn switches to the player before that same finger lifts.
+	# Model the real Android race at the raw touch boundary: the finger goes down
+	# over the disabled Actions button during an enemy turn, the player turn begins,
+	# and only then is the same finger lifted.
 	game.set("_enemy_turn_running", true)
 	mobile_controls.call("_process", 0.0)
 	catalog.close_catalog()
-	actions_button.emit_signal("button_down")
+	var blocked_press := InputEventScreenTouch.new()
+	blocked_press.index = 17
+	blocked_press.position = actions_button.get_global_rect().get_center()
+	blocked_press.pressed = true
+	mobile_controls.call("_input", blocked_press)
 	if not bool(mobile_controls.call("action_press_started_blocked_for_testing")):
-		_fail("A touch that began during the enemy turn was not latched as blocked.")
+		_fail("Raw touch origin during the enemy turn was not latched as blocked.")
 		return
 
 	game.set("_enemy_turn_running", false)
 	game.call("force_player_turn_for_testing")
-	actions_button.emit_signal("pressed")
-	# This assertion is deliberately before process_frame. A one-frame flash is
-	# already a failure even if the next process tick closes the catalog.
+	mobile_controls.call("_process", 1.0)
+	var blocked_release := InputEventScreenTouch.new()
+	blocked_release.index = blocked_press.index
+	blocked_release.position = blocked_press.position
+	blocked_release.pressed = false
+	mobile_controls.call("_input", blocked_release)
+	# ACTION_MODE_BUTTON_PRESS means this release is not an activation event. The
+	# panel must remain closed both immediately and after another rendered frame.
 	if catalog.panel.visible:
-		_fail("Carried touch opened the Actions panel before the next frame.")
+		_fail("Carried touch opened the Actions panel on release.")
 		return
 	await process_frame
 	if catalog.panel.visible:
@@ -71,8 +84,12 @@ func _run() -> void:
 		return
 
 	# A new intentional press, begun after the player-turn guard expires, must
-	# still open the catalog normally.
-	mobile_controls.call("_process", 1.0)
+	# still open the catalog normally on the press event.
+	var fresh_press := InputEventScreenTouch.new()
+	fresh_press.index = 18
+	fresh_press.position = actions_button.get_global_rect().get_center()
+	fresh_press.pressed = true
+	mobile_controls.call("_input", fresh_press)
 	actions_button.emit_signal("button_down")
 	if bool(mobile_controls.call("action_press_started_blocked_for_testing")):
 		_fail("A fresh player-turn press remained blocked after the guard expired.")
@@ -87,7 +104,7 @@ func _run() -> void:
 	await process_frame
 	if FileAccess.file_exists(save_path):
 		DirAccess.remove_absolute(save_path)
-	print("Carried mobile touch cannot flash the Actions panel; a fresh press still opens it.")
+	print("Raw carried touch cannot flash the Actions panel; a fresh press still opens it.")
 	quit(0)
 
 
