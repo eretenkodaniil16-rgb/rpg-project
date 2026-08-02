@@ -41,8 +41,8 @@ func _run() -> void:
 	if actions_button == null:
 		_fail("Mobile Actions button is missing.")
 		return
-	if actions_button.action_mode != BaseButton.ACTION_MODE_BUTTON_PRESS:
-		_fail("Actions still triggers on release instead of the physical press.")
+	if not bool(mobile_controls.call("is_action_gui_pipeline_connected_for_testing")):
+		_fail("Actions button is not connected to the GUI-origin intent pipeline.")
 		return
 
 	game.call("_start_turn_based_combat", caretaker)
@@ -50,55 +50,68 @@ func _run() -> void:
 		_fail("Combat did not start.")
 		return
 
-	# Generic catalogue calls and stale pressed signals must not be able to open
-	# the mobile catalogue, even when a player turn later becomes available.
+	# Generic catalogue calls and legacy BaseButton signals must never open the
+	# mobile panel. Only GUI input received by the Actions control is accepted.
 	catalog.toggle_catalog()
 	if catalog.panel.visible:
-		_fail("Generic toggle opened a catalogue that requires an Actions transaction.")
+		_fail("Generic toggle opened a catalogue that requires mobile user intent.")
 		return
 	game.set("_enemy_turn_running", true)
 	mobile_controls.call("_process", 0.0)
+	actions_button.emit_signal("button_down")
 	actions_button.emit_signal("pressed")
 	if catalog.panel.visible:
-		_fail("A pressed signal without Button.button_down opened during enemy turn.")
+		_fail("Legacy BaseButton signals opened the catalogue during an enemy turn.")
 		return
 
 	game.set("_enemy_turn_running", false)
 	game.call("force_player_turn_for_testing")
-	mobile_controls.call("_process", 1.0)
+	mobile_controls.call("_process", 0.0)
 	actions_button.emit_signal("pressed")
 	if catalog.panel.visible:
-		_fail("A stale combat pressed signal reused an old opening permission.")
-		return
-	if catalog.has_open_authorization_for_testing():
-		_fail("The catalogue still stores a reusable authorization budget.")
+		_fail("A stale pressed signal opened the catalogue on the player turn.")
 		return
 
-	# The atomic transaction is Button.button_down immediately followed by the
-	# matching pressed signal. Only this sequence may open the panel.
-	actions_button.emit_signal("button_down")
-	if bool(mobile_controls.call("action_press_started_blocked_for_testing")):
-		_fail("A fresh player-turn button-down was incorrectly blocked.")
-		return
-	actions_button.emit_signal("pressed")
+	# One real touch intent opens exactly once and remains open across multiple
+	# process frames. This directly guards against the observed one-frame flash.
+	mobile_controls.call("simulate_actions_touch_for_testing")
 	if not catalog.panel.visible:
-		_fail("A direct Actions-button transaction did not open the catalogue.")
+		_fail("A GUI-origin Actions touch did not open the catalogue.")
 		return
-	if not bool(mobile_controls.call("is_actions_catalog_open_authorized_for_testing")):
-		_fail("Mobile controls did not record the completed atomic transaction.")
+	var toggle_count_after_touch: int = int(mobile_controls.call("get_action_user_toggle_count_for_testing"))
+	for _frame: int in range(8):
+		mobile_controls.call("_process", 0.1)
+		await process_frame
+		if not catalog.panel.visible:
+			_fail("The action catalogue flashed and closed without a state transition.")
+			return
+	if int(mobile_controls.call("get_action_user_toggle_count_for_testing")) != toggle_count_after_touch:
+		_fail("Processing frames generated a second action-menu toggle.")
 		return
 
-	catalog.close_catalog()
-	actions_button.emit_signal("pressed")
+	# Android's synthetic mouse press for the same touch must be consumed rather
+	# than interpreted as a second toggle.
+	mobile_controls.call("simulate_emulated_mouse_after_touch_for_testing")
+	if not catalog.panel.visible:
+		_fail("An emulated mouse event closed the catalogue opened by the same touch.")
+		return
+	if int(mobile_controls.call("get_action_user_toggle_count_for_testing")) != toggle_count_after_touch:
+		_fail("The emulated mouse event was counted as another user intent.")
+		return
+
+	# A second deliberate touch closes the panel, proving normal toggle behavior
+	# still works after duplicate suppression.
+	await create_timer(0.5).timeout
+	mobile_controls.call("simulate_actions_touch_for_testing")
 	if catalog.panel.visible:
-		_fail("Closing the catalogue left a reusable permission behind.")
+		_fail("A second deliberate Actions touch did not close the catalogue.")
 		return
 
 	game.queue_free()
 	await process_frame
 	if FileAccess.file_exists(save_path):
 		DirAccess.remove_absolute(save_path)
-	print("Actions catalogue opens only inside an atomic BaseButton transaction; combat signals cannot flash it.")
+	print("Actions menu uses one GUI-origin intent per gesture and remains stable across frames.")
 	quit(0)
 
 
