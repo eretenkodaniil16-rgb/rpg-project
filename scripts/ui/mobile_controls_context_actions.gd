@@ -7,6 +7,12 @@ var _control_mode_initialized: bool = false
 var _last_combat_mode: bool = false
 var _last_player_turn_active: bool = false
 var _action_turn_guard_remaining: float = 0.0
+var _action_press_started_blocked: bool = false
+
+
+func _ready() -> void:
+	super._ready()
+	_install_action_press_origin_guard()
 
 
 func _process(delta: float) -> void:
@@ -65,6 +71,10 @@ func get_action_turn_guard_remaining_for_testing() -> float:
 	return _action_turn_guard_remaining
 
 
+func action_press_started_blocked_for_testing() -> bool:
+	return _action_press_started_blocked
+
+
 func _apply_player_control_vector(direction: Vector2, combat_active: bool) -> void:
 	if not is_instance_valid(_player):
 		_player = get_tree().get_first_node_in_group("player") as CharacterBody2D
@@ -106,7 +116,42 @@ func _is_player_combat_turn() -> bool:
 	)
 
 
+func _install_action_press_origin_guard() -> void:
+	if not is_instance_valid(interact_button):
+		return
+	var callback := Callable(self, "_on_action_button_down")
+	if not interact_button.button_down.is_connected(callback):
+		interact_button.button_down.connect(callback)
+
+
+func _on_action_button_down() -> void:
+	var combat_active: bool = _is_combat_active()
+	# A touch that begins while the button is blocked must stay blocked until its
+	# release. Otherwise the release can arrive just after the turn changes,
+	# emit `pressed`, open the panel for one rendered frame and be closed by the
+	# following process tick. `_last_player_turn_active` also rejects a press that
+	# starts before the first player-turn process tick arms the normal timer.
+	_action_press_started_blocked = (
+		GameState.input_locked
+		or (
+			combat_active
+			and (
+				not _last_player_turn_active
+				or not _is_player_combat_turn()
+				or _action_turn_guard_remaining > 0.0
+			)
+		)
+	)
+	if _action_press_started_blocked:
+		_close_action_catalog()
+
+
 func _on_interact_pressed() -> void:
+	var press_started_blocked: bool = _action_press_started_blocked
+	_action_press_started_blocked = false
+	if press_started_blocked:
+		_close_action_catalog()
+		return
 	if not is_instance_valid(_player):
 		_player = get_tree().get_first_node_in_group("player") as CharacterBody2D
 	if not is_instance_valid(_game_world):
