@@ -15,6 +15,9 @@ import blender_sprite_factory as factory
 import blender_sprite_factory_attack_sword_directional_cycle_v21 as directional_cycle
 import blender_sprite_factory_attack_sword_directional_cycle_v21_pass02 as pass02
 import blender_sprite_factory_attack_sword_down_cycle_v20_pass03 as export_adapter
+import blender_sprite_factory_attack_sword_down_keyposes_v17 as keypose_adapter
+import blender_sprite_factory_attack_sword_down_keyposes_v19_pass06 as pass06_adapter
+import blender_sprite_factory_attack_sword_down_keyposes_v19_pass07 as pass07_adapter
 import blender_sprite_factory_combat_idle_directional_v11 as calibration_adapter
 import blender_sprite_factory_combat_idle_directional_weapon_v12 as weapon_adapter
 import blender_sprite_factory_combat_idle_down_v01 as base_entry
@@ -22,10 +25,13 @@ from attack_sword_directional_cycle_builder_v21_pass04 import (
     create_attack_sword_directional_cycle_actions_v21_pass04,
 )
 from attack_sword_directional_cycle_correction_v21_pass05 import (
+    ANGLE_SEARCH_LIMIT_DEGREES,
+    ANGLE_SEARCH_STEP_DEGREES,
     BLEND_CANDIDATES,
     GUARD_FRAME,
     MIN_CAMERA_MARGIN_PIXELS,
     MIN_HEAD_CLEARANCE_PIXELS,
+    REQUIRE_ZERO_EDGE_ALPHA,
     TARGET_ACTION_ID,
     TARGET_DIRECTION,
     TARGET_FRAME,
@@ -63,13 +69,24 @@ def _set_blend(
     factory.bpy.context.view_layer.update()
 
 
-def _restore(
+def _restore_arm(
     context: factory.BuildContext,
     rotations: dict[str, object],
 ) -> None:
     for bone_name, value in rotations.items():
         context.rig.pose.bones[bone_name].rotation_euler = value.copy()
     factory.bpy.context.view_layer.update()
+
+
+def _angle_offsets() -> tuple[float, ...]:
+    offsets: list[float] = [0.0]
+    for magnitude in range(
+        ANGLE_SEARCH_STEP_DEGREES,
+        ANGLE_SEARCH_LIMIT_DEGREES + 1,
+        ANGLE_SEARCH_STEP_DEGREES,
+    ):
+        offsets.extend((float(magnitude), -float(magnitude)))
+    return tuple(offsets)
 
 
 def _render_diagnostic(
@@ -91,8 +108,9 @@ def _render_diagnostic(
     idle_action = factory.bpy.data.actions[f"{config.character_id}_idle"]
     recovery_rotations: dict[str, object] = {}
     guard_rotations: dict[str, object] = {}
-    selected: dict[str, float] | None = None
-    diagnostics: list[dict[str, float]] = []
+    selected: dict[str, object] | None = None
+    selected_artifact: factory.FrameArtifact | None = None
+    diagnostics: list[dict[str, object]] = []
     try:
         weapon_adapter._set_v12_weapon(TARGET_GRIP_ID, TARGET_DIRECTION)
         factory._assign_action(context.rig, action)
@@ -133,50 +151,96 @@ def _render_diagnostic(
                 guard_rotations,
                 float(blend),
             )
-            clearance = export_adapter._weapon_head_clearance(objects)
-            margin = pass02._camera_margin(objects)
-            diagnostic = {
-                "blend": float(blend),
-                "head_clearance_pixels": float(clearance),
-                "camera_margin_pixels": float(margin),
+            saved_basis = {
+                obj.name: obj.matrix_basis.copy()
+                for obj in objects
             }
-            diagnostics.append(diagnostic)
-            if (
-                clearance >= MIN_HEAD_CLEARANCE_PIXELS
-                and margin >= MIN_CAMERA_MARGIN_PIXELS
-            ):
-                selected = diagnostic
+            current_direction = pass02._weapon_world_direction(objects)
+            pivot = pass02._weapon_pivot(objects)
+
+            for offset_degrees in _angle_offsets():
+                pass07_adapter._apply_world_rotation(
+                    objects,
+                    pivot=pivot,
+                    current_direction=current_direction,
+                    target_direction=export_adapter._target_direction(
+                        current_direction,
+                        offset_degrees=float(offset_degrees),
+                    ),
+                )
+                try:
+                    clearance = export_adapter._weapon_head_clearance(objects)
+                    margin = pass02._camera_margin(objects)
+                    diagnostic: dict[str, object] = {
+                        "blend": float(blend),
+                        "offset_degrees": float(offset_degrees),
+                        "head_clearance_pixels": float(clearance),
+                        "camera_margin_pixels": float(margin),
+                        "edge_counts": None,
+                        "accepted": False,
+                    }
+                    if (
+                        clearance < MIN_HEAD_CLEARANCE_PIXELS
+                        or margin < MIN_CAMERA_MARGIN_PIXELS
+                    ):
+                        diagnostics.append(diagnostic)
+                        continue
+
+                    artifact, _ = export_adapter._render_candidate(
+                        context,
+                        animation_id=(
+                            "attack_sword_01_onehand_left_"
+                            "recovery_diagnostic_v21"
+                        ),
+                        direction=TARGET_DIRECTION,
+                        frame_number=TARGET_FRAME,
+                        raw_dir=run_dir / "raw",
+                        frame_dir=run_dir / "frames",
+                        output_name=(
+                            f"{config.character_id}_attack_sword_01_onehand_left_"
+                            f"recovery_diagnostic_v21_f07_proxy_"
+                            f"{context.proxy_revision}.png"
+                        ),
+                        fixed_scale=calibration.scale,
+                        fixed_center_x=calibration.source_center_x,
+                    )
+                    edge_counts = keypose_adapter._edge_alpha_counts(
+                        artifact.output_path
+                    )
+                    touched = {
+                        edge: count
+                        for edge, count in edge_counts.items()
+                        if count > 0
+                    }
+                    diagnostic["edge_counts"] = edge_counts
+                    diagnostic["accepted"] = (
+                        not touched if REQUIRE_ZERO_EDGE_ALPHA else True
+                    )
+                    diagnostics.append(diagnostic)
+                    print(
+                        "ATTACK_SWORD_LEFT_RECOVERY_DIAGNOSTIC_V21_ATTEMPT="
+                        f"blend:{float(blend):.2f};"
+                        f"offset:{float(offset_degrees):.1f}deg;"
+                        f"clearance:{float(clearance):.3f}px;"
+                        f"margin:{float(margin):.3f}px;"
+                        f"edges:{touched}"
+                    )
+                    if bool(diagnostic["accepted"]):
+                        selected = diagnostic
+                        selected_artifact = artifact
+                        break
+                finally:
+                    pass06_adapter._restore_weapon(saved_basis)
+
+            if selected is not None:
                 break
 
-        if selected is None:
+        if selected is None or selected_artifact is None:
             raise RuntimeError(
-                "left recovery diagnostic found no safe guard blend: "
+                "left recovery diagnostic found no safe arm/weapon candidate: "
                 f"{diagnostics}"
             )
 
-        _set_blend(
-            context,
-            recovery_rotations,
-            guard_rotations,
-            float(selected["blend"]),
-        )
-        artifact, _ = export_adapter._render_candidate(
-            context,
-            animation_id=(
-                "attack_sword_01_onehand_left_recovery_diagnostic_v21"
-            ),
-            direction=TARGET_DIRECTION,
-            frame_number=TARGET_FRAME,
-            raw_dir=run_dir / "raw",
-            frame_dir=run_dir / "frames",
-            output_name=(
-                f"{config.character_id}_attack_sword_01_onehand_left_"
-                f"recovery_diagnostic_v21_f07_proxy_"
-                f"{context.proxy_revision}.png"
-            ),
-            fixed_scale=calibration.scale,
-            fixed_center_x=calibration.source_center_x,
-        )
         payload = {
             "source_head_clearance_pixels": float(source_clearance),
             "source_camera_margin_pixels": float(source_margin),
@@ -188,15 +252,16 @@ def _render_diagnostic(
         ] = json.dumps(payload, sort_keys=True)
         print(
             "ATTACK_SWORD_LEFT_RECOVERY_DIAGNOSTIC_V21_SELECTED="
-            f"blend:{selected['blend']:.2f};"
-            f"clearance:{selected['head_clearance_pixels']:.3f}px;"
-            f"margin:{selected['camera_margin_pixels']:.3f}px;"
+            f"blend:{float(selected['blend']):.2f};"
+            f"offset:{float(selected['offset_degrees']):.1f}deg;"
+            f"clearance:{float(selected['head_clearance_pixels']):.3f}px;"
+            f"margin:{float(selected['camera_margin_pixels']):.3f}px;"
             f"attempts:{len(diagnostics)}"
         )
-        return [artifact]
+        return [selected_artifact]
     finally:
         if recovery_rotations:
-            _restore(context, recovery_rotations)
+            _restore_arm(context, recovery_rotations)
         weapon_adapter._set_v12_weapon(None, None)
         factory._assign_action(context.rig, idle_action)
         context.rig.rotation_euler[2] = math.radians(
