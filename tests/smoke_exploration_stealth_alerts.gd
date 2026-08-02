@@ -109,8 +109,8 @@ func _run() -> void:
 		return
 	var before_move: Vector2 = caretaker.global_position
 	game.call("force_exploration_alert_tick_for_testing", 0.5)
-	if caretaker.global_position.distance_to(before_move) <= 0.1:
-		_fail("Investigating NPC did not move toward the last known position.")
+	if caretaker.global_position.distance_to(before_move) > 0.1:
+		_fail("Stationary caretaker abandoned the authored post during investigation.")
 		return
 
 	game.call("force_post_escape_search_for_testing", caretaker, Vector2(240.0, 360.0))
@@ -142,7 +142,7 @@ func _run() -> void:
 	await process_frame
 	if FileAccess.file_exists(save_path):
 		DirAccess.remove_absolute(save_path)
-	print("Exploration vision, concealed enemy state, hiding, door acoustics, investigation, post-escape search and manual persistence smoke test passed.")
+	print("Exploration vision, concealed enemy state, hiding, door acoustics, stationary investigation, post-escape search and manual persistence smoke test passed.")
 	quit(0)
 
 
