@@ -1,5 +1,17 @@
 extends "res://scripts/game/game_reaction_opportunities_runtime.gd"
 
+const UNARMED_OPPORTUNITY_WEAPON: Dictionary = {
+	"id": "unarmed_strike",
+	"name": "Безоружный удар",
+	"type": "weapon",
+	"weapon_category": "simple",
+	"damage_dice": [1, 1],
+	"damage_type": "дробящий",
+	"ability": "strength",
+	"properties": [],
+	"reach_ft": 5
+}
+
 
 func _trigger_readied_attack_if_possible(actor: Node) -> void:
 	if (
@@ -66,15 +78,15 @@ func offer_player_opportunity_attack_if_triggered(
 		return false
 	var current_distance: int = DistanceSystem.distance_feet(player.global_position, from_position)
 	var future_distance: int = DistanceSystem.distance_feet(player.global_position, to_position)
-	var weapon: Dictionary = _class_data.get_equipped_weapon(GameState.player_character)
-	var melee_weapon: bool = not DistanceSystem.is_ranged_weapon(weapon)
+	var weapon: Dictionary = _opportunity_attack_weapon()
 	var session: Dictionary = _create_coordinated_reaction_session(
 		ReactionOpportunitySystem.TRIGGER_ENEMY_LEAVES_REACH,
 		{
 			"target_leaves_reach": current_distance <= DistanceSystem.MELEE_REACH_FEET and future_distance > DistanceSystem.MELEE_REACH_FEET,
-			"can_make_weapon_attack": melee_weapon,
+			"can_make_weapon_attack": not weapon.is_empty(),
 			"from_position": from_position,
-			"to_position": to_position
+			"to_position": to_position,
+			"eligible_reactor_actor_ids": [player.get_instance_id()]
 		},
 		actor,
 		null
@@ -117,3 +129,11 @@ func offer_player_opportunity_attack_if_triggered(
 	if not attack_performed:
 		show_combat_message("Атака по возможности пропущена; реакция сохранена.", true)
 	return attack_performed
+
+
+func _opportunity_attack_weapon() -> Dictionary:
+	var equipped: Dictionary = _class_data.get_equipped_weapon(GameState.player_character)
+	if not equipped.is_empty() and not DistanceSystem.is_ranged_weapon(equipped):
+		return equipped
+	# Rules allow an unarmed strike even while the equipped weapon is ranged.
+	return UNARMED_OPPORTUNITY_WEAPON.duplicate(true)
