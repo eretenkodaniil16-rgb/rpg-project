@@ -1,7 +1,7 @@
 extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
-const RUNTIME_PATH: String = "res://scripts/game/game_guard_post_polish_runtime.gd"
+const RUNTIME_PATH: String = "res://scripts/game/game_guard_post_player_feedback_runtime.gd"
 const MANUAL_SLOT_ID: int = 1
 const MANUAL_SAVE_PATH: String = "user://save_slots/manual_01.json"
 
@@ -37,7 +37,7 @@ func _run() -> void:
 		await process_frame
 	game.set_process(false)
 	if str(game.get_script().resource_path) != RUNTIME_PATH:
-		_fail("Game scene does not use the Combat AI runtime layered above exploration stealth and pursuit.")
+		_fail("Game scene does not use the runtime layered above exploration stealth and pursuit.")
 		return
 
 	var player: Node2D = game.get_node_or_null("Player") as Node2D
