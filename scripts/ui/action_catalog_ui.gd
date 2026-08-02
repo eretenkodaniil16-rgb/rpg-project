@@ -43,7 +43,6 @@ var _combat_active: bool = false
 var _player_turn: bool = false
 var _group_buttons: Dictionary = {}
 var _category_buttons: Dictionary = {}
-var _open_authorization_budget: int = 0
 var _explicit_open_required_for_testing: bool = false
 
 
@@ -111,25 +110,35 @@ func toggle_catalog() -> void:
 	_toggle_catalog()
 
 
+func request_toggle_from_action_button() -> bool:
+	# This method is the only mobile opening transaction. It performs the GUI
+	# request immediately and stores no token that a delayed signal could reuse.
+	if panel.visible:
+		close_catalog()
+		return false
+	_open_catalog()
+	return panel.visible
+
+
 func authorize_open_once() -> void:
-	_open_authorization_budget = 1
+	# Compatibility no-op. Opening authorization is no longer persistent.
+	pass
 
 
 func require_explicit_open_for_testing(value: bool) -> void:
 	_explicit_open_required_for_testing = value
-	_open_authorization_budget = 0
 	if value:
 		close_catalog()
 
 
 func has_open_authorization_for_testing() -> bool:
-	return _open_authorization_budget > 0
+	# The atomic design deliberately has no pending authorization state.
+	return false
 
 
 func close_catalog() -> void:
 	panel.hide()
 	_last_signature = ""
-	_open_authorization_budget = 0
 
 
 func get_entries_for_testing() -> Dictionary:
@@ -350,16 +359,19 @@ func _toggle_catalog() -> void:
 	if panel.visible:
 		close_catalog()
 		return
-	if _catalog_open_requires_authorization() and _open_authorization_budget <= 0:
+	if _catalog_open_requires_action_button_transaction():
 		return
-	_open_authorization_budget = 0
+	_open_catalog()
+
+
+func _open_catalog() -> void:
 	panel.show()
 	_last_signature = ""
 	_ensure_valid_selection()
 	_rebuild_action_grid()
 
 
-func _catalog_open_requires_authorization() -> bool:
+func _catalog_open_requires_action_button_transaction() -> bool:
 	return (
 		_explicit_open_required_for_testing
 		or OS.get_name() in ["Android", "iOS"]
