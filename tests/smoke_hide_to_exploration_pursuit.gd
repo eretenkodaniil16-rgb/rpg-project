@@ -34,6 +34,11 @@ func _run() -> void:
 		_fail("Pursuit test fixtures are incomplete.")
 		return
 	mobile.call("enable_for_testing")
+	catalog.require_explicit_open_for_testing(true)
+	var actions_button: Button = mobile.call("get_actions_button_for_testing") as Button
+	if actions_button == null:
+		_fail("Mobile Actions button is missing.")
+		return
 
 	player.global_position = Vector2(620.0, 180.0)
 	state.set("player_position", player.global_position)
@@ -53,14 +58,16 @@ func _run() -> void:
 	if float(mobile.call("get_action_turn_guard_remaining_for_testing")) <= 0.0:
 		_fail("Player-turn action guard was not armed.")
 		return
-	mobile.call("_on_interact_pressed")
+	# A delayed pressed signal without a matching GUI button-down is a carried
+	# touch and must remain blocked at the turn boundary.
+	actions_button.emit_signal("pressed")
 	if catalog.is_catalog_open():
 		_fail("A carried touch opened the action catalog at turn start.")
 		return
 	mobile.call("_process", 1.0)
-	mobile.call("_on_interact_pressed")
+	_emit_actions_transaction(actions_button)
 	if not catalog.is_catalog_open():
-		_fail("An intentional action-menu press was blocked after the turn guard expired.")
+		_fail("An intentional action-menu transaction was blocked after the turn guard expired.")
 		return
 	catalog.close_catalog()
 
@@ -69,9 +76,9 @@ func _run() -> void:
 	player.global_position = hidden_position
 	state.set("player_position", player.global_position)
 	game.call("set_hide_roll_overrides_for_testing", [20])
-	catalog.call("toggle_catalog")
+	_emit_actions_transaction(actions_button)
 	if not catalog.is_catalog_open():
-		_fail("Action catalog did not open before the Hide request.")
+		_fail("Atomic action transaction did not open before the Hide request.")
 		return
 	catalog.call("_emit_action", "hide", "", true)
 	if catalog.is_catalog_open():
@@ -130,10 +137,15 @@ func _run() -> void:
 		_fail("Sustained reacquisition did not restart initiative: record=%s visible=%s hostile=%s" % [final_record, visible_now, guard.call("is_hostile")])
 		return
 
-	print("Catalog Hide signal, immediate modal closure, turn-start input guard, pursuit and reacquisition passed.")
+	print("Catalog Hide signal, immediate modal closure, atomic turn-start input guard, pursuit and reacquisition passed.")
 	game.queue_free()
 	await process_frame
 	quit(0)
+
+
+func _emit_actions_transaction(actions_button: Button) -> void:
+	actions_button.emit_signal("button_down")
+	actions_button.emit_signal("pressed")
 
 
 func _make_hero() -> PlayerCharacter:
