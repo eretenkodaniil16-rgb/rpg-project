@@ -112,14 +112,16 @@ class AttackSwordDirectionalCycleV21Pass05Tests(unittest.TestCase):
         self.assertNotIn("obj.scale", self.adapter_source)
         self.assertNotIn("mesh.vertices", self.adapter_source)
 
-    def test_pass05_remains_full_source_under_pass08_diagnostic(self) -> None:
-        diagnostic = (
-            "blender_sprite_factory_attack_sword_twohand_left_projection_diagnostic_v21.py"
+    def test_pass05_remains_source_under_pass09(self) -> None:
+        historical = (
+            "blender_sprite_factory_attack_sword_directional_cycle_v21_pass05.py"
         )
-        full = "blender_sprite_factory_attack_sword_directional_cycle_v21_pass05.py"
-        self.assertTrue((self.tool_root / full).is_file())
-        self.assertIn(diagnostic, self.workflow_source)
-        self.assertIn(full, self.launcher_source)
+        active = (
+            "blender_sprite_factory_attack_sword_directional_cycle_v21_pass09.py"
+        )
+        self.assertTrue((self.tool_root / historical).is_file())
+        self.assertIn(active, self.workflow_source)
+        self.assertIn(active, self.launcher_source)
 
 
 if __name__ == "__main__":
