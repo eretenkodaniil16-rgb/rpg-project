@@ -4,7 +4,6 @@ extends "res://scripts/game/guard_post_two_room.gd"
 const ROOM_FOG_SCRIPT: Script = preload("res://scripts/game/room_fog_overlay.gd")
 const DOOR_DECORATOR_SCRIPT: Script = preload("res://scripts/game/stealth_door_visual_decorator.gd")
 const WALL_VISIBILITY_OVERLAY_SCRIPT: Script = preload("res://scripts/game/guard_post_wall_visibility_overlay.gd")
-const DOOR_REACH_EXPANDER_SCRIPT: Script = preload("res://scripts/game/door_interaction_reach_expander.gd")
 
 const ROOM_WEST_SERVICE: String = "west_service_room"
 const ROOM_OUTER_GUARD: String = "outer_guard_room"
@@ -30,14 +29,12 @@ const OUTER_WALL_NODE_NAMES: Array[String] = [
 
 var _room_fog: RoomFogOverlay
 var _wall_visibility_overlay: GuardPostWallVisibilityOverlay
-var _door_reach_expander: DoorInteractionReachExpander
 
 
 func _ready() -> void:
 	super._ready()
 	_install_outer_boundary_collisions()
 	_apply_loaded_inner_gate_snapshot()
-	_install_door_reach_expander()
 	_install_door_decorator(get_test_door(), "WestServiceDoorPresentation")
 	_install_door_decorator(get_inner_gate(), "InnerWatchGatePresentation")
 	_install_room_fog()
@@ -50,10 +47,6 @@ func get_room_fog_for_testing() -> RoomFogOverlay:
 
 func get_wall_visibility_overlay_for_testing() -> GuardPostWallVisibilityOverlay:
 	return _wall_visibility_overlay
-
-
-func get_door_reach_expander_for_testing() -> DoorInteractionReachExpander:
-	return _door_reach_expander
 
 
 func get_outer_boundary_bodies_for_testing() -> Array[StaticBody2D]:
@@ -107,22 +100,6 @@ func _install_outer_boundary_collisions() -> void:
 		Vector2(OUTER_ROOM_RIGHT, vertical_center_y),
 		vertical_size
 	)
-
-
-func _install_door_reach_expander() -> void:
-	if is_instance_valid(_door_reach_expander):
-		return
-	_door_reach_expander = DOOR_REACH_EXPANDER_SCRIPT.new() as DoorInteractionReachExpander
-	_door_reach_expander.name = "DoorInteractionReachExpander"
-	add_child(_door_reach_expander)
-	var doors: Array[StealthDoor] = []
-	var west_door: StealthDoor = get_test_door()
-	var inner_gate: StealthDoor = get_inner_gate()
-	if west_door != null:
-		doors.append(west_door)
-	if inner_gate != null:
-		doors.append(inner_gate)
-	_door_reach_expander.configure(doors)
 
 
 func _apply_loaded_inner_gate_snapshot() -> void:
