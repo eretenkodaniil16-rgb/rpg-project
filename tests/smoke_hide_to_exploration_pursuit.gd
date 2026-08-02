@@ -45,8 +45,6 @@ func _run() -> void:
 	if not bool(game.call("is_turn_based_combat_active")):
 		_fail("Combat did not start for the pursuit transition test.")
 		return
-	# Combat start may align actors to the battle grid. The canonical pursuit
-	# target is the position actually recorded after that alignment.
 	var last_known: Vector2 = game.get("_last_seen_player_position") as Vector2
 	if last_known == Vector2.ZERO:
 		_fail("Combat did not record an initial visual contact position.")
@@ -110,14 +108,23 @@ func _run() -> void:
 
 	west_door.set_door_state("open", false)
 	game.call("_break_exploration_hidden", "")
-	player.global_position = Vector2(690.0, 180.0)
+	player.global_position = Vector2(745.0, 180.0)
 	state.set("player_position", player.global_position)
 	(guard as Node2D).global_position = Vector2(760.0, 180.0)
 	guard.call("set_facing_direction", Vector2.LEFT)
-	game.call("force_exploration_alert_tick_for_testing", 1.0)
-	await process_frame
+	var profile: Dictionary = (game.get("_stealth_alerts") as StealthAlertSystem).get_profile("service_guard")
+	var visible_now: bool = bool(game.call("_exploration_actor_can_see_player", guard, profile))
+	if not visible_now:
+		_fail("Reacquisition fixture did not establish direct visual contact.")
+		return
+	for _tick: int in range(4):
+		game.call("force_exploration_alert_tick_for_testing", 1.0)
+		await process_frame
+		if bool(game.call("is_turn_based_combat_active")):
+			break
 	if not bool(game.call("is_turn_based_combat_active")):
-		_fail("Reacquiring the hidden hero did not restart initiative.")
+		var final_record: Dictionary = game.call("get_exploration_alert_record_for_testing", guard) as Dictionary
+		_fail("Sustained reacquisition did not restart initiative: record=%s visible=%s hostile=%s" % [final_record, visible_now, guard.call("is_hostile")])
 		return
 
 	print("Catalog Hide signal, turn-start input guard, pursuit and reacquisition passed.")
