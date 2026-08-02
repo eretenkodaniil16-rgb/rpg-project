@@ -71,19 +71,22 @@ class AttackSwordDirectionalCycleV21Pass06Tests(unittest.TestCase):
         self.assertNotIn("obj.scale", self.diagnostic_source)
         self.assertNotIn("mesh.vertices", self.diagnostic_source)
 
-    def test_pass06_is_preserved_while_pass08_is_active(self) -> None:
+    def test_pass06_is_preserved_while_pass09_is_active(self) -> None:
         active = (
-            "blender_sprite_factory_attack_sword_twohand_left_projection_diagnostic_v21.py"
+            "blender_sprite_factory_attack_sword_directional_cycle_v21_pass09.py"
         )
-        full = "blender_sprite_factory_attack_sword_directional_cycle_v21_pass05.py"
+        full_source = (
+            "blender_sprite_factory_attack_sword_directional_cycle_v21_pass05.py"
+        )
         self.assertTrue(
             (
                 self.tool_root
                 / "blender_sprite_factory_attack_sword_twohand_left_windup_diagnostic_v21.py"
             ).is_file()
         )
+        self.assertTrue((self.tool_root / full_source).is_file())
         self.assertIn(active, self.workflow_source)
-        self.assertIn(full, self.launcher_source)
+        self.assertIn(active, self.launcher_source)
 
 
 if __name__ == "__main__":
