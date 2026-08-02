@@ -1,4 +1,4 @@
-extends "res://scripts/game/game_guard_post_polish_runtime.gd"
+extends "res://scripts/game/game_guard_post_polish_runtime_core.gd"
 
 const COMBAT_START_BOUNDARY_MARGIN_PIXELS: float = 6.0
 
