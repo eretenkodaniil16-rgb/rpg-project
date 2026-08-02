@@ -71,7 +71,7 @@ func _verify_outer_boundary(
 		_fail("The visible outer perimeter does not have four physical wall bodies.")
 		return
 	for body: StaticBody2D in bodies:
-		var collision: CollisionShape2D = body.get_node_or_null("CollisionShape2D") as CollisionShape2D
+		var collision: CollisionShape2D = _find_collision_shape(body)
 		if collision == null or collision.shape == null or collision.disabled:
 			_fail("Outer wall %s has no active collision shape." % body.name)
 			return
@@ -198,6 +198,13 @@ func _verify_peaceful_betrayal(
 	if not bool(state.call("get_flag", BETRAYAL_RESOLVED_FLAG, false)):
 		_fail("Betrayal consequence completion was not persisted.")
 		return
+
+
+func _find_collision_shape(body: StaticBody2D) -> CollisionShape2D:
+	for child: Node in body.get_children():
+		if child is CollisionShape2D:
+			return child as CollisionShape2D
+	return null
 
 
 func _mark_actor_dead(actor: Node) -> void:
