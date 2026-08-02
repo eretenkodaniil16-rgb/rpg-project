@@ -20,7 +20,8 @@ func _run_test() -> void:
 		return
 	var game: Node = packed_scene.instantiate()
 	root.add_child(game)
-	await process_frame
+	for _frame: int in range(6):
+		await process_frame
 
 	var controls: Control = game.get_node_or_null("Interface/MobileControls") as Control
 	if controls == null:
@@ -36,7 +37,7 @@ func _run_test() -> void:
 		_fail("Mobile controls are not visible in the test layout.")
 		return
 	if move_pad == null or move_pad.size.x < 250.0 or move_pad.size.y < 250.0:
-		_fail("Mobile facing pad is smaller than the required touch target.")
+		_fail("Mobile joystick pad is smaller than the required touch target.")
 		return
 	if base == null or not base.visible or base.size.x < 200.0 or base.size.y < 200.0:
 		_fail("Joystick base is missing or too small.")
@@ -46,31 +47,54 @@ func _run_test() -> void:
 		return
 
 	var player: CharacterBody2D = game.get_node_or_null("Player") as CharacterBody2D
-	if player == null:
-		_fail("Player is missing.")
+	var caretaker: Node = game.get_node_or_null("Caretaker")
+	if player == null or caretaker == null:
+		_fail("Player or caretaker is missing.")
 		return
-	var player_start: Vector2 = player.global_position
+
+	# Exploration: the joystick is the only continuous movement control.
+	var exploration_start: Vector2 = player.global_position
 	controls.call("move_joystick_for_testing", Vector2.RIGHT)
-	await process_frame
-	var facing: Vector2 = player.call("get_facing_direction") as Vector2
-	if facing.dot(Vector2.RIGHT) < 0.95:
-		_fail("Mobile joystick did not rotate the hero to the right.")
+	for _frame: int in range(8):
+		await physics_frame
+	var exploration_direction: Vector2 = player.call("get_mobile_direction") as Vector2
+	if exploration_direction.dot(Vector2.RIGHT) < 0.95:
+		_fail("Exploration joystick did not write the movement vector.")
 		return
-	var movement_direction: Vector2 = player.call("get_mobile_direction") as Vector2
-	if not movement_direction.is_zero_approx():
-		_fail("Mobile joystick still writes the deprecated movement vector.")
+	if player.global_position.distance_to(exploration_start) < 2.0:
+		_fail("Exploration joystick did not move the hero.")
 		return
-	if player.global_position.distance_to(player_start) > 0.5:
-		_fail("Mobile joystick moved the hero instead of changing facing only.")
-		return
-
 	controls.call("release_joystick_for_testing")
-	var released_facing_input: Vector2 = player.call("get_mobile_facing_direction") as Vector2
-	if not released_facing_input.is_zero_approx():
-		_fail("Mobile facing input was not cleared after releasing the joystick.")
+	if not (player.call("get_mobile_direction") as Vector2).is_zero_approx():
+		_fail("Exploration movement input was not cleared after release.")
 		return
 
-	print("Visible mobile facing joystick smoke test passed.")
+	# Combat: the same joystick changes facing only; taps remain responsible for
+	# route planning through GamePlannedCombat.
+	caretaker.call("enter_combat_hostile")
+	game.call("_start_turn_based_combat", caretaker)
+	game.call("force_player_turn_for_testing")
+	await process_frame
+	var combat_start: Vector2 = player.global_position
+	controls.call("move_joystick_for_testing", Vector2.UP)
+	for _frame: int in range(4):
+		await physics_frame
+	var facing: Vector2 = player.call("get_facing_direction") as Vector2
+	if facing.dot(Vector2.UP) < 0.95:
+		_fail("Combat joystick did not rotate the hero.")
+		return
+	if not (player.call("get_mobile_direction") as Vector2).is_zero_approx():
+		_fail("Combat joystick still writes an exploration movement vector.")
+		return
+	if player.global_position.distance_to(combat_start) > 0.5:
+		_fail("Combat joystick moved the hero instead of changing facing only.")
+		return
+	controls.call("release_joystick_for_testing")
+	if not (player.call("get_mobile_facing_direction") as Vector2).is_zero_approx():
+		_fail("Combat facing input was not cleared after release.")
+		return
+
+	print("Exploration movement joystick and combat facing-only joystick smoke test passed.")
 	game.queue_free()
 	await process_frame
 	quit(0)
