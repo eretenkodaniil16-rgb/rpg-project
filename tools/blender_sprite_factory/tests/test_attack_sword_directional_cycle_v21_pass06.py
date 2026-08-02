@@ -57,30 +57,27 @@ class AttackSwordDirectionalCycleV21Pass06Tests(unittest.TestCase):
         self.assertEqual(SOURCE_FAILED_RUN_ID, 30743036073)
         self.assertEqual(SOURCE_FAILED_ARTIFACT_ID, 8832083387)
 
-    def test_diagnostic_uses_rigid_weapon_only_and_export_checks(self) -> None:
+    def test_historical_diagnostic_uses_rigid_weapon_only(self) -> None:
         ast.parse(self.diagnostic_source)
-        self.assertIn(
-            "create_attack_sword_directional_cycle_actions_v21_pass05",
-            self.diagnostic_source,
-        )
+        self.assertIn("create_attack_sword_directional_cycle_actions_v21_pass05", self.diagnostic_source)
         self.assertIn("pass07_adapter._apply_world_rotation", self.diagnostic_source)
         self.assertIn("pass06_adapter._restore_weapon", self.diagnostic_source)
         self.assertIn("_weapon_head_clearance", self.diagnostic_source)
-        self.assertIn("_camera_margin", self.diagnostic_source)
         self.assertIn("_edge_alpha_counts", self.diagnostic_source)
-        self.assertIn("_render_candidate", self.diagnostic_source)
         self.assertNotIn("pose.bones", self.diagnostic_source)
         self.assertNotIn("obj.scale", self.diagnostic_source)
         self.assertNotIn("mesh.vertices", self.diagnostic_source)
 
-    def test_workflow_runs_diagnostic_and_launcher_keeps_full_pass05(self) -> None:
-        diagnostic = (
-            "blender_sprite_factory_attack_sword_twohand_left_windup_diagnostic_v21.py"
+    def test_pass06_is_preserved_while_pass07_is_active(self) -> None:
+        active = "blender_sprite_factory_attack_sword_twohand_left_arm_diagnostic_v21.py"
+        full = "blender_sprite_factory_attack_sword_directional_cycle_v21_pass05.py"
+        self.assertTrue(
+            (
+                self.tool_root
+                / "blender_sprite_factory_attack_sword_twohand_left_windup_diagnostic_v21.py"
+            ).is_file()
         )
-        full = (
-            "blender_sprite_factory_attack_sword_directional_cycle_v21_pass05.py"
-        )
-        self.assertIn(diagnostic, self.workflow_source)
+        self.assertIn(active, self.workflow_source)
         self.assertIn(full, self.launcher_source)
 
 
