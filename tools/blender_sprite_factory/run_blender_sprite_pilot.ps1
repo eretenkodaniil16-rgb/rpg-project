@@ -46,7 +46,7 @@ if ($Stage -eq "attack_down_cycle_v20") {
     $ReviewFile = "attack_sword_01_down_cycle_v20.png"
 }
 if ($Stage -eq "attack_directional_cycle_v21") {
-    $FactoryScript = Join-Path $ToolRoot "blender_sprite_factory_attack_sword_directional_cycle_v21.py"
+    $FactoryScript = Join-Path $ToolRoot "blender_sprite_factory_attack_sword_directional_cycle_v21_pass02.py"
     $ReviewFile = "attack_sword_01_directional_cycle_v21.png"
 }
 $FactoryConfig = Join-Path $ToolRoot "configs\human_warrior_m01.json"
