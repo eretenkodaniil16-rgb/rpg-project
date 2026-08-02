@@ -2,7 +2,9 @@ from __future__ import annotations
 
 
 CORRECTION_PASS = "v21_pass05"
-RECOVERY_CLEARANCE_REVISION = "left_onehand_recovery_to_guard_blend_v21_pass05"
+RECOVERY_CLEARANCE_REVISION = (
+    "left_onehand_recovery_arm_weapon_search_v21_pass05"
+)
 TARGET_ACTION_ID = "attack_sword_01_onehand_left_v21"
 TARGET_GRIP_ID = "onehand_ready"
 TARGET_DIRECTION = "left"
@@ -20,11 +22,16 @@ BLEND_CANDIDATES = (
     0.90,
     1.00,
 )
+ANGLE_SEARCH_LIMIT_DEGREES = 60
+ANGLE_SEARCH_STEP_DEGREES = 2
 MIN_HEAD_CLEARANCE_PIXELS = 1.0
 MIN_CAMERA_MARGIN_PIXELS = 1.0
-SOURCE_FAILED_RUN_ID = 30741831909
-SOURCE_FAILED_ARTIFACT_ID = 8831682378
+REQUIRE_ZERO_EDGE_ALPHA = True
+SOURCE_FAILED_RUN_ID = 30742565310
+SOURCE_FAILED_ARTIFACT_ID = 8831822735
 SOURCE_FAILED_ARTIFACT_SHA256 = (
-    "01bc8119c12c8fe702c9b2633203439e2c47df74456de1386a022b7e38792dec"
+    "26f16b1fb04a2f412fee04d1bf5ed82c7c5592a1ae5a101f5293eb838135f1e6"
 )
-SOURCE_FAILURE = "onehand_ready/left/f07 no geometry-safe rigid weapon candidate"
+SOURCE_FAILURE = (
+    "onehand_ready/left/f07 no safe arm-only recovery-to-guard blend"
+)
