@@ -37,8 +37,9 @@ func _run() -> void:
 	mobile_controls.call("enable_for_testing")
 	await process_frame
 	var actions_button: Button = mobile_controls.call("get_actions_button_for_testing") as Button
-	if actions_button == null:
-		_fail("Mobile Actions button is missing.")
+	var move_pad: Control = mobile_controls.get_node_or_null("MovePad") as Control
+	if actions_button == null or move_pad == null:
+		_fail("Mobile Actions button or joystick pad is missing.")
 		return
 	if actions_button.action_mode != BaseButton.ACTION_MODE_BUTTON_PRESS:
 		_fail("Actions still triggers on release instead of the physical press.")
@@ -50,9 +51,8 @@ func _run() -> void:
 		_fail("Combat did not start.")
 		return
 
-	# Model the real Android race at the raw touch boundary: the finger goes down
-	# over the disabled Actions button during an enemy turn, the player turn begins,
-	# and only then is the same finger lifted.
+	# A finger that begins over the disabled Actions button during an enemy turn
+	# remains invalid even if the player turn begins before release.
 	game.set("_enemy_turn_running", true)
 	mobile_controls.call("_process", 0.0)
 	catalog.close_catalog()
@@ -73,18 +73,40 @@ func _run() -> void:
 	blocked_release.position = blocked_press.position
 	blocked_release.pressed = false
 	mobile_controls.call("_input", blocked_release)
-	# ACTION_MODE_BUTTON_PRESS means this release is not an activation event. The
-	# panel must remain closed both immediately and after another rendered frame.
 	if catalog.panel.visible:
 		_fail("Carried touch opened the Actions panel on release.")
 		return
+
+	# Reproduce the uploaded Android video: the only real touch begins on the
+	# joystick, is released there, and a delayed/stale Button.pressed signal is
+	# delivered after the next player turn becomes available. Such a signal has
+	# no valid Actions-button origin and must be discarded immediately.
+	game.set("_enemy_turn_running", true)
+	mobile_controls.call("_process", 0.0)
+	var joystick_press := InputEventScreenTouch.new()
+	joystick_press.index = 31
+	joystick_press.position = move_pad.get_global_rect().get_center() + Vector2(-48.0, 0.0)
+	joystick_press.pressed = true
+	mobile_controls.call("_input", joystick_press)
+	var joystick_release := InputEventScreenTouch.new()
+	joystick_release.index = joystick_press.index
+	joystick_release.position = joystick_press.position
+	joystick_release.pressed = false
+	mobile_controls.call("_input", joystick_release)
+	game.set("_enemy_turn_running", false)
+	game.call("force_player_turn_for_testing")
+	mobile_controls.call("_process", 1.0)
+	actions_button.emit_signal("pressed")
+	if catalog.panel.visible:
+		_fail("A delayed signal with joystick origin opened the Actions panel.")
+		return
 	await process_frame
 	if catalog.panel.visible:
-		_fail("Carried touch left the Actions panel visible after the turn switch.")
+		_fail("The joystick-origin Actions panel appeared on the rendered frame.")
 		return
 
-	# A new intentional press, begun after the player-turn guard expires, must
-	# still open the catalog normally on the press event.
+	# A new intentional press that actually begins inside the enabled Actions
+	# button remains the only valid way to open the catalogue.
 	var fresh_press := InputEventScreenTouch.new()
 	fresh_press.index = 18
 	fresh_press.position = actions_button.get_global_rect().get_center()
@@ -98,13 +120,21 @@ func _run() -> void:
 	if not catalog.panel.visible:
 		_fail("A fresh intentional press did not open the Actions panel.")
 		return
+	if not bool(mobile_controls.call("is_actions_catalog_open_authorized_for_testing")):
+		_fail("The catalogue opened without retaining its explicit-input authorization.")
+		return
 
+	var fresh_release := InputEventScreenTouch.new()
+	fresh_release.index = fresh_press.index
+	fresh_release.position = fresh_press.position
+	fresh_release.pressed = false
+	mobile_controls.call("_input", fresh_release)
 	catalog.close_catalog()
 	game.queue_free()
 	await process_frame
 	if FileAccess.file_exists(save_path):
 		DirAccess.remove_absolute(save_path)
-	print("Raw carried touch cannot flash the Actions panel; a fresh press still opens it.")
+	print("Only a fresh Actions-button touch can open the catalogue; joystick and carried touches are rejected.")
 	quit(0)
 
 
