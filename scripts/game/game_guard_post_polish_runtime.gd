@@ -6,6 +6,20 @@ const STEP_NOISE_TYPES: Array[String] = ["quiet_step", "normal_step", "running_s
 const VISIBLE_STANDOFF_PIXELS: float = 82.0
 const VISIBLE_APPROACH_SPEED_MULTIPLIER: float = 0.72
 
+const PEACEFUL_AUTHORIZATION_BROKEN_FLAG: String = "vault_guard_post_peaceful_authorization_broken"
+const INNER_WATCH_BETRAYAL_RESOLVED_FLAG: String = "vault_inner_watch_betrayal_resolved"
+const INNER_WATCH_BETRAYAL_RUNTIME_ID: String = "vault_inner_watch_betrayal_consequence"
+const FIRST_ROOM_OUTCOME_FLAG_LOCAL: String = "vault_guard_post_room1_outcome"
+const FIRST_ROOM_COMBAT_STARTED_FLAG_LOCAL: String = "vault_guard_post_room1_combat_started"
+const INNER_GATE_OPEN_FLAG_LOCAL: String = "vault_inner_gate_open"
+const FIRST_ROOM_ACTOR_IDS_LOCAL: Array[String] = ["caretaker", "service_guard"]
+const SECOND_ROOM_ACTOR_IDS_LOCAL: Array[String] = ["training_marksman", "training_mage"]
+const SECOND_ROOM_ENTRY_X_LOCAL: float = 941.0
+const SECOND_ROOM_ENCOUNTER_ID_LOCAL: String = "vault_inner_watch_01"
+
+var _inner_watch_betrayal_starting: bool = false
+var _inner_watch_betrayal_combat_active: bool = false
+
 
 func _on_feedback_catalog_action_requested(action_id: String) -> void:
 	# Hide opens a blocking d20 result. Remove the catalog first so two modal
@@ -18,6 +32,145 @@ func _on_feedback_catalog_action_requested(action_id: String) -> void:
 func _on_feedback_hide_requested() -> void:
 	_close_action_catalog_immediately()
 	super._on_feedback_hide_requested()
+
+
+func _evaluate_guard_post_state() -> void:
+	_ensure_peaceful_authorization_consequence()
+	super._evaluate_guard_post_state()
+
+
+func _evaluate_second_room() -> void:
+	if not _peaceful_authorization_is_broken():
+		super._evaluate_second_room()
+		return
+	if player == null or player.global_position.x < SECOND_ROOM_ENTRY_X_LOCAL:
+		return
+	if bool(GameState.get_flag(INNER_WATCH_BETRAYAL_RESOLVED_FLAG, false)):
+		return
+	var states: Dictionary = _room_actor_states(SECOND_ROOM_ACTOR_IDS_LOCAL)
+	if not _resolution_for_actor_states(states, true).is_empty():
+		GameState.set_flag(INNER_WATCH_BETRAYAL_RESOLVED_FLAG, true)
+		GameState.save_game()
+		return
+	var second_status: String = str(GameState.get_encounter_status(SECOND_ROOM_ENCOUNTER_ID_LOCAL))
+	if second_status == EncounterSystem.STATUS_AVAILABLE:
+		_begin_encounter(SECOND_ROOM_ENCOUNTER_ID_LOCAL, "inner_watch_betrayal")
+		second_status = str(GameState.get_encounter_status(SECOND_ROOM_ENCOUNTER_ID_LOCAL))
+	if second_status == EncounterSystem.STATUS_ACTIVE:
+		_start_inner_watch_combat()
+		return
+	# The original inner encounter may already be resolved as authorized_passage.
+	# Do not reopen or reward it again; run a separate consequence combat instead.
+	if second_status in [EncounterSystem.STATUS_RESOLVED, EncounterSystem.STATUS_REWARDED]:
+		_start_authorized_betrayal_combat()
+
+
+func _sync_room_from_persistent_state() -> void:
+	if not _peaceful_authorization_is_broken():
+		super._sync_room_from_persistent_state()
+		return
+	var room: Node = _two_room_node()
+	if room == null:
+		return
+	var gate_state: String = ""
+	if room.has_method("get_inner_gate"):
+		var gate: Node = room.call("get_inner_gate") as Node
+		if is_instance_valid(gate) and gate.has_method("get_door_state"):
+			gate_state = str(gate.call("get_door_state"))
+	if gate_state in ["", "locked"] and room.has_method("open_inner_gate"):
+		room.call("open_inner_gate", "peaceful_authorization_broken")
+	# Never restore MODE_AUTHORIZED after the player has attacked the authorized
+	# outer guard. Once the inner squad has been activated, preserve that mode.
+	if (
+		_inner_watch_betrayal_combat_active
+		or (_turn_system.active and _active_combat_encounter_id == INNER_WATCH_BETRAYAL_RUNTIME_ID)
+		or (player != null and player.global_position.x >= SECOND_ROOM_ENTRY_X_LOCAL)
+	):
+		_set_inner_watch_mode("hostile")
+
+
+func _resolve_active_combat_encounter_if_complete() -> void:
+	if (
+		_inner_watch_betrayal_combat_active
+		or _active_combat_encounter_id == INNER_WATCH_BETRAYAL_RUNTIME_ID
+	):
+		if not _combat_should_end():
+			return
+		_inner_watch_betrayal_combat_active = false
+		_inner_watch_betrayal_starting = false
+		_active_combat_encounter_id = ""
+		GameState.set_flag(INNER_WATCH_BETRAYAL_RESOLVED_FLAG, true)
+		GameState.save_game()
+		_stop_turn_based_combat(
+			"Внутренний дозор уничтожен после нарушения мирной договорённости. Повторная награда за проход не начисляется."
+		)
+		return
+	super._resolve_active_combat_encounter_if_complete()
+
+
+func is_peaceful_authorization_broken_for_testing() -> bool:
+	return _peaceful_authorization_is_broken()
+
+
+func get_inner_watch_betrayal_runtime_id_for_testing() -> String:
+	return INNER_WATCH_BETRAYAL_RUNTIME_ID
+
+
+func _ensure_peaceful_authorization_consequence() -> void:
+	if _peaceful_authorization_is_broken():
+		return
+	if str(GameState.get_flag(FIRST_ROOM_OUTCOME_FLAG_LOCAL, "")) != "peaceful":
+		return
+	var authorization_broken: bool = bool(
+		GameState.get_flag(FIRST_ROOM_COMBAT_STARTED_FLAG_LOCAL, false)
+	)
+	if not authorization_broken:
+		var states: Dictionary = _room_actor_states(FIRST_ROOM_ACTOR_IDS_LOCAL)
+		for actor_id: String in FIRST_ROOM_ACTOR_IDS_LOCAL:
+			if str(states.get(actor_id, "active")) in ["dead", "unconscious"]:
+				authorization_broken = true
+				break
+	if not authorization_broken:
+		return
+	GameState.set_flag(PEACEFUL_AUTHORIZATION_BROKEN_FLAG, true)
+	GameState.set_flag("vault_inner_watch_hostile", true)
+	GameState.set_flag(INNER_GATE_OPEN_FLAG_LOCAL, true)
+	GameState.save_game()
+
+
+func _peaceful_authorization_is_broken() -> bool:
+	return bool(GameState.get_flag(PEACEFUL_AUTHORIZATION_BROKEN_FLAG, false))
+
+
+func _start_authorized_betrayal_combat() -> void:
+	if (
+		_inner_watch_betrayal_starting
+		or _inner_watch_betrayal_combat_active
+		or _turn_system.active
+	):
+		return
+	var room: Node = _two_room_node()
+	if room == null:
+		return
+	var marksman: Node = room.call("get_training_marksman") if room.has_method("get_training_marksman") else null
+	var mage: Node = room.call("get_training_mage") if room.has_method("get_training_mage") else null
+	if not is_instance_valid(marksman) or not is_instance_valid(mage):
+		return
+	_inner_watch_betrayal_starting = true
+	if room.has_method("activate_inner_watch_combat"):
+		room.call("activate_inner_watch_combat")
+	_prepare_inner_watch_combatants()
+	show_combat_message(
+		"Стрелок и Рунный тактик узнают о нападении после мирного прохода и отзывают разрешение.",
+		false
+	)
+	_inner_watch_betrayal_combat_active = true
+	_start_turn_based_combat(marksman)
+	if _turn_system.active:
+		_active_combat_encounter_id = INNER_WATCH_BETRAYAL_RUNTIME_ID
+	else:
+		_inner_watch_betrayal_combat_active = false
+	_inner_watch_betrayal_starting = false
 
 
 func _update_exploration_actor(actor: Node, delta: float) -> void:
