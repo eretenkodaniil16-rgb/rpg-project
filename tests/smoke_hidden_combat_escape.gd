@@ -94,14 +94,16 @@ func _run() -> void:
 
 	# Isolate role behavior from incidental post-combat geometry. The hero is
 	# fully concealed behind a closed door and both observers receive the same
-	# fixed search stimulus. The stationary watcher must hold position while the
+	# fixed search stimulus. Both observer and target positions are deliberately
+	# inside the outer guard room, so the test does not ask navigation to cross a
+	# locked inner gate. The stationary watcher must hold position while the
 	# patrol actor must physically advance toward that point.
 	west_door.set_door_state("closed", false)
 	player.global_position = Vector2(100.0, 110.0)
 	state.set("player_position", player.global_position)
-	(caretaker as Node2D).global_position = Vector2(930.0, 555.0)
-	(guard as Node2D).global_position = Vector2(930.0, 470.0)
-	var deterministic_search_target := Vector2(700.0, 470.0)
+	(caretaker as Node2D).global_position = Vector2(760.0, 555.0)
+	(guard as Node2D).global_position = Vector2(760.0, 470.0)
+	var deterministic_search_target := Vector2(600.0, 470.0)
 	game.call("force_post_escape_search_for_testing", caretaker, deterministic_search_target)
 	game.call("force_post_escape_search_for_testing", guard, deterministic_search_target)
 	var caretaker_before_search: Vector2 = (caretaker as Node2D).global_position
