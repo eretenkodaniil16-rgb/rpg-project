@@ -56,8 +56,14 @@ class AttackSwordDirectionalCycleV21Pass08Tests(unittest.TestCase):
         self.assertEqual(GUARD_FRAME, 1)
         self.assertEqual(len(TARGET_BONES), 6)
         self.assertEqual(ARM_BLEND_CANDIDATES[0], 0.10)
-        self.assertEqual(SCREEN_PROJECTION_CANDIDATES, (0.82, 0.78, 0.74, 0.70, 0.68))
-        self.assertEqual(ANGLE_OFFSET_CANDIDATES, (46.0, 50.0, 54.0, 58.0, 62.0))
+        self.assertEqual(
+            SCREEN_PROJECTION_CANDIDATES,
+            (0.82, 0.78, 0.74, 0.70, 0.68),
+        )
+        self.assertEqual(
+            ANGLE_OFFSET_CANDIDATES,
+            (46.0, 50.0, 54.0, 58.0, 62.0),
+        )
         self.assertEqual(APPROVED_DOWN_PROJECTION_REFERENCE, 0.74)
         self.assertEqual(MIN_HEAD_CLEARANCE_PIXELS, 4.0)
         self.assertEqual(MIN_CAMERA_MARGIN_PIXELS, 1.0)
@@ -78,13 +84,16 @@ class AttackSwordDirectionalCycleV21Pass08Tests(unittest.TestCase):
         self.assertNotIn("obj.scale", self.diagnostic_source)
         self.assertNotIn("mesh.vertices", self.diagnostic_source)
 
-    def test_workflow_runs_pass08_and_launcher_keeps_full_pass05(self) -> None:
+    def test_pass08_is_preserved_while_pass09_is_active(self) -> None:
         diagnostic = (
             "blender_sprite_factory_attack_sword_twohand_left_projection_diagnostic_v21.py"
         )
-        full = "blender_sprite_factory_attack_sword_directional_cycle_v21_pass05.py"
-        self.assertIn(diagnostic, self.workflow_source)
-        self.assertIn(full, self.launcher_source)
+        active = (
+            "blender_sprite_factory_attack_sword_directional_cycle_v21_pass09.py"
+        )
+        self.assertTrue((self.tool_root / diagnostic).is_file())
+        self.assertIn(active, self.workflow_source)
+        self.assertIn(active, self.launcher_source)
 
 
 if __name__ == "__main__":
