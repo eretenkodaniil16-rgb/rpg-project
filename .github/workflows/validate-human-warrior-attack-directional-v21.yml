@@ -57,7 +57,8 @@ jobs:
       # blender_sprite_factory_attack_sword_onehand_up_tail_diagnostic_v21.py
       # blender_sprite_factory_attack_sword_onehand_up_visible_blade_diagnostic_v21.py
       # blender_sprite_factory_attack_sword_onehand_up_depth_aware_diagnostic_v21.py
-      - name: Diagnose Blender 5.2 one-hand up depth search f05-f08 v21 pass23
+      # blender_sprite_factory_attack_sword_onehand_up_depth_search_diagnostic_v21.py
+      - name: Diagnose Blender 5.2 one-hand up front-depth f05-f08 v21 pass24
         id: blender-attack-directional
         continue-on-error: true
         shell: bash
@@ -68,26 +69,26 @@ jobs:
             --background \
             --factory-startup \
             --python-exit-code 1 \
-            --python tools/blender_sprite_factory/blender_sprite_factory_attack_sword_onehand_up_depth_search_diagnostic_v21.py \
+            --python tools/blender_sprite_factory/blender_sprite_factory_attack_sword_onehand_up_front_depth_diagnostic_v21.py \
             -- \
             --repo-root "$GITHUB_WORKSPACE" \
             --config tools/blender_sprite_factory/configs/human_warrior_m01.json \
             --run-id "$run_id" \
             --mode all 2>&1 | tee blender_attack_directional_v21.log
 
-      - name: Upload one-hand up depth search diagnostic and source blend
+      - name: Upload one-hand up front-depth diagnostic and source blend
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: human_warrior_m01_proxy_v25_attack_sword_01_onehand_up_depth_search_v21_pass23_${{ github.run_id }}_${{ github.run_attempt }}
+          name: human_warrior_m01_proxy_v25_attack_sword_01_onehand_up_front_depth_v21_pass24_${{ github.run_id }}_${{ github.run_attempt }}
           path: |
             art/blender_pipeline_runs/human_warrior_m01/**
             blender_attack_directional_v21.log
           if-no-files-found: error
           retention-days: 14
 
-      - name: Require successful one-hand up depth search diagnostic
+      - name: Require successful one-hand up front-depth diagnostic
         if: steps.blender-attack-directional.outcome != 'success'
         run: |
-          echo "Directional attack v21 pass23 one-hand up depth search diagnostic failed; inspect blender_attack_directional_v21.log in the uploaded artifact."
+          echo "Directional attack v21 pass24 one-hand up front-depth diagnostic failed; inspect blender_attack_directional_v21.log in the uploaded artifact."
           exit 1
