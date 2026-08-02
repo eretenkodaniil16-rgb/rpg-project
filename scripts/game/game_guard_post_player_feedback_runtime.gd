@@ -1,5 +1,7 @@
 extends "res://scripts/game/game_guard_post_polish_base_runtime.gd"
 
+const HIDDEN_PURSUIT_EFFECT_ID: String = "hidden_combat_pursuit_active"
+
 var _hide_transition_running: bool = false
 
 
@@ -24,8 +26,11 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	super._process(delta)
-	if not _turn_system.active:
-		_resume_combat_after_alerted_reacquisition()
+	if not _turn_system.active and _hidden_pursuit_is_armed():
+		if _has_pending_hidden_pursuit():
+			_resume_combat_after_alerted_reacquisition()
+		else:
+			_clear_hidden_pursuit_marker()
 	if _turn_system.active and not is_player_combat_turn():
 		_close_action_catalog_immediately()
 
@@ -59,7 +64,7 @@ func _sync_combat_alert_records() -> void:
 func _resume_combat_after_alerted_reacquisition() -> void:
 	# The inherited exploration runtime can raise suspicion to ALERTED while a
 	# previously suspended actor is still non-hostile. Complete that transition
-	# explicitly at the leaf runtime so reacquisition always starts initiative.
+	# explicitly only for the persisted pursuit created by a successful Hide.
 	for actor: Node in _exploration_alert_actors():
 		if not is_instance_valid(actor) or not actor.has_method("get_actor_id"):
 			continue
@@ -76,9 +81,32 @@ func _resume_combat_after_alerted_reacquisition() -> void:
 		record["suspicion"] = StealthAlertSystem.SUSPICION_ALERTED
 		_alert_records[actor_id] = record
 		_persist_alert_record(actor_id, true)
+		_clear_hidden_pursuit_marker()
 		show_combat_message("%s обнаружил героя и поднимает тревогу." % _target_name(actor), false)
 		_start_turn_based_combat(actor)
 		return
+
+
+func _hidden_pursuit_is_armed() -> bool:
+	return bool(GameState.player_character.active_effects.get(HIDDEN_PURSUIT_EFFECT_ID, false))
+
+
+func _has_pending_hidden_pursuit() -> bool:
+	for actor: Node in _exploration_alert_actors():
+		if not is_instance_valid(actor) or not actor.has_method("get_actor_id"):
+			continue
+		var record: Dictionary = _record_for_actor(str(actor.call("get_actor_id")))
+		if str(record.get("state", "")) in [
+			StealthAlertSystem.STATE_INVESTIGATING,
+			StealthAlertSystem.STATE_SEARCHING,
+			StealthAlertSystem.STATE_ALERTED
+		]:
+			return true
+	return false
+
+
+func _clear_hidden_pursuit_marker() -> void:
+	GameState.player_character.active_effects.erase(HIDDEN_PURSUIT_EFFECT_ID)
 
 
 func _advance_combat_turn() -> void:
@@ -129,6 +157,7 @@ func _suspend_combat_for_hidden_pursuit(observers: Array[Node], last_known_posit
 
 	_exploration_hidden = true
 	GameState.player_character.active_effects["exploration_hidden"] = true
+	GameState.player_character.active_effects[HIDDEN_PURSUIT_EFFECT_ID] = true
 	for actor: Node in observers:
 		if not is_instance_valid(actor) or not actor.has_method("get_actor_id"):
 			continue
