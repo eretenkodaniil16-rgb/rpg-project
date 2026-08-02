@@ -29,9 +29,11 @@ func _run() -> void:
 	var guard: Node = room.get_patrol_observer() if room != null else null
 	var west_door: StealthDoor = room.get_test_door() if room != null else null
 	var catalog: ActionCatalogUI = game.get_node_or_null("Interface/ActionCatalogUI") as ActionCatalogUI
-	if player == null or guard == null or west_door == null or catalog == null:
+	var mobile: Control = game.get_node_or_null("Interface/MobileControls") as Control
+	if player == null or guard == null or west_door == null or catalog == null or mobile == null:
 		_fail("Pursuit test fixtures are incomplete.")
 		return
+	mobile.call("enable_for_testing")
 
 	var last_known := Vector2(620.0, 180.0)
 	player.global_position = last_known
@@ -45,23 +47,33 @@ func _run() -> void:
 		_fail("Combat did not start for the pursuit transition test.")
 		return
 
-	catalog.call("toggle_catalog")
-	if not catalog.is_catalog_open():
-		_fail("Action catalog did not open on the player turn.")
+	if float(mobile.call("get_action_turn_guard_remaining_for_testing")) <= 0.0:
+		_fail("Player-turn action guard was not armed.")
 		return
+	mobile.call("_on_interact_pressed")
+	if catalog.is_catalog_open():
+		_fail("A carried touch opened the action catalog at turn start.")
+		return
+	mobile.call("_process", 1.0)
+	mobile.call("_on_interact_pressed")
+	if not catalog.is_catalog_open():
+		_fail("An intentional action-menu press was blocked after the turn guard expired.")
+		return
+	catalog.close_catalog()
 
-	# Model a valid successful Hide: the hero leaves the observer's line of sight
-	# behind the closed service door while the guard retains the previous position.
 	west_door.set_door_state("closed", false)
 	player.global_position = Vector2(100.0, 110.0)
 	state.set("player_position", player.global_position)
-	var combat_state: CombatantState = game.get("_player_combat_state") as CombatantState
-	combat_state.hidden = true
-	var observers: Array[Node] = [guard]
-	game.call("_suspend_combat_for_hidden_pursuit", observers, last_known)
-	await process_frame
+	game.call("set_hide_roll_overrides_for_testing", [20])
+	catalog.call("toggle_catalog")
+	if not catalog.is_catalog_open():
+		_fail("Action catalog did not open before the Hide request.")
+		return
+	catalog.call("_emit_action", "hide", "", true)
+	for _frame: int in range(3):
+		await process_frame
 	if bool(game.call("is_turn_based_combat_active")):
-		_fail("Successful hiding did not end turn-based initiative.")
+		_fail("Successful Hide requested through the catalog did not end initiative.")
 		return
 	if catalog.is_catalog_open():
 		_fail("Action catalog remained visible during the combat-to-search transition.")
@@ -70,7 +82,7 @@ func _run() -> void:
 		_fail("Combat hiding was not transferred to exploration hidden state.")
 		return
 	if bool(guard.call("is_hostile")):
-		_fail("Searching guard remained in real-time hostile attack mode outside initiative.")
+		_fail("Searching guard remained hostile outside initiative.")
 		return
 	var record: Dictionary = state.call("get_stealth_alert_record", "service_guard") as Dictionary
 	if str(record.get("state", "")) != StealthAlertSystem.STATE_INVESTIGATING:
@@ -84,12 +96,9 @@ func _run() -> void:
 	var before_search_move: Vector2 = (guard as Node2D).global_position
 	game.call("force_exploration_alert_tick_for_testing", 0.5)
 	if (guard as Node2D).global_position.distance_to(before_search_move) <= 0.1:
-		_fail("Guard patrol/search did not continue toward the last known position.")
+		_fail("Guard search did not continue toward the last known position.")
 		return
 
-	# Leaving concealment and being seen again starts a new initiative. No
-	# unconditional advantage is granted here; visibility and the normal SRD
-	# combat rules determine any advantage later.
 	west_door.set_door_state("open", false)
 	game.call("_break_exploration_hidden", "")
 	player.global_position = Vector2(690.0, 180.0)
@@ -102,7 +111,7 @@ func _run() -> void:
 		_fail("Reacquiring the hidden hero did not restart initiative.")
 		return
 
-	print("Successful hide suspension, exploration pursuit, closed action catalog and combat reacquisition smoke test passed.")
+	print("Catalog Hide signal, turn-start input guard, pursuit and reacquisition passed.")
 	game.queue_free()
 	await process_frame
 	quit(0)
@@ -110,7 +119,7 @@ func _run() -> void:
 
 func _make_hero() -> PlayerCharacter:
 	var hero := PlayerCharacter.create_legacy_default()
-	hero.character_name = "Лазутчик"
+	hero.character_name = "Scout"
 	hero.abilities["dexterity"] = 18
 	hero.base_abilities["dexterity"] = 18
 	hero.skill_proficiencies.append("stealth")
