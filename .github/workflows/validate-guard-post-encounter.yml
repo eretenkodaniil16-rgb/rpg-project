@@ -30,6 +30,7 @@ on:
       - "tests/smoke_guard_post_two_room_consequences.gd"
       - "tests/smoke_guard_post_integrity_betrayal.gd"
       - "tests/smoke_action_panel_no_flash.gd"
+      - "tests/smoke_guard_post_runtime_regressions_v2.gd"
       - "tests/smoke_combat_start_position_stability.gd"
       - "tests/smoke_caretaker_neutral_detection.gd"
       - "tests/smoke_overlapping_interaction_zones.gd"
@@ -98,6 +99,10 @@ jobs:
         shell: bash
         run: timeout 240s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_action_panel_no_flash.gd 2>&1 | tee action-panel-no-flash.log
 
+      - name: Verify final target patrol and catalogue regressions
+        shell: bash
+        run: timeout 300s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_guard_post_runtime_regressions_v2.gd 2>&1 | tee guard-post-runtime-regressions-v2.log
+
       - name: Verify combat start position stability
         shell: bash
         run: timeout 240s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_combat_start_position_stability.gd 2>&1 | tee combat-start-position.log
@@ -151,6 +156,7 @@ jobs:
             guard-post-two-room.log
             guard-post-integrity-betrayal.log
             action-panel-no-flash.log
+            guard-post-runtime-regressions-v2.log
             combat-start-position.log
             caretaker-neutral.log
             overlapping-interactions.log
