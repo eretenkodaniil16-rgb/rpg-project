@@ -133,3 +133,11 @@ func _repair_invalid_actor_positions() -> void:
 				else _navigation.resolve_safe_position(actor_node, actor_node.global_position)
 			)
 		_last_valid_positions[actor_id] = actor_node.global_position
+
+
+func _update_visible_actor_movement(_delta: float) -> void:
+	# Exploration AI movement is resolved once by the leaf game runtime. Keeping a
+	# second controller loop caused visible actors to receive a different movement
+	# policy from unseen actors and produced the stop/follow oscillation seen on
+	# Android. This controller now owns navigation services and safety repair only.
+	return
