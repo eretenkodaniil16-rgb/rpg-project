@@ -112,12 +112,12 @@ class AttackSwordDirectionalCycleV21Pass05Tests(unittest.TestCase):
         self.assertNotIn("obj.scale", self.adapter_source)
         self.assertNotIn("mesh.vertices", self.adapter_source)
 
-    def test_pass05_remains_source_under_pass09(self) -> None:
+    def test_pass05_remains_source_under_pass13(self) -> None:
         historical = (
             "blender_sprite_factory_attack_sword_directional_cycle_v21_pass05.py"
         )
         active = (
-            "blender_sprite_factory_attack_sword_directional_cycle_v21_pass09.py"
+            "blender_sprite_factory_attack_sword_directional_cycle_v21_pass13.py"
         )
         self.assertTrue((self.tool_root / historical).is_file())
         self.assertIn(active, self.workflow_source)
