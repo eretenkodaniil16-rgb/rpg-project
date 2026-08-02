@@ -180,9 +180,41 @@ func _verify_peaceful_betrayal(
 		if not _turn_contains_actor(turn_system, actor):
 			_fail("%s is missing from betrayal initiative." % actor.name)
 			return
-	if not bool(game.call("_target_is_valid", marksman)) and not bool(game.call("_target_is_valid", mage)):
-		_fail("Neither inner defender can be selected as a visible combat target.")
+		if not bool(game.call("_target_is_valid", actor)):
+			_fail("%s is active but cannot be selected as a visible combat target." % actor.name)
+			return
+
+	var visible_targets: Array[Node] = game.call("get_visible_targets_for_testing") as Array[Node]
+	for actor: Node in [marksman, mage]:
+		if not visible_targets.has(actor):
+			_fail("%s is absent from the real visible target cycle." % actor.name)
+			return
+
+	var catalog: ActionCatalogUI = game.get_node_or_null("Interface/ActionCatalogUI") as ActionCatalogUI
+	var target_button: Button = game.get_node_or_null("Interface/TargetButton") as Button
+	if catalog == null or target_button == null:
+		_fail("Action catalog or Target button is missing from the betrayal test.")
 		return
+	catalog.toggle_catalog()
+	if not catalog.panel.visible:
+		_fail("Could not open the catalog before testing resilient target selection.")
+		return
+	var selected_actor_ids: Dictionary = {}
+	for _press: int in range(8):
+		target_button.emit_signal("pressed")
+		if catalog.panel.visible:
+			_fail("Target selection did not close the stale Actions panel.")
+			return
+		var selected: Node = game.get("_selected_target") as Node
+		if is_instance_valid(selected) and selected.has_method("get_actor_id"):
+			selected_actor_ids[str(selected.call("get_actor_id"))] = true
+	if not bool(selected_actor_ids.get("training_marksman", false)):
+		_fail("Repeated real Target-button presses never selected the marksman.")
+		return
+	if not bool(selected_actor_ids.get("training_mage", false)):
+		_fail("Repeated real Target-button presses never selected the rune tactician.")
+		return
+
 	second_state = state.call("get_encounter_state", SECOND_ROOM_ID) as Dictionary
 	if str(second_state.get("resolution_id", "")) != "authorized_passage":
 		_fail("Betrayal incorrectly rewrote the already completed authorization encounter.")
