@@ -20,7 +20,11 @@ func interact() -> void:
 
 
 func can_perform_world_interaction() -> bool:
-	return not defeated and not hostile and is_instance_valid(player_in_range)
+	if not is_instance_valid(player_in_range):
+		return false
+	# A defeated body is still a world object. Hostility blocks conversation, but
+	# death/unconsciousness must not block inspection, loot or restraint actions.
+	return is_body_interactable() or (not defeated and not hostile)
 
 
 func get_interaction_label() -> String:
