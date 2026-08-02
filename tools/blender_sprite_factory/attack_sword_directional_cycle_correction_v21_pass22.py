@@ -17,6 +17,7 @@ BLADE_CLEARANCE_PART_IDS = (
     "tip",
 )
 MIN_VISIBLE_BLADE_HEAD_CLEARANCE_PIXELS = 1.0
+MIN_VISIBLE_BLADE_SAMPLES = 4
 DEPTH_MAP_SUPERSAMPLE = 4
 WEAPON_EDGE_SAMPLE_STEP_PIXELS = 0.25
 DEPTH_EPSILON_WORLD = 0.01
@@ -33,4 +34,14 @@ SOURCE_FAILURE = (
     "blade check still used a flat 2D head rectangle; projected blade geometry "
     "behind the head therefore reported zero clearance even when the depth "
     "buffer would correctly hide it"
+)
+TECHNICAL_FAILED_RUN_ID = 30758465362
+TECHNICAL_FAILED_ARTIFACT_ID = 8836705798
+TECHNICAL_FAILED_ARTIFACT_SHA256 = (
+    "c75dd960bc27d5533c8fb735e755b3bce23d2e345db35fc88ae413e9f2d3d1f6"
+)
+TECHNICAL_FAILURE = (
+    "the initial pass22 implementation raised when every sampled blade edge was "
+    "occluded by the head; a fully hidden blade is now a normal rejected "
+    "candidate with zero clearance so the remaining trajectory search continues"
 )
