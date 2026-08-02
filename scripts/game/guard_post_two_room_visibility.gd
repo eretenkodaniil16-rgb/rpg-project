@@ -15,12 +15,25 @@ const ROOM_RECTS: Dictionary = {
 	ROOM_INNER_WATCH: Rect2(Vector2(INNER_PARTITION_LOCAL_X, -315.0), Vector2(358.0, 630.0))
 }
 
+const OUTER_ROOM_LEFT: float = -200.0
+const OUTER_ROOM_RIGHT: float = 990.0
+const OUTER_ROOM_TOP: float = -315.0
+const OUTER_ROOM_BOTTOM: float = 315.0
+const OUTER_WALL_THICKNESS: float = 12.0
+const OUTER_WALL_NODE_NAMES: Array[String] = [
+	"OuterWallTop",
+	"OuterWallBottom",
+	"OuterWallLeft",
+	"OuterWallRight"
+]
+
 var _room_fog: RoomFogOverlay
 var _wall_visibility_overlay: GuardPostWallVisibilityOverlay
 
 
 func _ready() -> void:
 	super._ready()
+	_install_outer_boundary_collisions()
 	_apply_loaded_inner_gate_snapshot()
 	_install_door_decorator(get_test_door(), "WestServiceDoorPresentation")
 	_install_door_decorator(get_inner_gate(), "InnerWatchGatePresentation")
@@ -36,6 +49,15 @@ func get_wall_visibility_overlay_for_testing() -> GuardPostWallVisibilityOverlay
 	return _wall_visibility_overlay
 
 
+func get_outer_boundary_bodies_for_testing() -> Array[StaticBody2D]:
+	var result: Array[StaticBody2D] = []
+	for node_name: String in OUTER_WALL_NODE_NAMES:
+		var body: StaticBody2D = get_node_or_null(node_name) as StaticBody2D
+		if body != null:
+			result.append(body)
+	return result
+
+
 func get_door_decorator_for_testing(door: StealthDoor) -> StealthDoorVisualDecorator:
 	if door == null:
 		return null
@@ -43,6 +65,41 @@ func get_door_decorator_for_testing(door: StealthDoor) -> StealthDoorVisualDecor
 		if child is StealthDoorVisualDecorator:
 			return child as StealthDoorVisualDecorator
 	return null
+
+
+func _install_outer_boundary_collisions() -> void:
+	if get_node_or_null(OUTER_WALL_NODE_NAMES[0]) != null:
+		return
+	var horizontal_center_x: float = (OUTER_ROOM_LEFT + OUTER_ROOM_RIGHT) * 0.5
+	var vertical_center_y: float = (OUTER_ROOM_TOP + OUTER_ROOM_BOTTOM) * 0.5
+	var horizontal_size := Vector2(
+		OUTER_ROOM_RIGHT - OUTER_ROOM_LEFT + OUTER_WALL_THICKNESS,
+		OUTER_WALL_THICKNESS
+	)
+	var vertical_size := Vector2(
+		OUTER_WALL_THICKNESS,
+		OUTER_ROOM_BOTTOM - OUTER_ROOM_TOP
+	)
+	_build_wall(
+		OUTER_WALL_NODE_NAMES[0],
+		Vector2(horizontal_center_x, OUTER_ROOM_TOP),
+		horizontal_size
+	)
+	_build_wall(
+		OUTER_WALL_NODE_NAMES[1],
+		Vector2(horizontal_center_x, OUTER_ROOM_BOTTOM),
+		horizontal_size
+	)
+	_build_wall(
+		OUTER_WALL_NODE_NAMES[2],
+		Vector2(OUTER_ROOM_LEFT, vertical_center_y),
+		vertical_size
+	)
+	_build_wall(
+		OUTER_WALL_NODE_NAMES[3],
+		Vector2(OUTER_ROOM_RIGHT, vertical_center_y),
+		vertical_size
+	)
 
 
 func _apply_loaded_inner_gate_snapshot() -> void:
