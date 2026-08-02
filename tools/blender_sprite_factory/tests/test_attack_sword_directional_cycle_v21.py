@@ -47,30 +47,18 @@ class AttackSwordDirectionalCycleV21Tests(unittest.TestCase):
         self.assertEqual(len(profile.actions), TOTAL_ACTION_COUNT)
         self.assertEqual(TOTAL_RENDERED_FRAME_COUNT, 64)
         self.assertEqual(
-            {
-                (action.direction, action.grip_id)
-                for action in profile.actions
-            },
-            {
-                (direction, grip_id)
-                for direction in DIRECTION_ORDER
-                for grip_id in GRIP_ORDER
-            },
+            {(action.direction, action.grip_id) for action in profile.actions},
+            {(direction, grip_id) for direction in DIRECTION_ORDER for grip_id in GRIP_ORDER},
         )
 
     def test_down_actions_remain_v20_sources(self) -> None:
         profile = load_attack_sword_directional_cycle_profile_v21(
             "human_warrior_m01"
         )
-        down_actions = [
-            action for action in profile.actions if action.direction == "down"
-        ]
+        down_actions = [action for action in profile.actions if action.direction == "down"]
         self.assertEqual(
             [action.action_id for action in down_actions],
-            [
-                "attack_sword_01_onehand_down_v20",
-                "attack_sword_01_twohand_down_v20",
-            ],
+            ["attack_sword_01_onehand_down_v20", "attack_sword_01_twohand_down_v20"],
         )
         for action in profile.actions:
             if action.direction != "down":
@@ -108,13 +96,9 @@ class AttackSwordDirectionalCycleV21Tests(unittest.TestCase):
         self.assertIn("baseline_y", self.adapter_source)
         self.assertIn("96x96", self.adapter_source)
 
-    def test_workflow_runs_pass06_diagnostic_and_launcher_keeps_pass05(self) -> None:
-        diagnostic = (
-            "blender_sprite_factory_attack_sword_twohand_left_windup_diagnostic_v21.py"
-        )
-        full = (
-            "blender_sprite_factory_attack_sword_directional_cycle_v21_pass05.py"
-        )
+    def test_workflow_runs_pass07_diagnostic_and_launcher_keeps_pass05(self) -> None:
+        diagnostic = "blender_sprite_factory_attack_sword_twohand_left_arm_diagnostic_v21.py"
+        full = "blender_sprite_factory_attack_sword_directional_cycle_v21_pass05.py"
         self.assertIn(diagnostic, self.workflow_source)
         self.assertIn("attack_directional_cycle_v21", self.launcher_source)
         self.assertIn(full, self.launcher_source)
