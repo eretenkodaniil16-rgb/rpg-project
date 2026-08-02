@@ -93,7 +93,7 @@ func _run() -> void:
 	if not actions_button.visible or actions_button.disabled:
 		_fail("The lower-right Actions button is unavailable during exploration.")
 		return
-	actions_button.emit_signal("pressed")
+	_emit_actions_transaction(actions_button)
 	await process_frame
 	if not catalog.panel.visible:
 		_fail("The lower-right Actions button did not open the menu outside combat.")
@@ -175,15 +175,15 @@ func _run() -> void:
 	if catalog.catalog_button.visible:
 		_fail("The duplicate ActionCatalogButton became visible during combat.")
 		return
-	# A carried release from the prior turn must be rejected during the short
-	# player-turn guard; an intentional press must work after the guard expires.
+	# A carried/stale pressed signal without a fresh GUI button-down must be
+	# rejected at the turn boundary. A complete transaction works after guard.
 	actions_button.emit_signal("pressed")
 	await process_frame
 	if catalog.panel.visible:
 		_fail("A carried touch opened the combat menu at the turn boundary.")
 		return
 	mobile_controls.call("_process", 1.0)
-	actions_button.emit_signal("pressed")
+	_emit_actions_transaction(actions_button)
 	await process_frame
 	if not catalog.panel.visible:
 		_fail("The lower-right Actions button did not open after the turn guard expired.")
@@ -245,6 +245,11 @@ func _run() -> void:
 		DirAccess.remove_absolute(save_path)
 	print("NPC context actions, single mobile Actions button, concealed state, navigation, combat join and Combat AI smoke test passed.")
 	quit(0)
+
+
+func _emit_actions_transaction(actions_button: Button) -> void:
+	actions_button.emit_signal("button_down")
+	actions_button.emit_signal("pressed")
 
 
 func _make_hero() -> PlayerCharacter:
