@@ -45,10 +45,10 @@ jobs:
           test -n "$blender"
           echo "BLENDER_EXE=$blender" >> "$GITHUB_ENV"
 
-      # Full entrypoint resumes after the batch diagnostic is converted into
-      # reproducible Action/export corrections:
+      # Historical full source and batch diagnostic retained for provenance:
       # blender_sprite_factory_attack_sword_directional_cycle_v21_pass13.py
-      - name: Diagnose Blender 5.2 two-hand left f05-f08 v21 pass14
+      # blender_sprite_factory_attack_sword_twohand_left_tail_diagnostic_v21.py
+      - name: Render Blender 5.2 attack_sword_01 four-direction cycles v21 pass15
         id: blender-attack-directional
         continue-on-error: true
         shell: bash
@@ -59,26 +59,26 @@ jobs:
             --background \
             --factory-startup \
             --python-exit-code 1 \
-            --python tools/blender_sprite_factory/blender_sprite_factory_attack_sword_twohand_left_tail_diagnostic_v21.py \
+            --python tools/blender_sprite_factory/blender_sprite_factory_attack_sword_directional_cycle_v21_pass15.py \
             -- \
             --repo-root "$GITHUB_WORKSPACE" \
             --config tools/blender_sprite_factory/configs/human_warrior_m01.json \
             --run-id "$run_id" \
             --mode all 2>&1 | tee blender_attack_directional_v21.log
 
-      - name: Upload tail diagnostic and source blend
+      - name: Upload directional cycles and source blend
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: human_warrior_m01_proxy_v25_attack_sword_01_twohand_left_tail_v21_pass14_${{ github.run_id }}_${{ github.run_attempt }}
+          name: human_warrior_m01_proxy_v25_attack_sword_01_directional_v21_pass15_${{ github.run_id }}_${{ github.run_attempt }}
           path: |
             art/blender_pipeline_runs/human_warrior_m01/**
             blender_attack_directional_v21.log
           if-no-files-found: error
           retention-days: 14
 
-      - name: Require successful tail diagnostic
+      - name: Require successful directional render
         if: steps.blender-attack-directional.outcome != 'success'
         run: |
-          echo "Directional attack v21 pass14 tail diagnostic failed; inspect blender_attack_directional_v21.log in the uploaded artifact."
+          echo "Directional attack v21 pass15 render failed; inspect blender_attack_directional_v21.log in the uploaded artifact."
           exit 1
