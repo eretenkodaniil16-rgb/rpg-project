@@ -91,49 +91,42 @@ func offer_player_opportunity_attack_if_triggered(
 		actor,
 		null
 	)
-	var attack_performed: bool = false
-	while _reaction_coordinator.should_continue(session.get("event") as ReactionEvent):
-		var selection: Dictionary = await _request_next_coordinated_reaction(
-			"ВОЗМОЖНОСТЬ РЕАКЦИИ",
-			"%s покидает досягаемость реагирующих существ. Можно совершить атаку по возможности." % _target_name(actor),
-			session
-		)
-		if selection.is_empty():
-			break
-		var result: Dictionary = _reaction_coordinator.resolve_selection(
-			selection.get("event") as ReactionEvent,
-			str(selection.get("selection_id", ""))
-		)
-		if str(result.get("runtime_action", "")) != ReactionOpportunitySystem.OPTION_OPPORTUNITY_ATTACK:
-			continue
-		var reactor_actor: Node = result.get("reactor_actor") as Node
-		if not is_instance_valid(reactor_actor) or not _turn_system.consume_reaction(reactor_actor):
-			show_combat_message("Реакция выбранного участника уже недоступна.", false)
-			continue
-		if reactor_actor == player:
-			show_combat_message("Выбрана атака по возможности.", true)
-			await _perform_srd_weapon_attack(actor, weapon, str(weapon.get("ammunition_id", "")))
-			attack_performed = true
-		elif reactor_actor.has_method("execute_reaction_runtime_action"):
-			await reactor_actor.call(
-				"execute_reaction_runtime_action",
-				ReactionOpportunitySystem.OPTION_OPPORTUNITY_ATTACK,
-				actor,
-				result.duplicate(true)
-			)
-			attack_performed = true
-		if not _target_is_valid(actor):
-			var event: ReactionEvent = selection.get("event") as ReactionEvent
-			event.invalidate("Цель атаки по возможности больше недоступна.")
-			break
-	if not attack_performed:
+	var event: ReactionEvent = session.get("event") as ReactionEvent
+	var selection: Dictionary = await _request_next_coordinated_reaction(
+		"ВОЗМОЖНОСТЬ РЕАКЦИИ",
+		"%s покидает вашу досягаемость. Можно совершить атаку по возможности." % _target_name(actor),
+		session
+	)
+	if selection.is_empty():
+		if event != null and event.is_open():
+			event.invalidate("Игрок пропустил атаку по возможности.")
 		show_combat_message("Атака по возможности пропущена; реакция сохранена.", true)
-	return attack_performed
+		return false
+	var result: Dictionary = _reaction_coordinator.resolve_selection(
+		event,
+		str(selection.get("selection_id", ""))
+	)
+	if str(result.get("runtime_action", "")) != ReactionOpportunitySystem.OPTION_OPPORTUNITY_ATTACK:
+		if event != null and event.is_open():
+			event.invalidate("Выбранная реакция не является атакой по возможности.")
+		show_combat_message(str(result.get("message", "Атака по возможности недоступна.")), false)
+		return false
+	var reactor_actor: Node = result.get("reactor_actor") as Node
+	if reactor_actor != player or not _turn_system.consume_reaction(player):
+		if event != null and event.is_open():
+			event.invalidate("Реакция игрока уже недоступна.")
+		show_combat_message("Реакция уже недоступна.", false)
+		return false
+	show_combat_message("Выбрана атака по возможности.", true)
+	await _perform_srd_weapon_attack(actor, weapon, str(weapon.get("ammunition_id", "")))
+	if event != null and event.is_open():
+		event.invalidate("Атака по возможности разрешена.")
+	return true
 
 
 func _opportunity_attack_weapon() -> Dictionary:
 	var equipped: Dictionary = _class_data.get_equipped_weapon(GameState.player_character)
-	if not equipped.is_empty() and not DistanceSystem.is_ranged_weapon(equipped):
+	if not equipped.is_empty() and DistanceSystem.weapon_range_state(equipped, DistanceSystem.MELEE_REACH_FEET) == "melee":
 		return equipped
 	# Rules allow an unarmed strike even while the equipped weapon is ranged.
 	return UNARMED_OPPORTUNITY_WEAPON.duplicate(true)
