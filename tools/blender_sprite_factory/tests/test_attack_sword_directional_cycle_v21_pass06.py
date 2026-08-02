@@ -59,7 +59,10 @@ class AttackSwordDirectionalCycleV21Pass06Tests(unittest.TestCase):
 
     def test_historical_diagnostic_uses_rigid_weapon_only(self) -> None:
         ast.parse(self.diagnostic_source)
-        self.assertIn("create_attack_sword_directional_cycle_actions_v21_pass05", self.diagnostic_source)
+        self.assertIn(
+            "create_attack_sword_directional_cycle_actions_v21_pass05",
+            self.diagnostic_source,
+        )
         self.assertIn("pass07_adapter._apply_world_rotation", self.diagnostic_source)
         self.assertIn("pass06_adapter._restore_weapon", self.diagnostic_source)
         self.assertIn("_weapon_head_clearance", self.diagnostic_source)
@@ -68,8 +71,10 @@ class AttackSwordDirectionalCycleV21Pass06Tests(unittest.TestCase):
         self.assertNotIn("obj.scale", self.diagnostic_source)
         self.assertNotIn("mesh.vertices", self.diagnostic_source)
 
-    def test_pass06_is_preserved_while_pass07_is_active(self) -> None:
-        active = "blender_sprite_factory_attack_sword_twohand_left_arm_diagnostic_v21.py"
+    def test_pass06_is_preserved_while_pass08_is_active(self) -> None:
+        active = (
+            "blender_sprite_factory_attack_sword_twohand_left_projection_diagnostic_v21.py"
+        )
         full = "blender_sprite_factory_attack_sword_directional_cycle_v21_pass05.py"
         self.assertTrue(
             (
