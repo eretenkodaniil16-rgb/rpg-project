@@ -96,9 +96,9 @@ class AttackSwordDirectionalCycleV21Tests(unittest.TestCase):
         self.assertIn("baseline_y", self.adapter_source)
         self.assertIn("96x96", self.adapter_source)
 
-    def test_active_entrypoints_use_full_pass09(self) -> None:
+    def test_active_entrypoints_use_full_pass13(self) -> None:
         target = (
-            "blender_sprite_factory_attack_sword_directional_cycle_v21_pass09.py"
+            "blender_sprite_factory_attack_sword_directional_cycle_v21_pass13.py"
         )
         self.assertIn(target, self.workflow_source)
         self.assertIn("attack_directional_cycle_v21", self.launcher_source)
