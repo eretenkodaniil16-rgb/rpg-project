@@ -80,8 +80,10 @@ func _run() -> void:
 	game.call("force_patrol_tick_for_testing", guard, 0.7)
 	var patrol_start: Vector2 = (guard as Node2D).global_position
 	catalog.require_explicit_open_for_testing(true)
-	catalog.authorize_open_once()
-	catalog.toggle_catalog()
+	catalog.request_toggle_from_action_button()
+	if not catalog.is_catalog_open():
+		_fail("Atomic catalogue transaction did not open the patrol test overlay.")
+		return
 	for _tick: int in range(10):
 		game.call("_update_exploration_alerts", 0.25)
 		await process_frame
@@ -94,11 +96,11 @@ func _run() -> void:
 	catalog.close_catalog()
 	catalog.toggle_catalog()
 	if catalog.is_catalog_open():
-		_fail("Unauthorized toggle opened the catalogue immediately.")
+		_fail("Unauthorized generic toggle opened the catalogue immediately.")
 		return
 	await process_frame
 	if catalog.is_catalog_open():
-		_fail("Unauthorized toggle produced a one-frame catalogue flash.")
+		_fail("Unauthorized generic toggle produced a one-frame catalogue flash.")
 		return
 	var actions_button: Button = mobile.call("get_actions_button_for_testing") as Button
 	var move_pad: Control = mobile.get_node_or_null("MovePad") as Control
@@ -114,23 +116,18 @@ func _run() -> void:
 	mobile.call("_input", joystick_release)
 	actions_button.emit_signal("pressed")
 	if catalog.is_catalog_open():
-		_fail("Joystick-origin delayed signal bypassed the catalogue gate.")
+		_fail("Joystick-origin delayed signal bypassed the atomic catalogue gate.")
 		return
-	var action_press := InputEventScreenTouch.new()
-	action_press.index = 72
-	action_press.position = actions_button.get_global_rect().get_center()
-	action_press.pressed = true
-	mobile.call("_input", action_press)
 	actions_button.emit_signal("button_down")
 	actions_button.emit_signal("pressed")
 	if not catalog.is_catalog_open():
-		_fail("Fresh Actions-button touch did not open the catalogue.")
+		_fail("Fresh Actions-button transaction did not open the catalogue.")
 		return
 	if catalog.has_open_authorization_for_testing():
-		_fail("One-time catalogue authorization was not consumed.")
+		_fail("Atomic catalogue design unexpectedly retained an authorization state.")
 		return
 
-	print("Pre-combat inner targets, unseen patrol continuity and source-level catalogue gate passed.")
+	print("Pre-combat inner targets, unseen patrol continuity and atomic catalogue gate passed.")
 	game.queue_free()
 	await process_frame
 	quit(0)
