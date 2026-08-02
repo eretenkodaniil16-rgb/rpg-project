@@ -108,21 +108,13 @@ class AttackSwordDirectionalCycleV21Tests(unittest.TestCase):
         self.assertIn("baseline_y", self.adapter_source)
         self.assertIn("96x96", self.adapter_source)
 
-    def test_workflow_and_launcher_target_v21_pipeline(self) -> None:
-        workflow_entrypoints = (
-            "blender_sprite_factory_attack_sword_directional_cycle_v21_pass02.py",
-            "blender_sprite_factory_attack_sword_left_windup_diagnostic_v21.py",
-            "blender_sprite_factory_attack_sword_directional_cycle_v21_pass03.py",
-            "blender_sprite_factory_attack_sword_left_anticipation_diagnostic_v21.py",
+    def test_workflow_and_launcher_target_pass04(self) -> None:
+        target = (
+            "blender_sprite_factory_attack_sword_directional_cycle_v21_pass04.py"
         )
-        self.assertTrue(
-            any(target in self.workflow_source for target in workflow_entrypoints)
-        )
+        self.assertIn(target, self.workflow_source)
         self.assertIn("attack_directional_cycle_v21", self.launcher_source)
-        self.assertIn(
-            "blender_sprite_factory_attack_sword_directional_cycle_v21_pass03.py",
-            self.launcher_source,
-        )
+        self.assertIn(target, self.launcher_source)
 
 
 if __name__ == "__main__":
