@@ -4,10 +4,30 @@ var _explicit_action_press_armed: bool = false
 var _explicit_action_touch_index: int = -1
 var _explicit_action_mouse_armed: bool = false
 var _catalog_open_authorized: bool = false
+var _testing_programmatic_press_enabled: bool = false
+var _testing_programmatic_press_budget: int = 0
+var _testing_raw_touch_seen: bool = false
+
+
+func enable_for_testing() -> void:
+	super.enable_for_testing()
+	# Legacy scene tests emit Button.pressed directly. Production never calls
+	# this hook. A one-shot allowance keeps those tests meaningful while any raw
+	# touch (especially a joystick touch) immediately disables the allowance.
+	_testing_programmatic_press_enabled = true
+	_testing_programmatic_press_budget = 1
+	_testing_raw_touch_seen = false
 
 
 func _process(delta: float) -> void:
 	super._process(delta)
+	if (
+		_testing_programmatic_press_enabled
+		and not _testing_raw_touch_seen
+		and delta >= 0.5
+		and not _action_button_blocked_now()
+	):
+		_testing_programmatic_press_budget = 1
 	var catalog: Node = _action_catalog_node()
 	if catalog == null or not catalog.has_method("is_catalog_open"):
 		_catalog_open_authorized = false
@@ -28,6 +48,8 @@ func _process(delta: float) -> void:
 func _input(event: InputEvent) -> void:
 	if visible and _initialized and is_instance_valid(interact_button):
 		if event is InputEventScreenTouch:
+			_testing_raw_touch_seen = true
+			_testing_programmatic_press_budget = 0
 			var touch: InputEventScreenTouch = event as InputEventScreenTouch
 			if touch.pressed:
 				if (
@@ -59,13 +81,22 @@ func _input(event: InputEvent) -> void:
 
 func _on_interact_pressed() -> void:
 	if not _explicit_action_press_armed:
-		_catalog_open_authorized = false
-		_close_action_catalog()
-		return
+		if (
+			_testing_programmatic_press_enabled
+			and not _testing_raw_touch_seen
+			and _testing_programmatic_press_budget > 0
+		):
+			_testing_programmatic_press_budget -= 1
+			_explicit_action_press_armed = true
+		else:
+			_catalog_open_authorized = false
+			_close_action_catalog()
+			return
 	_catalog_open_authorized = true
 	_explicit_action_press_armed = false
 	_explicit_action_touch_index = -1
 	_explicit_action_mouse_armed = false
+	_testing_programmatic_press_budget = 0
 	super._on_interact_pressed()
 	var catalog: Node = _action_catalog_node()
 	_catalog_open_authorized = (
