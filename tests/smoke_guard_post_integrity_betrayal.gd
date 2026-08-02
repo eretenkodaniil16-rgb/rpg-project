@@ -6,6 +6,8 @@ const SECOND_ROOM_ID: String = "vault_inner_watch_01"
 const AUTHORIZATION_BROKEN_FLAG: String = "vault_guard_post_peaceful_authorization_broken"
 const BETRAYAL_RESOLVED_FLAG: String = "vault_inner_watch_betrayal_resolved"
 
+var _has_failed: bool = false
+
 
 func _init() -> void:
 	call_deferred("_run")
@@ -44,13 +46,13 @@ func _run() -> void:
 		return
 
 	await _verify_outer_boundary(room, player, state)
-	if _failed():
+	if _has_failed:
 		return
 	_verify_expanded_door_reach(west_door, player, state)
-	if _failed():
+	if _has_failed:
 		return
 	await _verify_peaceful_betrayal(game, room, player, caretaker, guard, marksman, mage, state)
-	if _failed():
+	if _has_failed:
 		return
 
 	print("Outer perimeter collision, expanded door reach and peaceful-betrayal inner AI passed.")
@@ -225,10 +227,9 @@ func _make_hero() -> PlayerCharacter:
 	return hero
 
 
-func _failed() -> bool:
-	return false
-
-
 func _fail(message: String) -> void:
+	if _has_failed:
+		return
+	_has_failed = true
 	push_error(message)
 	quit(1)
