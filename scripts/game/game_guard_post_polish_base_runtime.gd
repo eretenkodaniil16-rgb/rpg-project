@@ -60,12 +60,60 @@ func _target_is_valid(target: Node) -> bool:
 
 
 func _start_turn_based_combat(trigger_target: Node) -> void:
+	# Encounter membership is authoritative. Visibility, patrol rendering and the
+	# order in which hostility signals arrive must not change the initiative roster.
+	_prepare_encounter_roster_for_combat(trigger_target)
 	# Preserve the full inherited combat/encounter pipeline. Visibility constrains
 	# player targeting, but an already alerted pursuer may initiate combat while
 	# outside the hero's current field of view.
 	_allow_hidden_combat_trigger = true
 	super._start_turn_based_combat(trigger_target)
 	_allow_hidden_combat_trigger = false
+
+
+func _prepare_encounter_roster_for_combat(trigger_target: Node) -> void:
+	var trigger_actor_id: String = _actor_id(trigger_target)
+	var roster: Array[String] = []
+	if trigger_actor_id in FIRST_ROOM_PARLEY_ACTOR_IDS:
+		roster = FIRST_ROOM_PARLEY_ACTOR_IDS
+	elif trigger_actor_id in SECOND_ROOM_ACTOR_IDS:
+		roster = SECOND_ROOM_ACTOR_IDS
+	if roster.is_empty():
+		return
+	for actor_id: String in roster:
+		var actor: Node = _find_guard_post_actor(actor_id)
+		if not _actor_can_join_encounter_roster(actor):
+			continue
+		if not actor.is_in_group("combat_targets"):
+			actor.add_to_group("combat_targets")
+		if not actor.is_in_group("stealth_alert_actors"):
+			actor.add_to_group("stealth_alert_actors")
+		if actor.has_method("activate_combat_participant"):
+			actor.call("activate_combat_participant")
+		elif actor.has_method("enter_combat_hostile"):
+			actor.call("enter_combat_hostile")
+		else:
+			actor.set("hostile", true)
+
+
+func _actor_can_join_encounter_roster(actor: Node) -> bool:
+	if not is_instance_valid(actor):
+		return false
+	if actor.has_method("is_body_interactable") and bool(actor.call("is_body_interactable")):
+		return false
+	if bool(actor.get("defeated")):
+		return false
+	return not actor.has_method("is_combat_active") or bool(actor.call("is_combat_active"))
+
+
+func get_encounter_roster_for_testing(trigger_target: Node) -> Array[String]:
+	_prepare_encounter_roster_for_combat(trigger_target)
+	var result: Array[String] = []
+	for actor_id: String in FIRST_ROOM_PARLEY_ACTOR_IDS + SECOND_ROOM_ACTOR_IDS:
+		var actor: Node = _find_guard_post_actor(actor_id)
+		if is_instance_valid(actor) and actor.is_in_group("combat_targets") and actor.has_method("is_hostile") and bool(actor.call("is_hostile")):
+			result.append(actor_id)
+	return result
 
 
 func _cycle_target() -> void:
