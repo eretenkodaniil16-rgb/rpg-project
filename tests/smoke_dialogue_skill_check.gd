@@ -1,6 +1,7 @@
 extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
+const CHECK_ID: String = "reward_smoke_strength"
 
 
 func _init() -> void:
@@ -27,6 +28,7 @@ func _run() -> void:
 		"text": "Проверка интеграции",
 		"choices": [{
 			"text": "[Сила] Проверить",
+			"check_id": CHECK_ID,
 			"check": {"ability": "strength", "difficulty": 1},
 			"success": {
 				"response": "Успех",
@@ -55,6 +57,7 @@ func _run() -> void:
 	assert(check_button != null)
 	check_button.emit_signal("pressed")
 	await process_frame
+	assert(bool(dialogue.call("has_check_attempt_for_testing", "reward_dialogue_smoke", CHECK_ID)))
 	var popup: Control = dialogue.get_node("SkillCheckPopup") as Control
 	assert(popup.visible)
 	popup.call("_on_continue_pressed")
@@ -71,6 +74,14 @@ func _run() -> void:
 	assert(actions_button.visible)
 	assert(actions_button.text == "ДЕЙСТВИЯ")
 
+	# Reopening the same dialogue in the same playthrough must not recreate the
+	# attempted check, regardless of whether the first roll succeeded or failed.
+	dialogue.call("start_dialogue", test_dialogue, caretaker)
+	await process_frame
+	assert(int(dialogue.call("get_available_checked_choice_count_for_testing")) == 0)
+	dialogue.call("_close_dialogue")
+	await process_frame
+
 	game.call("_set_selected_target", caretaker)
 	game.call("_start_turn_based_combat", caretaker)
 	game.call("force_player_turn_for_testing")
@@ -78,5 +89,5 @@ func _run() -> void:
 	await process_frame
 	assert(actions_button.visible)
 	assert(actions_button.text == "ДЕЙСТВИЯ")
-	print("Checked dialogue, reward, portrait and persistent Actions button smoke test passed.")
+	print("One-shot checked dialogue, reward, portrait and persistent Actions button smoke test passed.")
 	quit(0)
