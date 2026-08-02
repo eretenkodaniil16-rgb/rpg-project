@@ -1,0 +1,125 @@
+from __future__ import annotations
+
+
+CORRECTION_PASS = "v21_pass18"
+TWOHAND_RIGHT_EARLY_REVISION = "twohand_right_f02_f03_action_projection_v21_pass18"
+TWOHAND_RIGHT_TAIL_DIAGNOSTIC_REVISION = (
+    "twohand_right_f04_f08_sequential_projection_v21_pass18"
+)
+TARGET_ACTION_ID = "attack_sword_01_twohand_right_v21"
+TARGET_GRIP_ID = "twohand_center_high"
+TARGET_DIRECTION = "right"
+TARGET_BONES = (
+    "upper_arm.L",
+    "forearm.L",
+    "hand.L",
+    "upper_arm.R",
+    "forearm.R",
+    "hand.R",
+)
+
+EARLY_SOURCE_FRAME_BY_TARGET = {2: 1, 3: 1}
+EARLY_SELECTED_ARM_BLEND_BY_FRAME = {2: 0.50, 3: 1.00}
+EARLY_SELECTED_REQUESTED_SCREEN_PROJECTION_BY_FRAME = {2: 0.95, 3: 0.55}
+EARLY_SELECTED_APPLIED_SCREEN_PROJECTION_BY_FRAME = {
+    2: 0.435838,
+    3: 0.5270287155505528,
+}
+EARLY_SELECTED_WEAPON_OFFSET_DEGREES_BY_FRAME = {2: -72.0, 3: -48.0}
+EARLY_SELECTED_HEAD_CLEARANCE_PIXELS_BY_FRAME = {
+    2: 4.004,
+    3: 4.243965599369848,
+}
+EARLY_SELECTED_CAMERA_MARGIN_PIXELS_BY_FRAME = {
+    2: 20.957,
+    3: 17.710247039794922,
+}
+EARLY_SELECTED_ATTEMPT_BY_FRAME = {2: 1053, 3: 5900}
+
+TARGET_FRAMES = (4, 5, 6, 7, 8)
+SOURCE_FRAME_BY_TARGET = {4: 3, 5: 4, 6: 5, 7: 8, 8: 1}
+ARM_BLEND_CANDIDATES = (
+    0.0,
+    0.10,
+    0.20,
+    0.30,
+    0.40,
+    0.50,
+    0.60,
+    0.70,
+    0.80,
+    0.90,
+    1.00,
+)
+SCREEN_PROJECTION_CANDIDATES = (
+    0.95,
+    0.90,
+    0.86,
+    0.82,
+    0.78,
+    0.74,
+    0.70,
+    0.66,
+    0.62,
+    0.58,
+    0.54,
+    0.50,
+    0.46,
+    0.42,
+    0.38,
+    0.34,
+    0.30,
+    0.26,
+    0.22,
+    0.18,
+)
+ANGLE_OFFSET_CANDIDATES = (
+    0.0,
+    -8.0,
+    8.0,
+    -16.0,
+    16.0,
+    -24.0,
+    24.0,
+    -32.0,
+    32.0,
+    -40.0,
+    40.0,
+    -48.0,
+    48.0,
+    -56.0,
+    56.0,
+    -64.0,
+    64.0,
+    -72.0,
+    72.0,
+    -80.0,
+    80.0,
+    -88.0,
+    88.0,
+)
+MIN_HEAD_CLEARANCE_PIXELS_BY_FRAME = {4: 4.0, 5: 1.0, 6: 1.0, 7: 1.0, 8: 1.0}
+MIN_CAMERA_MARGIN_PIXELS = 1.0
+REQUIRE_ZERO_EDGE_ALPHA = True
+
+WINDUP_DIAGNOSTIC_RUN_ID = 30751212090
+WINDUP_DIAGNOSTIC_ARTIFACT_ID = 8834533057
+WINDUP_DIAGNOSTIC_ARTIFACT_SHA256 = (
+    "7fbbe32d0d9adeca91c83f245ebd2082aad3d9f390b8918a58f74a442dc1e446"
+)
+WINDUP_DIAGNOSTIC_FRAME_SIZE = (96, 96)
+WINDUP_DIAGNOSTIC_ALPHA_BBOX = (32, 19, 74, 92)
+
+ANTICIPATION_DIAGNOSTIC_RUN_ID = 30751575069
+ANTICIPATION_DIAGNOSTIC_ARTIFACT_ID = 8834650938
+ANTICIPATION_DIAGNOSTIC_ARTIFACT_SHA256 = (
+    "228005ee887cad1561ce7222a7785fa15573596ee68d42903191273c8fa0523f"
+)
+ANTICIPATION_DIAGNOSTIC_FRAME_SIZE = (96, 96)
+ANTICIPATION_DIAGNOSTIC_ALPHA_BBOX = (31, 21, 73, 92)
+DIAGNOSTIC_EDGE_ALPHA_COUNTS = {
+    "left": 0,
+    "right": 0,
+    "top": 0,
+    "bottom": 0,
+}
