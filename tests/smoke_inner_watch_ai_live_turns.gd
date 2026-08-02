@@ -72,6 +72,8 @@ func _run() -> void:
 			return
 
 	# Finish any initiative-selected turn before forcing isolated watchdog cases.
+	# AI movement may now legitimately pause for a player opportunity-reaction
+	# decision, so this AI-only test explicitly skips that decision.
 	if not await _stabilize_on_player(game, turn_system, player, 8.0):
 		_fail("Initial inner-watch AI turn did not settle before isolated checks.")
 		return
@@ -88,7 +90,7 @@ func _run() -> void:
 	await process_frame
 	if FileAccess.file_exists(save_path):
 		DirAccess.remove_absolute(save_path)
-	print("Inner marksman and mage both execute live AI turns and advance initiative.")
+	print("Inner marksman and mage both execute live AI turns, resolve reaction pauses and advance initiative.")
 	quit(0)
 
 
@@ -100,6 +102,7 @@ func _stabilize_on_player(
 ) -> bool:
 	var elapsed: float = 0.0
 	while elapsed < timeout_seconds and bool(game.get("_enemy_turn_running")):
+		_skip_pending_reaction(game)
 		await create_timer(0.1).timeout
 		elapsed += 0.1
 	if bool(game.get("_enemy_turn_running")) or not turn_system.active:
@@ -118,6 +121,7 @@ func _verify_watchdog_turn(game: Node, turn_system: TurnBasedCombatSystem, actor
 	game.set("_enemy_turn_running", false)
 	var elapsed: float = 0.0
 	while elapsed < 8.0:
+		_skip_pending_reaction(game)
 		await create_timer(0.1).timeout
 		elapsed += 0.1
 		var completed_now: int = int(game.call("get_inner_watch_ai_turn_completed_for_testing", actor_id))
@@ -133,6 +137,12 @@ func _verify_watchdog_turn(game: Node, turn_system: TurnBasedCombatSystem, actor
 		return
 	if turn_system.current_actor() == actor:
 		_fail("Initiative remained stalled on %s after its AI turn." % actor_id)
+
+
+func _skip_pending_reaction(game: Node) -> void:
+	var prompt: ReactionChoicePrompt = game.get_node_or_null("Interface/ReactionChoicePrompt") as ReactionChoicePrompt
+	if prompt != null and prompt.is_waiting_for_decision():
+		prompt.skip_reaction()
 
 
 func _turn_contains_actor(turn_system: TurnBasedCombatSystem, actor: Node) -> bool:
