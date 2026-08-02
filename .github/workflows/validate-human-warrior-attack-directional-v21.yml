@@ -49,11 +49,12 @@ jobs:
       # blender_sprite_factory_attack_sword_directional_cycle_v21_pass09.py
       # blender_sprite_factory_attack_sword_directional_cycle_v21_pass13.py
       # blender_sprite_factory_attack_sword_directional_cycle_v21_pass15.py
+      # blender_sprite_factory_attack_sword_directional_cycle_v21_pass19.py
       # blender_sprite_factory_attack_sword_twohand_left_tail_diagnostic_v21.py
       # blender_sprite_factory_attack_sword_twohand_right_batch_diagnostic_v21.py
       # blender_sprite_factory_attack_sword_twohand_right_anticipation_diagnostic_v21.py
       # blender_sprite_factory_attack_sword_twohand_right_tail_diagnostic_v21.py
-      - name: Render Blender 5.2 attack_sword_01 four-direction cycles v21 pass19
+      - name: Diagnose Blender 5.2 one-hand up f05-f08 v21 pass20
         id: blender-attack-directional
         continue-on-error: true
         shell: bash
@@ -64,26 +65,26 @@ jobs:
             --background \
             --factory-startup \
             --python-exit-code 1 \
-            --python tools/blender_sprite_factory/blender_sprite_factory_attack_sword_directional_cycle_v21_pass19.py \
+            --python tools/blender_sprite_factory/blender_sprite_factory_attack_sword_onehand_up_tail_diagnostic_v21.py \
             -- \
             --repo-root "$GITHUB_WORKSPACE" \
             --config tools/blender_sprite_factory/configs/human_warrior_m01.json \
             --run-id "$run_id" \
             --mode all 2>&1 | tee blender_attack_directional_v21.log
 
-      - name: Upload directional cycles and source blend
+      - name: Upload one-hand up tail diagnostic and source blend
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: human_warrior_m01_proxy_v25_attack_sword_01_directional_v21_pass19_${{ github.run_id }}_${{ github.run_attempt }}
+          name: human_warrior_m01_proxy_v25_attack_sword_01_onehand_up_tail_v21_pass20_${{ github.run_id }}_${{ github.run_attempt }}
           path: |
             art/blender_pipeline_runs/human_warrior_m01/**
             blender_attack_directional_v21.log
           if-no-files-found: error
           retention-days: 14
 
-      - name: Require successful directional render
+      - name: Require successful one-hand up tail diagnostic
         if: steps.blender-attack-directional.outcome != 'success'
         run: |
-          echo "Directional attack v21 pass19 render failed; inspect blender_attack_directional_v21.log in the uploaded artifact."
+          echo "Directional attack v21 pass20 one-hand up tail diagnostic failed; inspect blender_attack_directional_v21.log in the uploaded artifact."
           exit 1
