@@ -3,6 +3,7 @@ extends "res://scripts/game/guard_post_two_room.gd"
 
 const ROOM_FOG_SCRIPT: Script = preload("res://scripts/game/room_fog_overlay.gd")
 const DOOR_DECORATOR_SCRIPT: Script = preload("res://scripts/game/stealth_door_visual_decorator.gd")
+const WALL_VISIBILITY_OVERLAY_SCRIPT: Script = preload("res://scripts/game/guard_post_wall_visibility_overlay.gd")
 
 const ROOM_WEST_SERVICE: String = "west_service_room"
 const ROOM_OUTER_GUARD: String = "outer_guard_room"
@@ -15,6 +16,7 @@ const ROOM_RECTS: Dictionary = {
 }
 
 var _room_fog: RoomFogOverlay
+var _wall_visibility_overlay: GuardPostWallVisibilityOverlay
 
 
 func _ready() -> void:
@@ -23,10 +25,15 @@ func _ready() -> void:
 	_install_door_decorator(get_test_door(), "WestServiceDoorPresentation")
 	_install_door_decorator(get_inner_gate(), "InnerWatchGatePresentation")
 	_install_room_fog()
+	_install_wall_visibility_overlay()
 
 
 func get_room_fog_for_testing() -> RoomFogOverlay:
 	return _room_fog
+
+
+func get_wall_visibility_overlay_for_testing() -> GuardPostWallVisibilityOverlay:
+	return _wall_visibility_overlay
 
 
 func get_door_decorator_for_testing(door: StealthDoor) -> StealthDoorVisualDecorator:
@@ -69,6 +76,14 @@ func _install_room_fog() -> void:
 	_room_fog.name = "RoomFogOverlay"
 	add_child(_room_fog)
 	_room_fog.configure(player, ROOM_RECTS, ROOM_ORDER)
+
+
+func _install_wall_visibility_overlay() -> void:
+	if is_instance_valid(_wall_visibility_overlay):
+		return
+	_wall_visibility_overlay = WALL_VISIBILITY_OVERLAY_SCRIPT.new() as GuardPostWallVisibilityOverlay
+	_wall_visibility_overlay.name = "WallVisibilityOverlay"
+	add_child(_wall_visibility_overlay)
 
 
 func _install_door_decorator(door: StealthDoor, node_name: String) -> void:
