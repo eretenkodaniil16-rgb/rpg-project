@@ -175,10 +175,18 @@ func _run() -> void:
 	if catalog.catalog_button.visible:
 		_fail("The duplicate ActionCatalogButton became visible during combat.")
 		return
+	# A carried release from the prior turn must be rejected during the short
+	# player-turn guard; an intentional press must work after the guard expires.
+	actions_button.emit_signal("pressed")
+	await process_frame
+	if catalog.panel.visible:
+		_fail("A carried touch opened the combat menu at the turn boundary.")
+		return
+	mobile_controls.call("_process", 1.0)
 	actions_button.emit_signal("pressed")
 	await process_frame
 	if not catalog.panel.visible:
-		_fail("The lower-right Actions button did not open the combat menu.")
+		_fail("The lower-right Actions button did not open after the turn guard expired.")
 		return
 	catalog.close_catalog()
 
