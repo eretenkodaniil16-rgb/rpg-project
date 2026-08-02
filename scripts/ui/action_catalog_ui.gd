@@ -43,6 +43,8 @@ var _combat_active: bool = false
 var _player_turn: bool = false
 var _group_buttons: Dictionary = {}
 var _category_buttons: Dictionary = {}
+var _open_authorization_budget: int = 0
+var _explicit_open_required_for_testing: bool = false
 
 
 func _ready() -> void:
@@ -71,7 +73,7 @@ func refresh(
 	confirm_move_button.visible = combat_active and show_catalog_controls and player_turn and has_movement_plan
 	jump_button.hide()
 	if overlay_visible and panel.visible:
-		panel.hide()
+		close_catalog()
 	_entries = entries.duplicate(true)
 	_append_world_interaction_entries()
 	resource_label.text = resource_text
@@ -109,9 +111,25 @@ func toggle_catalog() -> void:
 	_toggle_catalog()
 
 
+func authorize_open_once() -> void:
+	_open_authorization_budget = 1
+
+
+func require_explicit_open_for_testing(value: bool) -> void:
+	_explicit_open_required_for_testing = value
+	_open_authorization_budget = 0
+	if value:
+		close_catalog()
+
+
+func has_open_authorization_for_testing() -> bool:
+	return _open_authorization_budget > 0
+
+
 func close_catalog() -> void:
 	panel.hide()
 	_last_signature = ""
+	_open_authorization_budget = 0
 
 
 func get_entries_for_testing() -> Dictionary:
@@ -329,11 +347,24 @@ func _make_bottom_rail_button(node_name: String, text_value: String, top: float,
 
 
 func _toggle_catalog() -> void:
-	panel.visible = not panel.visible
 	if panel.visible:
-		_last_signature = ""
-		_ensure_valid_selection()
-		_rebuild_action_grid()
+		close_catalog()
+		return
+	if _catalog_open_requires_authorization() and _open_authorization_budget <= 0:
+		return
+	_open_authorization_budget = 0
+	panel.show()
+	_last_signature = ""
+	_ensure_valid_selection()
+	_rebuild_action_grid()
+
+
+func _catalog_open_requires_authorization() -> bool:
+	return (
+		_explicit_open_required_for_testing
+		or OS.get_name() in ["Android", "iOS"]
+		or OS.has_feature("mobile")
+	)
 
 
 func _select_category(category_id: String) -> void:
