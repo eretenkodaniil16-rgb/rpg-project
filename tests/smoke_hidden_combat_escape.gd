@@ -1,7 +1,7 @@
 extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
-const RUNTIME_PATH: String = "res://scripts/game/game_guard_post_player_feedback_runtime.gd"
+const RUNTIME_PATH: String = "res://scripts/game/game_guard_post_polish_runtime.gd"
 const ENCOUNTER_ID: String = "training_construct"
 const AUTOSAVE_PATH: String = "user://save_slots/autosave.json"
 
@@ -31,7 +31,7 @@ func _run() -> void:
 	for _frame: int in range(20):
 		await process_frame
 	if str(game.get_script().resource_path) != RUNTIME_PATH:
-		_fail("Game scene does not use the hide-to-pursuit runtime.")
+		_fail("Game scene does not use the stable guard-post runtime facade with hide pursuit.")
 		return
 
 	var player: Node2D = game.get_node_or_null("Player") as Node2D
