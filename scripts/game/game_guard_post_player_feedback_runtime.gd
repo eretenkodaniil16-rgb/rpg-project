@@ -3,6 +3,25 @@ extends "res://scripts/game/game_guard_post_polish_base_runtime.gd"
 var _hide_transition_running: bool = false
 
 
+func _ready() -> void:
+	super._ready()
+	# Base scenes connect signals while their own scripts are active. Replace only
+	# those inherited handlers with explicit leaf-runtime dispatchers so the real
+	# UI path and direct method calls execute the same Hide transition.
+	_replace_bound_handler(
+		_action_catalog_ui,
+		&"action_requested",
+		&"_on_catalog_action_requested",
+		Callable(self, "_on_feedback_catalog_action_requested")
+	)
+	_replace_bound_handler(
+		_srd_combat_ui,
+		&"hide_requested",
+		&"_on_hide_requested",
+		Callable(self, "_on_feedback_hide_requested")
+	)
+
+
 func _process(delta: float) -> void:
 	super._process(delta)
 	if _turn_system.active and not is_player_combat_turn():
@@ -22,26 +41,42 @@ func _advance_combat_turn() -> void:
 	super._advance_combat_turn()
 
 
+func _on_feedback_catalog_action_requested(action_id: String) -> void:
+	if action_id == "hide":
+		_on_hide_requested()
+		_invalidate_reachable_area()
+		_refresh_action_catalog()
+		return
+	super._on_catalog_action_requested(action_id)
+
+
+func _on_feedback_hide_requested() -> void:
+	_on_hide_requested()
+
+
 func _on_hide_requested() -> void:
 	if _hide_transition_running:
 		return
+	_hide_transition_running = true
 	var combat_was_active: bool = _turn_system.active
 	var observers: Array[Node] = _combat_search_observers()
 	var last_known_position: Vector2 = _last_seen_player_position
 	if last_known_position == Vector2.ZERO:
 		last_known_position = player.global_position
-	await super._on_hide_requested()
+	# The inherited Hide resolution is synchronous. Running it directly ensures
+	# the success flag is available before deciding whether initiative must stop.
+	super._on_hide_requested()
 	if (
 		not combat_was_active
 		or not _turn_system.active
 		or not _player_combat_state.hidden
 	):
+		_hide_transition_running = false
 		return
 	_suspend_combat_for_hidden_pursuit(observers, last_known_position)
 
 
 func _suspend_combat_for_hidden_pursuit(observers: Array[Node], last_known_position: Vector2) -> void:
-	_hide_transition_running = true
 	_close_action_catalog_immediately()
 	_stop_turn_based_combat(
 		"Герой скрылся. Инициатива завершена; противники идут к последней известной позиции и начинают поиск."
@@ -108,3 +143,24 @@ func _close_action_catalog_immediately() -> void:
 	var catalog: Node = get_node_or_null("Interface/ActionCatalogUI")
 	if catalog != null and catalog.has_method("close_catalog"):
 		catalog.call("close_catalog")
+
+
+func _replace_bound_handler(
+	emitter: Object,
+	signal_name: StringName,
+	inherited_method: StringName,
+	replacement: Callable
+) -> void:
+	if emitter == null:
+		return
+	for connection_value: Variant in emitter.get_signal_connection_list(signal_name):
+		if not connection_value is Dictionary:
+			continue
+		var callable_value: Variant = (connection_value as Dictionary).get("callable")
+		if not callable_value is Callable:
+			continue
+		var existing: Callable = callable_value as Callable
+		if existing.get_object() == self and existing.get_method() == inherited_method:
+			emitter.disconnect(signal_name, existing)
+	if not emitter.is_connected(signal_name, replacement):
+		emitter.connect(signal_name, replacement)
