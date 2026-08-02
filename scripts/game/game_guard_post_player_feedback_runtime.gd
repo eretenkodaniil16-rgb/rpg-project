@@ -24,6 +24,8 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	super._process(delta)
+	if not _turn_system.active:
+		_resume_combat_after_alerted_reacquisition()
 	if _turn_system.active and not is_player_combat_turn():
 		_close_action_catalog_immediately()
 
@@ -54,14 +56,29 @@ func _sync_combat_alert_records() -> void:
 		_apply_record_to_actor(actor, record)
 
 
-func _begin_combat_from_alert(actor: Node, record: Dictionary) -> void:
-	# Hide suspension deliberately disables real-time hostility. Reacquisition
-	# must restore the flag even for NPC implementations without the optional
-	# enter_combat_hostile() helper, otherwise alert reaches 100 but initiative
-	# cannot be started by the combat runtime.
-	if actor != null and is_instance_valid(actor):
+func _resume_combat_after_alerted_reacquisition() -> void:
+	# The inherited exploration runtime can raise suspicion to ALERTED while a
+	# previously suspended actor is still non-hostile. Complete that transition
+	# explicitly at the leaf runtime so reacquisition always starts initiative.
+	for actor: Node in _exploration_alert_actors():
+		if not is_instance_valid(actor) or not actor.has_method("get_actor_id"):
+			continue
+		var actor_id: String = str(actor.call("get_actor_id"))
+		var record: Dictionary = _record_for_actor(actor_id)
+		if str(record.get("state", "")) != StealthAlertSystem.STATE_ALERTED:
+			continue
+		var profile: Dictionary = _stealth_alerts.get_profile(actor_id)
+		if profile.is_empty() or not _exploration_actor_can_see_player(actor, profile):
+			continue
 		actor.set("hostile", true)
-	super._begin_combat_from_alert(actor, record)
+		_break_exploration_hidden()
+		record["state"] = StealthAlertSystem.STATE_COMBAT
+		record["suspicion"] = StealthAlertSystem.SUSPICION_ALERTED
+		_alert_records[actor_id] = record
+		_persist_alert_record(actor_id, true)
+		show_combat_message("%s обнаружил героя и поднимает тревогу." % _target_name(actor), false)
+		_start_turn_based_combat(actor)
+		return
 
 
 func _advance_combat_turn() -> void:
