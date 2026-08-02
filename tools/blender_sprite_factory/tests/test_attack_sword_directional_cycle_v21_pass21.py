@@ -6,16 +6,18 @@ from pathlib import Path
 
 from attack_sword_directional_cycle_correction_v21_pass21 import (
     ALLOW_HILT_OCCLUSION_BEHIND_HEAD,
-    BLADE_CLEARANCE_OBJECT_NAMES,
+    BLADE_CLEARANCE_PART_IDS,
     CONTACT_SHEET_NAME,
     CORRECTION_PASS,
     DIAGNOSTIC_SCENE_KEY,
-    HILT_OCCLUSION_OBJECT_NAMES,
+    HILT_OCCLUSION_PART_IDS,
     MIN_VISIBLE_BLADE_HEAD_CLEARANCE_PIXELS,
     ONEHAND_UP_VISIBLE_BLADE_DIAGNOSTIC_REVISION,
     REQUIRE_ZERO_EDGE_ALPHA,
     SOURCE_FAILED_ARTIFACT_ID,
     SOURCE_FAILED_RUN_ID,
+    TECHNICAL_FAILED_ARTIFACT_ID,
+    TECHNICAL_FAILED_RUN_ID,
 )
 
 
@@ -40,33 +42,23 @@ class AttackSwordDirectionalCycleV21Pass21Tests(unittest.TestCase):
             ONEHAND_UP_VISIBLE_BLADE_DIAGNOSTIC_REVISION,
             "onehand_up_f05_f08_visible_blade_clearance_v21_pass21",
         )
-        self.assertEqual(
-            BLADE_CLEARANCE_OBJECT_NAMES,
-            (
-                "combat_onehand_v06_blade",
-                "combat_onehand_v06_highlight",
-                "combat_onehand_v06_tip",
-            ),
-        )
-        self.assertEqual(
-            HILT_OCCLUSION_OBJECT_NAMES,
-            (
-                "combat_onehand_v06_guard",
-                "combat_onehand_v06_grip",
-                "combat_onehand_v06_pommel",
-            ),
-        )
+        self.assertEqual(BLADE_CLEARANCE_PART_IDS, ("blade", "highlight", "tip"))
+        self.assertEqual(HILT_OCCLUSION_PART_IDS, ("guard", "grip", "pommel"))
         self.assertTrue(ALLOW_HILT_OCCLUSION_BEHIND_HEAD)
         self.assertEqual(MIN_VISIBLE_BLADE_HEAD_CLEARANCE_PIXELS, 1.0)
         self.assertTrue(REQUIRE_ZERO_EDGE_ALPHA)
         self.assertEqual(SOURCE_FAILED_RUN_ID, 30753294334)
         self.assertEqual(SOURCE_FAILED_ARTIFACT_ID, 8835191378)
+        self.assertEqual(TECHNICAL_FAILED_RUN_ID, 30754498101)
+        self.assertEqual(TECHNICAL_FAILED_ARTIFACT_ID, 8835541839)
         self.assertIn("visible_blade", DIAGNOSTIC_SCENE_KEY)
         self.assertIn("visible_blade", CONTACT_SHEET_NAME)
 
     def test_adapter_filters_collision_only_not_render_objects(self) -> None:
         ast.parse(self.adapter_source)
         self.assertIn("ORIGINAL_HEAD_CLEARANCE", self.adapter_source)
+        self.assertIn("_objects_by_weapon_part", self.adapter_source)
+        self.assertIn('obj.get("weapon_part", "")', self.adapter_source)
         self.assertIn("_visible_blade_head_clearance", self.adapter_source)
         self.assertIn("blade_objects", self.adapter_source)
         self.assertIn("ORIGINAL_HEAD_CLEARANCE(blade_objects)", self.adapter_source)
