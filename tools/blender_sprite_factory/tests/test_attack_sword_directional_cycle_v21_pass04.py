@@ -99,12 +99,12 @@ class AttackSwordDirectionalCycleV21Pass04Tests(unittest.TestCase):
         self.assertIn('"weapon_geometry_changed": False', self.adapter_source)
         self.assertIn('"materials_changed": False', self.adapter_source)
 
-    def test_pass04_remains_source_under_pass06_diagnostic(self) -> None:
+    def test_pass04_remains_source_under_pass07_diagnostic(self) -> None:
         pass04_target = (
             "blender_sprite_factory_attack_sword_directional_cycle_v21_pass04.py"
         )
         diagnostic_target = (
-            "blender_sprite_factory_attack_sword_twohand_left_windup_diagnostic_v21.py"
+            "blender_sprite_factory_attack_sword_twohand_left_arm_diagnostic_v21.py"
         )
         full_target = (
             "blender_sprite_factory_attack_sword_directional_cycle_v21_pass05.py"
