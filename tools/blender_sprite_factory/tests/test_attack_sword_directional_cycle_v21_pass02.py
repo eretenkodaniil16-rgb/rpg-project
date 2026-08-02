@@ -73,12 +73,12 @@ class AttackSwordDirectionalCycleV21Pass02Tests(unittest.TestCase):
         self.assertIn('"approved_down_v20_changed": False', self.adapter_source)
         self.assertIn('"body_pose_changed": False', self.adapter_source)
 
-    def test_pass02_remains_reproducible_under_pass06_diagnostic(self) -> None:
+    def test_pass02_remains_reproducible_under_pass07_diagnostic(self) -> None:
         pass02_target = (
             "blender_sprite_factory_attack_sword_directional_cycle_v21_pass02.py"
         )
         diagnostic_target = (
-            "blender_sprite_factory_attack_sword_twohand_left_windup_diagnostic_v21.py"
+            "blender_sprite_factory_attack_sword_twohand_left_arm_diagnostic_v21.py"
         )
         full_target = (
             "blender_sprite_factory_attack_sword_directional_cycle_v21_pass05.py"
