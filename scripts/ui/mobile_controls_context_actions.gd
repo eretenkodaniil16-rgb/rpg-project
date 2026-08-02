@@ -71,6 +71,20 @@ func _is_combat_active() -> bool:
 	)
 
 
+func _is_player_combat_turn() -> bool:
+	if not is_instance_valid(_game_world):
+		_game_world = get_tree().get_first_node_in_group("game_world")
+	if not is_instance_valid(_game_world) or not is_instance_valid(_player):
+		return false
+	var turn_system: TurnBasedCombatSystem = _game_world.get("_turn_system") as TurnBasedCombatSystem
+	return (
+		turn_system != null
+		and turn_system.active
+		and turn_system.is_player_turn(_player)
+		and not bool(_game_world.get("_enemy_turn_running"))
+	)
+
+
 func _on_interact_pressed() -> void:
 	if not is_instance_valid(_player):
 		_player = get_tree().get_first_node_in_group("player") as CharacterBody2D
@@ -83,7 +97,7 @@ func _on_interact_pressed() -> void:
 		if is_instance_valid(_player) and _player.has_method("request_interaction"):
 			_player.call("request_interaction")
 		return
-	if _is_combat_active() and _game_world.has_method("is_player_combat_turn") and not bool(_game_world.call("is_player_combat_turn")):
+	if _is_combat_active() and not _is_player_combat_turn():
 		if action_catalog.has_method("close_catalog"):
 			action_catalog.call("close_catalog")
 		return
