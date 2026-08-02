@@ -132,9 +132,12 @@ func _run() -> void:
 
 	game.call("_expire_shield_at_start_of_turn")
 	turns.force_current_actor_for_testing(player)
-	turns.advance_turn()
-	if turns.current_actor() != construct or not turns.has_reaction(player):
-		_fail("The next enemy turn did not restore the player's reaction.")
+	if not turns.has_reaction(player):
+		_fail("The start of the player's next turn did not restore the reaction.")
+		return
+	var next_actor: Node = turns.advance_turn()
+	if next_actor == null or next_actor == player or not turns.has_reaction(player):
+		_fail("The following enemy phase did not preserve the restored player reaction.")
 		return
 	var hp_before_absorb: int = wizard.current_health
 	var slots_before_absorb: int = wizard.get_resource("spell_slots_1")
