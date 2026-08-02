@@ -33,9 +33,9 @@ func _process(delta: float) -> void:
 		_catalog_open_authorized = false
 		return
 	var catalog_open: bool = bool(catalog.call("is_catalog_open"))
-	# The catalogue is a manual UI. No turn transition, movement completion,
-	# delayed Button signal or gameplay mechanic may open it without a fresh
-	# press that began inside the Actions button.
+	# This remains a second-line invariant. The catalogue itself now rejects an
+	# unauthorized open before changing visibility, so Android cannot render a
+	# one-frame flash even if a delayed signal reaches the UI.
 	if catalog_open and not _catalog_open_authorized:
 		catalog.call("close_catalog")
 		catalog_open = false
@@ -97,8 +97,11 @@ func _on_interact_pressed() -> void:
 	_explicit_action_touch_index = -1
 	_explicit_action_mouse_armed = false
 	_testing_programmatic_press_budget = 0
-	super._on_interact_pressed()
 	var catalog: Node = _action_catalog_node()
+	if catalog != null and catalog.has_method("authorize_open_once"):
+		catalog.call("authorize_open_once")
+	super._on_interact_pressed()
+	catalog = _action_catalog_node()
 	_catalog_open_authorized = (
 		catalog != null
 		and catalog.has_method("is_catalog_open")
