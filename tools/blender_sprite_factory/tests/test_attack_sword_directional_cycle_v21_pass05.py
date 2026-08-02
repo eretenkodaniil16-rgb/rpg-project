@@ -35,29 +35,19 @@ class AttackSwordDirectionalCycleV21Pass05Tests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.tool_root = Path(__file__).resolve().parents[1]
         cls.builder_source = (
-            cls.tool_root
-            / "attack_sword_directional_cycle_builder_v21_pass05.py"
+            cls.tool_root / "attack_sword_directional_cycle_builder_v21_pass05.py"
         ).read_text(encoding="utf-8")
         cls.adapter_source = (
-            cls.tool_root
-            / "blender_sprite_factory_attack_sword_directional_cycle_v21_pass05.py"
+            cls.tool_root / "blender_sprite_factory_attack_sword_directional_cycle_v21_pass05.py"
         ).read_text(encoding="utf-8")
         cls.workflow_source = (
-            cls.tool_root.parents[1]
-            / ".github"
-            / "workflows"
-            / "validate-human-warrior-attack-directional-v21.yml"
+            cls.tool_root.parents[1] / ".github" / "workflows" / "validate-human-warrior-attack-directional-v21.yml"
         ).read_text(encoding="utf-8")
-        cls.launcher_source = (
-            cls.tool_root / "run_blender_sprite_pilot.ps1"
-        ).read_text(encoding="utf-8")
+        cls.launcher_source = (cls.tool_root / "run_blender_sprite_pilot.ps1").read_text(encoding="utf-8")
 
     def test_recovery_correction_contract(self) -> None:
         self.assertEqual(CORRECTION_PASS, "v21_pass05")
-        self.assertEqual(
-            RECOVERY_CLEARANCE_REVISION,
-            "left_onehand_recovery_arm_weapon_v21_pass05",
-        )
+        self.assertEqual(RECOVERY_CLEARANCE_REVISION, "left_onehand_recovery_arm_weapon_v21_pass05")
         self.assertEqual(TARGET_ACTION_ID, "attack_sword_01_onehand_left_v21")
         self.assertEqual(TARGET_GRIP_ID, "onehand_ready")
         self.assertEqual(TARGET_DIRECTION, "left")
@@ -66,14 +56,8 @@ class AttackSwordDirectionalCycleV21Pass05Tests(unittest.TestCase):
         self.assertEqual(TARGET_BONES, ("upper_arm.R", "forearm.R", "hand.R"))
         self.assertEqual(SELECTED_ARM_BLEND, 0.10)
         self.assertEqual(SELECTED_WEAPON_OFFSET_DEGREES, -44.0)
-        self.assertGreaterEqual(
-            SELECTED_HEAD_CLEARANCE_PIXELS,
-            MIN_HEAD_CLEARANCE_PIXELS,
-        )
-        self.assertGreaterEqual(
-            SELECTED_CAMERA_MARGIN_PIXELS,
-            MIN_CAMERA_MARGIN_PIXELS,
-        )
+        self.assertGreaterEqual(SELECTED_HEAD_CLEARANCE_PIXELS, MIN_HEAD_CLEARANCE_PIXELS)
+        self.assertGreaterEqual(SELECTED_CAMERA_MARGIN_PIXELS, MIN_CAMERA_MARGIN_PIXELS)
         self.assertTrue(REQUIRE_ZERO_EDGE_ALPHA)
         self.assertEqual(SOURCE_FAILED_RUN_ID, 30741831909)
         self.assertEqual(SOURCE_FAILED_ARTIFACT_ID, 8831682378)
@@ -88,10 +72,7 @@ class AttackSwordDirectionalCycleV21Pass05Tests(unittest.TestCase):
 
     def test_builder_bakes_only_target_recovery_arm_blend(self) -> None:
         ast.parse(self.builder_source)
-        self.assertIn(
-            "create_attack_sword_directional_cycle_actions_v21_pass04",
-            self.builder_source,
-        )
+        self.assertIn("create_attack_sword_directional_cycle_actions_v21_pass04", self.builder_source)
         self.assertIn("TARGET_BONES", self.builder_source)
         self.assertIn("TARGET_FRAME", self.builder_source)
         self.assertIn("GUARD_FRAME", self.builder_source)
@@ -114,13 +95,9 @@ class AttackSwordDirectionalCycleV21Pass05Tests(unittest.TestCase):
         self.assertNotIn("obj.scale", self.adapter_source)
         self.assertNotIn("mesh.vertices", self.adapter_source)
 
-    def test_pass05_remains_full_source_under_pass06_diagnostic(self) -> None:
-        diagnostic = (
-            "blender_sprite_factory_attack_sword_twohand_left_windup_diagnostic_v21.py"
-        )
-        full = (
-            "blender_sprite_factory_attack_sword_directional_cycle_v21_pass05.py"
-        )
+    def test_pass05_remains_full_source_under_pass07_diagnostic(self) -> None:
+        diagnostic = "blender_sprite_factory_attack_sword_twohand_left_arm_diagnostic_v21.py"
+        full = "blender_sprite_factory_attack_sword_directional_cycle_v21_pass05.py"
         self.assertTrue((self.tool_root / full).is_file())
         self.assertIn(diagnostic, self.workflow_source)
         self.assertIn(full, self.launcher_source)
