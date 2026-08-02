@@ -36,19 +36,6 @@ func _process(delta: float) -> void:
 		interact_button.disabled = _action_button_blocked_now()
 
 
-func _input(event: InputEvent) -> void:
-	if visible and _initialized and event is InputEventScreenTouch and is_instance_valid(interact_button):
-		var touch: InputEventScreenTouch = event as InputEventScreenTouch
-		if touch.pressed and interact_button.get_global_rect().has_point(touch.position):
-			_action_press_started_blocked = _action_button_blocked_now()
-			if _action_press_started_blocked:
-				interact_button.set_pressed_no_signal(false)
-				_close_action_catalog()
-				get_viewport().set_input_as_handled()
-				return
-	super._input(event)
-
-
 func _set_player_vector(direction: Vector2) -> void:
 	_last_joystick_direction = direction.limit_length(1.0)
 	var combat_active: bool = _is_combat_active()
@@ -146,9 +133,8 @@ func _action_button_blocked_now() -> bool:
 func _install_action_press_origin_guard() -> void:
 	if not is_instance_valid(interact_button):
 		return
-	# Trigger on the physical press, not on release. A finger that went down while
-	# the button was disabled can therefore never open the catalog when it is
-	# lifted after the turn changes.
+	# Button-down is Godot's authoritative GUI origin. Press-mode means a touch
+	# cannot start on another control and later become an Actions activation.
 	interact_button.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 	var callback := Callable(self, "_on_action_button_down")
 	if not interact_button.button_down.is_connected(callback):
@@ -188,14 +174,13 @@ func _on_interact_pressed() -> void:
 	if _game_world.has_method("_refresh_action_catalog"):
 		_game_world.call("_refresh_action_catalog")
 	var nearby_count: int = _nearby_interactable_count()
-	if nearby_count > 0:
-		if action_catalog.has_method("is_catalog_open") and not bool(action_catalog.call("is_catalog_open")):
-			action_catalog.call("toggle_catalog")
+	if action_catalog.has_method("request_toggle_from_action_button"):
+		action_catalog.call("request_toggle_from_action_button")
+	elif action_catalog.has_method("toggle_catalog"):
+		action_catalog.call("toggle_catalog")
+	if nearby_count > 0 and action_catalog.has_method("is_catalog_open") and bool(action_catalog.call("is_catalog_open")):
 		action_catalog.call("_select_category", "action")
 		action_catalog.call("_select_action_group", "world")
-		return
-	if action_catalog.has_method("toggle_catalog"):
-		action_catalog.call("toggle_catalog")
 
 
 func _nearby_interactable_count() -> int:
