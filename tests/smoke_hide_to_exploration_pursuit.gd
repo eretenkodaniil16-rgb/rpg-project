@@ -35,8 +35,7 @@ func _run() -> void:
 		return
 	mobile.call("enable_for_testing")
 
-	var last_known := Vector2(620.0, 180.0)
-	player.global_position = last_known
+	player.global_position = Vector2(620.0, 180.0)
 	state.set("player_position", player.global_position)
 	(guard as Node2D).global_position = Vector2(760.0, 180.0)
 	guard.call("set_facing_direction", Vector2.LEFT)
@@ -45,6 +44,12 @@ func _run() -> void:
 	await process_frame
 	if not bool(game.call("is_turn_based_combat_active")):
 		_fail("Combat did not start for the pursuit transition test.")
+		return
+	# Combat start may align actors to the battle grid. The canonical pursuit
+	# target is the position actually recorded after that alignment.
+	var last_known: Vector2 = game.get("_last_seen_player_position") as Vector2
+	if last_known == Vector2.ZERO:
+		_fail("Combat did not record an initial visual contact position.")
 		return
 
 	if float(mobile.call("get_action_turn_guard_remaining_for_testing")) <= 0.0:
@@ -62,7 +67,8 @@ func _run() -> void:
 	catalog.close_catalog()
 
 	west_door.set_door_state("closed", false)
-	player.global_position = Vector2(100.0, 110.0)
+	var hidden_position := Vector2(100.0, 110.0)
+	player.global_position = hidden_position
 	state.set("player_position", player.global_position)
 	game.call("set_hide_roll_overrides_for_testing", [20])
 	catalog.call("toggle_catalog")
@@ -90,7 +96,10 @@ func _run() -> void:
 		return
 	var stored_last_known: Vector2 = StealthAlertSystem.new().vector_from_value(record.get("last_known_position", []))
 	if stored_last_known.distance_to(last_known) > 0.5:
-		_fail("Last known player position was lost when initiative ended.")
+		_fail("Pursuit target differs from the actual last visual contact: expected=%s actual=%s hidden=%s" % [last_known, stored_last_known, hidden_position])
+		return
+	if stored_last_known.distance_to(hidden_position) <= 0.5:
+		_fail("The hidden position leaked into the patrol pursuit record.")
 		return
 
 	var before_search_move: Vector2 = (guard as Node2D).global_position
