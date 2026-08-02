@@ -74,6 +74,9 @@ func _run() -> void:
 		_fail("Action catalog did not open before the Hide request.")
 		return
 	catalog.call("_emit_action", "hide", "", true)
+	if catalog.is_catalog_open():
+		_fail("Action catalog remained visible underneath the blocking Hide roll overlay.")
+		return
 	for _frame: int in range(3):
 		await process_frame
 	if bool(game.call("is_turn_based_combat_active")):
@@ -127,7 +130,7 @@ func _run() -> void:
 		_fail("Sustained reacquisition did not restart initiative: record=%s visible=%s hostile=%s" % [final_record, visible_now, guard.call("is_hostile")])
 		return
 
-	print("Catalog Hide signal, turn-start input guard, pursuit and reacquisition passed.")
+	print("Catalog Hide signal, immediate modal closure, turn-start input guard, pursuit and reacquisition passed.")
 	game.queue_free()
 	await process_frame
 	quit(0)
