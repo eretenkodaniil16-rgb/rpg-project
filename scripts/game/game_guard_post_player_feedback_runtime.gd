@@ -54,6 +54,16 @@ func _sync_combat_alert_records() -> void:
 		_apply_record_to_actor(actor, record)
 
 
+func _begin_combat_from_alert(actor: Node, record: Dictionary) -> void:
+	# Hide suspension deliberately disables real-time hostility. Reacquisition
+	# must restore the flag even for NPC implementations without the optional
+	# enter_combat_hostile() helper, otherwise alert reaches 100 but initiative
+	# cannot be started by the combat runtime.
+	if actor != null and is_instance_valid(actor):
+		actor.set("hostile", true)
+	super._begin_combat_from_alert(actor, record)
+
+
 func _advance_combat_turn() -> void:
 	_close_action_catalog_immediately()
 	super._advance_combat_turn()
