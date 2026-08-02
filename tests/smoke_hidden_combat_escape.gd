@@ -83,9 +83,22 @@ func _run() -> void:
 
 	for actor_id: String in ["caretaker", "service_guard"]:
 		var record: Dictionary = state.call("get_stealth_alert_record", actor_id) as Dictionary
-		if str(record.get("state", "")) != StealthAlertSystem.STATE_INVESTIGATING:
-			_fail("Observer %s did not continue toward the last known position." % actor_id)
+		if str(record.get("state", "")) not in [
+			StealthAlertSystem.STATE_INVESTIGATING,
+			StealthAlertSystem.STATE_SEARCHING
+		]:
+			_fail("Observer %s did not retain an active post-hide search state." % actor_id)
 			return
+
+	var caretaker_before_search: Vector2 = (caretaker as Node2D).global_position
+	var guard_before_search: Vector2 = (guard as Node2D).global_position
+	game.call("force_exploration_alert_tick_for_testing", 0.5)
+	if (caretaker as Node2D).global_position.distance_to(caretaker_before_search) > 0.1:
+		_fail("Stationary caretaker abandoned the post during hide pursuit.")
+		return
+	if (guard as Node2D).global_position.distance_to(guard_before_search) <= 0.1:
+		_fail("Patrolling service guard did not move toward the last known position.")
+		return
 
 	# Reacquisition starts a fresh initiative without an unconditional advantage.
 	game.call("_break_exploration_hidden", "")
@@ -121,7 +134,7 @@ func _run() -> void:
 	await process_frame
 	if FileAccess.file_exists(save_path):
 		DirAccess.remove_absolute(save_path)
-	print("Successful Hide ends initiative, preserves pursuit, restarts combat on reacquisition and saves active encounter state.")
+	print("Successful Hide preserves a stationary watcher, moving patrol pursuit, reacquisition and active encounter persistence.")
 	quit(0)
 
 
