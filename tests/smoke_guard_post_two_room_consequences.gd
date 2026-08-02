@@ -1,7 +1,7 @@
 extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
-const EXPECTED_RUNTIME: String = "res://scripts/game/game_guard_post_polish_runtime.gd"
+const EXPECTED_RUNTIME: String = "res://scripts/game/game_guard_post_player_feedback_runtime.gd"
 const FIRST_ROOM_ID: String = "vault_guard_post_01"
 const SECOND_ROOM_ID: String = "vault_inner_watch_01"
 const INNER_GATE_BLOCKER_ID: String = "inner_watch_gate_blocker"
@@ -156,7 +156,7 @@ func _spawn_game() -> Node:
 		await process_frame
 	var game_script: Script = game.get_script() as Script
 	if game_script == null or game_script.resource_path != EXPECTED_RUNTIME:
-		_fail("Game scene does not use the polished guard post runtime.")
+		_fail("Game scene does not use the hide-to-pursuit guard post runtime.")
 		game.queue_free()
 		return null
 	return game
