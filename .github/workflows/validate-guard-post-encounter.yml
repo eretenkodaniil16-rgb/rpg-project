@@ -13,6 +13,7 @@ on:
       - "scripts/game/npc_stealth_context_dialogue.gd"
       - "scripts/game/throwable_world_prop.gd"
       - "scripts/game/room_fog_overlay.gd"
+      - "scripts/game/stealth_door.gd"
       - "scripts/game/stealth_door_visual_decorator.gd"
       - "scripts/game/game_guard_post_encounter_runtime.gd"
       - "scripts/game/game_guard_post_two_room_runtime.gd"
@@ -25,6 +26,7 @@ on:
       - "tests/test_guard_post_outcome_selection.gd"
       - "tests/smoke_guard_post_encounter_runtime.gd"
       - "tests/smoke_guard_post_two_room_consequences.gd"
+      - "tests/smoke_guard_post_integrity_betrayal.gd"
       - "tests/smoke_caretaker_neutral_detection.gd"
       - "tests/smoke_overlapping_interaction_zones.gd"
       - "tests/smoke_guard_post_presentation_and_parley.gd"
@@ -34,6 +36,7 @@ on:
   push:
     branches:
       - feature/guard-post-encounter-v1
+      - fix/world-state-npc-navigation
 
 concurrency:
   group: guard-post-${{ github.event.pull_request.number || github.ref }}
@@ -83,6 +86,10 @@ jobs:
         shell: bash
         run: timeout 360s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_guard_post_two_room_consequences.gd 2>&1 | tee guard-post-two-room.log
 
+      - name: Verify perimeter, doors and peaceful betrayal
+        shell: bash
+        run: timeout 360s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_guard_post_integrity_betrayal.gd 2>&1 | tee guard-post-integrity-betrayal.log
+
       - name: Verify neutral caretaker detection
         shell: bash
         run: timeout 240s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_caretaker_neutral_detection.gd 2>&1 | tee caretaker-neutral.log
@@ -130,6 +137,7 @@ jobs:
             guard-post-outcomes.log
             guard-post-smoke.log
             guard-post-two-room.log
+            guard-post-integrity-betrayal.log
             caretaker-neutral.log
             overlapping-interactions.log
             guard-post-presentation.log
