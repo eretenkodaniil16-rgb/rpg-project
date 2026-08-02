@@ -3,7 +3,7 @@ param(
     [string]$BlenderExe = "",
     [ValidateSet("all", "build")]
     [string]$Mode = "all",
-    [ValidateSet("walk_v16", "attack_down_keyposes_v17", "attack_down_keyposes_v18", "attack_down_keyposes_v19", "attack_down_cycle_v20")]
+    [ValidateSet("walk_v16", "attack_down_keyposes_v17", "attack_down_keyposes_v18", "attack_down_keyposes_v19", "attack_down_cycle_v20", "attack_directional_cycle_v21")]
     [string]$Stage = "walk_v16",
     [string]$RunId = ""
 )
@@ -44,6 +44,10 @@ if ($Stage -eq "attack_down_keyposes_v19") {
 if ($Stage -eq "attack_down_cycle_v20") {
     $FactoryScript = Join-Path $ToolRoot "blender_sprite_factory_attack_sword_down_cycle_v20_pass05.py"
     $ReviewFile = "attack_sword_01_down_cycle_v20.png"
+}
+if ($Stage -eq "attack_directional_cycle_v21") {
+    $FactoryScript = Join-Path $ToolRoot "blender_sprite_factory_attack_sword_directional_cycle_v21.py"
+    $ReviewFile = "attack_sword_01_directional_cycle_v21.png"
 }
 $FactoryConfig = Join-Path $ToolRoot "configs\human_warrior_m01.json"
 
