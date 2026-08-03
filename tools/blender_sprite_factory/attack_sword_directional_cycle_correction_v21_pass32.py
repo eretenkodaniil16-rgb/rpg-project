@@ -1,0 +1,32 @@
+from __future__ import annotations
+
+CORRECTION_PASS = "v21_pass32"
+TWOHAND_UP_F01_FULL_BLEND_REVIEW_REVISION = (
+    "twohand_up_f01_full_blend_minimum_offset_review_v21_pass32"
+)
+
+TARGET_ACTION_ID = "attack_sword_01_twohand_up_v21"
+TARGET_GRIP_ID = "twohand_center_high"
+TARGET_DIRECTION = "up"
+TARGET_FRAME = 1
+
+SOURCE_FRAME_CANDIDATES = (2, 8, 3, 7, 4, 6, 5)
+ARM_BLEND_CANDIDATES = (0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90, 1.00)
+MAX_ABS_WEAPON_OFFSET_DEGREES = 48.0
+TARGET_ABS_WEAPON_OFFSET_DEGREES = 24.0
+REVIEW_VARIANT_COUNT = 6
+
+MIN_VISIBLE_BLADE_HEAD_CLEARANCE_PIXELS = 1.0
+MIN_VISIBLE_BLADE_SAMPLES = 4
+MIN_CAMERA_MARGIN_PIXELS = 1.0
+REQUIRE_ZERO_EDGE_ALPHA = True
+
+SOURCE_REVIEW_RUN_ID = 30852711829
+SOURCE_REVIEW_ARTIFACT_ID = 8871341984
+SOURCE_REVIEW_ARTIFACT_SHA256 = (
+    "1f7d833bf923e6210a271de6b2749185dcc237857e4e8fcfa0194916b6e56bd6"
+)
+SOURCE_REVIEW_RESULT = (
+    "pass31 stopped at arm blend 0.30 and returned four candidates with "
+    "48 degree weapon offsets; full blend range was not evaluated"
+)
