@@ -55,15 +55,15 @@ func _run() -> void:
 		_fail("Combat did not record an initial visual contact position.")
 		return
 
-	# Legacy signals are not a valid user intent and cannot open the menu at a
-	# turn boundary. A completed GUI gesture opens normally without a timer.
-	actions_button.emit_signal("pressed")
+	# A release originating outside the Actions BaseButton cannot open it. A real
+	# normal short tap on Actions must open immediately on the player's turn.
+	mobile.call("simulate_unowned_action_release_for_testing", 51)
 	if catalog.is_catalog_open():
-		_fail("A stale pressed signal opened the action catalog at turn start.")
+		_fail("A foreign touch release opened the action catalog at turn start.")
 		return
 	mobile.call("simulate_actions_touch_for_testing")
 	if not catalog.is_catalog_open():
-		_fail("A completed Actions gesture was blocked on the player turn.")
+		_fail("A normal Actions tap was blocked on the player turn.")
 		return
 	catalog.close_catalog()
 
@@ -74,7 +74,7 @@ func _run() -> void:
 	game.call("set_hide_roll_overrides_for_testing", [20])
 	mobile.call("simulate_actions_touch_for_testing")
 	if not catalog.is_catalog_open():
-		_fail("Completed Actions gesture did not open before the Hide request.")
+		_fail("Normal Actions tap did not open before the Hide request.")
 		return
 	catalog.call("_emit_action", "hide", "", true)
 	if catalog.is_catalog_open():
@@ -133,7 +133,7 @@ func _run() -> void:
 		_fail("Sustained reacquisition did not restart initiative: record=%s visible=%s hostile=%s" % [final_record, visible_now, guard.call("is_hostile")])
 		return
 
-	print("Catalog Hide signal, immediate modal closure, GUI-origin input, pursuit and reacquisition passed.")
+	print("Catalog Hide signal, modal closure, foreign-release rejection, pursuit and reacquisition passed.")
 	game.queue_free()
 	await process_frame
 	quit(0)
