@@ -1,18 +1,19 @@
 extends "res://scripts/ui/mobile_controls.gd"
 
-const COMBAT_ACTION_TURN_GUARD_SECONDS: float = 0.28
-
 var _last_joystick_direction: Vector2 = Vector2.ZERO
 var _control_mode_initialized: bool = false
 var _last_combat_mode: bool = false
 var _last_player_turn_active: bool = false
-var _action_turn_guard_remaining: float = 0.0
-var _action_press_started_blocked: bool = false
 
 
 func _ready() -> void:
 	super._ready()
-	_install_action_press_origin_guard()
+	_restore_simple_action_button_input()
+
+
+func enable_for_testing() -> void:
+	super.enable_for_testing()
+	_restore_simple_action_button_input()
 
 
 func _process(delta: float) -> void:
@@ -21,17 +22,11 @@ func _process(delta: float) -> void:
 	var player_turn_active: bool = combat_active and _is_player_combat_turn()
 	if not _control_mode_initialized or combat_active != _last_combat_mode:
 		_control_mode_initialized = true
-		_last_combat_mode = combat_active
 		_apply_player_control_vector(_last_joystick_direction, combat_active)
-	if combat_active and player_turn_active != _last_player_turn_active:
+	if combat_active != _last_combat_mode or player_turn_active != _last_player_turn_active:
 		_close_action_catalog()
-		_action_turn_guard_remaining = COMBAT_ACTION_TURN_GUARD_SECONDS if player_turn_active else 0.0
-		if is_instance_valid(interact_button):
-			interact_button.set_pressed_no_signal(false)
-	elif not combat_active:
-		_action_turn_guard_remaining = 0.0
+	_last_combat_mode = combat_active
 	_last_player_turn_active = player_turn_active
-	_action_turn_guard_remaining = maxf(_action_turn_guard_remaining - maxf(delta, 0.0), 0.0)
 	if is_instance_valid(interact_button):
 		interact_button.disabled = _action_button_blocked_now()
 
@@ -67,11 +62,11 @@ func get_joystick_output_for_testing() -> Vector2:
 
 
 func get_action_turn_guard_remaining_for_testing() -> float:
-	return _action_turn_guard_remaining
+	return 0.0
 
 
 func action_press_started_blocked_for_testing() -> bool:
-	return _action_press_started_blocked
+	return _action_button_blocked_now()
 
 
 func _apply_player_control_vector(direction: Vector2, combat_active: bool) -> void:
@@ -116,42 +111,38 @@ func _is_player_combat_turn() -> bool:
 
 
 func _action_button_blocked_now() -> bool:
-	var combat_active: bool = _is_combat_active()
-	return (
-		GameState.input_locked
-		or (
-			combat_active
-			and (
-				not _last_player_turn_active
-				or not _is_player_combat_turn()
-				or _action_turn_guard_remaining > 0.0
-			)
-		)
-	)
+	if GameState.input_locked:
+		return true
+	if not _is_combat_active():
+		return false
+	return not _is_player_combat_turn()
 
 
-func _install_action_press_origin_guard() -> void:
+func _restore_simple_action_button_input() -> void:
 	if not is_instance_valid(interact_button):
 		return
-	# Button-down is Godot's authoritative GUI origin. Press-mode means a touch
-	# cannot start on another control and later become an Actions activation.
-	interact_button.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
-	var callback := Callable(self, "_on_action_button_down")
-	if not interact_button.button_down.is_connected(callback):
-		interact_button.button_down.connect(callback)
+	# Restore the original Godot BaseButton contract. The button emits `pressed`
+	# after a normal short tap/release; no separate button_down authorization,
+	# touch index, hold duration or post-turn timer is required.
+	interact_button.action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
+	interact_button.focus_mode = Control.FOCUS_NONE
+	interact_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	var callback := Callable(self, "_on_interact_pressed")
+	if not interact_button.pressed.is_connected(callback):
+		interact_button.pressed.connect(callback)
+	var obsolete_button_down := Callable(self, "_on_action_button_down")
+	if interact_button.button_down.is_connected(obsolete_button_down):
+		interact_button.button_down.disconnect(obsolete_button_down)
 
 
 func _on_action_button_down() -> void:
-	_action_press_started_blocked = _action_button_blocked_now()
-	if _action_press_started_blocked:
-		interact_button.set_pressed_no_signal(false)
-		_close_action_catalog()
+	# Compatibility method for older tests and loaded callables. A press without
+	# release deliberately does not toggle the catalogue.
+	pass
 
 
 func _on_interact_pressed() -> void:
-	var press_started_blocked: bool = _action_press_started_blocked
-	_action_press_started_blocked = false
-	if press_started_blocked:
+	if _action_button_blocked_now():
 		_close_action_catalog()
 		return
 	if not is_instance_valid(_player):
@@ -165,22 +156,23 @@ func _on_interact_pressed() -> void:
 		if is_instance_valid(_player) and _player.has_method("request_interaction"):
 			_player.call("request_interaction")
 		return
-	if _is_combat_active() and (
-		not _is_player_combat_turn()
-		or _action_turn_guard_remaining > 0.0
-	):
-		_close_action_catalog()
-		return
+
+	# The catalogue is always available outside combat, even when no trigger is
+	# active. Proximity changes only which world actions are listed inside it.
 	if _game_world.has_method("_refresh_action_catalog"):
 		_game_world.call("_refresh_action_catalog")
 	var nearby_count: int = _nearby_interactable_count()
+	var opened: bool = false
 	if action_catalog.has_method("request_toggle_from_action_button"):
-		action_catalog.call("request_toggle_from_action_button")
+		opened = bool(action_catalog.call("request_toggle_from_action_button"))
 	elif action_catalog.has_method("toggle_catalog"):
 		action_catalog.call("toggle_catalog")
-	if nearby_count > 0 and action_catalog.has_method("is_catalog_open") and bool(action_catalog.call("is_catalog_open")):
-		action_catalog.call("_select_category", "action")
-		action_catalog.call("_select_action_group", "world")
+		opened = action_catalog.has_method("is_catalog_open") and bool(action_catalog.call("is_catalog_open"))
+	if opened and nearby_count > 0:
+		if action_catalog.has_method("_select_category"):
+			action_catalog.call("_select_category", "action")
+		if action_catalog.has_method("_select_action_group"):
+			action_catalog.call("_select_action_group", "world")
 
 
 func _nearby_interactable_count() -> int:
