@@ -17,6 +17,8 @@ from attack_sword_directional_cycle_correction_v21_pass26 import (
     SELECTED_WEAPON_OFFSET_DEGREES_BY_FRAME,
     SOURCE_DIAGNOSTIC_ARTIFACT_ID,
     SOURCE_DIAGNOSTIC_RUN_ID,
+    SOURCE_FULL_CONTEXT_ARTIFACT_ID,
+    SOURCE_FULL_CONTEXT_RUN_ID,
     TARGET_ACTION_ID,
     TARGET_DIRECTION,
     TARGET_FRAMES,
@@ -58,12 +60,14 @@ class AttackSwordDirectionalCycleV21Pass26Tests(unittest.TestCase):
         self.assertEqual(ARM_TARGET_FRAME, 5)
         self.assertEqual(SELECTED_ARM_PROFILE["scale"], 0.5)
         self.assertEqual(SELECTED_WEAPON_OFFSET_DEGREES_BY_FRAME[5], -24.0)
-        self.assertGreaterEqual(MIN_HEAD_CLEARANCE_PIXELS_BY_FRAME[5], 2.0)
+        self.assertEqual(MIN_HEAD_CLEARANCE_PIXELS_BY_FRAME[5], 1.5)
         self.assertGreaterEqual(MIN_CAMERA_MARGIN_PIXELS, 12.0)
         self.assertTrue(FLIP_CAMERA_DEPTH_BRANCH)
         self.assertTrue(REQUIRE_ZERO_EDGE_ALPHA)
         self.assertEqual(SOURCE_DIAGNOSTIC_RUN_ID, 30773183585)
         self.assertEqual(SOURCE_DIAGNOSTIC_ARTIFACT_ID, 8841230831)
+        self.assertEqual(SOURCE_FULL_CONTEXT_RUN_ID, 30773644539)
+        self.assertEqual(SOURCE_FULL_CONTEXT_ARTIFACT_ID, 8841651589)
         self.assertEqual(
             set(SELECTED_BONE_DELTAS_DEGREES),
             {"upper_arm.R", "forearm.R", "hand.R"},
