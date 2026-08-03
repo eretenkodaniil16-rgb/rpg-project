@@ -192,12 +192,16 @@ func _verify_peaceful_betrayal(
 
 	var catalog: ActionCatalogUI = game.get_node_or_null("Interface/ActionCatalogUI") as ActionCatalogUI
 	var target_button: Button = game.get_node_or_null("Interface/TargetButton") as Button
-	if catalog == null or target_button == null:
-		_fail("Action catalog or Target button is missing from the betrayal test.")
+	var mobile_controls: Control = game.get_node_or_null("Interface/MobileControls") as Control
+	if catalog == null or target_button == null or mobile_controls == null:
+		_fail("Action catalog, Target button or mobile controls are missing from the betrayal test.")
 		return
-	catalog.toggle_catalog()
+	mobile_controls.call("enable_for_testing")
+	game.call("force_player_turn_for_testing")
+	mobile_controls.call("_process", 0.0)
+	mobile_controls.call("simulate_actions_touch_for_testing")
 	if not catalog.panel.visible:
-		_fail("Could not open the catalog before testing resilient target selection.")
+		_fail("Could not open the catalog through the real Actions button before target selection.")
 		return
 	var selected_actor_ids: Dictionary = {}
 	for _press: int in range(8):
