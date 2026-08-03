@@ -33,6 +33,11 @@ func _run() -> void:
 	if player == null or room == null or target_button == null or catalog == null or mobile == null:
 		_fail("Runtime regression fixtures are incomplete.")
 		return
+	mobile.call("enable_for_testing")
+	var actions_button: Button = mobile.call("get_actions_button_for_testing") as Button
+	if actions_button == null:
+		_fail("Actions button is missing from the runtime regression.")
+		return
 	var guard: Node = room.get_patrol_observer()
 	var marksman: Node = room.get_training_marksman()
 	var mage: Node = room.get_training_mage()
@@ -80,9 +85,9 @@ func _run() -> void:
 	game.call("force_patrol_tick_for_testing", guard, 0.7)
 	var patrol_start: Vector2 = (guard as Node2D).global_position
 	catalog.require_explicit_open_for_testing(true)
-	catalog.request_toggle_from_action_button()
+	mobile.call("simulate_actions_touch_for_testing")
 	if not catalog.is_catalog_open():
-		_fail("Explicit catalogue setup did not open the patrol test overlay.")
+		_fail("A normal quick Actions tap did not open the patrol test overlay.")
 		return
 	for _tick: int in range(10):
 		game.call("_update_exploration_alerts", 0.25)
@@ -92,8 +97,6 @@ func _run() -> void:
 		return
 	catalog.close_catalog()
 
-	mobile.call("enable_for_testing")
-	catalog.close_catalog()
 	catalog.toggle_catalog()
 	if catalog.is_catalog_open():
 		_fail("Unauthorized generic toggle opened the catalogue immediately.")
@@ -102,8 +105,10 @@ func _run() -> void:
 	if catalog.is_catalog_open():
 		_fail("Unauthorized generic toggle produced a one-frame catalogue flash.")
 		return
-	var actions_button: Button = mobile.call("get_actions_button_for_testing") as Button
 	var move_pad: Control = mobile.get_node_or_null("MovePad") as Control
+	if move_pad == null:
+		_fail("Move pad is missing from the runtime regression.")
+		return
 	var joystick_press := InputEventScreenTouch.new()
 	joystick_press.index = 71
 	joystick_press.position = move_pad.get_global_rect().get_center()
@@ -120,12 +125,12 @@ func _run() -> void:
 		return
 	mobile.call("simulate_actions_touch_for_testing")
 	if not catalog.is_catalog_open():
-		_fail("Fresh completed Actions gesture did not open the catalogue.")
+		_fail("A fresh normal Actions tap did not open the catalogue.")
 		return
 	for _frame: int in range(4):
 		await process_frame
 		if not catalog.is_catalog_open():
-			_fail("Fresh completed Actions gesture produced a transient catalogue flash.")
+			_fail("A fresh normal Actions tap produced a transient catalogue flash.")
 			return
 	if catalog.has_open_authorization_for_testing():
 		_fail("Action catalogue unexpectedly retained an authorization state.")
