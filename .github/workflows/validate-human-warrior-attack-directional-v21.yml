@@ -50,6 +50,7 @@ jobs:
       # blender_sprite_factory_attack_sword_directional_cycle_v21_pass13.py
       # blender_sprite_factory_attack_sword_directional_cycle_v21_pass15.py
       # blender_sprite_factory_attack_sword_directional_cycle_v21_pass19.py
+      # blender_sprite_factory_attack_sword_directional_cycle_v21_pass26.py
       # blender_sprite_factory_attack_sword_twohand_left_tail_diagnostic_v21.py
       # blender_sprite_factory_attack_sword_twohand_right_batch_diagnostic_v21.py
       # blender_sprite_factory_attack_sword_twohand_right_anticipation_diagnostic_v21.py
@@ -60,7 +61,7 @@ jobs:
       # blender_sprite_factory_attack_sword_onehand_up_depth_search_diagnostic_v21.py
       # blender_sprite_factory_attack_sword_onehand_up_front_depth_diagnostic_v21.py
       # blender_sprite_factory_attack_sword_onehand_up_f05_arm_diagnostic_v21.py
-      - name: Render Blender 5.2 full directional cycle v21 pass26
+      - name: Render Blender 5.2 full directional cycle v21 pass27
         id: blender-attack-directional
         continue-on-error: true
         shell: bash
@@ -71,7 +72,7 @@ jobs:
             --background \
             --factory-startup \
             --python-exit-code 1 \
-            --python tools/blender_sprite_factory/blender_sprite_factory_attack_sword_directional_cycle_v21_pass26.py \
+            --python tools/blender_sprite_factory/blender_sprite_factory_attack_sword_directional_cycle_v21_pass27.py \
             -- \
             --repo-root "$GITHUB_WORKSPACE" \
             --config tools/blender_sprite_factory/configs/human_warrior_m01.json \
@@ -82,7 +83,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: human_warrior_m01_proxy_v25_attack_sword_01_directional_v21_pass26_${{ github.run_id }}_${{ github.run_attempt }}
+          name: human_warrior_m01_proxy_v25_attack_sword_01_directional_v21_pass27_${{ github.run_id }}_${{ github.run_attempt }}
           path: |
             art/blender_pipeline_runs/human_warrior_m01/**
             blender_attack_directional_v21.log
@@ -92,5 +93,5 @@ jobs:
       - name: Require successful full directional cycle render
         if: steps.blender-attack-directional.outcome != 'success'
         run: |
-          echo "Directional attack v21 pass26 full directional cycle failed; inspect blender_attack_directional_v21.log in the uploaded artifact."
+          echo "Directional attack v21 pass27 full directional cycle failed; inspect blender_attack_directional_v21.log in the uploaded artifact."
           exit 1
