@@ -2,6 +2,9 @@ extends "res://scripts/game/game_combat_ai_runtime.gd"
 
 const MOVEMENT_CONTEXT_DISENGAGED: String = "disengaged"
 const MOVEMENT_CONTEXT_FORCED: String = "forced_movement"
+const NPC_COMBAT_STEP_SPEED_PIXELS: float = 360.0
+const NPC_COMBAT_STEP_MIN_SECONDS: float = 0.16
+const NPC_COMBAT_STEP_MAX_SECONDS: float = 0.30
 
 var _player_opportunity_offer_count: int = 0
 var _last_opportunity_mover_id: String = ""
@@ -27,10 +30,34 @@ func _execute_combat_ai_path(actor: Node2D, path: Array, intent_id: String) -> v
 			break
 		if not is_instance_valid(actor) or not _actor_remains_combat_active(actor):
 			break
-		actor.global_position = to_position
-		await get_tree().create_timer(0.1).timeout
+		if not await _animate_npc_combat_step(actor, to_position):
+			break
 		if intent_id == NpcCombatAiSystem.INTENT_SEARCH and _combat_ai_can_see_player_from(actor.global_position):
 			break
+
+
+func _animate_npc_combat_step(actor: Node2D, destination: Vector2) -> bool:
+	if not is_instance_valid(actor) or not _actor_remains_combat_active(actor):
+		return false
+	var direction: Vector2 = destination - actor.global_position
+	if direction.length_squared() <= 0.0001:
+		return true
+	if actor.has_method("set_facing_direction"):
+		actor.call("set_facing_direction", direction)
+	var duration: float = clampf(
+		direction.length() / NPC_COMBAT_STEP_SPEED_PIXELS,
+		NPC_COMBAT_STEP_MIN_SECONDS,
+		NPC_COMBAT_STEP_MAX_SECONDS
+	)
+	var tween: Tween = create_tween()
+	tween.set_trans(Tween.TRANS_SINE)
+	tween.set_ease(Tween.EASE_IN_OUT)
+	tween.tween_property(actor, "global_position", destination, duration)
+	await tween.finished
+	if not is_instance_valid(actor) or not _actor_remains_combat_active(actor):
+		return false
+	actor.global_position = destination
+	return true
 
 
 func _resolve_movement_reactions_before_step(
