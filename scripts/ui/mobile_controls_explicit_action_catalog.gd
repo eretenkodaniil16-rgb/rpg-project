@@ -1,12 +1,17 @@
-extends "res://scripts/ui/mobile_controls_context_actions.gd"
+extends "res://scripts/ui/mobile_controls.gd"
 
 const EMULATED_MOUSE_SUPPRESSION_MS: int = 420
 
+var _last_joystick_direction: Vector2 = Vector2.ZERO
+var _control_mode_initialized: bool = false
+var _last_combat_mode: bool = false
 var _action_gui_input_connected: bool = false
 var _action_state_initialized: bool = false
 var _observed_combat_active: bool = false
 var _observed_player_turn_active: bool = false
-var _last_touch_intent_msec: int = -10000
+var _action_touch_index: int = -1
+var _action_mouse_armed: bool = false
+var _last_touch_event_msec: int = -10000
 var _user_toggle_count: int = 0
 
 
@@ -23,20 +28,62 @@ func enable_for_testing() -> void:
 
 
 func _process(delta: float) -> void:
-	# Neutralize the legacy button-down/turn-guard pipeline before the inherited
-	# process runs. Opening is now controlled exclusively by this script's
-	# GUI-origin intent transaction.
-	var combat_active: bool = _is_combat_active()
-	var player_turn_active: bool = combat_active and _is_player_combat_turn()
-	_control_mode_initialized = true
-	_last_combat_mode = combat_active
-	_last_player_turn_active = player_turn_active
-	_action_turn_guard_remaining = 0.0
-	_action_press_started_blocked = false
 	super._process(delta)
+	var combat_active: bool = _is_combat_active()
+	if not _control_mode_initialized or combat_active != _last_combat_mode:
+		_control_mode_initialized = true
+		_last_combat_mode = combat_active
+		_apply_player_control_vector(_last_joystick_direction, combat_active)
 	_synchronize_action_state(true)
 	if is_instance_valid(interact_button):
 		interact_button.disabled = _action_menu_blocked_now()
+
+
+func _set_player_vector(direction: Vector2) -> void:
+	_last_joystick_direction = direction.limit_length(1.0)
+	var combat_active: bool = _is_combat_active()
+	_control_mode_initialized = true
+	_last_combat_mode = combat_active
+	_apply_player_control_vector(_last_joystick_direction, combat_active)
+
+
+func _reset_player_input() -> void:
+	_last_joystick_direction = Vector2.ZERO
+	if not is_instance_valid(_player):
+		return
+	if _player.has_method("set_mobile_vector"):
+		_player.call("set_mobile_vector", Vector2.ZERO)
+	if _player.has_method("clear_mobile_facing_input"):
+		_player.call("clear_mobile_facing_input")
+	elif _player.has_method("clear_mobile_input"):
+		_player.call("clear_mobile_input")
+
+
+func get_joystick_output_for_testing() -> Vector2:
+	if not is_instance_valid(_player):
+		return Vector2.ZERO
+	if _is_combat_active() and _player.has_method("get_mobile_facing_direction"):
+		return _player.call("get_mobile_facing_direction") as Vector2
+	if _player.has_method("get_mobile_direction"):
+		return _player.call("get_mobile_direction") as Vector2
+	return Vector2.ZERO
+
+
+func _apply_player_control_vector(direction: Vector2, combat_active: bool) -> void:
+	if not is_instance_valid(_player):
+		_player = get_tree().get_first_node_in_group("player") as CharacterBody2D
+	if not is_instance_valid(_player):
+		return
+	if combat_active:
+		if _player.has_method("set_mobile_vector"):
+			_player.call("set_mobile_vector", Vector2.ZERO)
+		if _player.has_method("set_mobile_facing_vector"):
+			_player.call("set_mobile_facing_vector", direction)
+		return
+	if _player.has_method("clear_mobile_facing_input"):
+		_player.call("clear_mobile_facing_input")
+	if _player.has_method("set_mobile_vector"):
+		_player.call("set_mobile_vector", direction)
 
 
 func _install_action_intent_pipeline() -> void:
@@ -45,9 +92,6 @@ func _install_action_intent_pipeline() -> void:
 	var pressed_callback := Callable(self, "_on_interact_pressed")
 	if interact_button.pressed.is_connected(pressed_callback):
 		interact_button.pressed.disconnect(pressed_callback)
-	var down_callback := Callable(self, "_on_action_button_down")
-	if interact_button.button_down.is_connected(down_callback):
-		interact_button.button_down.disconnect(down_callback)
 	interact_button.action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
 	interact_button.focus_mode = Control.FOCUS_NONE
 	interact_button.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -58,32 +102,53 @@ func _install_action_intent_pipeline() -> void:
 
 
 func _on_action_button_gui_input(event: InputEvent) -> void:
-	if not _event_is_primary_press(event):
-		return
-	var now_msec: int = Time.get_ticks_msec()
 	if event is InputEventScreenTouch:
-		_last_touch_intent_msec = now_msec
-	elif event is InputEventMouseButton and now_msec - _last_touch_intent_msec <= EMULATED_MOUSE_SUPPRESSION_MS:
-		# Android can emit a synthetic mouse press for the same physical touch.
-		# Consuming it prevents the second toggle that previously caused a flash.
+		_handle_action_touch(event as InputEventScreenTouch)
+		return
+	if event is InputEventMouseButton:
+		_handle_action_mouse(event as InputEventMouseButton)
+
+
+func _handle_action_touch(event: InputEventScreenTouch) -> void:
+	_last_touch_event_msec = Time.get_ticks_msec()
+	if event.pressed:
+		_action_touch_index = event.index
 		interact_button.accept_event()
 		return
-	_synchronize_action_state(true)
-	if _action_menu_blocked_now():
-		_close_action_catalog()
-		interact_button.accept_event()
+	if event.index != _action_touch_index:
 		return
-	_toggle_action_catalog_from_user()
+	_action_touch_index = -1
+	_commit_action_menu_intent()
 	interact_button.accept_event()
 
 
-func _event_is_primary_press(event: InputEvent) -> bool:
-	if event is InputEventScreenTouch:
-		return (event as InputEventScreenTouch).pressed
-	if event is InputEventMouseButton:
-		var mouse_event := event as InputEventMouseButton
-		return mouse_event.pressed and mouse_event.button_index == MOUSE_BUTTON_LEFT
-	return false
+func _handle_action_mouse(event: InputEventMouseButton) -> void:
+	if event.button_index != MOUSE_BUTTON_LEFT:
+		return
+	var now_msec: int = Time.get_ticks_msec()
+	if now_msec - _last_touch_event_msec <= EMULATED_MOUSE_SUPPRESSION_MS:
+		# Android may emit a synthetic mouse press/release for the same touch.
+		# Both halves are consumed so one physical gesture cannot toggle twice.
+		_action_mouse_armed = false
+		interact_button.accept_event()
+		return
+	if event.pressed:
+		_action_mouse_armed = true
+		interact_button.accept_event()
+		return
+	if not _action_mouse_armed:
+		return
+	_action_mouse_armed = false
+	_commit_action_menu_intent()
+	interact_button.accept_event()
+
+
+func _commit_action_menu_intent() -> void:
+	_synchronize_action_state(true)
+	if _action_menu_blocked_now():
+		_close_action_catalog()
+		return
+	_toggle_action_catalog_from_user()
 
 
 func _toggle_action_catalog_from_user() -> void:
@@ -135,31 +200,63 @@ func _action_menu_blocked_now() -> bool:
 	return not _is_player_combat_turn()
 
 
-func _on_action_button_down() -> void:
-	# Legacy signal intentionally ignored. GUI input is the sole source of a
-	# user action-menu intent.
-	pass
+func _is_combat_active() -> bool:
+	if not is_instance_valid(_game_world):
+		_game_world = get_tree().get_first_node_in_group("game_world")
+	return (
+		is_instance_valid(_game_world)
+		and _game_world.has_method("is_turn_based_combat_active")
+		and bool(_game_world.call("is_turn_based_combat_active"))
+	)
+
+
+func _is_player_combat_turn() -> bool:
+	if not is_instance_valid(_game_world):
+		_game_world = get_tree().get_first_node_in_group("game_world")
+	if not is_instance_valid(_game_world) or not is_instance_valid(_player):
+		return false
+	var turn_system: TurnBasedCombatSystem = _game_world.get("_turn_system") as TurnBasedCombatSystem
+	return (
+		turn_system != null
+		and turn_system.active
+		and turn_system.is_player_turn(_player)
+		and not bool(_game_world.get("_enemy_turn_running"))
+	)
+
+
+func _nearby_interactable_count() -> int:
+	if not is_instance_valid(_player) or not _player.has_method("get_nearby_interactables"):
+		return 0
+	var value: Variant = _player.call("get_nearby_interactables")
+	return (value as Array).size() if value is Array else 0
+
+
+func _close_action_catalog() -> void:
+	var catalog: Node = _action_catalog_node()
+	if catalog != null and catalog.has_method("close_catalog"):
+		catalog.call("close_catalog")
 
 
 func _on_interact_pressed() -> void:
-	# Legacy BaseButton.pressed intentionally ignored. Keeping the method as a
-	# no-op prevents stale or synthetic pressed signals from opening or closing
-	# the menu if another scene connects them accidentally.
+	# The base scene keeps this callback for compatibility, but production input
+	# is handled only by the completed GUI gesture above.
 	pass
 
 
 func simulate_actions_touch_for_testing() -> void:
-	_synchronize_action_state(true)
-	if not _action_menu_blocked_now():
-		_toggle_action_catalog_from_user()
+	_commit_action_menu_intent()
 
 
 func simulate_emulated_mouse_after_touch_for_testing() -> void:
-	_last_touch_intent_msec = Time.get_ticks_msec()
-	var mouse_event := InputEventMouseButton.new()
-	mouse_event.button_index = MOUSE_BUTTON_LEFT
-	mouse_event.pressed = true
-	_on_action_button_gui_input(mouse_event)
+	_last_touch_event_msec = Time.get_ticks_msec()
+	var press := InputEventMouseButton.new()
+	press.button_index = MOUSE_BUTTON_LEFT
+	press.pressed = true
+	_handle_action_mouse(press)
+	var release := InputEventMouseButton.new()
+	release.button_index = MOUSE_BUTTON_LEFT
+	release.pressed = false
+	_handle_action_mouse(release)
 
 
 func get_action_user_toggle_count_for_testing() -> int:
@@ -170,8 +267,16 @@ func is_action_gui_pipeline_connected_for_testing() -> bool:
 	return _action_gui_input_connected
 
 
+func get_action_turn_guard_remaining_for_testing() -> float:
+	return 0.0
+
+
+func action_press_started_blocked_for_testing() -> bool:
+	return false
+
+
 func arm_actions_press_for_testing() -> void:
-	# Compatibility no-op: there is no reusable opening latch anymore.
+	# Compatibility no-op: the controller has no reusable opening latch.
 	pass
 
 
