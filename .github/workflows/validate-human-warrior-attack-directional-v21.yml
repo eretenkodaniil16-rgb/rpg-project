@@ -61,7 +61,7 @@ jobs:
       # twohand up cycle diagnostic: blender_sprite_factory_attack_sword_twohand_up_cycle_diagnostic_v21_pass33.py
       # twohand up f02 continuity review: blender_sprite_factory_attack_sword_twohand_up_f02_review_v21_pass34.py
       # twohand up f02 rear-view review: blender_sprite_factory_attack_sword_twohand_up_f02_review_v21_pass35.py
-      # twohand up f02 balanced review: blender_sprite_factory_attack_sword_twohand_up_f02_review_v21_pass36.py
+      # twohand up f02 balanced continuity review: blender_sprite_factory_attack_sword_twohand_up_f02_review_v21_pass36.py
       # blender_sprite_factory_attack_sword_twohand_left_tail_diagnostic_v21.py
       # blender_sprite_factory_attack_sword_twohand_right_batch_diagnostic_v21.py
       # blender_sprite_factory_attack_sword_twohand_right_anticipation_diagnostic_v21.py
