@@ -82,7 +82,7 @@ func _run() -> void:
 	catalog.require_explicit_open_for_testing(true)
 	catalog.request_toggle_from_action_button()
 	if not catalog.is_catalog_open():
-		_fail("Atomic catalogue transaction did not open the patrol test overlay.")
+		_fail("Explicit catalogue setup did not open the patrol test overlay.")
 		return
 	for _tick: int in range(10):
 		game.call("_update_exploration_alerts", 0.25)
@@ -116,18 +116,22 @@ func _run() -> void:
 	mobile.call("_input", joystick_release)
 	actions_button.emit_signal("pressed")
 	if catalog.is_catalog_open():
-		_fail("Joystick-origin delayed signal bypassed the atomic catalogue gate.")
+		_fail("Joystick-origin delayed signal bypassed the GUI-origin catalogue gate.")
 		return
-	actions_button.emit_signal("button_down")
-	actions_button.emit_signal("pressed")
+	mobile.call("simulate_actions_touch_for_testing")
 	if not catalog.is_catalog_open():
-		_fail("Fresh Actions-button transaction did not open the catalogue.")
+		_fail("Fresh completed Actions gesture did not open the catalogue.")
 		return
+	for _frame: int in range(4):
+		await process_frame
+		if not catalog.is_catalog_open():
+			_fail("Fresh completed Actions gesture produced a transient catalogue flash.")
+			return
 	if catalog.has_open_authorization_for_testing():
-		_fail("Atomic catalogue design unexpectedly retained an authorization state.")
+		_fail("Action catalogue unexpectedly retained an authorization state.")
 		return
 
-	print("Pre-combat inner targets, unseen patrol continuity and atomic catalogue gate passed.")
+	print("Pre-combat inner targets, unseen patrol continuity and GUI-origin catalogue gate passed.")
 	game.queue_free()
 	await process_frame
 	quit(0)
