@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://scripts/game/combat_ai_training_marksman.gd" id="1_script"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_marksman"]
-size = Vector2(64, 64)
+size = Vector2(128, 128)
 
 [node name="CombatAiTrainingMarksman" type="Area2D"]
 collision_layer = 2
