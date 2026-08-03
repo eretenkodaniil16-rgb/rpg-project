@@ -127,11 +127,10 @@ func _run() -> void:
 	if confirm_rect.end.y > end_turn_rect.position.y or end_turn_rect.end.y > actions_rect.position.y:
 		_fail("Combat rail order must be movement confirmation, End Turn, then Actions.")
 		return
-	mobile_controls.call("arm_actions_press_for_testing")
-	actions_button.emit_signal("pressed")
+	mobile_controls.call("simulate_actions_touch_for_testing")
 	await get_tree().process_frame
 	if not action_catalog.panel.visible:
-		_fail("The lower-right Actions button did not open the combat catalog.")
+		_fail("The completed lower-right Actions gesture did not open the combat catalog.")
 		return
 	action_catalog.close_catalog()
 
