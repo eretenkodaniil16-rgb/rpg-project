@@ -42,7 +42,7 @@ func _run() -> void:
 		_fail("Mobile Actions button is missing.")
 		return
 	if not bool(mobile_controls.call("is_action_gui_pipeline_connected_for_testing")):
-		_fail("Actions button is not connected to the GUI-origin intent pipeline.")
+		_fail("Actions button is not connected to the raw-origin intent pipeline.")
 		return
 
 	game.call("_start_turn_based_combat", caretaker)
@@ -51,7 +51,7 @@ func _run() -> void:
 		return
 
 	# Generic catalogue calls and legacy BaseButton signals must never open the
-	# mobile panel. Only GUI input received by the Actions control is accepted.
+	# mobile panel. Only a complete raw touch transaction is accepted.
 	catalog.toggle_catalog()
 	if catalog.panel.visible:
 		_fail("Generic toggle opened a catalogue that requires mobile user intent.")
@@ -72,11 +72,51 @@ func _run() -> void:
 		_fail("A stale pressed signal opened the catalogue on the player turn.")
 		return
 
+	# Reproduce the physical Android failure: a touch starts on Actions, movement
+	# changes the gameplay state before the release, and the same touch index is
+	# released after movement has completed. The release belongs to an obsolete
+	# input epoch and must not open even for one frame.
+	var carried_touch_index: int = 8123
+	var toggles_before_carried_touch: int = int(mobile_controls.call("get_action_user_toggle_count_for_testing"))
+	var epoch_before_movement: int = int(mobile_controls.call("get_action_input_epoch_for_testing"))
+	mobile_controls.call("simulate_actions_press_for_testing", carried_touch_index)
+	game.set("_movement_execution_running", true)
+	mobile_controls.call("_process", 0.0)
+	if int(mobile_controls.call("get_action_input_epoch_for_testing")) <= epoch_before_movement:
+		_fail("Movement start did not invalidate the pending Actions transaction.")
+		return
+	game.set("_movement_execution_running", false)
+	mobile_controls.call("_process", 0.0)
+	mobile_controls.call("simulate_actions_release_for_testing", carried_touch_index)
+	if catalog.panel.visible:
+		_fail("A touch carried across completed movement opened the Actions catalogue.")
+		return
+	if int(mobile_controls.call("get_action_user_toggle_count_for_testing")) != toggles_before_carried_touch:
+		_fail("A carried movement touch was counted as a new Actions intent.")
+		return
+	await process_frame
+	if catalog.panel.visible:
+		_fail("A carried movement touch produced a delayed one-frame catalogue flash.")
+		return
+
+	# The same rule applies to a press that begins while global input is locked
+	# and is released after the lock disappears.
+	var blocked_touch_index: int = 8124
+	state.set("input_locked", true)
+	mobile_controls.call("_process", 0.0)
+	mobile_controls.call("simulate_actions_press_for_testing", blocked_touch_index)
+	state.set("input_locked", false)
+	mobile_controls.call("_process", 0.0)
+	mobile_controls.call("simulate_actions_release_for_testing", blocked_touch_index)
+	if catalog.panel.visible:
+		_fail("A touch begun during input lock opened after the lock was released.")
+		return
+
 	# One real touch intent opens exactly once and remains open across multiple
 	# process frames. This directly guards against the observed one-frame flash.
 	mobile_controls.call("simulate_actions_touch_for_testing")
 	if not catalog.panel.visible:
-		_fail("A GUI-origin Actions touch did not open the catalogue.")
+		_fail("A raw-origin Actions touch did not open the catalogue.")
 		return
 	var toggle_count_after_touch: int = int(mobile_controls.call("get_action_user_toggle_count_for_testing"))
 	for _frame: int in range(8):
@@ -100,7 +140,7 @@ func _run() -> void:
 		return
 
 	# A second deliberate touch closes the panel, proving normal toggle behavior
-	# still works after duplicate suppression.
+	# still works after duplicate and transition suppression.
 	await create_timer(0.5).timeout
 	mobile_controls.call("simulate_actions_touch_for_testing")
 	if catalog.panel.visible:
@@ -111,7 +151,7 @@ func _run() -> void:
 	await process_frame
 	if FileAccess.file_exists(save_path):
 		DirAccess.remove_absolute(save_path)
-	print("Actions menu uses one GUI-origin intent per gesture and remains stable across frames.")
+	print("Actions input epochs reject movement-carried releases and preserve deliberate toggles.")
 	quit(0)
 
 
