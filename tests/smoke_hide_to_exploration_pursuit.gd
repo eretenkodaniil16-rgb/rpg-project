@@ -55,19 +55,15 @@ func _run() -> void:
 		_fail("Combat did not record an initial visual contact position.")
 		return
 
-	if float(mobile.call("get_action_turn_guard_remaining_for_testing")) <= 0.0:
-		_fail("Player-turn action guard was not armed.")
-		return
-	# A delayed pressed signal without a matching GUI button-down is a carried
-	# touch and must remain blocked at the turn boundary.
+	# Legacy signals are not a valid user intent and cannot open the menu at a
+	# turn boundary. A completed GUI gesture opens normally without a timer.
 	actions_button.emit_signal("pressed")
 	if catalog.is_catalog_open():
-		_fail("A carried touch opened the action catalog at turn start.")
+		_fail("A stale pressed signal opened the action catalog at turn start.")
 		return
-	mobile.call("_process", 1.0)
-	_emit_actions_transaction(actions_button)
+	mobile.call("simulate_actions_touch_for_testing")
 	if not catalog.is_catalog_open():
-		_fail("An intentional action-menu transaction was blocked after the turn guard expired.")
+		_fail("A completed Actions gesture was blocked on the player turn.")
 		return
 	catalog.close_catalog()
 
@@ -76,9 +72,9 @@ func _run() -> void:
 	player.global_position = hidden_position
 	state.set("player_position", player.global_position)
 	game.call("set_hide_roll_overrides_for_testing", [20])
-	_emit_actions_transaction(actions_button)
+	mobile.call("simulate_actions_touch_for_testing")
 	if not catalog.is_catalog_open():
-		_fail("Atomic action transaction did not open before the Hide request.")
+		_fail("Completed Actions gesture did not open before the Hide request.")
 		return
 	catalog.call("_emit_action", "hide", "", true)
 	if catalog.is_catalog_open():
@@ -137,15 +133,10 @@ func _run() -> void:
 		_fail("Sustained reacquisition did not restart initiative: record=%s visible=%s hostile=%s" % [final_record, visible_now, guard.call("is_hostile")])
 		return
 
-	print("Catalog Hide signal, immediate modal closure, atomic turn-start input guard, pursuit and reacquisition passed.")
+	print("Catalog Hide signal, immediate modal closure, GUI-origin input, pursuit and reacquisition passed.")
 	game.queue_free()
 	await process_frame
 	quit(0)
-
-
-func _emit_actions_transaction(actions_button: Button) -> void:
-	actions_button.emit_signal("button_down")
-	actions_button.emit_signal("pressed")
 
 
 func _make_hero() -> PlayerCharacter:
