@@ -42,7 +42,7 @@ func _run() -> void:
 		_fail("Mobile Actions button is missing.")
 		return
 	if not bool(mobile_controls.call("is_action_gui_pipeline_connected_for_testing")):
-		_fail("Actions button is not connected to its control-owned GUI stream.")
+		_fail("Normal BaseButton Actions signal path is not connected.")
 		return
 
 	game.call("_start_turn_based_combat", caretaker)
@@ -50,75 +50,60 @@ func _run() -> void:
 		_fail("Combat did not start.")
 		return
 	game.call("force_player_turn_for_testing")
-	mobile_controls.call("_process", 0.0)
+	mobile_controls.call("_process", 0.4)
 
-	# Generic calls and legacy BaseButton signals cannot open the mobile menu.
+	# A generic catalogue call is still forbidden on mobile.
 	catalog.toggle_catalog()
 	if catalog.panel.visible:
-		_fail("Generic toggle opened a catalogue that requires mobile user intent.")
-		return
-	actions_button.emit_signal("button_down")
-	actions_button.emit_signal("pressed")
-	if catalog.panel.visible:
-		_fail("Legacy BaseButton signals opened the catalogue.")
+		_fail("Generic toggle opened a catalogue that requires the Actions button.")
 		return
 
-	# Reproduce the physical failure at its actual ownership boundary. Movement
-	# happens on the battlefield, then an unrelated release ends over the Actions
-	# rect. Since no press was routed to the Actions Control, it must do nothing.
-	var toggles_before_movement: int = int(mobile_controls.call("get_action_user_toggle_count_for_testing"))
-	game.set("_movement_execution_running", true)
-	mobile_controls.call("_process", 0.0)
-	game.set("_movement_execution_running", false)
-	mobile_controls.call("_process", 0.0)
-	mobile_controls.call("simulate_unowned_action_release_for_testing", 8123)
-	if catalog.panel.visible:
-		_fail("A battlefield release after movement opened the Actions catalogue.")
-		return
-	if int(mobile_controls.call("get_action_user_toggle_count_for_testing")) != toggles_before_movement:
-		_fail("An unowned movement release was counted as an Actions intent.")
-		return
-	for _frame: int in range(4):
-		await process_frame
-		if catalog.panel.visible:
-			_fail("An unowned movement release produced a delayed catalogue flash.")
-			return
-
-	# A release after input lock is equally invalid without a control-owned press.
-	state.set("input_locked", true)
-	mobile_controls.call("_process", 0.0)
-	state.set("input_locked", false)
-	mobile_controls.call("_process", 0.0)
-	mobile_controls.call("simulate_unowned_action_release_for_testing", 8124)
-	if catalog.panel.visible:
-		_fail("An unowned release opened the catalogue after input unlock.")
-		return
-
-	# A real press routed to the Actions Control opens immediately and stays open.
+	# A normal quick BaseButton tap must open immediately. No long press, raw
+	# touch transaction or release inside the button is required.
 	mobile_controls.call("simulate_actions_touch_for_testing")
 	if not catalog.panel.visible:
-		_fail("A control-owned Actions press did not open the catalogue.")
+		_fail("A normal quick Actions tap did not open the catalogue.")
 		return
-	var toggle_count_after_touch: int = int(mobile_controls.call("get_action_user_toggle_count_for_testing"))
-	for _frame: int in range(8):
-		mobile_controls.call("_process", 0.1)
-		await process_frame
-		if not catalog.panel.visible:
-			_fail("The action catalogue closed without a state transition.")
-			return
-	if int(mobile_controls.call("get_action_user_toggle_count_for_testing")) != toggle_count_after_touch:
-		_fail("Processing frames generated a second action-menu toggle.")
+	var toggle_count: int = int(mobile_controls.call("get_action_user_toggle_count_for_testing"))
+	if toggle_count != 1:
+		_fail("One Actions tap did not produce exactly one toggle.")
+		return
+	mobile_controls.call("simulate_actions_touch_for_testing")
+	if catalog.panel.visible:
+		_fail("A second normal Actions tap did not close the catalogue.")
 		return
 
-	mobile_controls.call("simulate_emulated_mouse_after_touch_for_testing")
+	# Reproduce the responsiveness regression: a press begins, but the finger
+	# leaves the button and no release is delivered to it. The next ordinary tap
+	# must still work; there is no retained touch index to block index 0 forever.
+	mobile_controls.call("simulate_actions_press_for_testing", 0)
+	mobile_controls.call("simulate_actions_touch_for_testing")
 	if not catalog.panel.visible:
-		_fail("An emulated mouse press closed the catalogue opened by touch.")
+		_fail("An incomplete previous touch blocked the next ordinary Actions tap.")
 		return
-	if int(mobile_controls.call("get_action_user_toggle_count_for_testing")) != toggle_count_after_touch:
-		_fail("The emulated mouse press was counted as another user intent.")
+	mobile_controls.call("simulate_actions_touch_for_testing")
+	if catalog.panel.visible:
+		_fail("Actions did not remain responsive after an incomplete touch.")
 		return
 
-	# Starting movement closes the catalogue; ending movement cannot reopen it.
+	# The flash is guarded independently from button input. A foreign show(),
+	# stale Tween completion or restored UI visibility must be rejected before a
+	# frame can render the panel.
+	var corrections_before: int = int(mobile_controls.call("get_catalog_visibility_correction_count_for_testing"))
+	catalog.panel.show()
+	if catalog.panel.visible:
+		_fail("A foreign panel show bypassed the catalogue visibility owner.")
+		return
+	if int(mobile_controls.call("get_catalog_visibility_correction_count_for_testing")) <= corrections_before:
+		_fail("Unexpected catalogue visibility was not recorded and corrected.")
+		return
+
+	# Movement closes an intentionally open panel. Completion of movement and a
+	# simulated stale animation show cannot reopen it.
+	mobile_controls.call("simulate_actions_touch_for_testing")
+	if not catalog.panel.visible:
+		_fail("Actions could not be deliberately opened before movement.")
+		return
 	game.set("_movement_execution_running", true)
 	mobile_controls.call("_process", 0.0)
 	if catalog.panel.visible:
@@ -126,27 +111,36 @@ func _run() -> void:
 		return
 	game.set("_movement_execution_running", false)
 	mobile_controls.call("_process", 0.0)
-	mobile_controls.call("simulate_unowned_action_release_for_testing", 8125)
-	await process_frame
+	catalog.panel.show()
 	if catalog.panel.visible:
-		_fail("Movement completion reopened the Actions catalogue.")
+		_fail("A stale visibility or animation event reopened Actions after movement.")
 		return
+	for _frame: int in range(4):
+		await process_frame
+		if catalog.panel.visible:
+			_fail("The Actions catalogue produced a delayed one-frame flash.")
+			return
 
-	# A later deliberate control-owned press still opens normally.
+	# Input lock transitions also cannot create a panel, while a later deliberate
+	# quick tap remains responsive.
+	state.set("input_locked", true)
+	mobile_controls.call("_process", 0.0)
+	state.set("input_locked", false)
+	mobile_controls.call("_process", 0.0)
+	catalog.panel.show()
+	if catalog.panel.visible:
+		_fail("Input unlock allowed unexpected catalogue visibility.")
+		return
 	mobile_controls.call("simulate_actions_touch_for_testing")
 	if not catalog.panel.visible:
-		_fail("Actions could not be opened deliberately after movement.")
-		return
-	mobile_controls.call("simulate_actions_touch_for_testing")
-	if catalog.panel.visible:
-		_fail("A second deliberate Actions press did not close the catalogue.")
+		_fail("Actions did not respond to a normal tap after transitions.")
 		return
 
 	game.queue_free()
 	await process_frame
 	if FileAccess.file_exists(save_path):
 		DirAccess.remove_absolute(save_path)
-	print("Actions opens only from its Control-owned press; movement releases cannot flash it.")
+	print("Actions keeps normal tap responsiveness while foreign panel visibility is rejected.")
 	quit(0)
 
 
