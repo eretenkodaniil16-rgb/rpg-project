@@ -1,8 +1,6 @@
 extends "res://scripts/ui/mobile_controls.gd"
 
 const EMULATED_MOUSE_SUPPRESSION_MS: int = 420
-const ACTION_TOUCH_DRAG_CANCEL_PIXELS: float = 28.0
-const ACTION_RELEASE_MARGIN_PIXELS: float = 10.0
 
 var _last_joystick_direction: Vector2 = Vector2.ZERO
 var _control_mode_initialized: bool = false
@@ -14,11 +12,6 @@ var _observed_player_turn_active: bool = false
 var _observed_input_locked: bool = false
 var _observed_gameplay_transition_active: bool = false
 var _action_touch_index: int = -1
-var _action_touch_origin: Vector2 = Vector2.ZERO
-var _action_touch_epoch: int = -1
-var _action_touch_cancelled: bool = false
-var _action_mouse_armed: bool = false
-var _action_mouse_epoch: int = -1
 var _last_touch_event_msec: int = -10000
 var _action_input_epoch: int = 0
 var _user_toggle_count: int = 0
@@ -34,13 +27,6 @@ func enable_for_testing() -> void:
 	super.enable_for_testing()
 	_install_action_intent_pipeline()
 	_synchronize_action_state(false)
-
-
-func _input(event: InputEvent) -> void:
-	if not visible or not _initialized:
-		return
-	_track_raw_action_input(event)
-	super._input(event)
 
 
 func _process(delta: float) -> void:
@@ -123,7 +109,7 @@ func _install_action_intent_pipeline() -> void:
 	var pressed_callback := Callable(self, "_on_interact_pressed")
 	if interact_button.pressed.is_connected(pressed_callback):
 		interact_button.pressed.disconnect(pressed_callback)
-	interact_button.action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
+	interact_button.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 	interact_button.focus_mode = Control.FOCUS_NONE
 	interact_button.mouse_filter = Control.MOUSE_FILTER_STOP
 	var gui_callback := Callable(self, "_on_action_button_gui_input")
@@ -132,96 +118,50 @@ func _install_action_intent_pipeline() -> void:
 	_action_gui_input_connected = true
 
 
-func _track_raw_action_input(event: InputEvent) -> void:
-	if event is InputEventScreenTouch:
-		_handle_raw_action_touch(event as InputEventScreenTouch)
-	elif event is InputEventScreenDrag:
-		_handle_raw_action_drag(event as InputEventScreenDrag)
-
-
-func _handle_raw_action_touch(event: InputEventScreenTouch) -> void:
-	_last_touch_event_msec = Time.get_ticks_msec()
-	var inside_button: bool = _action_button_rect().has_point(event.position)
-	if event.pressed:
-		if event.index == _action_touch_index:
-			_clear_action_touch_transaction()
-		if not inside_button:
-			return
-		get_viewport().set_input_as_handled()
-		if _action_menu_blocked_now():
-			return
-		_action_touch_index = event.index
-		_action_touch_origin = event.position
-		_action_touch_epoch = _action_input_epoch
-		_action_touch_cancelled = false
-		return
-
-	if event.index != _action_touch_index:
-		if inside_button:
-			# A release that started somewhere else must not fall through to the
-			# Actions button or the battlefield input beneath it.
-			get_viewport().set_input_as_handled()
-		return
-	get_viewport().set_input_as_handled()
-	var release_inside: bool = _action_button_rect().grow(ACTION_RELEASE_MARGIN_PIXELS).has_point(event.position)
-	var should_commit: bool = (
-		not _action_touch_cancelled
-		and _action_touch_epoch == _action_input_epoch
-		and release_inside
-		and not _action_menu_blocked_now()
-	)
-	_clear_action_touch_transaction()
-	if should_commit:
-		_commit_action_menu_intent()
-
-
-func _handle_raw_action_drag(event: InputEventScreenDrag) -> void:
-	if event.index != _action_touch_index:
-		return
-	get_viewport().set_input_as_handled()
-	if event.position.distance_to(_action_touch_origin) > ACTION_TOUCH_DRAG_CANCEL_PIXELS:
-		_action_touch_cancelled = true
-	if not _action_button_rect().grow(ACTION_RELEASE_MARGIN_PIXELS).has_point(event.position):
-		_action_touch_cancelled = true
-
-
 func _on_action_button_gui_input(event: InputEvent) -> void:
-	if event is InputEventScreenTouch or event is InputEventScreenDrag:
-		# Touch is handled globally so its origin is known even when controls are
-		# disabled, hidden or replaced during movement and turn transitions.
+	# Only events routed by Godot to this Control are allowed to open the menu.
+	# Global coordinate checks are deliberately forbidden: a battlefield or
+	# movement event may end over the button without belonging to the button.
+	if event is InputEventScreenTouch:
+		_handle_control_owned_touch(event as InputEventScreenTouch)
+		return
+	if event is InputEventScreenDrag:
 		interact_button.accept_event()
 		return
 	if event is InputEventMouseButton:
-		_handle_action_mouse(event as InputEventMouseButton)
+		_handle_control_owned_mouse(event as InputEventMouseButton)
 
 
-func _handle_action_mouse(event: InputEventMouseButton) -> void:
+func _handle_control_owned_touch(event: InputEventScreenTouch) -> void:
+	_last_touch_event_msec = Time.get_ticks_msec()
+	interact_button.accept_event()
+	if not event.pressed:
+		if event.index == _action_touch_index:
+			_action_touch_index = -1
+		return
+	if event.index == _action_touch_index:
+		return
+	_action_touch_index = event.index
+	if _action_menu_blocked_now():
+		_close_action_catalog()
+		return
+	# Commit on the control-owned press. A release from movement can therefore
+	# never become an Actions command, and the menu responds immediately.
+	_commit_action_menu_intent()
+
+
+func _handle_control_owned_mouse(event: InputEventMouseButton) -> void:
 	if event.button_index != MOUSE_BUTTON_LEFT:
 		return
-	var now_msec: int = Time.get_ticks_msec()
-	if now_msec - _last_touch_event_msec <= EMULATED_MOUSE_SUPPRESSION_MS:
-		# Android may emit a synthetic mouse press/release for the same touch.
-		# Both halves are consumed so one physical gesture cannot toggle twice.
-		_action_mouse_armed = false
-		_action_mouse_epoch = -1
-		interact_button.accept_event()
-		return
-	if event.pressed:
-		_action_mouse_armed = not _action_menu_blocked_now()
-		_action_mouse_epoch = _action_input_epoch if _action_mouse_armed else -1
-		interact_button.accept_event()
-		return
-	if not _action_mouse_armed:
-		return
-	var should_commit: bool = (
-		_action_mouse_epoch == _action_input_epoch
-		and not _action_menu_blocked_now()
-	)
-	_action_mouse_armed = false
-	_action_mouse_epoch = -1
 	interact_button.accept_event()
-	if should_commit:
-		_commit_action_menu_intent()
+	if not event.pressed:
+		return
+	if Time.get_ticks_msec() - _last_touch_event_msec <= EMULATED_MOUSE_SUPPRESSION_MS:
+		return
+	if _action_menu_blocked_now():
+		_close_action_catalog()
+		return
+	_commit_action_menu_intent()
 
 
 func _commit_action_menu_intent() -> void:
@@ -266,11 +206,13 @@ func _synchronize_action_state(close_on_transition: bool) -> void:
 	var input_locked: bool = GameState.input_locked
 	var gameplay_transition_active: bool = _gameplay_action_transition_active()
 	if _action_state_initialized:
-		var combat_changed: bool = combat_active != _observed_combat_active
-		var player_turn_changed: bool = player_turn_active != _observed_player_turn_active
-		var input_lock_changed: bool = input_locked != _observed_input_locked
-		var gameplay_transition_changed: bool = gameplay_transition_active != _observed_gameplay_transition_active
-		if combat_changed or player_turn_changed or input_lock_changed or gameplay_transition_changed:
+		var state_changed: bool = (
+			combat_active != _observed_combat_active
+			or player_turn_active != _observed_player_turn_active
+			or input_locked != _observed_input_locked
+			or gameplay_transition_active != _observed_gameplay_transition_active
+		)
+		if state_changed:
 			_invalidate_action_input_epoch()
 			if close_on_transition:
 				_close_action_catalog()
@@ -337,22 +279,9 @@ func _nearby_interactable_count() -> int:
 	return (value as Array).size() if value is Array else 0
 
 
-func _action_button_rect() -> Rect2:
-	return interact_button.get_global_rect() if is_instance_valid(interact_button) else Rect2()
-
-
 func _invalidate_action_input_epoch() -> void:
 	_action_input_epoch += 1
-	_clear_action_touch_transaction()
-	_action_mouse_armed = false
-	_action_mouse_epoch = -1
-
-
-func _clear_action_touch_transaction() -> void:
 	_action_touch_index = -1
-	_action_touch_origin = Vector2.ZERO
-	_action_touch_epoch = -1
-	_action_touch_cancelled = false
 
 
 func _close_action_catalog() -> void:
@@ -362,40 +291,39 @@ func _close_action_catalog() -> void:
 
 
 func _on_interact_pressed() -> void:
-	# The base scene keeps this callback for compatibility, but production input
-	# is handled only by the raw press/release transaction above.
+	# Legacy BaseButton signals are intentionally disconnected. Production input
+	# is accepted only through the button's own gui_input stream above.
 	pass
 
 
 func simulate_actions_touch_for_testing() -> void:
 	var touch_index: int = 9000 + _user_toggle_count
-	var center: Vector2 = _action_button_rect().get_center()
-	var press := InputEventScreenTouch.new()
-	press.index = touch_index
-	press.position = center
-	press.pressed = true
-	_handle_raw_action_touch(press)
-	var release := InputEventScreenTouch.new()
-	release.index = touch_index
-	release.position = center
-	release.pressed = false
-	_handle_raw_action_touch(release)
+	simulate_actions_press_for_testing(touch_index)
+	simulate_actions_release_for_testing(touch_index)
 
 
 func simulate_actions_press_for_testing(touch_index: int = 9100) -> void:
 	var press := InputEventScreenTouch.new()
 	press.index = touch_index
-	press.position = _action_button_rect().get_center()
+	press.position = interact_button.get_global_rect().get_center()
 	press.pressed = true
-	_handle_raw_action_touch(press)
+	_on_action_button_gui_input(press)
 
 
 func simulate_actions_release_for_testing(touch_index: int = 9100) -> void:
 	var release := InputEventScreenTouch.new()
 	release.index = touch_index
-	release.position = _action_button_rect().get_center()
+	release.position = interact_button.get_global_rect().get_center()
 	release.pressed = false
-	_handle_raw_action_touch(release)
+	_on_action_button_gui_input(release)
+
+
+func simulate_unowned_action_release_for_testing(touch_index: int = 9200) -> void:
+	var release := InputEventScreenTouch.new()
+	release.index = touch_index
+	release.position = interact_button.get_global_rect().get_center()
+	release.pressed = false
+	_on_action_button_gui_input(release)
 
 
 func simulate_emulated_mouse_after_touch_for_testing() -> void:
@@ -403,11 +331,7 @@ func simulate_emulated_mouse_after_touch_for_testing() -> void:
 	var press := InputEventMouseButton.new()
 	press.button_index = MOUSE_BUTTON_LEFT
 	press.pressed = true
-	_handle_action_mouse(press)
-	var release := InputEventMouseButton.new()
-	release.button_index = MOUSE_BUTTON_LEFT
-	release.pressed = false
-	_handle_action_mouse(release)
+	_handle_control_owned_mouse(press)
 
 
 func get_action_user_toggle_count_for_testing() -> int:
@@ -427,11 +351,10 @@ func get_action_turn_guard_remaining_for_testing() -> float:
 
 
 func action_press_started_blocked_for_testing() -> bool:
-	return _action_touch_index < 0 and _action_menu_blocked_now()
+	return _action_menu_blocked_now()
 
 
 func arm_actions_press_for_testing() -> void:
-	# Compatibility no-op: the controller has no reusable opening latch.
 	pass
 
 
