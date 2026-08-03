@@ -27,6 +27,13 @@ func _request_attack() -> void:
 		show_combat_message("Действие на этом ходу уже использовано.", false)
 		return
 
+	# Capture encounter membership before damage is applied. The opening target
+	# can die during the attack animation and cease to be a valid target, but its
+	# living allies must still roll initiative after witnessing the hostile act.
+	var pending_combat_candidates: Array[Node] = []
+	if not _turn_system.active and valid_attempt and _target_is_valid(predicted_target):
+		pending_combat_candidates = _capture_exploration_combat_candidates(predicted_target)
+
 	if _target_is_valid(selected_before):
 		_face_toward((selected_before as Node2D).global_position)
 		var ammo_id: String = str(weapon.get("ammunition_id", ""))
@@ -36,8 +43,8 @@ func _request_attack() -> void:
 	else:
 		await _request_directional_melee_attack(weapon)
 
-	if not _turn_system.active and valid_attempt and _target_is_valid(predicted_target):
-		_start_turn_based_combat(predicted_target)
+	if not _turn_system.active and valid_attempt:
+		_start_exploration_combat_from_candidates(pending_combat_candidates)
 	_after_player_action()
 
 
@@ -59,17 +66,58 @@ func _on_ability_requested(ability_id: String) -> void:
 		# target marker before firing in the chosen facing direction.
 		_selected_target = temporary_directional_target
 
+	var pending_combat_candidates: Array[Node] = []
+	var effect: String = str(ability.get("effect", ""))
+	if (
+		not _turn_system.active
+		and effect in ["spell_attack", "auto_hit_spell", "saving_throw_spell"]
+		and _target_is_valid(_selected_target)
+		and _ability_attempt_is_valid(ability)
+	):
+		pending_combat_candidates = _capture_exploration_combat_candidates(_selected_target)
+
 	await super._on_ability_requested(ability_id)
 
 	if is_instance_valid(temporary_directional_target) and _selected_target == temporary_directional_target:
 		_selected_target = original_target if _target_is_valid(original_target) else null
 		_update_target_label()
 
+	if not _turn_system.active and not pending_combat_candidates.is_empty():
+		_start_exploration_combat_from_candidates(pending_combat_candidates)
+
 	if ability.is_empty() or not bool(ability.get("concentration", false)):
 		return
 	var concentration_id: String = _spellcasting_sync.get_concentration_spell_id(GameState.player_character)
 	if not concentration_id.is_empty():
 		_player_combat_state.set_concentration(concentration_id, player.get_instance_id())
+
+
+func _capture_exploration_combat_candidates(trigger_target: Node) -> Array[Node]:
+	var result: Array[Node] = []
+	if is_instance_valid(trigger_target):
+		result.append(trigger_target)
+	return result
+
+
+func _start_exploration_combat_from_candidates(candidates: Array[Node]) -> void:
+	if _turn_system.active:
+		return
+	for candidate: Node in candidates:
+		if not _candidate_can_anchor_combat(candidate):
+			continue
+		_start_turn_based_combat(candidate)
+		if _turn_system.active:
+			return
+
+
+func _candidate_can_anchor_combat(candidate: Node) -> bool:
+	if not is_instance_valid(candidate) or not candidate is Node2D:
+		return false
+	if candidate.has_method("is_body_interactable") and bool(candidate.call("is_body_interactable")):
+		return false
+	if candidate.has_method("is_combat_active") and not bool(candidate.call("is_combat_active")):
+		return false
+	return true
 
 
 func apply_damage_to_player(amount: int, damage_type: String, critical_hit: bool = false, source: Node = null) -> Dictionary:
