@@ -29,6 +29,9 @@ on:
       - "scripts/game/guard_post_two_room_visibility.gd"
       - "scenes/game/game.tscn"
       - "scenes/game/game_base.tscn"
+      - "scenes/game/stealth_patrol_guard.tscn"
+      - "scenes/game/combat_ai_training_marksman.tscn"
+      - "scenes/game/combat_ai_training_mage.tscn"
       - "tests/test_throwable_prop_system.gd"
       - "tests/test_guard_post_outcome_selection.gd"
       - "tests/smoke_guard_post_encounter_runtime.gd"
@@ -41,6 +44,7 @@ on:
       - "tests/smoke_combat_start_position_stability.gd"
       - "tests/smoke_caretaker_neutral_detection.gd"
       - "tests/smoke_overlapping_interaction_zones.gd"
+      - "tests/smoke_interaction_radius.gd"
       - "tests/smoke_guard_post_presentation_and_parley.gd"
       - "tests/smoke_inner_watch_ai_live_turns.gd"
       - "tests/smoke_throwable_prop_save_restore.gd"
@@ -102,7 +106,7 @@ jobs:
         shell: bash
         run: timeout 360s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_guard_post_integrity_betrayal.gd 2>&1 | tee guard-post-integrity-betrayal.log
 
-      - name: Verify Actions requires an atomic button transaction
+      - name: Verify normal Actions tap and no-target catalogue
         shell: bash
         run: timeout 240s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_action_panel_no_flash.gd 2>&1 | tee action-panel-no-flash.log
 
@@ -129,6 +133,10 @@ jobs:
       - name: Verify overlapping interaction zones
         shell: bash
         run: timeout 300s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_overlapping_interaction_zones.gd 2>&1 | tee overlapping-interactions.log
+
+      - name: Verify one-cell interaction radius
+        shell: bash
+        run: timeout 240s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_interaction_radius.gd 2>&1 | tee interaction-radius.log
 
       - name: Verify context parley doors and room fog
         shell: bash
@@ -177,6 +185,7 @@ jobs:
             combat-start-position.log
             caretaker-neutral.log
             overlapping-interactions.log
+            interaction-radius.log
             guard-post-presentation.log
             inner-watch-ai.log
             throwable-props-save.log
