@@ -69,7 +69,7 @@ class AttackSwordDirectionalCycleV21Pass25Tests(unittest.TestCase):
         self.assertNotIn("hide_render = True", self.adapter_source)
         self.assertNotIn("root.location", self.adapter_source)
 
-    def test_workflow_retains_pass24_and_runs_pass25(self) -> None:
+    def test_workflow_retains_pass24_and_pass25_as_history(self) -> None:
         self.assertIn(
             "blender_sprite_factory_attack_sword_onehand_up_front_depth_diagnostic_v21.py",
             self.workflow_source,
@@ -78,7 +78,11 @@ class AttackSwordDirectionalCycleV21Pass25Tests(unittest.TestCase):
             "blender_sprite_factory_attack_sword_onehand_up_f05_arm_diagnostic_v21.py",
             self.workflow_source,
         )
-        self.assertIn("one-hand up f05 arm-clearance", self.workflow_source)
+        self.assertIn(
+            "blender_sprite_factory_attack_sword_directional_cycle_v21_pass26.py",
+            self.workflow_source,
+        )
+        self.assertIn("full directional cycle", self.workflow_source)
 
 
 if __name__ == "__main__":
