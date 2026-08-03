@@ -119,10 +119,10 @@ func _run() -> void:
 	joystick_release.position = joystick_press.position
 	joystick_release.pressed = false
 	mobile.call("_input", joystick_release)
-	actions_button.emit_signal("pressed")
 	if catalog.is_catalog_open():
-		_fail("Joystick-origin delayed signal bypassed the GUI-origin catalogue gate.")
+		_fail("Joystick press/release opened the Actions catalogue.")
 		return
+
 	mobile.call("simulate_actions_touch_for_testing")
 	if not catalog.is_catalog_open():
 		_fail("A fresh normal Actions tap did not open the catalogue.")
@@ -136,7 +136,7 @@ func _run() -> void:
 		_fail("Action catalogue unexpectedly retained an authorization state.")
 		return
 
-	print("Pre-combat inner targets, unseen patrol continuity and GUI-origin catalogue gate passed.")
+	print("Pre-combat inner targets, patrol continuity and normal Actions input passed.")
 	game.queue_free()
 	await process_frame
 	quit(0)
