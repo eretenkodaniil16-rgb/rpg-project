@@ -1,7 +1,7 @@
 class_name ThrowableWorldProp
 extends Node2D
 
-const INTERACTION_ZONE_SIZE: Vector2 = Vector2(90.0, 90.0)
+const INTERACTION_ZONE_SIZE: Vector2 = Vector2(108.0, 108.0)
 
 var prop_id: String = ""
 var prop_type_id: String = ""
