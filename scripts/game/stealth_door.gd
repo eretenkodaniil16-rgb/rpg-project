@@ -2,9 +2,9 @@ class_name StealthDoor
 extends StaticBody2D
 
 const WORLD_INTERACTION_ACTION_ID: String = "world_interact"
-const ADJACENCY_MARGIN: float = 20.0
-const INTERACTION_AREA_WIDTH: float = 120.0
-const INTERACTION_AREA_VERTICAL_PADDING: float = 48.0
+const ADJACENCY_MARGIN: float = 28.0
+const INTERACTION_AREA_WIDTH: float = 136.0
+const INTERACTION_AREA_VERTICAL_PADDING: float = 64.0
 
 @export var door_id: String = "west_service_door"
 @export var door_label: String = "Дверь служебной комнаты"
