@@ -39,7 +39,21 @@ func _process(delta: float) -> void:
 		_explicit_action_press_armed = false
 
 
+func _action_button_blocked_now() -> bool:
+	# A real button_down is already an authoritative GUI-origin event. The old
+	# 0.28 s turn-transition timer existed only to suppress delayed pressed
+	# signals, which are now rejected by the explicit arm below. Keeping that
+	# timer in the disabled state made legitimate quick taps feel unresponsive.
+	if GameState.input_locked:
+		return true
+	if not _is_combat_active():
+		return false
+	return not _is_player_combat_turn()
+
+
 func _on_action_button_down() -> void:
+	if not _action_button_blocked_now():
+		_action_turn_guard_remaining = 0.0
 	super._on_action_button_down()
 	_explicit_action_press_armed = (
 		not _action_press_started_blocked
