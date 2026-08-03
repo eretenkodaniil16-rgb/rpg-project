@@ -69,6 +69,7 @@ jobs:
       # twohand up f03 fine offset review: blender_sprite_factory_attack_sword_twohand_up_f03_review_v21_pass41.py
       # twohand up f03 extended offset review: blender_sprite_factory_attack_sword_twohand_up_f03_review_v21_pass42.py
       # twohand up f03 depth contraction review: blender_sprite_factory_attack_sword_twohand_up_f03_review_v21_pass43.py
+      # twohand up f03 compact projection review: blender_sprite_factory_attack_sword_twohand_up_f03_review_v21_pass44.py
       # blender_sprite_factory_attack_sword_twohand_left_tail_diagnostic_v21.py
       # blender_sprite_factory_attack_sword_twohand_right_batch_diagnostic_v21.py
       # blender_sprite_factory_attack_sword_twohand_right_anticipation_diagnostic_v21.py
@@ -79,7 +80,7 @@ jobs:
       # blender_sprite_factory_attack_sword_onehand_up_depth_search_diagnostic_v21.py
       # blender_sprite_factory_attack_sword_onehand_up_front_depth_diagnostic_v21.py
       # blender_sprite_factory_attack_sword_onehand_up_f05_arm_diagnostic_v21.py
-      - name: Render Blender 5.2 f03 compact projection review pass44
+      - name: Render Blender 5.2 f03 camera overscan review pass45
         id: blender-attack-directional
         continue-on-error: true
         shell: bash
@@ -90,26 +91,26 @@ jobs:
             --background \
             --factory-startup \
             --python-exit-code 1 \
-            --python tools/blender_sprite_factory/blender_sprite_factory_attack_sword_twohand_up_f03_review_v21_pass44.py \
+            --python tools/blender_sprite_factory/blender_sprite_factory_attack_sword_twohand_up_f03_review_v21_pass45.py \
             -- \
             --repo-root "$GITHUB_WORKSPACE" \
             --config tools/blender_sprite_factory/configs/human_warrior_m01.json \
             --run-id "$run_id" \
             --mode all 2>&1 | tee blender_attack_directional_v21.log
 
-      - name: Upload f03 compact projection review and source blend
+      - name: Upload f03 camera overscan review and source blend
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: human_warrior_m01_proxy_v25_attack_sword_01_twohand_up_f03_pass44_compact_review_${{ github.run_id }}_${{ github.run_attempt }}
+          name: human_warrior_m01_proxy_v25_attack_sword_01_twohand_up_f03_pass45_overscan_review_${{ github.run_id }}_${{ github.run_attempt }}
           path: |
             art/blender_pipeline_runs/human_warrior_m01/**
             blender_attack_directional_v21.log
           if-no-files-found: error
           retention-days: 14
 
-      - name: Require successful f03 compact projection review
+      - name: Require successful f03 camera overscan review
         if: steps.blender-attack-directional.outcome != 'success'
         run: |
-          echo "Directional attack v21 pass44 f03 compact projection review failed; inspect the uploaded artifact."
+          echo "Directional attack v21 pass45 f03 camera overscan review failed; inspect the uploaded artifact."
           exit 1
