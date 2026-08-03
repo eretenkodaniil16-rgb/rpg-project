@@ -71,14 +71,10 @@ func _run() -> void:
 
 	mobile.call("enable_for_testing")
 	game.call("_refresh_action_catalog")
-	# This presentation test is not an input-origin test. Arm the explicit test
-	# hook before invoking the handler; smoke_action_panel_no_flash.gd verifies
-	# the real raw Android touch path separately.
-	mobile.call("arm_actions_press_for_testing")
-	mobile.call("_on_interact_pressed")
+	mobile.call("simulate_actions_touch_for_testing")
 	await process_frame
 	if not catalog.is_catalog_open():
-		_fail("The mobile actions button did not open the catalog.")
+		_fail("The completed mobile Actions gesture did not open the catalog.")
 		return
 	if not _visible_action_button_contains(catalog, "ПОГОВОРИТЬ: СМОТРИТЕЛЬ"):
 		_fail("Entering the trigger did not open the WORLD actions containing caretaker dialogue.")
