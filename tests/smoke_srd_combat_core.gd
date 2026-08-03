@@ -1,6 +1,7 @@
 extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
+const POSITION_EPSILON: float = 0.01
 
 func _init() -> void:
 	call_deferred("_run")
@@ -88,16 +89,24 @@ func _run() -> void:
 		return
 
 	game.call("_set_selected_target", caretaker)
+	var player_before_combat: Vector2 = player.global_position
+	var caretaker_before_combat: Vector2 = (caretaker as Node2D).global_position
 	game.call("_start_turn_based_combat", caretaker)
-	game.call("force_player_turn_for_testing")
-	for _frame: int in range(4):
-		await process_frame
 	if not bool(game.call("is_turn_based_combat_active")):
 		_fail("Turn-based mode did not start.")
 		return
-	if player.global_position != grid.cell_to_world_center(grid.world_to_cell(player.global_position)):
-		_fail("Player is not centered in a grid cell.")
+	if player.global_position.distance_to(player_before_combat) > POSITION_EPSILON:
+		_fail("Starting SRD combat relocated the player.")
 		return
+	if (caretaker as Node2D).global_position.distance_to(caretaker_before_combat) > POSITION_EPSILON:
+		_fail("Starting SRD combat relocated the caretaker.")
+		return
+	if not grid.is_cell_valid(grid.world_to_cell(player.global_position)):
+		_fail("Preserved player position does not map to a valid combat cell.")
+		return
+	game.call("force_player_turn_for_testing")
+	for _frame: int in range(4):
+		await process_frame
 	if old_panel.visible or not actions_button.visible or catalog.catalog_button.visible:
 		_fail("Combat catalog visibility is incorrect.")
 		return
@@ -207,5 +216,5 @@ func _run() -> void:
 
 	game.queue_free()
 	await process_frame
-	print("SRD combat dialogue, persistent Actions button, racial abilities and terrain trait smoke test passed.")
+	print("SRD combat preserves world positions, dialogue, racial abilities and terrain traits.")
 	quit(0)
