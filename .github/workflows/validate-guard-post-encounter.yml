@@ -13,6 +13,7 @@ on:
       - "scripts/ui/mobile_controls_explicit_action_catalog.gd"
       - "scripts/game/npc_body_runtime.gd"
       - "scripts/game/npc_stealth_context_dialogue.gd"
+      - "scripts/game/game_target_free_attacks.gd"
       - "scripts/game/game_movement_reactions_runtime.gd"
       - "scripts/game/game_all_reaction_prompts_runtime.gd"
       - "scripts/game/throwable_world_prop.gd"
@@ -36,6 +37,7 @@ on:
       - "tests/smoke_action_panel_no_flash.gd"
       - "tests/smoke_guard_post_runtime_regressions_v2.gd"
       - "tests/smoke_combat_lifecycle_reactions.gd"
+      - "tests/smoke_lethal_opening_attack_initiative.gd"
       - "tests/smoke_combat_start_position_stability.gd"
       - "tests/smoke_caretaker_neutral_detection.gd"
       - "tests/smoke_overlapping_interaction_zones.gd"
@@ -112,6 +114,10 @@ jobs:
         shell: bash
         run: timeout 360s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_combat_lifecycle_reactions.gd 2>&1 | tee combat-lifecycle-reactions.log
 
+      - name: Verify lethal opening attack starts allied initiative
+        shell: bash
+        run: timeout 300s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_lethal_opening_attack_initiative.gd 2>&1 | tee lethal-opening-initiative.log
+
       - name: Verify combat start position stability
         shell: bash
         run: timeout 240s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_combat_start_position_stability.gd 2>&1 | tee combat-start-position.log
@@ -167,6 +173,7 @@ jobs:
             action-panel-no-flash.log
             guard-post-runtime-regressions-v2.log
             combat-lifecycle-reactions.log
+            lethal-opening-initiative.log
             combat-start-position.log
             caretaker-neutral.log
             overlapping-interactions.log
