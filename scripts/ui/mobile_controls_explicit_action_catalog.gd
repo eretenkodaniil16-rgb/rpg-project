@@ -6,6 +6,7 @@ var _catalog_expected_open: bool = false
 var _catalog_visibility_guard_connected: bool = false
 var _catalog_visibility_correction: bool = false
 var _catalog_visibility_correction_count: int = 0
+var _gameplay_transition_was_active: bool = false
 var _user_toggle_count: int = 0
 
 
@@ -24,6 +25,12 @@ func enable_for_testing() -> void:
 func _process(delta: float) -> void:
 	super._process(delta)
 	_install_catalog_visibility_guard()
+	var gameplay_transition_active: bool = _gameplay_action_transition_active()
+	if gameplay_transition_active and not _gameplay_transition_was_active:
+		_explicit_action_press_armed = false
+		_close_action_catalog()
+	_gameplay_transition_was_active = gameplay_transition_active
+
 	var catalog: Node = _action_catalog_node()
 	if catalog == null or not catalog.has_method("is_catalog_open"):
 		_catalog_expected_open = false
@@ -44,7 +51,7 @@ func _action_button_blocked_now() -> bool:
 	# 0.28 s turn-transition timer existed only to suppress delayed pressed
 	# signals, which are now rejected by the explicit arm below. Keeping that
 	# timer in the disabled state made legitimate quick taps feel unresponsive.
-	if GameState.input_locked:
+	if GameState.input_locked or _gameplay_action_transition_active():
 		return true
 	if not _is_combat_active():
 		return false
@@ -105,6 +112,20 @@ func _reset_action_catalog_state() -> void:
 	_explicit_action_press_armed = false
 	_catalog_open_authorized = false
 	_catalog_expected_open = false
+	_gameplay_transition_was_active = _gameplay_action_transition_active()
+
+
+func _gameplay_action_transition_active() -> bool:
+	if not is_instance_valid(_game_world):
+		_game_world = get_tree().get_first_node_in_group("game_world")
+	if not is_instance_valid(_game_world):
+		return false
+	return (
+		bool(_game_world.get("_movement_execution_running"))
+		or bool(_game_world.get("_route_drawing"))
+		or bool(_game_world.get("_jump_in_progress"))
+		or bool(_game_world.get("_attack_in_progress"))
+	)
 
 
 func _install_catalog_visibility_guard() -> void:
