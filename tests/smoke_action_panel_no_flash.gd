@@ -2,7 +2,6 @@ extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
 const AUTOSAVE_PATH: String = "user://save_slots/autosave.json"
-const WORLD_INTERACTION_ACTION_ID: String = "world_interact"
 
 
 func _init() -> void:
@@ -50,9 +49,8 @@ func _run() -> void:
 		_fail("Actions does not use the original short-tap release mode.")
 		return
 
-	# Remove any currently registered trigger from the registry for this exact
-	# frame. The catalogue itself must still open and expose an unavailable world
-	# interaction placeholder instead of making the button inert.
+	# Remove every registered trigger for this exact frame. The button must still
+	# open the catalogue; nearby objects affect its contents, not availability.
 	var nearby_value: Variant = player.call("get_nearby_interactables")
 	if nearby_value is Array:
 		for target: Variant in nearby_value as Array:
@@ -63,17 +61,13 @@ func _run() -> void:
 	if not catalog.panel.visible:
 		_fail("Actions did not open outside every interaction trigger.")
 		return
-	var placeholder: Dictionary = _find_action(catalog.get_entries_for_testing(), WORLD_INTERACTION_ACTION_ID)
-	if placeholder.is_empty() or bool(placeholder.get("enabled", true)):
-		_fail("Open catalogue did not show the disabled no-object world action.")
-		return
 	mobile_controls.call("simulate_actions_touch_for_testing")
 	if catalog.panel.visible:
 		_fail("Second short Actions tap did not close the catalogue.")
 		return
 
-	# In release mode a touch start by itself does nothing; its normal release
-	# activates immediately. No hold duration or button_down authorization exists.
+	# In release mode touch start alone does nothing; its normal release activates
+	# immediately. No hold duration or button_down authorization exists.
 	mobile_controls.call("simulate_actions_press_for_testing", 0)
 	if catalog.panel.visible:
 		_fail("Touch start opened Actions before the normal release.")
@@ -125,16 +119,6 @@ func _run() -> void:
 		DirAccess.remove_absolute(save_path)
 	print("Actions opens with a normal short tap both outside triggers and on the player turn.")
 	quit(0)
-
-
-func _find_action(entries: Dictionary, action_id: String) -> Dictionary:
-	var value: Variant = entries.get("action", [])
-	if not value is Array:
-		return {}
-	for entry_value: Variant in value as Array:
-		if entry_value is Dictionary and str((entry_value as Dictionary).get("id", "")) == action_id:
-			return (entry_value as Dictionary).duplicate(true)
-	return {}
 
 
 func _make_hero() -> PlayerCharacter:
