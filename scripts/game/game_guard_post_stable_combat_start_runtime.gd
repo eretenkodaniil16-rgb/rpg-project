@@ -3,6 +3,22 @@ extends "res://scripts/game/game_guard_post_polish_runtime_core.gd"
 const COMBAT_START_BOUNDARY_MARGIN_PIXELS: float = 6.0
 
 
+func _capture_exploration_combat_candidates(trigger_target: Node) -> Array[Node]:
+	var result: Array[Node] = super._capture_exploration_combat_candidates(trigger_target)
+	var trigger_actor_id: String = _actor_id(trigger_target)
+	var roster: Array[String] = []
+	if trigger_actor_id in FIRST_ROOM_PARLEY_ACTOR_IDS:
+		roster = FIRST_ROOM_PARLEY_ACTOR_IDS
+	elif trigger_actor_id in SECOND_ROOM_ACTOR_IDS:
+		roster = SECOND_ROOM_ACTOR_IDS
+	for actor_id: String in roster:
+		var actor: Node = _find_guard_post_actor(actor_id)
+		if not _actor_can_join_encounter_roster(actor) or result.has(actor):
+			continue
+		result.append(actor)
+	return result
+
+
 func _snap_combatants_to_cells() -> void:
 	var grid: BattleGrid = _get_battle_grid()
 	if grid == null:
