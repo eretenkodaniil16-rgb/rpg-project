@@ -57,6 +57,7 @@ jobs:
       # blender_sprite_factory_attack_sword_twohand_up_f01_diagnostic_v21_pass28.py
       # twohand up f01 arm diagnostic history:
       # blender_sprite_factory_attack_sword_twohand_up_f01_arm_diagnostic_v21_pass29.py
+      # blender_sprite_factory_attack_sword_twohand_up_f01_review_v21_pass30.py
       # blender_sprite_factory_attack_sword_twohand_left_tail_diagnostic_v21.py
       # blender_sprite_factory_attack_sword_twohand_right_batch_diagnostic_v21.py
       # blender_sprite_factory_attack_sword_twohand_right_anticipation_diagnostic_v21.py
@@ -67,7 +68,7 @@ jobs:
       # blender_sprite_factory_attack_sword_onehand_up_depth_search_diagnostic_v21.py
       # blender_sprite_factory_attack_sword_onehand_up_front_depth_diagnostic_v21.py
       # blender_sprite_factory_attack_sword_onehand_up_f05_arm_diagnostic_v21.py
-      - name: Render Blender 5.2 twohand up f01 review pass30
+      - name: Render Blender 5.2 twohand up f01 central review pass31
         id: blender-attack-directional
         continue-on-error: true
         shell: bash
@@ -78,26 +79,26 @@ jobs:
             --background \
             --factory-startup \
             --python-exit-code 1 \
-            --python tools/blender_sprite_factory/blender_sprite_factory_attack_sword_twohand_up_f01_review_v21_pass30.py \
+            --python tools/blender_sprite_factory/blender_sprite_factory_attack_sword_twohand_up_f01_central_review_v21_pass31.py \
             -- \
             --repo-root "$GITHUB_WORKSPACE" \
             --config tools/blender_sprite_factory/configs/human_warrior_m01.json \
             --run-id "$run_id" \
             --mode all 2>&1 | tee blender_attack_directional_v21.log
 
-      - name: Upload twohand up f01 review and source blend
+      - name: Upload twohand up f01 central review and source blend
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: human_warrior_m01_proxy_v25_attack_sword_01_twohand_up_f01_pass30_review_${{ github.run_id }}_${{ github.run_attempt }}
+          name: human_warrior_m01_proxy_v25_attack_sword_01_twohand_up_f01_pass31_central_review_${{ github.run_id }}_${{ github.run_attempt }}
           path: |
             art/blender_pipeline_runs/human_warrior_m01/**
             blender_attack_directional_v21.log
           if-no-files-found: error
           retention-days: 14
 
-      - name: Require successful twohand up f01 review
+      - name: Require successful twohand up f01 central review
         if: steps.blender-attack-directional.outcome != 'success'
         run: |
-          echo "Directional attack v21 pass30 twohand up f01 review failed; inspect blender_attack_directional_v21.log in the uploaded artifact."
+          echo "Directional attack v21 pass31 twohand up f01 central review failed; inspect blender_attack_directional_v21.log in the uploaded artifact."
           exit 1
