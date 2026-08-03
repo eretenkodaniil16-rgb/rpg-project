@@ -63,6 +63,7 @@ jobs:
       # twohand up f02 rear-view review: blender_sprite_factory_attack_sword_twohand_up_f02_review_v21_pass35.py
       # twohand up f02 balanced continuity review: blender_sprite_factory_attack_sword_twohand_up_f02_review_v21_pass36.py
       # twohand up selected full cycle: blender_sprite_factory_attack_sword_twohand_up_cycle_diagnostic_v21_pass37.py
+      # twohand up f03 continuity review: blender_sprite_factory_attack_sword_twohand_up_f03_review_v21_pass38.py
       # blender_sprite_factory_attack_sword_twohand_left_tail_diagnostic_v21.py
       # blender_sprite_factory_attack_sword_twohand_right_batch_diagnostic_v21.py
       # blender_sprite_factory_attack_sword_twohand_right_anticipation_diagnostic_v21.py
@@ -73,7 +74,7 @@ jobs:
       # blender_sprite_factory_attack_sword_onehand_up_depth_search_diagnostic_v21.py
       # blender_sprite_factory_attack_sword_onehand_up_front_depth_diagnostic_v21.py
       # blender_sprite_factory_attack_sword_onehand_up_f05_arm_diagnostic_v21.py
-      - name: Render Blender 5.2 twohand up f03 continuity review pass38
+      - name: Render Blender 5.2 complete f03 review pass39
         id: blender-attack-directional
         continue-on-error: true
         shell: bash
@@ -84,26 +85,26 @@ jobs:
             --background \
             --factory-startup \
             --python-exit-code 1 \
-            --python tools/blender_sprite_factory/blender_sprite_factory_attack_sword_twohand_up_f03_review_v21_pass38.py \
+            --python tools/blender_sprite_factory/blender_sprite_factory_attack_sword_twohand_up_f03_review_v21_pass39.py \
             -- \
             --repo-root "$GITHUB_WORKSPACE" \
             --config tools/blender_sprite_factory/configs/human_warrior_m01.json \
             --run-id "$run_id" \
             --mode all 2>&1 | tee blender_attack_directional_v21.log
 
-      - name: Upload twohand up f03 continuity review and source blend
+      - name: Upload complete f03 review and source blend
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: human_warrior_m01_proxy_v25_attack_sword_01_twohand_up_f03_pass38_continuity_review_${{ github.run_id }}_${{ github.run_attempt }}
+          name: human_warrior_m01_proxy_v25_attack_sword_01_twohand_up_f03_pass39_complete_review_${{ github.run_id }}_${{ github.run_attempt }}
           path: |
             art/blender_pipeline_runs/human_warrior_m01/**
             blender_attack_directional_v21.log
           if-no-files-found: error
           retention-days: 14
 
-      - name: Require successful twohand up f03 continuity review
+      - name: Require successful complete f03 review
         if: steps.blender-attack-directional.outcome != 'success'
         run: |
-          echo "Directional attack v21 pass38 f03 continuity review failed; inspect the uploaded artifact."
+          echo "Directional attack v21 pass39 complete f03 review failed; inspect the uploaded artifact."
           exit 1
