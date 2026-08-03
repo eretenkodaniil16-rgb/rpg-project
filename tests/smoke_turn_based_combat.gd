@@ -50,25 +50,40 @@ func _run() -> void:
 	var actions_button: Button = mobile_controls.call("get_actions_button_for_testing") as Button
 	var player_before_combat: Vector2 = player.global_position
 	var caretaker_before_combat: Vector2 = caretaker.global_position
+	var player_cell_before: Vector2i = grid.world_to_cell(player_before_combat)
+	var caretaker_cell_before: Vector2i = grid.world_to_cell(caretaker_before_combat)
 	game.call("_start_turn_based_combat", caretaker)
 	if not bool(game.call("is_turn_based_combat_active")):
 		_fail("Turn based combat did not start.")
 		return
-	# Compare synchronously before a deferred enemy turn can move naturally.
-	if player.global_position.distance_to(player_before_combat) > POSITION_EPSILON:
-		_fail("Starting initiative relocated the player.")
+	# Initiative may align a sub-cell exploration position to the centre of its
+	# current logical cell, but it must not reassign either actor elsewhere.
+	var player_cell: Vector2i = grid.world_to_cell(player.global_position)
+	var caretaker_cell: Vector2i = grid.world_to_cell(caretaker.global_position)
+	if player_cell != player_cell_before:
+		_fail("Starting initiative reassigned the player to another cell.")
 		return
-	if caretaker.global_position.distance_to(caretaker_before_combat) > POSITION_EPSILON:
-		_fail("Starting initiative relocated the caretaker.")
+	if caretaker_cell != caretaker_cell_before:
+		_fail("Starting initiative reassigned the caretaker to another cell.")
+		return
+	if player.global_position.distance_to(grid.cell_to_world_center(player_cell)) > POSITION_EPSILON:
+		_fail("Player was not centred in the preserved combat cell.")
+		return
+	if caretaker.global_position.distance_to(grid.cell_to_world_center(caretaker_cell)) > POSITION_EPSILON:
+		_fail("Caretaker was not centred in the preserved combat cell.")
+		return
+	if player.global_position.distance_to(player_before_combat) > grid.get_cell_size():
+		_fail("Starting initiative moved the player farther than a local cell correction.")
+		return
+	if caretaker.global_position.distance_to(caretaker_before_combat) > grid.get_cell_size():
+		_fail("Starting initiative moved the caretaker farther than a local cell correction.")
 		return
 	game.call("force_player_turn_for_testing")
 	await process_frame
 	await process_frame
 
-	var player_cell: Vector2i = grid.world_to_cell(player.global_position)
-	var caretaker_cell: Vector2i = grid.world_to_cell(caretaker.global_position)
 	if not grid.is_cell_valid(player_cell) or not grid.is_cell_valid(caretaker_cell):
-		_fail("Preserved world positions do not map to valid combat cells.")
+		_fail("Combat positions do not map to valid cells.")
 		return
 
 	var catalog: ActionCatalogUI = game.get_node_or_null("Interface/ActionCatalogUI") as ActionCatalogUI
@@ -111,5 +126,5 @@ func _run() -> void:
 		return
 	game.queue_free()
 	await process_frame
-	print("Turn combat preserves initial world positions and moves only after confirmation.")
+	print("Turn combat centres actors in their existing cells and moves only after confirmation.")
 	quit(0)
