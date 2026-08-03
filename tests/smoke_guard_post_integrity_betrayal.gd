@@ -196,9 +196,15 @@ func _verify_peaceful_betrayal(
 	if catalog == null or target_button == null or mobile_controls == null:
 		_fail("Action catalog, Target button or mobile controls are missing from the betrayal test.")
 		return
+	# The consequence encounter may start while an enemy AI callback is still
+	# marked active. Settle that test-only asynchronous state before simulating a
+	# player-owned GUI command; production input remains blocked during real AI.
+	game.set("_enemy_turn_running", false)
+	state.set("input_locked", false)
 	mobile_controls.call("enable_for_testing")
 	game.call("force_player_turn_for_testing")
-	mobile_controls.call("_process", 0.0)
+	mobile_controls.call("_process", 0.4)
+	await process_frame
 	mobile_controls.call("simulate_actions_touch_for_testing")
 	if not catalog.panel.visible:
 		_fail("Could not open the catalog through the real Actions button before target selection.")
