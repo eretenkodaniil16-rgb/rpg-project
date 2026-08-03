@@ -93,10 +93,10 @@ func _run() -> void:
 	if not actions_button.visible or actions_button.disabled:
 		_fail("The lower-right Actions button is unavailable during exploration.")
 		return
-	_emit_actions_transaction(actions_button)
+	mobile_controls.call("simulate_actions_touch_for_testing")
 	await process_frame
 	if not catalog.panel.visible:
-		_fail("The lower-right Actions button did not open the menu outside combat.")
+		_fail("A completed lower-right Actions gesture did not open the menu outside combat.")
 		return
 	var inspect_button: Button = null
 	for button: Node in catalog.action_grid.get_children():
@@ -175,18 +175,17 @@ func _run() -> void:
 	if catalog.catalog_button.visible:
 		_fail("The duplicate ActionCatalogButton became visible during combat.")
 		return
-	# A carried/stale pressed signal without a fresh GUI button-down must be
-	# rejected at the turn boundary. A complete transaction works after guard.
+	# A stale legacy signal is rejected. A completed GUI gesture opens directly
+	# without a turn-start timer or reusable authorization latch.
 	actions_button.emit_signal("pressed")
 	await process_frame
 	if catalog.panel.visible:
-		_fail("A carried touch opened the combat menu at the turn boundary.")
+		_fail("A stale pressed signal opened the combat menu at the turn boundary.")
 		return
-	mobile_controls.call("_process", 1.0)
-	_emit_actions_transaction(actions_button)
+	mobile_controls.call("simulate_actions_touch_for_testing")
 	await process_frame
 	if not catalog.panel.visible:
-		_fail("The lower-right Actions button did not open after the turn guard expired.")
+		_fail("A completed lower-right Actions gesture did not open on the player combat turn.")
 		return
 	catalog.close_catalog()
 
@@ -243,13 +242,8 @@ func _run() -> void:
 	await process_frame
 	if FileAccess.file_exists(save_path):
 		DirAccess.remove_absolute(save_path)
-	print("NPC context actions, single mobile Actions button, concealed state, navigation, combat join and Combat AI smoke test passed.")
+	print("NPC context actions, GUI-origin mobile Actions button, concealed state, navigation, combat join and Combat AI smoke test passed.")
 	quit(0)
-
-
-func _emit_actions_transaction(actions_button: Button) -> void:
-	actions_button.emit_signal("button_down")
-	actions_button.emit_signal("pressed")
 
 
 func _make_hero() -> PlayerCharacter:
