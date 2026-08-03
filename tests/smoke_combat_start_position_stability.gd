@@ -3,6 +3,8 @@ extends SceneTree
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
 const POSITION_EPSILON: float = 0.01
 
+var _has_failed: bool = false
+
 
 func _init() -> void:
 	call_deferred("_run")
@@ -36,145 +38,78 @@ func _run() -> void:
 	if guard == null:
 		_fail("Service guard is missing.")
 		return
-
-	await _verify_valid_positions_remain_exact(game, grid, player, caretaker, guard, state)
-	if _has_failed:
-		return
-	_verify_boundary_and_overlap_normalization(game, grid, player, caretaker, guard, state)
-	if _has_failed:
+	if not bool(game.call("combat_start_preserves_world_positions_for_testing")):
+		_fail("Guard-post runtime does not declare authoritative world positions.")
 		return
 
-	print("Combat start preserves valid enemy positions and normalizes only invalid or conflicting placements.")
-	game.queue_free()
-	await process_frame
-	quit(0)
-
-
-var _has_failed: bool = false
-
-
-func _verify_valid_positions_remain_exact(
-	game: Node,
-	grid: BattleGrid,
-	player: CharacterBody2D,
-	caretaker: Node2D,
-	guard: Node2D,
-	state: Node
-) -> void:
-	var occupied: Dictionary = {}
-	var caretaker_cell: Vector2i = game.call(
-		"_nearest_walkable_cell",
-		grid,
-		Vector2(690.0, 360.0),
-		occupied
-	) as Vector2i
-	occupied[caretaker_cell] = caretaker
-	var guard_cell: Vector2i = game.call(
-		"_nearest_walkable_cell",
-		grid,
-		Vector2(820.0, 560.0),
-		occupied
-	) as Vector2i
-	occupied[guard_cell] = guard
-	var player_cell: Vector2i = game.call(
-		"_nearest_walkable_cell",
-		grid,
-		Vector2(620.0, 360.0),
-		occupied
-	) as Vector2i
-
-	var safe_offset := Vector2(10.0, 9.0)
-	caretaker.global_position = grid.cell_to_world_center(caretaker_cell) + safe_offset
-	guard.global_position = grid.cell_to_world_center(guard_cell) + Vector2(-9.0, 10.0)
-	player.global_position = grid.cell_to_world_center(player_cell) + Vector2(8.0, -9.0)
-	state.set("player_position", player.global_position)
+	# Use the actual live patrol placement. Starting initiative must not normalize,
+	# center or otherwise move any participant before its own turn executes.
 	var caretaker_before: Vector2 = caretaker.global_position
 	var guard_before: Vector2 = guard.global_position
 	var player_before: Vector2 = player.global_position
-
-	if caretaker.has_method("enter_combat_hostile"):
-		caretaker.call("enter_combat_hostile")
-	if guard.has_method("enter_combat_hostile"):
-		guard.call("enter_combat_hostile")
 	game.call("_start_turn_based_combat", caretaker)
 	if not bool(game.call("is_turn_based_combat_active")):
-		_fail("Combat did not start for the stable-position test.")
+		_fail("Combat did not start from the authored guard-post placement.")
 		return
-	if caretaker.global_position.distance_to(caretaker_before) > POSITION_EPSILON:
-		_fail("Caretaker moved despite already occupying a valid interior cell position.")
+	_assert_position("Caretaker", caretaker.global_position, caretaker_before)
+	_assert_position("Service guard", guard.global_position, guard_before)
+	_assert_position("Player", player.global_position, player_before)
+	if _has_failed:
 		return
-	if guard.global_position.distance_to(guard_before) > POSITION_EPSILON:
-		_fail("Service guard moved despite already occupying a valid interior cell position.")
-		return
-	if player.global_position.distance_to(player_before) > POSITION_EPSILON:
-		_fail("Player moved despite already occupying a valid non-conflicting position.")
-		return
-
 	var turn_system: TurnBasedCombatSystem = game.get("_turn_system") as TurnBasedCombatSystem
+	var initiative_ids: Array[String] = []
+	for entry: Dictionary in turn_system.entries:
+		if bool(entry.get("is_player", false)):
+			continue
+		var actor: Node = entry.get("node") as Node
+		if is_instance_valid(actor) and actor.has_method("get_actor_id"):
+			initiative_ids.append(str(actor.call("get_actor_id")))
+	if "caretaker" not in initiative_ids or "service_guard" not in initiative_ids:
+		_fail("First-room initiative roster is incomplete: %s" % JSON.stringify(initiative_ids))
+		return
 	turn_system.stop_combat()
 	game.set("_enemy_turn_running", false)
 	game.set("_active_combat_encounter_id", "")
 	if player.has_method("set_turn_based_mode"):
 		player.call("set_turn_based_mode", false)
 
-
-func _verify_boundary_and_overlap_normalization(
-	game: Node,
-	grid: BattleGrid,
-	player: CharacterBody2D,
-	caretaker: Node2D,
-	guard: Node2D,
-	state: Node
-) -> void:
+	# Distinct world positions may legitimately map to the same coarse grid cell.
+	# The transition must preserve them rather than teleport one participant to a
+	# nearest free cell, which was the source of the observed guard jump.
 	var occupied: Dictionary = {}
-	var enemy_origin: Vector2i = game.call(
+	var shared_cell: Vector2i = game.call(
 		"_nearest_walkable_cell",
 		grid,
 		Vector2(690.0, 360.0),
 		occupied
 	) as Vector2i
-	var cell_size: float = grid.get_cell_size()
-	var field: Rect2 = grid.get_field_rect()
-	var enemy_cell_local_origin: Vector2 = field.position + Vector2(enemy_origin) * cell_size
-	var boundary_position: Vector2 = grid.to_global(
-		enemy_cell_local_origin + Vector2(1.0, cell_size * 0.5)
-	)
-	caretaker.global_position = boundary_position
-	player.global_position = grid.cell_to_world_center(enemy_origin)
+	var center: Vector2 = grid.cell_to_world_center(shared_cell)
+	caretaker.global_position = center + Vector2(-22.0, 0.0)
+	guard.global_position = center + Vector2(22.0, 0.0)
+	player.global_position = center + Vector2(0.0, 34.0)
 	state.set("player_position", player.global_position)
-
-	# Keep the second hostile participant in a separate valid position so the
-	# normalization result is deterministic.
-	occupied[enemy_origin] = caretaker
-	var guard_cell: Vector2i = game.call(
-		"_nearest_walkable_cell",
-		grid,
-		Vector2(820.0, 560.0),
-		occupied
-	) as Vector2i
-	guard.global_position = grid.cell_to_world_center(guard_cell) + Vector2(9.0, 9.0)
-
-	var expected_enemy_cell: Vector2i = game.call(
-		"_nearest_walkable_cell",
-		grid,
-		boundary_position,
-		{}
-	) as Vector2i
+	caretaker_before = caretaker.global_position
+	guard_before = guard.global_position
+	player_before = player.global_position
+	if grid.world_to_cell(caretaker_before) != grid.world_to_cell(guard_before):
+		_fail("Overlap fixture did not place both NPCs in one logical cell.")
+		return
 	game.call("_snap_combatants_to_cells")
-	var caretaker_cell_after: Vector2i = grid.world_to_cell(caretaker.global_position)
-	var player_cell_after: Vector2i = grid.world_to_cell(player.global_position)
-	if caretaker_cell_after != expected_enemy_cell:
-		_fail("Boundary-position enemy was not moved to its nearest valid cell.")
+	_assert_position("Same-cell caretaker", caretaker.global_position, caretaker_before)
+	_assert_position("Same-cell service guard", guard.global_position, guard_before)
+	_assert_position("Same-cell player", player.global_position, player_before)
+	if _has_failed:
 		return
-	if caretaker.global_position.distance_to(grid.cell_to_world_center(expected_enemy_cell)) > POSITION_EPSILON:
-		_fail("Boundary-position enemy was not centered after required normalization.")
-		return
-	if player_cell_after == caretaker_cell_after:
-		_fail("Player and enemy still share one cell after combat-start normalization.")
-		return
-	if guard.global_position.distance_to(grid.cell_to_world_center(guard_cell) + Vector2(9.0, 9.0)) > POSITION_EPSILON:
-		_fail("Unrelated valid guard position changed during overlap normalization.")
-		return
+
+	print("Combat transition preserves authored, patrol and same-cell world positions exactly.")
+	game.queue_free()
+	await process_frame
+	quit(0)
+
+
+func _assert_position(label: String, actual: Vector2, expected: Vector2) -> void:
+	if actual.distance_to(expected) > POSITION_EPSILON:
+		_fail("%s moved at combat start: %s -> %s" % [label, str(expected), str(actual)])
 
 
 func _make_hero() -> PlayerCharacter:
