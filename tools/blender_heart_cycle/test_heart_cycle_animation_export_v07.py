@@ -22,17 +22,26 @@ def test_review_profile_preserves_fifteen_second_duration() -> None:
     assert '"duration_seconds": TOTAL_FRAMES / FPS' in SOURCE
 
 
-def test_mp4_export_settings_are_explicit() -> None:
+def test_resumable_png_intermediate_is_explicit() -> None:
     required_tokens = (
-        'scene.render.image_settings.file_format = "FFMPEG"',
-        'scene.render.ffmpeg.format = "MPEG4"',
-        'scene.render.ffmpeg.codec = "H264"',
-        'scene.render.ffmpeg.audio_codec = "NONE"',
-        'scene.render.ffmpeg.constant_rate_factor = "MEDIUM"',
-        'DEFAULT_VIDEO_NAME = "heart_cycle_review_v07.mp4"',
+        'DEFAULT_FRAME_DIRECTORY = "review_frames"',
+        'scene.render.image_settings.file_format = "PNG"',
+        'scene.render.image_settings.color_mode = "RGB"',
+        'scene.render.filepath = str(frame_root / "heart_cycle_review_")',
+        '"format": "PNG sequence"',
+        '"resumable": True',
+        "_validate_rendered_frames",
     )
     for token in required_tokens:
         assert token in SOURCE
+
+
+def test_external_video_delivery_contract_is_explicit() -> None:
+    assert 'DEFAULT_VIDEO_NAME = "heart_cycle_review_v07.mp4"' in SOURCE
+    assert '"video_codec": "H.264 via external FFmpeg"' in SOURCE
+    assert '"video_generation": "external ffmpeg encoding after Blender PNG render"' in SOURCE
+    assert '"video_rendered": False' in SOURCE
+    assert '"gif_generation": "ffmpeg palette post-process in CI"' in SOURCE
 
 
 def test_full_quality_profile_remains_available() -> None:
