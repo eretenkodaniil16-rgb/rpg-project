@@ -1,4 +1,4 @@
-extends "res://scripts/core/game_state_world_snapshot.gd"
+extends "res://scripts/core/game_state_world_snapshot_base.gd"
 
 const ITEM_USE_DEFINITIONS_PATH: String = "res://data/items/item_use_definitions.json"
 
