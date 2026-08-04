@@ -1,80 +1,124 @@
 # Blender Heart Cycle
 
-Procedural Blender foundation for a **frontally cut human heart** with visible chambers, valves and blood-flow guides. The animation timeline follows the nine-phase cardiac-cycle structure used in the Pokrovsky physiology textbook and is expanded to a 15-second educational loop.
+Procedural Blender model of a **frontally cut human heart** with visible chambers, valves, internal relief, blood-flow guides and a Russian educational overlay. The scene follows the nine-phase cardiac-cycle structure used in the Pokrovsky physiology textbook and presents it as a 15-second loop.
 
-## Current model revision
+## Current revision
 
-`heart_cutaway_v02_phase_rig_v03_infographic_v04`
+`heart_cutaway_reference_layout_v05_phase_rig_v03_infographic_v04_presentation_v06_animation_v07`
 
-The current stage combines the anatomy refinement pass `heart_cutaway_v02`, the physiological phase rig `heart_cycle_phase_rig_v03` and the Russian educational compositor `heart_cycle_infographic_v04`.
+The current branch keeps the successful first-preview chamber layout, adds the anatomical refinement pass, drives the chambers and valves through nine physiological phases, and exports the result as an animation-ready `.blend` plus MP4/GIF review media.
 
 ### Anatomy v02
 
-- non-mirrored ventricular proportions, with a longer thick-walled left ventricle and a broader, shorter right ventricle;
-- reduced and differentiated mitral, tricuspid, aortic and pulmonary valve assemblies;
-- refined papillary-muscle proportions plus a septal papillary muscle for the right ventricle;
-- atrial appendage proxies and visible pectinate-muscle ridges;
+- differentiated left and right ventricular anatomy;
+- mitral, tricuspid, aortic and pulmonary valve assemblies;
+- papillary muscles and chordae tendineae;
+- atrial appendages and pectinate-muscle ridges;
 - left- and right-ventricular trabeculae;
-- a right-ventricular moderator band;
-- visible LV and RV outflow-tract ridges;
-- explicit left and right pulmonary-artery branches;
-- revised myocardium, endocardial and valve materials;
-- smaller blood-flow guides so anatomy remains visually dominant.
+- right-ventricular moderator band;
+- LVOT and RVOT ridges;
+- pulmonary-artery bifurcation;
+- revised myocardium, endocardial and valve materials.
 
 ### Phase rig v03
 
 - independent left- and right-ventricular deformation profiles;
-- volume-preserving shape change during asynchronous and isometric contraction;
-- distinct rapid-ejection, slow-ejection and filling deformation states;
-- progressive atrial filling during ventricular systole;
-- continuous AV and semilunar valve opening fractions instead of binary switching;
-- delayed left/right tension during asynchronous contraction;
-- phase-specific fast, slow and brief-reverse blood-flow intensity;
-- keyframed left/right atrial and ventricular pressures;
-- keyframed aortic and pulmonary-artery pressures;
-- keyframed normalized atrial and ventricular volume channels;
-- a seamless loop boundary between frame 450 and frame 1;
-- an extended JSON manifest describing the rig and preview frames.
+- approximately isovolumetric shape change during tension and relaxation;
+- separate rapid/slow ejection and filling states;
+- continuous AV and semilunar valve-opening fractions;
+- delayed left/right ventricular tension during asynchronous contraction;
+- phase-specific direct and brief reverse blood flow;
+- animated chamber pressures and normalized volumes;
+- Blender 5.2 layered Actions / Action Slots support;
+- seamless physiological boundary between frames 450 and 1.
 
-### Infographic compositor v04
+### Infographic v04
 
-- title `СЕРДЕЧНЫЙ ЦИКЛ` at the top of the frame;
-- permanent left information card and the cutaway heart shifted to the right;
-- one Russian phase card for each of the nine phases;
-- phase index, phase name, three explanatory statements and real duration;
-- AV and semilunar valve-state labels;
-- cross-platform Cyrillic font lookup for Windows, Linux and macOS;
-- camera-parented UI that remains stable while the heart deforms;
-- nine mid-phase infographic preview renders;
-- manifest metadata describing language, layout and visible phase fields.
+- Russian phase card for each of the nine phases;
+- phase index, title, physiological description and real duration;
+- AV- and semilunar-valve state labels;
+- camera-parented UI and cross-platform Cyrillic font lookup;
+- principal composed preview and nine mid-phase previews.
+
+### Corrected layout v05
+
+- chamber coordinates restored from the approved first preview;
+- ventricles kept below the atria by a runtime anatomical validator;
+- the left ventricle again forms the inferior apex;
+- layout metrics written into the JSON manifest;
+- dependent cavities, septum and internal structures remain synchronized.
+
+### Presentation polish v06
+
+- canonical flow visibility at every phase boundary;
+- validation of expected and visible flow groups in all nine phases;
+- title confined to the left header card;
+- heart shifted right and slightly down to prevent aortic text occlusion.
+
+### Animation export v07
+
+- animation-ready `.blend` configured for H.264/MPEG-4 output;
+- full authored timeline: 450 frames at 30 FPS, 15 seconds;
+- review profile: every second source frame, 225 frames at 15 FPS, still 15 seconds;
+- default review resolution: 640×360;
+- final-quality profile retained at all 450 frames and 30 FPS;
+- CI conversion of the review MP4 to a palette-based GIF;
+- automatic MP4 frame-count, resolution, FPS and duration verification;
+- export metadata written into `heart_cycle_manifest.json`.
 
 This remains an educational procedural model and is not intended for diagnostic visualization.
 
-## Build on Windows
+## Windows launchers
 
-Double-click:
+Build the `.blend`, principal preview and nine phase previews:
 
 ```text
 01_BUILD_HEART_CYCLE.cmd
 ```
 
-The launcher looks for Blender 5.2 first and writes output to:
+Render the 15-second 360p/15 FPS review MP4:
+
+```text
+02_RENDER_HEART_CYCLE_REVIEW.cmd
+```
+
+Both launchers look for Blender 5.2 first and write to:
 
 ```text
 artifacts/blender_heart_cycle/
 ```
 
-PowerShell usage:
+## PowerShell usage
+
+Control-frame and model build:
 
 ```powershell
 .\tools\blender_heart_cycle\run_blender_heart_cycle.ps1 `
   -BlenderExe "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" `
-  -RenderPreview
+  -RenderPreview `
+  -Resolution 720
 ```
 
-`-RenderPreview` creates the principal composed preview plus nine phase-specific PNG files in `infographic_phase_previews/`.
+Review animation:
 
-Use `-RenderAnimation` only after the nine composed phase previews are approved; it renders all 450 PNG frames into `infographic_frames/`.
+```powershell
+.\tools\blender_heart_cycle\run_blender_heart_cycle.ps1 `
+  -RenderAnimation `
+  -AnimationResolution 360 `
+  -SampleStep 2
+```
+
+Full 30 FPS animation:
+
+```powershell
+.\tools\blender_heart_cycle\run_blender_heart_cycle.ps1 `
+  -RenderAnimation `
+  -AnimationResolution 720 `
+  -SampleStep 1 `
+  -VideoBitrate 8000
+```
+
+The review profile is intended for rapid evaluation of motion, valve timing, flow visibility and phase-card transitions. The full-quality profile is substantially more expensive to render.
 
 ## Timeline
 
@@ -92,4 +136,4 @@ Use `-RenderAnimation` only after the nine composed phase previews are approved;
 
 ## Review boundary
 
-The v04 CI artifact must be reviewed across all nine composed phase previews before rendering the complete 450-frame sequence. Review should focus on text fit, Cyrillic glyphs, separation between the left card and the heart, chamber intersections, valve travel and flow-guide occlusion. The next pass then fixes only observed defects before MP4/GIF export.
+The v07 review animation must be inspected before the expensive 720p/30 FPS export. Review should focus on the continuity of the ventricular deformation, valve timing, arrow direction, flow disappearance at phase boundaries, text transitions and the seam from the final frame back to frame 1.
