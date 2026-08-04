@@ -33,7 +33,7 @@ jobs:
       - name: Install test runner
         run: python -m pip install --disable-pip-version-check "pytest>=8.3,<9"
 
-      - name: Validate timeline, anatomy and phase-rig contracts
+      - name: Validate timeline, anatomy, rig and infographic contracts
         env:
           PYTHONPATH: tools/blender_heart_cycle
         run: python -m pytest -q tools/blender_heart_cycle
@@ -48,10 +48,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install headless render dependencies
+      - name: Install headless render and Cyrillic font dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends xvfb libgl1 libxi6 libxrender1 libxkbcommon-x11-0
+          sudo apt-get install -y --no-install-recommends \
+            xvfb libgl1 libxi6 libxrender1 libxkbcommon-x11-0 fonts-dejavu-core
 
       - name: Download and verify Blender 5.2.0 LTS
         shell: bash
@@ -70,7 +71,7 @@ jobs:
           test -n "$blender"
           echo "BLENDER_EXE=$blender" >> "$GITHUB_ENV"
 
-      - name: Build phase rig v03 and render nine phase previews
+      - name: Build infographic v04 and render nine phase cards
         id: heart-build
         continue-on-error: true
         shell: bash
@@ -81,26 +82,29 @@ jobs:
             --background \
             --factory-startup \
             --python-exit-code 1 \
-            --python tools/blender_heart_cycle/heart_cycle_phase_rig_render_v03.py \
+            --python tools/blender_heart_cycle/heart_cycle_infographic_v04.py \
             -- \
             --output-root "$output" \
             --render-preview \
             --resolution 720 2>&1 | tee heart_cycle_blender.log
 
-      - name: Verify nine phase preview frames
+      - name: Verify infographic artifact contract
         if: steps.heart-build.outcome == 'success'
         shell: bash
         run: |
-          count="$(find artifacts/blender_heart_cycle/phase_previews -type f -name '*.png' | wc -l)"
+          count="$(find artifacts/blender_heart_cycle/infographic_phase_previews -type f -name '*.png' | wc -l)"
           test "$count" -eq 9
-          test -f artifacts/blender_heart_cycle/heart_cutaway_v02_phase_rig_v03.blend
+          test -f artifacts/blender_heart_cycle/heart_cutaway_v02_phase_rig_v03_infographic_v04.blend
           test -f artifacts/blender_heart_cycle/heart_cycle_manifest.json
+          test -f artifacts/blender_heart_cycle/heart_cycle_infographic_preview.png
+          grep -q '"infographic_revision": "heart_cycle_infographic_v04"' \
+            artifacts/blender_heart_cycle/heart_cycle_manifest.json
 
       - name: Upload Blender heart-cycle artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: heart_cutaway_v02_phase_rig_v03_${{ github.run_id }}_${{ github.run_attempt }}
+          name: heart_cutaway_v02_phase_rig_v03_infographic_v04_${{ github.run_id }}_${{ github.run_attempt }}
           path: |
             artifacts/blender_heart_cycle/**
             heart_cycle_blender.log
@@ -110,5 +114,5 @@ jobs:
       - name: Require successful Blender build
         if: steps.heart-build.outcome != 'success'
         run: |
-          echo "Blender heart-cycle phase-rig build failed; inspect heart_cycle_blender.log in the uploaded artifact."
+          echo "Blender heart-cycle infographic build failed; inspect heart_cycle_blender.log in the uploaded artifact."
           exit 1
