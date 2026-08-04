@@ -1,8 +1,9 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=16 format=3]
 
 [ext_resource type="Script" path="res://scripts/menus/main_menu.gd" id="1_menu"]
 [ext_resource type="Script" path="res://scripts/menus/main_menu_atmosphere.gd" id="2_atmosphere"]
 [ext_resource type="Script" path="res://scripts/menus/main_menu_tiled_background.gd" id="3_tiled_background"]
+[ext_resource type="Script" path="res://scripts/menus/main_menu_title_glow.gd" id="4_title_glow"]
 
 [sub_resource type="Shader" id="Shader_menu_shade"]
 code = "shader_type canvas_item;\n\nvoid fragment() {\n\tfloat shade = smoothstep(0.05, 0.72, UV.x);\n\tfloat lower = smoothstep(0.0, 1.0, UV.y) * 0.10;\n\tCOLOR = vec4(0.006, 0.010, 0.018, shade * 0.55 + lower);\n}\n"
@@ -15,6 +16,12 @@ code = "shader_type canvas_item;\nrender_mode blend_add, unshaded;\n\nvoid fragm
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_additive"]
 shader = SubResource("Shader_additive")
+
+[sub_resource type="Shader" id="Shader_title_glow"]
+code = "shader_type canvas_item;\nrender_mode unshaded, blend_add;\n\nuniform sampler2D screen_texture : hint_screen_texture, filter_linear;\nuniform float intensity : hint_range(0.0, 1.0) = 0.0;\nuniform vec4 glow_color : source_color = vec4(0.08, 0.48, 1.0, 1.0);\nuniform vec4 title_rect = vec4(0.11, 0.15, 0.54, 0.42);\n\nfloat title_signal(vec3 sample_color) {\n\tfloat luminance = dot(sample_color, vec3(0.2126, 0.7152, 0.0722));\n\tfloat coolness = clamp((sample_color.b - sample_color.r * 0.72 + 0.08) * 3.2, 0.0, 1.0);\n\tfloat bright = smoothstep(0.12, 0.48, luminance);\n\treturn bright * (0.32 + coolness * 0.68);\n}\n\nfloat title_region(vec2 uv) {\n\treturn step(title_rect.x, uv.x) * step(title_rect.y, uv.y) * step(uv.x, title_rect.z) * step(uv.y, title_rect.w);\n}\n\nvoid fragment() {\n\tvec2 uv = SCREEN_UV;\n\tfloat region = title_region(uv);\n\tvec2 px = SCREEN_PIXEL_SIZE * 4.5;\n\tfloat core = title_signal(textureLod(screen_texture, uv, 0.0).rgb);\n\tfloat halo = 0.0;\n\thalo += title_signal(textureLod(screen_texture, uv + vec2(px.x, 0.0), 0.0).rgb);\n\thalo += title_signal(textureLod(screen_texture, uv - vec2(px.x, 0.0), 0.0).rgb);\n\thalo += title_signal(textureLod(screen_texture, uv + vec2(0.0, px.y), 0.0).rgb);\n\thalo += title_signal(textureLod(screen_texture, uv - vec2(0.0, px.y), 0.0).rgb);\n\thalo += title_signal(textureLod(screen_texture, uv + px, 0.0).rgb);\n\thalo += title_signal(textureLod(screen_texture, uv - px, 0.0).rgb);\n\thalo += title_signal(textureLod(screen_texture, uv + vec2(px.x, -px.y), 0.0).rgb);\n\thalo += title_signal(textureLod(screen_texture, uv + vec2(-px.x, px.y), 0.0).rgb);\n\thalo *= 0.125;\n\tfloat signal = clamp(core * 0.72 + halo * 0.62, 0.0, 1.0) * region;\n\tCOLOR = vec4(glow_color.rgb, signal * intensity);\n}\n"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_title_glow"]
+shader = SubResource("Shader_title_glow")
 
 [sub_resource type="StyleBoxFlat" id="StyleBox_menu_panel"]
 bg_color = Color(0.012, 0.021, 0.033, 0.88)
@@ -109,6 +116,18 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("3_tiled_background")
+
+[node name="TitleGlow" type="ColorRect" parent="."]
+material = SubResource("ShaderMaterial_title_glow")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 1, 1, 1)
+script = ExtResource("4_title_glow")
 
 [node name="MenuReadabilityShade" type="ColorRect" parent="."]
 material = SubResource("ShaderMaterial_menu_shade")
