@@ -62,7 +62,7 @@ func _update_exploration_alerts(delta: float) -> void:
 		_update_exploration_actor(actor, delta)
 
 
-func perform_transactional_weapon_attack_for_testing(
+func resolve_transactional_weapon_attack_for_testing(
 	target: Node,
 	weapon: Dictionary,
 	ammo_id: String,
