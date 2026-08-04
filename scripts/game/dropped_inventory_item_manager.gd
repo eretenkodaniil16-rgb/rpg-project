@@ -131,7 +131,6 @@ func restore_from_world_snapshot() -> void:
 
 func prepare_world_state_for_save() -> void:
 	_prune_invalid_nodes()
-	_sync_snapshot_cache()
 
 
 func can_capture_stable_world_state() -> bool:
