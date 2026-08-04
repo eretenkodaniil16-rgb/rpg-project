@@ -10,6 +10,8 @@ on:
       - "scripts/core/game_state_item_use.gd"
       - "scripts/systems/item_use_system.gd"
       - "scripts/systems/inventory_transaction_system.gd"
+      - "scripts/game/game_guard_post_polish_runtime.gd"
+      - "scripts/game/game_guard_post_polish_runtime_base.gd"
       - "scripts/game/game_item_use_runtime.gd"
       - "scripts/ui/inventory_panel.gd"
       - "tests/test_item_use_system.gd"
