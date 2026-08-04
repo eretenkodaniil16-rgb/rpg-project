@@ -56,7 +56,11 @@ func request_interaction_with_instance(instance_id: int) -> void:
 		return
 	_prune_interactables()
 	var target_value: Variant = _interactables.get(instance_id, null)
-	var target: Node = target_value as Node if target_value is Node and is_instance_valid(target_value as Node) else null
+	var target: Node = null
+	# Freed Objects must be rejected before any `is Node` type test. Godot raises
+	# an error when `is` is evaluated against a previously freed instance.
+	if is_instance_valid(target_value) and target_value is Node:
+		target = target_value as Node
 	_interact_with_target(target)
 
 
@@ -68,7 +72,7 @@ func register_interactable(target: Node) -> void:
 
 
 func unregister_interactable(target: Node) -> void:
-	if target == null:
+	if target == null or not is_instance_valid(target):
 		return
 	_interactables.erase(target.get_instance_id())
 	_refresh_primary_interactable()
@@ -78,7 +82,9 @@ func get_nearby_interactables() -> Array[Node]:
 	_prune_interactables()
 	var result: Array[Node] = []
 	for value: Variant in _interactables.values():
-		if value is Node and is_instance_valid(value as Node):
+		if not is_instance_valid(value):
+			continue
+		if value is Node:
 			result.append(value as Node)
 	result.sort_custom(_interaction_target_before)
 	return result
@@ -168,7 +174,10 @@ func _prune_interactables() -> void:
 	var stale_ids: Array[int] = []
 	for key: Variant in _interactables.keys():
 		var value: Variant = _interactables.get(key, null)
-		if not value is Node or not is_instance_valid(value as Node):
+		if not is_instance_valid(value):
+			stale_ids.append(int(key))
+			continue
+		if not value is Node:
 			stale_ids.append(int(key))
 	for instance_id: int in stale_ids:
 		_interactables.erase(instance_id)
