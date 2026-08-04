@@ -29,7 +29,7 @@ if (-not $OutputRoot) {
 $Arguments = @(
     "--background",
     "--factory-startup",
-    "--python", (Join-Path $ToolRoot "heart_cycle_model.py"),
+    "--python", (Join-Path $ToolRoot "heart_cycle_build.py"),
     "--",
     "--output-root", $OutputRoot
 )
