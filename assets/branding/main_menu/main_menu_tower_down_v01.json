@@ -5,21 +5,24 @@
   "style": "pixel_art_dark_fantasy",
   "approved_direction": "variant_a_background_with_logo_variant_02",
   "resources": {
-    "background_strips_directory": "res://assets/branding/main_menu/approved/strips/",
-    "background_strip_pattern": "main_menu_strip_c%02d.webp",
     "scene": "res://scenes/menus/main_menu.tscn",
     "tiled_background_script": "res://scripts/menus/main_menu_tiled_background.gd",
-    "atmosphere_script": "res://scripts/menus/main_menu_atmosphere.gd"
+    "atmosphere_script": "res://scripts/menus/main_menu_atmosphere.gd",
+    "title_glow_script": "res://scripts/menus/main_menu_title_glow.gd",
+    "background_segment_directory": "res://assets/branding/main_menu/approved/strips/"
   },
   "render_contract": {
-    "source_size": [1280, 720],
+    "master_source_size": [1672, 941],
+    "source_size": [1920, 1080],
     "target_viewport": [1280, 720],
-    "strip_count": 8,
-    "strip_size": [160, 720],
+    "background_encoding": "webp_q75",
+    "texture_filter": "linear",
     "stretch_mode": "keep_aspect_covered",
     "title_embedded": true,
     "particle_count": 28,
-    "heavy_video_background": false
+    "heavy_video_background": false,
+    "segment_count": 19,
+    "segment_widths": [120, 120, 120, 120, 60, 60, 60, 60, 60, 60, 120, 120, 120, 120, 120, 120, 120, 120, 120]
   },
   "effects": [
     "magic_circle_pulse",
@@ -27,12 +30,24 @@
     "independent_torch_flicker",
     "ambient_dust",
     "blue_magic_motes",
+    "rare_title_blue_glow",
     "button_focus_tween"
   ],
+  "title_glow": {
+    "implementation": "screen_texture_title_mask_shader",
+    "wait_seconds_min": 5.0,
+    "wait_seconds_max": 10.0,
+    "fade_in_seconds": 0.82,
+    "hold_seconds": 0.56,
+    "fade_out_seconds": 1.18,
+    "max_intensity": 0.58,
+    "disabled_by_reduced_motion": true
+  },
   "fallback": {
     "background_color": "#06101A",
     "menu_logic_preserved_without_art": true,
-    "requires_complete_strip_set": true
+    "requires_complete_strip_set": true,
+    "title_glow_optional": true
   },
   "approval": {
     "background_composition_approved": true,
