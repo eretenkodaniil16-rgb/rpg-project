@@ -39,7 +39,7 @@ def test_overhead_pass04_sources_parse() -> None:
 def test_overhead_pass04_reserves_normalized_f03_margin() -> None:
     correction = _load_correction()
     assert correction.TARGET_FRAME == 3
-    assert correction.F03_SCREEN_PROJECTION == 0.80
+    assert correction.F03_SCREEN_PROJECTION == 0.76
     assert correction.PRESERVE_F02 is True
     assert correction.PRESERVE_F04_F07_PROFILE is True
     assert correction.PRESERVE_BODY_ACTION is True
