@@ -1,7 +1,6 @@
 extends SceneTree
 
 const MAIN_MENU_SCENE: String = "res://scenes/menus/main_menu.tscn"
-const BACKGROUND_PATH: String = "res://assets/branding/main_menu/approved/main_menu_tower_down_title_v01.webp"
 
 
 func _initialize() -> void:
@@ -17,11 +16,11 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 
-	var approved_background: TextureRect = menu.get_node_or_null("ApprovedBackground") as TextureRect
-	assert(approved_background != null, "Approved background node is missing")
-	assert(approved_background.visible, "Approved background must be active when its resource exists")
-	assert(approved_background.texture != null, "Approved background texture must load")
-	assert(ResourceLoader.exists(BACKGROUND_PATH, "Texture2D"), "Approved background resource is missing")
+	var approved_background: MainMenuTiledBackground = menu.get_node_or_null("ApprovedBackground") as MainMenuTiledBackground
+	assert(approved_background != null, "Approved tiled background node is missing")
+	assert(approved_background.expected_tile_count() == 32, "Unexpected main-menu tile count")
+	assert(approved_background.has_complete_tiles(), "Approved background tile set is incomplete")
+	assert(approved_background.visible, "Approved background must be active when all tiles exist")
 	assert(menu.get_node_or_null("FallbackBackground") != null, "Fallback background is missing")
 	assert(menu.get_node_or_null("Atmosphere") is MainMenuAtmosphere, "Atmosphere controller is missing")
 
