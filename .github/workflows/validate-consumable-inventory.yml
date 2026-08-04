@@ -20,6 +20,7 @@ on:
       - "tests/smoke_directional_consumable_inventory.gd"
       - "tests/smoke_free_aim_combat.gd"
       - "tests/test_mobile_combat_progression_hud.gd"
+      - "tests/test_mobile_combat_progression_hud.tscn"
       - "tests/smoke_guard_post_runtime_regressions_v2.gd"
       - "docs/CONSUMABLE_INVENTORY_TRANSACTIONS.md"
       - ".github/workflows/validate-consumable-inventory.yml"
@@ -77,7 +78,7 @@ jobs:
 
       - name: Regression test mobile combat and HUD
         shell: bash
-        run: timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_mobile_combat_progression_hud.gd 2>&1 | tee mobile-hud-regression.log
+        run: timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" res://tests/test_mobile_combat_progression_hud.tscn 2>&1 | tee mobile-hud-regression.log
 
       - name: Regression test guard post runtime
         shell: bash
