@@ -1,4 +1,4 @@
-extends "res://scripts/game/game_guard_post_stable_combat_start_runtime.gd"
+extends "res://scripts/game/game_loot_container_runtime.gd"
 
 const DROPPED_ITEM_MANAGER_SCRIPT: Script = preload("res://scripts/game/dropped_inventory_item_manager.gd")
 const PICKUP_DROPPED_PREFIX: String = "pickup_dropped_inventory:"
@@ -117,8 +117,6 @@ func _perform_transactional_weapon_attack(
 			_release_grapples_for(target)
 	_update_status()
 	_set_combat_busy(false)
-	# Capture only after the animation and damage application are complete. The
-	# world readiness guard intentionally rejects snapshots during an active attack.
 	GameState.save_game()
 	_sync_exploration_hud_visibility()
 
@@ -136,12 +134,7 @@ func _weapon_attempt_is_valid(
 	var properties_value: Variant = weapon.get("properties", [])
 	if properties_value is Array and "thrown" in (properties_value as Array):
 		var weapon_id: String = str(weapon.get("id", ""))
-		return (
-			not weapon_id.is_empty()
-			and GameState.can_reserve_inventory_item(weapon_id, 1)
-		)
-	# Empty melee swings remain valid in the target-free control mode. They do not
-	# reserve or consume an inventory resource.
+		return not weapon_id.is_empty() and GameState.can_reserve_inventory_item(weapon_id, 1)
 	return true
 
 
@@ -192,12 +185,7 @@ func _append_dropped_item_entries(entries: Dictionary) -> void:
 	for dropped: DroppedInventoryItem in nearby:
 		var enabled: bool = _can_fit_dropped_item(dropped)
 		if _turn_system.active:
-			enabled = (
-				enabled
-				and _turn_system.is_player_turn(player)
-				and not _enemy_turn_running
-				and _turn_system.bonus_action_available
-			)
+			enabled = enabled and _turn_system.is_player_turn(player) and not _enemy_turn_running and _turn_system.bonus_action_available
 		category_entries.append(_entry(
 			"%s%s" % [PICKUP_DROPPED_PREFIX, dropped.get_drop_id()],
 			"ПОДОБРАТЬ: %s" % dropped.get_item_label().to_upper(),
@@ -269,11 +257,7 @@ func _enrich_attack_entry(entries: Dictionary) -> void:
 		break
 
 
-func _weapon_consumable_item_id(
-	weapon: Dictionary,
-	ammo_id: String,
-	distance: int
-) -> String:
+func _weapon_consumable_item_id(weapon: Dictionary, ammo_id: String, distance: int) -> String:
 	if not ammo_id.is_empty():
 		return ammo_id
 	if _is_recoverable_thrown_attack(weapon, distance):
@@ -283,12 +267,7 @@ func _weapon_consumable_item_id(
 
 func _is_recoverable_thrown_attack(weapon: Dictionary, distance: int) -> bool:
 	var properties_value: Variant = weapon.get("properties", [])
-	return (
-		properties_value is Array
-		and "thrown" in (properties_value as Array)
-		and DistanceSystem.is_ranged_attack(weapon, distance)
-		and not str(weapon.get("id", "")).is_empty()
-	)
+	return properties_value is Array and "thrown" in (properties_value as Array) and DistanceSystem.is_ranged_attack(weapon, distance) and not str(weapon.get("id", "")).is_empty()
 
 
 func _thrown_landing_position(target_position: Vector2, hit: bool) -> Vector2:
@@ -307,9 +286,7 @@ func _ensure_dropped_inventory_manager() -> void:
 	_dropped_inventory_manager = get_node_or_null("DroppedInventoryItemManager") as DroppedInventoryItemManager
 	if _dropped_inventory_manager != null:
 		return
-	_dropped_inventory_manager = (
-		DROPPED_ITEM_MANAGER_SCRIPT.new() as DroppedInventoryItemManager
-	)
+	_dropped_inventory_manager = DROPPED_ITEM_MANAGER_SCRIPT.new() as DroppedInventoryItemManager
 	_dropped_inventory_manager.name = "DroppedInventoryItemManager"
 	add_child(_dropped_inventory_manager)
 
