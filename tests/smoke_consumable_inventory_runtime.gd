@@ -78,7 +78,7 @@ func _run() -> void:
 	}
 	caretaker.global_position = player.global_position + Vector2(64.0, 0.0)
 	var natural_one: Dictionary = game.call(
-		"perform_transactional_weapon_attack_for_testing",
+		"resolve_transactional_weapon_attack_for_testing",
 		caretaker,
 		test_bow,
 		"arrow",
@@ -93,7 +93,7 @@ func _run() -> void:
 	print("[consumable] natural_one_consumed")
 
 	var hit: Dictionary = game.call(
-		"perform_transactional_weapon_attack_for_testing",
+		"resolve_transactional_weapon_attack_for_testing",
 		caretaker,
 		test_bow,
 		"arrow",
@@ -112,7 +112,7 @@ func _run() -> void:
 	short_range_bow["range_long_ft"] = 10
 	caretaker.global_position = player.global_position + Vector2(192.0, 0.0)
 	var rejected: Dictionary = game.call(
-		"perform_transactional_weapon_attack_for_testing",
+		"resolve_transactional_weapon_attack_for_testing",
 		caretaker,
 		short_range_bow,
 		"arrow",
@@ -129,7 +129,7 @@ func _run() -> void:
 	var javelin: Dictionary = state.call("get_item_definition", "javelin") as Dictionary
 	caretaker.global_position = player.global_position + Vector2(64.0, 0.0)
 	var melee_javelin: Dictionary = game.call(
-		"perform_transactional_weapon_attack_for_testing",
+		"resolve_transactional_weapon_attack_for_testing",
 		caretaker,
 		javelin,
 		"",
@@ -145,7 +145,7 @@ func _run() -> void:
 
 	caretaker.global_position = player.global_position + Vector2(128.0, 0.0)
 	var thrown_javelin: Dictionary = game.call(
-		"perform_transactional_weapon_attack_for_testing",
+		"resolve_transactional_weapon_attack_for_testing",
 		caretaker,
 		javelin,
 		"",
