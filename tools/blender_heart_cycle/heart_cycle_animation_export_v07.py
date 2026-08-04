@@ -21,13 +21,17 @@ MODEL_REVISION = f"{presentation.MODEL_REVISION}_animation_v07"
 DEFAULT_BLEND_NAME = f"{MODEL_REVISION}.blend"
 DEFAULT_VIDEO_NAME = "heart_cycle_review_v07.mp4"
 DEFAULT_GIF_NAME = "heart_cycle_review_v07.gif"
+DEFAULT_FRAME_DIRECTORY = "review_frames"
 
 
 def _arguments() -> argparse.Namespace:
     argv = sys.argv
     argv = argv[argv.index("--") + 1 :] if "--" in argv else []
     parser = argparse.ArgumentParser(
-        description="Build v06 and export the complete 15-second heart-cycle animation."
+        description=(
+            "Build v06 and render a resumable PNG sequence for the complete "
+            "15-second heart-cycle animation."
+        )
     )
     parser.add_argument("--output-root", default=str(SCRIPT_DIR / "output"))
     parser.add_argument("--blend-name", default=DEFAULT_BLEND_NAME)
@@ -64,13 +68,11 @@ def _output_frame_count(sample_step: int) -> int:
     return len(range(1, TOTAL_FRAMES + 1, sample_step))
 
 
-def _configure_animation_export(
+def _configure_animation_frames(
     output_root: Path,
     *,
-    video_name: str,
     animation_resolution: int,
     sample_step: int,
-    video_bitrate: int,
 ) -> Path:
     scene = bpy.context.scene
     output_fps = _output_fps(sample_step)
@@ -84,40 +86,42 @@ def _configure_animation_export(
     scene.render.resolution_y = animation_resolution
     scene.render.resolution_percentage = 100
     scene.render.use_file_extension = True
-    scene.render.image_settings.file_format = "FFMPEG"
-    scene.render.ffmpeg.format = "MPEG4"
-    scene.render.ffmpeg.codec = "H264"
-    scene.render.ffmpeg.audio_codec = "NONE"
-    scene.render.ffmpeg.constant_rate_factor = "MEDIUM"
-    scene.render.ffmpeg.gopsize = output_fps * 2
-    scene.render.ffmpeg.video_bitrate = video_bitrate
+    scene.render.image_settings.file_format = "PNG"
+    scene.render.image_settings.color_mode = "RGB"
+    scene.render.image_settings.color_depth = "8"
+    scene.render.image_settings.compression = 18
+    scene.render.use_overwrite = True
+    scene.render.use_placeholder = False
 
-    video_path = output_root / video_name
-    scene.render.filepath = str(video_path)
+    frame_root = output_root / DEFAULT_FRAME_DIRECTORY
+    frame_root.mkdir(parents=True, exist_ok=True)
+    scene.render.filepath = str(frame_root / "heart_cycle_review_")
     scene["animation_export_revision"] = ANIMATION_EXPORT_REVISION
     scene["animation_source_fps"] = FPS
     scene["animation_output_fps"] = output_fps
     scene["animation_sample_step"] = sample_step
     scene["animation_output_frame_count"] = _output_frame_count(sample_step)
     scene["animation_duration_seconds"] = TOTAL_FRAMES / FPS
-    return video_path
+    scene["animation_intermediate_format"] = "PNG sequence"
+    return frame_root
 
 
-def _resolve_rendered_video(path: Path) -> Path:
-    candidates = (
-        path,
-        path.with_suffix(".mp4"),
-        Path(f"{path}.mp4"),
-    )
-    for candidate in candidates:
-        if candidate.is_file() and candidate.stat().st_size > 0:
-            return candidate
-    raise RuntimeError(f"Blender did not create the expected MP4 file: {path}")
+def _validate_rendered_frames(frame_root: Path, expected_count: int) -> tuple[Path, ...]:
+    frames = tuple(sorted(frame_root.glob("heart_cycle_review_*.png")))
+    if len(frames) != expected_count:
+        raise RuntimeError(
+            f"Expected {expected_count} rendered PNG frames, found {len(frames)} in {frame_root}"
+        )
+    empty = tuple(path for path in frames if path.stat().st_size <= 0)
+    if empty:
+        raise RuntimeError(f"Rendered empty PNG frames: {empty}")
+    return frames
 
 
 def _render_preview(output_root: Path) -> tuple[Path, tuple[Path, ...]]:
     scene = bpy.context.scene
     scene.render.image_settings.file_format = "PNG"
+    scene.render.image_settings.color_mode = "RGBA"
     scene.frame_step = 1
     scene.render.fps = FPS
     scene.render.resolution_x = int(scene.render.resolution_y * 16 / 9)
@@ -134,9 +138,10 @@ def _augment_manifest(
     path: Path,
     *,
     blend_path: Path,
+    frame_root: Path,
     video_path: Path,
     args: argparse.Namespace,
-    animation_rendered: bool,
+    frames_rendered: bool,
 ) -> Path:
     payload = json.loads(path.read_text(encoding="utf-8"))
     output_fps = _output_fps(args.sample_step)
@@ -157,7 +162,7 @@ def _augment_manifest(
             "output_frame_count": frame_count,
             "resolution": [int(args.animation_resolution * 16 / 9), args.animation_resolution],
             "duration_seconds": frame_count / output_fps,
-            "video_codec": "H.264",
+            "video_codec": "H.264 via external FFmpeg",
             "container": "MPEG-4",
             "video_bitrate_kbit_s": args.video_bitrate,
         },
@@ -167,12 +172,21 @@ def _augment_manifest(
             "output_frame_count": TOTAL_FRAMES,
             "duration_seconds": TOTAL_FRAMES / FPS,
         },
+        "intermediate": {
+            "format": "PNG sequence",
+            "directory": frame_root.name,
+            "filename_prefix": "heart_cycle_review_",
+            "resumable": True,
+        },
         "files": {
             "blend": blend_path.name,
             "mp4": video_path.name,
             "gif": DEFAULT_GIF_NAME,
         },
-        "rendered": animation_rendered,
+        "frames_rendered": frames_rendered,
+        "video_rendered": False,
+        "rendered": False,
+        "video_generation": "external ffmpeg encoding after Blender PNG render",
         "gif_generation": "ffmpeg palette post-process in CI",
         "loop_seam": "frame 450 and frame 1 share the same physiological boundary state",
     }
@@ -202,22 +216,24 @@ def main() -> int:
     if args.render_preview:
         preview_path, phase_paths = _render_preview(output_root)
 
-    requested_video_path = _configure_animation_export(
+    frame_root = _configure_animation_frames(
         output_root,
-        video_name=args.video_name,
         animation_resolution=args.animation_resolution,
         sample_step=args.sample_step,
-        video_bitrate=args.video_bitrate,
     )
+    video_path = output_root / args.video_name
 
     blend_path = output_root / args.blend_name
     bpy.ops.wm.save_as_mainfile(filepath=str(blend_path), check_existing=False)
 
-    rendered_video_path = requested_video_path
+    rendered_frames: tuple[Path, ...] = ()
     if args.render_animation:
         bpy.context.scene.frame_set(1)
         bpy.ops.render.render(animation=True)
-        rendered_video_path = _resolve_rendered_video(requested_video_path)
+        rendered_frames = _validate_rendered_frames(
+            frame_root,
+            _output_frame_count(args.sample_step),
+        )
 
     manifest_path = presentation.rig._BASE_WRITE_MANIFEST(output_root, blend_path)
     manifest_path = presentation.rig._augment_manifest(manifest_path)
@@ -225,19 +241,22 @@ def main() -> int:
     manifest_path = _augment_manifest(
         manifest_path,
         blend_path=blend_path,
-        video_path=rendered_video_path,
+        frame_root=frame_root,
+        video_path=video_path,
         args=args,
-        animation_rendered=args.render_animation,
+        frames_rendered=args.render_animation,
     )
 
     print(f"HEART_CYCLE_BLEND={blend_path}")
     print(f"HEART_CYCLE_MANIFEST={manifest_path}")
     print(f"HEART_CYCLE_ANIMATION_PROFILE={_output_fps(args.sample_step)}fps/{args.animation_resolution}p")
+    print(f"HEART_CYCLE_FRAME_ROOT={frame_root}")
+    print(f"HEART_CYCLE_MP4_TARGET={video_path}")
     if preview_path is not None:
         print(f"HEART_CYCLE_PREVIEW={preview_path}")
         print(f"HEART_CYCLE_PHASE_PREVIEWS={len(phase_paths)}")
-    if args.render_animation:
-        print(f"HEART_CYCLE_MP4={rendered_video_path}")
+    if rendered_frames:
+        print(f"HEART_CYCLE_RENDERED_FRAMES={len(rendered_frames)}")
     return 0
 
 
