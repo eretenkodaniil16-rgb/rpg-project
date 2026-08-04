@@ -200,9 +200,9 @@ func _append_dropped_item_entries(entries: Dictionary) -> void:
 			)
 		category_entries.append(_entry(
 			"%s%s" % [PICKUP_DROPPED_PREFIX, dropped.get_drop_id()],
-			"ПОДНЯТЬ: %s" % dropped.get_item_label().to_upper(),
+			"ПОДОБРАТЬ: %s" % dropped.get_item_label().to_upper(),
 			enabled,
-			"Вернуть брошенное оружие в инвентарь.%s" % (
+			"Подобрать предмет и положить его в инвентарь.%s" % (
 				" В бою расходует дополнительное действие." if _turn_system.active else ""
 			),
 			"world"
