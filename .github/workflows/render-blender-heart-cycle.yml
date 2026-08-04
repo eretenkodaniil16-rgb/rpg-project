@@ -33,7 +33,7 @@ jobs:
       - name: Install test runner
         run: python -m pip install --disable-pip-version-check "pytest>=8.3,<9"
 
-      - name: Validate timeline, anatomy, rig, layout and presentation contracts
+      - name: Validate timeline, anatomy, rig, layout, presentation and export contracts
         env:
           PYTHONPATH: tools/blender_heart_cycle
         run: python -m pytest -q tools/blender_heart_cycle
@@ -71,7 +71,7 @@ jobs:
           test -n "$blender"
           echo "BLENDER_EXE=$blender" >> "$GITHUB_ENV"
 
-      - name: Build presentation v06 and render nine phase cards
+      - name: Build animation export v07 and render nine phase cards
         id: heart-build
         continue-on-error: true
         shell: bash
@@ -82,13 +82,15 @@ jobs:
             --background \
             --factory-startup \
             --python-exit-code 1 \
-            --python tools/blender_heart_cycle/heart_cycle_presentation_polish_v06.py \
+            --python tools/blender_heart_cycle/heart_cycle_animation_export_v07.py \
             -- \
             --output-root "$output" \
             --render-preview \
-            --resolution 720 2>&1 | tee heart_cycle_blender.log
+            --resolution 720 \
+            --animation-resolution 360 \
+            --sample-step 2 2>&1 | tee heart_cycle_blender.log
 
-      - name: Verify polished heart artifact contract
+      - name: Verify animation-ready artifact contract
         if: steps.heart-build.outcome == 'success'
         shell: bash
         run: |
@@ -96,7 +98,7 @@ jobs:
           output="artifacts/blender_heart_cycle"
           count="$(find "$output/infographic_phase_previews" -type f -name '*.png' | wc -l)"
           test "$count" -eq 9
-          test -f "$output/heart_cutaway_reference_layout_v05_phase_rig_v03_infographic_v04_presentation_v06.blend"
+          test -f "$output/heart_cutaway_reference_layout_v05_phase_rig_v03_infographic_v04_presentation_v06_animation_v07.blend"
           test -f "$output/heart_cycle_manifest.json"
           test -f "$output/heart_cycle_infographic_preview.png"
           python - <<'PY'
@@ -112,15 +114,22 @@ jobs:
           assert payload["layout_validation"]["status"] == "passed"
           assert payload["presentation_revision"] == "heart_cycle_presentation_polish_v06"
           assert payload["flow_visibility_validation"]["status"] == "passed"
-          assert payload["flow_visibility_validation"]["phase_count"] == 9
-          assert payload["presentation"]["header_occlusion"] == "prevented"
+          assert payload["animation_export_revision"] == "heart_cycle_animation_export_v07"
+          export = payload["animation_export"]
+          assert export["source_timeline"]["frame_count"] == 450
+          assert export["source_timeline"]["fps"] == 30
+          assert export["review_profile"]["sample_step"] == 2
+          assert export["review_profile"]["output_fps"] == 15
+          assert export["review_profile"]["output_frame_count"] == 225
+          assert export["review_profile"]["duration_seconds"] == 15.0
+          assert export["rendered"] is False
           PY
 
       - name: Upload Blender heart-cycle artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: heart_presentation_v06_${{ github.run_id }}_${{ github.run_attempt }}
+          name: heart_animation_ready_v07_${{ github.run_id }}_${{ github.run_attempt }}
           path: |
             artifacts/blender_heart_cycle/**
             heart_cycle_blender.log
@@ -130,5 +139,5 @@ jobs:
       - name: Require successful Blender build
         if: steps.heart-build.outcome != 'success'
         run: |
-          echo "Polished Blender heart-cycle build failed; inspect heart_cycle_blender.log in the uploaded artifact."
+          echo "Animation-ready Blender heart-cycle build failed; inspect heart_cycle_blender.log in the uploaded artifact."
           exit 1
