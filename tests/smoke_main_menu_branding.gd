@@ -18,9 +18,9 @@ func _run() -> void:
 
 	var approved_background: MainMenuTiledBackground = menu.get_node_or_null("ApprovedBackground") as MainMenuTiledBackground
 	assert(approved_background != null, "Approved tiled background node is missing")
-	assert(approved_background.expected_tile_count() == 32, "Unexpected main-menu tile count")
-	assert(approved_background.has_complete_tiles(), "Approved background tile set is incomplete")
-	assert(approved_background.visible, "Approved background must be active when all tiles exist")
+	assert(approved_background.expected_tile_count() == 8, "Unexpected main-menu strip count")
+	assert(approved_background.has_complete_tiles(), "Approved background strip set is incomplete")
+	assert(approved_background.visible, "Approved background must be active when all strips exist")
 	assert(menu.get_node_or_null("FallbackBackground") != null, "Fallback background is missing")
 	assert(menu.get_node_or_null("Atmosphere") is MainMenuAtmosphere, "Atmosphere controller is missing")
 
