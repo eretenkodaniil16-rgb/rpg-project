@@ -1,6 +1,83 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://scripts/menus/main_menu.gd" id="1_menu"]
+[ext_resource type="Script" path="res://scripts/menus/main_menu_atmosphere.gd" id="2_atmosphere"]
+
+[sub_resource type="Shader" id="Shader_menu_shade"]
+code = "shader_type canvas_item;\n\nvoid fragment() {\n\tfloat shade = smoothstep(0.05, 0.72, UV.x);\n\tfloat lower = smoothstep(0.0, 1.0, UV.y) * 0.10;\n\tCOLOR = vec4(0.006, 0.010, 0.018, shade * 0.55 + lower);\n}\n"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_menu_shade"]
+shader = SubResource("Shader_menu_shade")
+
+[sub_resource type="Shader" id="Shader_additive"]
+code = "shader_type canvas_item;\nrender_mode blend_add, unshaded;\n\nvoid fragment() {\n\tvec4 source = COLOR;\n\tCOLOR = source;\n}\n"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_additive"]
+shader = SubResource("Shader_additive")
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_menu_panel"]
+bg_color = Color(0.012, 0.021, 0.033, 0.88)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.11, 0.35, 0.49, 0.78)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+shadow_color = Color(0, 0, 0, 0.62)
+shadow_size = 16
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_button_normal"]
+bg_color = Color(0.025, 0.043, 0.06, 0.9)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.22, 0.3, 0.35, 0.82)
+corner_radius_top_left = 7
+corner_radius_top_right = 7
+corner_radius_bottom_right = 7
+corner_radius_bottom_left = 7
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_button_hover"]
+bg_color = Color(0.025, 0.102, 0.145, 0.96)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.16, 0.68, 0.91, 0.94)
+corner_radius_top_left = 7
+corner_radius_top_right = 7
+corner_radius_bottom_right = 7
+corner_radius_bottom_left = 7
+shadow_color = Color(0.02, 0.42, 0.73, 0.3)
+shadow_size = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_button_pressed"]
+bg_color = Color(0.015, 0.07, 0.105, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.32, 0.78, 1, 1)
+corner_radius_top_left = 7
+corner_radius_top_right = 7
+corner_radius_bottom_right = 7
+corner_radius_bottom_left = 7
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_button_disabled"]
+bg_color = Color(0.018, 0.026, 0.034, 0.74)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.16, 0.18, 0.2, 0.65)
+corner_radius_top_left = 7
+corner_radius_top_right = 7
+corner_radius_bottom_right = 7
+corner_radius_bottom_left = 7
 
 [node name="MainMenu" type="Control"]
 layout_mode = 3
@@ -11,91 +88,154 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_menu")
 
-[node name="Background" type="ColorRect" parent="."]
+[node name="FallbackBackground" type="ColorRect" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.035, 0.045, 0.065, 1)
+color = Color(0.024, 0.032, 0.047, 1)
 mouse_filter = 2
 
-[node name="TitleGlow" type="ColorRect" parent="."]
+[node name="ApprovedBackground" type="TextureRect" parent="."]
+visible = false
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 120.0
-offset_top = 70.0
-offset_right = -120.0
-offset_bottom = -70.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.08, 0.11, 0.16, 0.8)
 mouse_filter = 2
+expand_mode = 1
+stretch_mode = 6
+
+[node name="MenuReadabilityShade" type="ColorRect" parent="."]
+material = SubResource("ShaderMaterial_menu_shade")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Atmosphere" type="Control" parent="."]
+material = SubResource("ShaderMaterial_additive")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("2_atmosphere")
 
 [node name="CenterContainer" type="CenterContainer" parent="."]
 layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
+anchor_left = 0.61
+anchor_top = 0.15
+anchor_right = 0.96
+anchor_bottom = 0.89
 grow_horizontal = 2
 grow_vertical = 2
 
 [node name="MenuPanel" type="PanelContainer" parent="CenterContainer"]
-custom_minimum_size = Vector2(500, 0)
+custom_minimum_size = Vector2(390, 0)
 layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBox_menu_panel")
 
 [node name="MarginContainer" type="MarginContainer" parent="CenterContainer/MenuPanel"]
 layout_mode = 2
-theme_override_constants/margin_left = 42
-theme_override_constants/margin_top = 36
-theme_override_constants/margin_right = 42
-theme_override_constants/margin_bottom = 36
+theme_override_constants/margin_left = 34
+theme_override_constants/margin_top = 30
+theme_override_constants/margin_right = 34
+theme_override_constants/margin_bottom = 28
 
 [node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer/MenuPanel/MarginContainer"]
 layout_mode = 2
-theme_override_constants/separation = 14
+theme_override_constants/separation = 13
 
 [node name="Title" type="Label" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
+visible = false
 layout_mode = 2
-theme_override_font_sizes/font_size = 38
 text = "ХРОНИКИ СТРАННИКА"
-horizontal_alignment = 1
 
 [node name="Subtitle" type="Label" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
+visible = false
 layout_mode = 2
-theme_override_colors/font_color = Color(0.7, 0.75, 0.82, 1)
-theme_override_font_sizes/font_size = 18
-text = "Сюжетная ролевая игра"
-horizontal_alignment = 1
+text = "Башня, уходящая вниз"
 
 [node name="Separator" type="HSeparator" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
+visible = false
 layout_mode = 2
 
-[node name="NewGameButton" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(0, 58)
+[node name="MenuCaption" type="Label" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 20
-text = "Новая игра"
+theme_override_colors/font_color = Color(0.58, 0.8, 0.91, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 17
+text = "Г Л А В Н О Е   М Е Н Ю"
+horizontal_alignment = 1
+
+[node name="RuneDivider" type="HSeparator" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+modulate = Color(0.24, 0.65, 0.84, 0.72)
 
 [node name="ContinueButton" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(0, 58)
+custom_minimum_size = Vector2(0, 60)
 layout_mode = 2
+mouse_default_cursor_shape = 2
+theme_override_colors/font_color = Color(0.88, 0.94, 0.97, 1)
+theme_override_colors/font_hover_color = Color(0.93, 0.98, 1, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_colors/font_disabled_color = Color(0.38, 0.42, 0.45, 1)
 theme_override_font_sizes/font_size = 20
-text = "Продолжить"
+theme_override_styles/normal = SubResource("StyleBox_button_normal")
+theme_override_styles/hover = SubResource("StyleBox_button_hover")
+theme_override_styles/pressed = SubResource("StyleBox_button_pressed")
+theme_override_styles/focus = SubResource("StyleBox_button_hover")
+theme_override_styles/disabled = SubResource("StyleBox_button_disabled")
+text = "ПРОДОЛЖИТЬ"
+
+[node name="NewGameButton" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+theme_override_colors/font_color = Color(0.88, 0.94, 0.97, 1)
+theme_override_colors/font_hover_color = Color(0.93, 0.98, 1, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 20
+theme_override_styles/normal = SubResource("StyleBox_button_normal")
+theme_override_styles/hover = SubResource("StyleBox_button_hover")
+theme_override_styles/pressed = SubResource("StyleBox_button_pressed")
+theme_override_styles/focus = SubResource("StyleBox_button_hover")
+text = "НОВАЯ ИГРА"
 
 [node name="QuitButton" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(0, 52)
+custom_minimum_size = Vector2(0, 54)
 layout_mode = 2
-text = "Выход"
+mouse_default_cursor_shape = 2
+theme_override_colors/font_color = Color(0.75, 0.8, 0.84, 1)
+theme_override_colors/font_hover_color = Color(0.94, 0.9, 0.8, 1)
+theme_override_colors/font_pressed_color = Color(1, 0.95, 0.84, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("StyleBox_button_normal")
+theme_override_styles/hover = SubResource("StyleBox_button_hover")
+theme_override_styles/pressed = SubResource("StyleBox_button_pressed")
+theme_override_styles/focus = SubResource("StyleBox_button_hover")
+text = "ВЫХОД"
 
 [node name="StatusLabel" type="Label" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 38)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.65, 0.7, 0.78, 1)
-text = "Сохранение пока не создано."
+theme_override_colors/font_color = Color(0.56, 0.63, 0.68, 1)
+theme_override_font_sizes/font_size = 13
+text = "Сохранения пока не созданы."
 horizontal_alignment = 1
+autowrap_mode = 2
 
 [connection signal="pressed" from="CenterContainer/MenuPanel/MarginContainer/VBoxContainer/NewGameButton" to="." method="_on_new_game_pressed"]
 [connection signal="pressed" from="CenterContainer/MenuPanel/MarginContainer/VBoxContainer/ContinueButton" to="." method="_on_continue_pressed"]
