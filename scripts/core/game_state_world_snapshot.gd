@@ -1,4 +1,4 @@
-extends "res://scripts/core/game_state_stealth_alerts.gd"
+extends "res://scripts/core/game_state_inventory_transactions.gd"
 
 signal world_snapshot_changed
 
