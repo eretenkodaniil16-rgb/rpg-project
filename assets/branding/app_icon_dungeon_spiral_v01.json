@@ -1,0 +1,23 @@
+{
+  "visual_id": "app_icon_dungeon_spiral_v01",
+  "display_name": "Спиральная лестница подземелья",
+  "status": "runtime_candidate",
+  "style": "pixel_art_dark_fantasy",
+  "pixel_master": "res://assets/branding/source/app_icon_pixel_master_64_v01.png",
+  "exports": {
+    "godot_project_icon": "res://assets/branding/exports/app_icon_192_v01.png",
+    "android_main_192": "res://assets/branding/exports/app_icon_192_v01.png"
+  },
+  "render_contract": {
+    "pixel_master_size": [64, 64],
+    "android_export_size": [192, 192],
+    "scale_factor": 3,
+    "filter": "nearest",
+    "palette_colors": 64
+  },
+  "approval": {
+    "composition_approved": true,
+    "android_physical_tested": false,
+    "final": false
+  }
+}
