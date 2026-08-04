@@ -72,7 +72,10 @@ func collect_drop(drop_id: String, save_after: bool = true) -> bool:
 		return false
 	_records.erase(drop_id)
 	var node_value: Variant = _nodes.get(drop_id, null)
-	if node_value is Node and is_instance_valid(node_value as Node):
+	if node_value is DroppedInventoryItem and is_instance_valid(node_value as DroppedInventoryItem):
+		(node_value as DroppedInventoryItem).mark_collected()
+		(node_value as DroppedInventoryItem).queue_free()
+	elif node_value is Node and is_instance_valid(node_value as Node):
 		(node_value as Node).queue_free()
 	_nodes.erase(drop_id)
 	if save_after and state.has_method("save_game"):
