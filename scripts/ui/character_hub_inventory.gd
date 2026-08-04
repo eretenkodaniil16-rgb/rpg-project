@@ -1,8 +1,11 @@
 class_name CharacterHubInventory
 extends CharacterHub
 
+signal item_use_requested(item_id: String)
+
 var _selected_inventory_entry: Dictionary = {}
 var _inventory_details: Label
+var _inventory_use: Button
 var _inventory_equip: Button
 
 
@@ -166,6 +169,13 @@ func _refresh_inventory() -> void:
 	_inventory_box.add_child(HSeparator.new())
 	_inventory_details = _label("Выберите предмет.", 18)
 	_inventory_box.add_child(_inventory_details)
+	_inventory_use = Button.new()
+	_inventory_use.name = "InventoryUseButton"
+	_inventory_use.text = "ИСПОЛЬЗОВАТЬ"
+	_inventory_use.custom_minimum_size = Vector2(0.0, 54.0)
+	_inventory_use.pressed.connect(_use_inventory_entry)
+	_inventory_use.hide()
+	_inventory_box.add_child(_inventory_use)
 	_inventory_equip = Button.new()
 	_inventory_equip.text = "ЭКИПИРОВАТЬ"
 	_inventory_equip.custom_minimum_size = Vector2(0.0, 54.0)
@@ -183,9 +193,21 @@ func _select_inventory_entry(entry: Dictionary) -> void:
 	var equipped: bool = _class_data.is_equipped(_hero, item_id)
 	var state_text: String = "\nСостояние: ЭКИПИРОВАНО" if equipped else ""
 	_inventory_details.text = "%s\n\nКоличество: %d%s%s\n\n%s" % [str(entry.get("name", "Предмет")), int(entry.get("quantity", 0)), state_text, _inventory_stats(entry), str(entry.get("description", "Описание отсутствует."))]
+	var use_action_value: Variant = entry.get("use_action", {})
+	var use_action: Dictionary = use_action_value as Dictionary if use_action_value is Dictionary else {}
+	_inventory_use.visible = not use_action.is_empty()
+	_inventory_use.disabled = int(entry.get("quantity", 0)) <= 0
+	_inventory_use.text = str(use_action.get("inventory_label", "ИСПОЛЬЗОВАТЬ"))
 	_inventory_equip.visible = item_type in ["weapon", "armor", "shield"]
 	_inventory_equip.disabled = equipped
 	_inventory_equip.text = "ЭКИПИРОВАНО" if equipped else "ЭКИПИРОВАТЬ"
+
+
+func _use_inventory_entry() -> void:
+	var item_id: String = str(_selected_inventory_entry.get("id", ""))
+	if item_id.is_empty():
+		return
+	item_use_requested.emit(item_id)
 
 
 func _equip_inventory_entry() -> void:
