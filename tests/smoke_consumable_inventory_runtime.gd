@@ -142,8 +142,15 @@ func _run() -> void:
 		_fail("The thrown weapon was not captured in the world snapshot.")
 		return
 	var drop_id: String = str(dropped_records.keys()[0])
+	var dropped_node: DroppedInventoryItem = manager.get_drop_node_for_testing(drop_id)
+	if dropped_node == null or not dropped_node.is_available_for_pickup():
+		_fail("The recoverable javelin has no active world node.")
+		return
 	if not manager.collect_drop(drop_id, false):
 		_fail("The recoverable javelin could not be collected.")
+		return
+	if dropped_node.is_available_for_pickup() or manager.collect_drop(drop_id, false):
+		_fail("A collected javelin remained available for a duplicate same-frame pickup.")
 		return
 	if int(state.call("get_item_count", "javelin")) != 1 or manager.get_drop_count_for_testing() != 0:
 		_fail("Collecting the javelin did not restore inventory and clear the world record.")
