@@ -76,10 +76,10 @@ def test_overhead_pass02_adapter_restores_patches() -> None:
         assert marker in source
 
 
-def test_overhead_workflow_targets_pass02() -> None:
+def test_overhead_workflow_retains_pass02_history() -> None:
     source = WORKFLOW_PATH.read_text(encoding="utf-8")
     assert (
         "blender_sprite_factory_attack_sword_twohand_down_overhead_v21_pass02.py"
         in source
     )
-    assert "twohand_down_overhead_v21_pass02" in source
+    assert "pass02" in source
