@@ -49,6 +49,19 @@ jobs:
             exit 1
           fi
 
+      - name: Compile controllable ally runtime directly
+        shell: bash
+        run: |
+          set +e
+          timeout 45s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --check-only --script res://scripts/game/game_controllable_ally_runtime.gd 2>&1 | tee controllable-ally-compile.log
+          result=${PIPESTATUS[0]}
+          if [ "$result" -ne 0 ] || grep -E "SCRIPT ERROR|Parse Error|Failed to load script" controllable-ally-compile.log; then
+            while IFS= read -r line; do
+              echo "::error::$line"
+            done < <(tail -n 120 controllable-ally-compile.log)
+            exit 1
+          fi
+
       - name: Simulate controllable ally runtime
         shell: bash
         run: |
@@ -58,7 +71,7 @@ jobs:
           if [ "$result" -ne 0 ]; then
             while IFS= read -r line; do
               echo "::error::$line"
-            done < <(tail -n 80 controllable-ally-runtime.log)
+            done < <(tail -n 120 controllable-ally-runtime.log)
             exit "$result"
           fi
 
@@ -81,6 +94,7 @@ jobs:
           name: controllable-ally-diagnostics
           path: |
             controllable-ally-import.log
+            controllable-ally-compile.log
             controllable-ally-runtime.log
             controllable-ally-item-use.log
             controllable-ally-guard-post.log
