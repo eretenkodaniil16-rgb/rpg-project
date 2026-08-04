@@ -60,9 +60,20 @@ func interact() -> void:
 
 
 func collect() -> bool:
+	if not is_available_for_pickup():
+		return false
 	if _manager == null or not is_instance_valid(_manager) or not _manager.has_method("collect_drop"):
 		return false
 	return bool(_manager.call("collect_drop", drop_id, true))
+
+
+func mark_collected() -> void:
+	quantity = 0
+	visible = false
+	set_process(false)
+	if _interaction_area != null:
+		_interaction_area.monitoring = false
+	_unregister_all_players()
 
 
 func is_available_for_pickup() -> bool:
@@ -119,7 +130,7 @@ func _on_body_exited(body: Node2D) -> void:
 
 
 func _register_player(body: Node) -> void:
-	if body == null or not body.is_in_group("player"):
+	if not is_available_for_pickup() or body == null or not body.is_in_group("player"):
 		return
 	_registered_players[body.get_instance_id()] = body
 	if body.has_method("register_interactable"):
@@ -149,7 +160,7 @@ func _unregister_all_players() -> void:
 
 
 func _refresh_overlapping_players() -> void:
-	if _interaction_area == null or not _interaction_area.monitoring:
+	if not is_available_for_pickup() or _interaction_area == null or not _interaction_area.monitoring:
 		return
 	var overlapping_ids: Dictionary = {}
 	for body: Node2D in _interaction_area.get_overlapping_bodies():
