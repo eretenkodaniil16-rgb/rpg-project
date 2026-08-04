@@ -4,9 +4,11 @@ Procedural Blender foundation for a **frontally cut human heart** with visible c
 
 ## Current model revision
 
-`heart_cutaway_v02`
+`heart_cutaway_v02_phase_rig_v03`
 
-The second revision keeps the stable phase controls from v01 and adds the first dedicated anatomical refinement pass:
+The current stage combines the anatomy refinement pass `heart_cutaway_v02` with the first physiological phase rig `heart_cycle_phase_rig_v03`.
+
+### Anatomy v02
 
 - non-mirrored ventricular proportions, with a longer thick-walled left ventricle and a broader, shorter right ventricle;
 - reduced and differentiated mitral, tricuspid, aortic and pulmonary valve assemblies;
@@ -17,10 +19,23 @@ The second revision keeps the stable phase controls from v01 and adds the first 
 - visible LV and RV outflow-tract ridges;
 - explicit left and right pulmonary-artery branches;
 - revised myocardium, endocardial and valve materials;
-- smaller blood-flow guides so anatomy remains visually dominant;
-- independent atrial and ventricular deformation controls;
-- a 450-frame, 30 FPS timeline with nine named markers;
-- a JSON manifest containing Russian phase text, real durations and frame ranges.
+- smaller blood-flow guides so anatomy remains visually dominant.
+
+### Phase rig v03
+
+- independent left- and right-ventricular deformation profiles;
+- volume-preserving shape change during asynchronous and isometric contraction;
+- distinct rapid-ejection, slow-ejection and filling deformation states;
+- progressive atrial filling during ventricular systole;
+- continuous AV and semilunar valve opening fractions instead of binary switching;
+- delayed left/right tension during asynchronous contraction;
+- phase-specific fast, slow and brief-reverse blood-flow intensity;
+- keyframed left/right atrial and ventricular pressures;
+- keyframed aortic and pulmonary-artery pressures;
+- keyframed normalized atrial and ventricular volume channels;
+- a seamless loop boundary between frame 450 and frame 1;
+- nine mid-phase preview renders for visual validation;
+- an extended JSON manifest describing the rig and preview frames.
 
 This remains an educational procedural model and is not intended for diagnostic visualization.
 
@@ -46,7 +61,9 @@ PowerShell usage:
   -RenderPreview
 ```
 
-Use `-RenderAnimation` only when the preview is approved; it renders all 450 PNG frames.
+`-RenderPreview` creates the principal preview plus nine phase-specific PNG files in `phase_previews/`.
+
+Use `-RenderAnimation` only after the nine phase previews are approved; it renders all 450 PNG frames.
 
 ## Timeline
 
@@ -62,6 +79,6 @@ Use `-RenderAnimation` only when the preview is approved; it renders all 450 PNG
 | Быстрое наполнение | 310–354 | 0.08 s |
 | Медленное наполнение | 355–450 | 0.17 s |
 
-## Current review boundary
+## Review boundary
 
-The v02 CI artifact must be visually reviewed before the geometry is treated as approved. The next pass should focus on leaflet topology, true right-ventricular crescent geometry, endocardial surface integration and a more anatomical relationship between the aortic root, pulmonary root and atrioventricular junctions. After that, the phase rig can be refined beyond uniform controller scaling.
+The v03 CI artifact must be reviewed across all nine phase previews before rendering the complete 450-frame sequence. The next pass should correct any visible chamber intersections, excessive valve travel or flow-guide occlusion, then add the educational compositor with the Russian phase title, explanatory text and duration panel.
