@@ -7,6 +7,8 @@ on:
       - "data/world/loot_containers.json"
       - "project.godot"
       - "scenes/game/game.tscn"
+      - "scripts/core/game_state_world_snapshot.gd"
+      - "scripts/core/game_state_world_snapshot_base.gd"
       - "scripts/core/game_state_item_use.gd"
       - "scripts/systems/item_use_system.gd"
       - "scripts/systems/inventory_transaction_system.gd"
