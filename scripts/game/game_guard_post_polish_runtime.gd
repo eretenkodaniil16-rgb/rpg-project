@@ -16,7 +16,7 @@ func resolve_npc_attack(
 			damage_bonus,
 			damage_type
 		)
-	return super.resolve_npc_attack(
+	return await super.resolve_npc_attack(
 		attacker,
 		attack_bonus,
 		damage_die,
