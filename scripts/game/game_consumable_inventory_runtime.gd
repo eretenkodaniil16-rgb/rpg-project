@@ -115,9 +115,11 @@ func _perform_transactional_weapon_attack(
 		target.call("receive_player_attack", result, true)
 		if int(target.call("get_current_health")) <= 0:
 			_release_grapples_for(target)
-	GameState.save_game()
 	_update_status()
 	_set_combat_busy(false)
+	# Capture only after the animation and damage application are complete. The
+	# world readiness guard intentionally rejects snapshots during an active attack.
+	GameState.save_game()
 	_sync_exploration_hud_visibility()
 
 
@@ -128,22 +130,19 @@ func _weapon_attempt_is_valid(
 ) -> bool:
 	if not super._weapon_attempt_is_valid(weapon, selected_target, predicted_target):
 		return false
-	var target: Node = selected_target if _target_is_valid(selected_target) else predicted_target
-	if not _target_is_valid(target):
-		return false
-	var distance: int = DistanceSystem.distance_feet(
-		player.global_position,
-		(target as Node2D).global_position
-	)
-	var consumable_item_id: String = _weapon_consumable_item_id(
-		weapon,
-		str(weapon.get("ammunition_id", "")),
-		distance
-	)
-	return (
-		consumable_item_id.is_empty()
-		or GameState.can_reserve_inventory_item(consumable_item_id, 1)
-	)
+	var ammo_id: String = str(weapon.get("ammunition_id", ""))
+	if not ammo_id.is_empty():
+		return GameState.can_reserve_inventory_item(ammo_id, 1)
+	var properties_value: Variant = weapon.get("properties", [])
+	if properties_value is Array and "thrown" in (properties_value as Array):
+		var weapon_id: String = str(weapon.get("id", ""))
+		return (
+			not weapon_id.is_empty()
+			and GameState.can_reserve_inventory_item(weapon_id, 1)
+		)
+	# Empty melee swings remain valid in the target-free control mode. They do not
+	# reserve or consume an inventory resource.
+	return true
 
 
 func _build_catalog_entries() -> Dictionary:
@@ -247,20 +246,23 @@ func _enrich_attack_entry(entries: Dictionary) -> void:
 	if not values is Array:
 		return
 	var weapon: Dictionary = _class_data.get_equipped_weapon(GameState.player_character)
-	var ammo_id: String = str(weapon.get("ammunition_id", ""))
+	var resource_id: String = str(weapon.get("ammunition_id", ""))
+	var properties_value: Variant = weapon.get("properties", [])
+	if resource_id.is_empty() and properties_value is Array and "thrown" in (properties_value as Array):
+		resource_id = str(weapon.get("id", ""))
 	for value: Variant in values as Array:
 		if not value is Dictionary:
 			continue
 		var entry: Dictionary = value as Dictionary
 		if str(entry.get("id", "")) != "attack":
 			continue
-		if not ammo_id.is_empty():
-			var count: int = GameState.get_inventory_available_count(ammo_id)
-			var ammo: Dictionary = GameState.get_item_definition(ammo_id)
+		if not resource_id.is_empty():
+			var count: int = GameState.get_inventory_available_count(resource_id)
+			var resource: Dictionary = GameState.get_item_definition(resource_id)
 			entry["description"] = "%s Осталось: %d %s." % [
 				str(entry.get("description", "")),
 				count,
-				str(ammo.get("name", ammo_id)).to_lower()
+				str(resource.get("name", resource_id)).to_lower()
 			]
 			if count <= 0:
 				entry["enabled"] = false
