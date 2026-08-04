@@ -39,13 +39,16 @@ func _run() -> void:
 	var player: Node = game.get_node_or_null("Player")
 	var ally: Node = game.call("get_controllable_ally_for_testing")
 	var opponents: Array[Node] = []
+	var training_dummy: Node = null
 	for target: Node in get_nodes_in_group("combat_targets"):
 		if target.has_method("is_combat_active") and bool(target.call("is_combat_active")):
 			opponents.append(target)
+			if target.name == "TrainingDummy":
+				training_dummy = target
 	if player == null or ally == null or opponents.is_empty():
 		_fail("Required combat actors are missing.")
 		return
-	var opponent: Node = opponents[0]
+	var opponent: Node = training_dummy if training_dummy != null else opponents[0]
 	var turn_system: TurnBasedCombatSystem = game.get("_turn_system") as TurnBasedCombatSystem
 	turn_system.set_pending_player_controlled_actors([ally])
 	turn_system.start_combat(
