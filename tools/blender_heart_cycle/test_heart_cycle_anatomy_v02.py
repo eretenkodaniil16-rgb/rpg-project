@@ -14,8 +14,9 @@ def test_anatomy_v02_source_parses() -> None:
 def test_revision_and_required_anatomy_are_locked() -> None:
     required_tokens = (
         'ANATOMY_REVISION = "heart_cutaway_v02"',
-        '"LeftAuricle_Lobe_1"',
-        '"RightAuricle_Lobe_1"',
+        '"LeftAuricle"',
+        '"RightAuricle"',
+        'f"{prefix}_Lobe_{index}"',
         '"RV_ModeratorBand"',
         '"LVOT_SeptalRidge"',
         '"RVOT_InfundibularRidge"',
@@ -28,7 +29,9 @@ def test_revision_and_required_anatomy_are_locked() -> None:
 
 
 def test_anatomy_remains_bound_to_phase_controls() -> None:
-    assert '_parent_preserve_world(ridge, build.controls["left_ventricle"])' in SOURCE
+    assert '("LV", left_paths, 0.030, build.controls["left_ventricle"])' in SOURCE
+    assert '("RV", right_paths, 0.042, build.controls["right_ventricle"])' in SOURCE
+    assert '_parent_preserve_world(ridge, parent)' in SOURCE
     assert '_parent_preserve_world(moderator, build.controls["right_ventricle"])' in SOURCE
     assert 'build.controls["left_atrium"]' in SOURCE
     assert 'build.controls["right_atrium"]' in SOURCE
