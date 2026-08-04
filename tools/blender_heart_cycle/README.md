@@ -6,7 +6,7 @@ Procedural Blender model of a **frontally cut human heart** with visible chamber
 
 `heart_cutaway_reference_layout_v05_phase_rig_v03_infographic_v04_presentation_v06_animation_v07`
 
-The current branch keeps the successful first-preview chamber layout, adds the anatomical refinement pass, drives the chambers and valves through nine physiological phases, and exports the result as an animation-ready `.blend` plus MP4/GIF review media.
+The current branch keeps the successful first-preview chamber layout, adds the anatomical refinement pass, drives the chambers and valves through nine physiological phases, and exports a resumable PNG frame sequence that is encoded into MP4 and GIF with FFmpeg.
 
 ### Anatomy v02
 
@@ -57,14 +57,18 @@ The current branch keeps the successful first-preview chamber layout, adds the a
 
 ### Animation export v07
 
-- animation-ready `.blend` configured for H.264/MPEG-4 output;
 - full authored timeline: 450 frames at 30 FPS, 15 seconds;
 - review profile: every second source frame, 225 frames at 15 FPS, still 15 seconds;
 - default review resolution: 640×360;
 - final-quality profile retained at all 450 frames and 30 FPS;
-- CI conversion of the review MP4 to a palette-based GIF;
+- Blender renders a lossless, resumable PNG sequence in `review_frames/`;
+- external FFmpeg encoding produces H.264/MPEG-4, palette-based GIF and a poster frame;
 - automatic MP4 frame-count, resolution, FPS and duration verification;
+- failed encoding preserves the PNG sequence for recovery;
+- successful CI delivery removes the bulky intermediate frames;
 - export metadata written into `heart_cycle_manifest.json`.
+
+Blender's own direct video output is intentionally not required. The frame-sequence workflow is more recoverable: a stopped render keeps completed PNG files, and encoding can be repeated without rerendering the 3D scene.
 
 This remains an educational procedural model and is not intended for diagnostic visualization.
 
@@ -76,7 +80,7 @@ Build the `.blend`, principal preview and nine phase previews:
 01_BUILD_HEART_CYCLE.cmd
 ```
 
-Render the 15-second 360p/15 FPS review MP4:
+Render the 15-second 360p/15 FPS review sequence and encode MP4 when FFmpeg is installed:
 
 ```text
 02_RENDER_HEART_CYCLE_REVIEW.cmd
@@ -87,6 +91,8 @@ Both launchers look for Blender 5.2 first and write to:
 ```text
 artifacts/blender_heart_cycle/
 ```
+
+When FFmpeg is absent, the second launcher keeps all completed PNG files and prints their location. The GitHub animation workflow includes FFmpeg and performs MP4/GIF encoding automatically.
 
 ## PowerShell usage
 
@@ -136,4 +142,4 @@ The review profile is intended for rapid evaluation of motion, valve timing, flo
 
 ## Review boundary
 
-The v07 review animation must be inspected before the expensive 720p/30 FPS export. Review should focus on the continuity of the ventricular deformation, valve timing, arrow direction, flow disappearance at phase boundaries, text transitions and the seam from the final frame back to frame 1.
+The v07 review animation must be inspected before the expensive 720p/30 FPS export. Review should focus on the continuity of ventricular deformation, valve timing, arrow direction, flow disappearance at phase boundaries, text transitions and the seam from the final frame back to frame 1.
