@@ -1,4 +1,4 @@
-extends "res://scripts/game/game_guard_post_polish_runtime.gd"
+extends "res://scripts/game/game_guard_post_polish_runtime_base.gd"
 
 const ITEM_USE_SYSTEM_SCRIPT: Script = preload("res://scripts/systems/item_use_system.gd")
 const ITEM_USE_ACTION_PREFIX: String = "use_inventory_item:"
