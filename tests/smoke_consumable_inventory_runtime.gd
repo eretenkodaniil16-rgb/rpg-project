@@ -41,6 +41,7 @@ func _run() -> void:
 	if player == null or caretaker == null or manager == null:
 		_fail("Consumable inventory runtime fixtures are incomplete.")
 		return
+	print("[consumable] scene_ready")
 
 	state.set("inventory", {"arrow": 5, "javelin": 1, "longbow": 1})
 	var reservation: Dictionary = state.call(
@@ -60,6 +61,7 @@ func _run() -> void:
 	if int(state.call("get_item_count", "arrow")) != 5:
 		_fail("Rolling back an attack reservation consumed an arrow.")
 		return
+	print("[consumable] reservation_rollback_ok")
 
 	var test_bow: Dictionary = {
 		"id": "test_bow",
@@ -75,62 +77,90 @@ func _run() -> void:
 		"ammunition_id": "arrow"
 	}
 	caretaker.global_position = player.global_position + Vector2(64.0, 0.0)
-	await game.call(
+	var natural_one: Dictionary = game.call(
 		"perform_transactional_weapon_attack_for_testing",
 		caretaker,
 		test_bow,
 		"arrow",
 		1
-	)
-	await _close_attack_popup(game)
+	) as Dictionary
+	if not bool(natural_one.get("success", false)) or str(natural_one.get("status", "")) != "resolved":
+		_fail("Natural-one attack did not resolve transactionally: %s" % natural_one)
+		return
 	if int(state.call("get_item_count", "arrow")) != 4:
 		_fail("A completed natural-one miss did not consume exactly one arrow.")
 		return
+	print("[consumable] natural_one_consumed")
 
-	await game.call(
+	var hit: Dictionary = game.call(
 		"perform_transactional_weapon_attack_for_testing",
 		caretaker,
 		test_bow,
 		"arrow",
 		20
-	)
-	await _close_attack_popup(game)
+	) as Dictionary
+	if not bool(hit.get("success", false)) or not bool(hit.get("hit", false)):
+		_fail("Confirmed hit did not resolve as a hit: %s" % hit)
+		return
 	if int(state.call("get_item_count", "arrow")) != 3:
 		_fail("A completed hit did not consume exactly one arrow.")
 		return
+	print("[consumable] hit_consumed")
 
 	var short_range_bow: Dictionary = test_bow.duplicate(true)
 	short_range_bow["range_normal_ft"] = 5
 	short_range_bow["range_long_ft"] = 10
 	caretaker.global_position = player.global_position + Vector2(192.0, 0.0)
-	await game.call(
+	var rejected: Dictionary = game.call(
 		"perform_transactional_weapon_attack_for_testing",
 		caretaker,
 		short_range_bow,
 		"arrow",
 		20
-	)
-	await _close_attack_popup(game)
+	) as Dictionary
+	if str(rejected.get("status", "")) != "rejected" or not bool(rejected.get("out_of_range", false)):
+		_fail("Out-of-range attack was not rejected before commit: %s" % rejected)
+		return
 	if int(state.call("get_item_count", "arrow")) != 3:
 		_fail("An out-of-range attack committed its reserved arrow.")
 		return
+	print("[consumable] out_of_range_rolled_back")
 
 	var javelin: Dictionary = state.call("get_item_definition", "javelin") as Dictionary
+	caretaker.global_position = player.global_position + Vector2(64.0, 0.0)
+	var melee_javelin: Dictionary = game.call(
+		"perform_transactional_weapon_attack_for_testing",
+		caretaker,
+		javelin,
+		"",
+		20
+	) as Dictionary
+	if not bool(melee_javelin.get("success", false)) or bool(melee_javelin.get("consumed", false)):
+		_fail("A melee javelin attack incorrectly consumed the weapon: %s" % melee_javelin)
+		return
+	if int(state.call("get_item_count", "javelin")) != 1 or manager.get_drop_count_for_testing() != 0:
+		_fail("A melee javelin attack changed inventory or created a drop.")
+		return
+	print("[consumable] melee_javelin_preserved")
+
 	caretaker.global_position = player.global_position + Vector2(128.0, 0.0)
-	await game.call(
+	var thrown_javelin: Dictionary = game.call(
 		"perform_transactional_weapon_attack_for_testing",
 		caretaker,
 		javelin,
 		"",
 		1
-	)
-	await _close_attack_popup(game)
+	) as Dictionary
+	if not bool(thrown_javelin.get("success", false)) or str(thrown_javelin.get("drop_id", "")).is_empty():
+		_fail("Ranged javelin throw did not create a recoverable drop: %s" % thrown_javelin)
+		return
 	if int(state.call("get_item_count", "javelin")) != 0:
 		_fail("A ranged javelin throw did not remove the weapon from inventory.")
 		return
 	if manager.get_drop_count_for_testing() != 1:
 		_fail("A thrown javelin did not create one recoverable world item.")
 		return
+	print("[consumable] thrown_javelin_created")
 
 	var snapshot: Dictionary = state.call("get_world_snapshot") as Dictionary
 	var environment: Dictionary = snapshot.get("environment", {}) as Dictionary
@@ -155,6 +185,7 @@ func _run() -> void:
 	if int(state.call("get_item_count", "javelin")) != 1 or manager.get_drop_count_for_testing() != 0:
 		_fail("Collecting the javelin did not restore inventory and clear the world record.")
 		return
+	print("[consumable] collection_atomic")
 
 	var save_data: Dictionary = state.call("_build_save_data", "manual", 1) as Dictionary
 	var saved_arrow_count: int = int(state.call("get_item_count", "arrow"))
@@ -165,6 +196,7 @@ func _run() -> void:
 	if int(state.call("get_item_count", "arrow")) != saved_arrow_count:
 		_fail("Reloading did not restore the exact ammunition quantity.")
 		return
+	print("[consumable] current_save_restored")
 
 	var legacy_save: Dictionary = save_data.duplicate(true)
 	legacy_save["version"] = 6
@@ -182,18 +214,12 @@ func _run() -> void:
 		if migrated_drops is Dictionary and not (migrated_drops as Dictionary).is_empty():
 			_fail("Legacy save migration invented dropped inventory items.")
 			return
+	print("[consumable] legacy_save_compatible")
 
 	game.queue_free()
 	await process_frame
 	print("Ammunition transactions, misses, hits, thrown recovery and save compatibility passed.")
 	quit(0)
-
-
-func _close_attack_popup(game: Node) -> void:
-	var popup: Control = game.find_child("AttackResultPopup", true, false) as Control
-	if popup != null and popup.visible and popup.has_method("_on_continue_pressed"):
-		popup.call("_on_continue_pressed")
-		await process_frame
 
 
 func _fail(message: String) -> void:
