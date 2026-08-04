@@ -17,6 +17,7 @@ on:
       - "data/items/items.json"
       - "tests/test_inventory_transaction_system.gd"
       - "tests/smoke_consumable_inventory_runtime.gd"
+      - "tests/smoke_dropped_item_action_label.gd"
       - "tests/smoke_directional_consumable_inventory.gd"
       - "tests/smoke_free_aim_combat.gd"
       - "tests/test_mobile_combat_progression_hud.gd"
@@ -70,6 +71,10 @@ jobs:
         shell: bash
         run: timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_consumable_inventory_runtime.gd 2>&1 | tee consumable-runtime.log
 
+      - name: Validate Russian dropped-item action label
+        shell: bash
+        run: timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_dropped_item_action_label.gd 2>&1 | tee dropped-item-label.log
+
       - name: Simulate target-free bow and thrown attacks
         shell: bash
         run: timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_directional_consumable_inventory.gd 2>&1 | tee directional-consumables.log
@@ -95,6 +100,7 @@ jobs:
             consumable-import.log
             inventory-transactions.log
             consumable-runtime.log
+            dropped-item-label.log
             directional-consumables.log
             free-aim-regression.log
             mobile-hud-regression.log
