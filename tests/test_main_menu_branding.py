@@ -8,13 +8,17 @@ import struct
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-BACKGROUND = ROOT / "assets/branding/main_menu/approved/main_menu_tower_down_title_v01.webp"
+TILES = ROOT / "assets/branding/main_menu/approved/tiles"
 MANIFEST = ROOT / "assets/branding/main_menu/main_menu_tower_down_v01.json"
 SCENE = ROOT / "scenes/menus/main_menu.tscn"
 MENU_SCRIPT = ROOT / "scripts/menus/main_menu.gd"
+TILED_SCRIPT = ROOT / "scripts/menus/main_menu_tiled_background.gd"
 ATMOSPHERE_SCRIPT = ROOT / "scripts/menus/main_menu_atmosphere.gd"
 WEBP_RIFF = b"RIFF"
 WEBP_FORMAT = b"WEBP"
+ROWS = 4
+COLUMNS = 8
+TILE_SIZE = (160, 180)
 
 
 def read_webp_size(path: Path) -> tuple[int, int]:
@@ -23,27 +27,23 @@ def read_webp_size(path: Path) -> tuple[int, int]:
         raise AssertionError(f"Not a WebP file: {path}")
     declared_size = struct.unpack("<I", data[4:8])[0] + 8
     if declared_size != len(data):
-        raise AssertionError(f"WebP RIFF size mismatch: {declared_size} != {len(data)}")
+        raise AssertionError(f"WebP RIFF size mismatch for {path}: {declared_size} != {len(data)}")
     chunk = data[12:16]
     if chunk == b"VP8X":
-        width = 1 + int.from_bytes(data[24:27], "little")
-        height = 1 + int.from_bytes(data[27:30], "little")
-        return width, height
+        return 1 + int.from_bytes(data[24:27], "little"), 1 + int.from_bytes(data[27:30], "little")
     if chunk == b"VP8 ":
         marker = data.find(b"\x9d\x01\x2a", 20)
         if marker < 0:
-            raise AssertionError("VP8 frame marker not found")
+            raise AssertionError(f"VP8 frame marker not found: {path}")
         width = struct.unpack("<H", data[marker + 3 : marker + 5])[0] & 0x3FFF
         height = struct.unpack("<H", data[marker + 5 : marker + 7])[0] & 0x3FFF
         return width, height
     if chunk == b"VP8L":
         if data[20] != 0x2F:
-            raise AssertionError("VP8L signature not found")
+            raise AssertionError(f"VP8L signature not found: {path}")
         bits = int.from_bytes(data[21:25], "little")
-        width = (bits & 0x3FFF) + 1
-        height = ((bits >> 14) & 0x3FFF) + 1
-        return width, height
-    raise AssertionError(f"Unsupported WebP chunk: {chunk!r}")
+        return (bits & 0x3FFF) + 1, ((bits >> 14) & 0x3FFF) + 1
+    raise AssertionError(f"Unsupported WebP chunk in {path}: {chunk!r}")
 
 
 def require(path: Path, fragment: str) -> None:
@@ -53,9 +53,20 @@ def require(path: Path, fragment: str) -> None:
 
 
 def main() -> None:
-    width, height = read_webp_size(BACKGROUND)
-    if (width, height) != (1280, 720):
-        raise AssertionError(f"Unexpected background size: {(width, height)}")
+    expected_names = [
+        f"main_menu_tile_r{row:02d}_c{column:02d}.webp"
+        for row in range(ROWS)
+        for column in range(COLUMNS)
+    ]
+    actual_names = sorted(path.name for path in TILES.glob("*.webp"))
+    if actual_names != expected_names:
+        missing = sorted(set(expected_names) - set(actual_names))
+        extra = sorted(set(actual_names) - set(expected_names))
+        raise AssertionError(f"Tile set mismatch; missing={missing}, extra={extra}")
+    for name in expected_names:
+        size = read_webp_size(TILES / name)
+        if size != TILE_SIZE:
+            raise AssertionError(f"Unexpected tile size for {name}: {size}")
 
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
     if manifest.get("visual_id") != "main_menu_tower_down_v01":
@@ -64,24 +75,30 @@ def main() -> None:
         raise AssertionError("Main menu must remain a runtime candidate before physical testing")
     if manifest.get("approval", {}).get("logo_variant_approved") != 2:
         raise AssertionError("Approved logo variant must remain 2")
-    if manifest.get("render_contract", {}).get("heavy_video_background") is not False:
+    contract = manifest.get("render_contract", {})
+    if contract.get("tile_grid") != [8, 4] or contract.get("tile_count") != 32:
+        raise AssertionError("Unexpected tile-grid contract")
+    if contract.get("heavy_video_background") is not False:
         raise AssertionError("The Android menu must not use a video background")
 
     require(SCENE, 'node name="FallbackBackground"')
-    require(SCENE, 'node name="ApprovedBackground"')
+    require(SCENE, 'node name="ApprovedBackground" type="Control"')
+    require(SCENE, 'script = ExtResource("3_tiled_background")')
     require(SCENE, 'node name="Atmosphere"')
     require(SCENE, 'script = ExtResource("2_atmosphere")')
-    require(SCENE, 'stretch_mode = 6')
     for button_name in ("ContinueButton", "NewGameButton", "QuitButton"):
         require(SCENE, f'node name="{button_name}"')
 
-    background_path = "res://assets/branding/main_menu/approved/main_menu_tower_down_title_v01.webp"
-    require(MENU_SCRIPT, f'const MAIN_MENU_BACKGROUND_PATH: String = "{background_path}"')
-    require(MENU_SCRIPT, "ResourceLoader.exists(MAIN_MENU_BACKGROUND_PATH")
+    require(MENU_SCRIPT, "MainMenuTiledBackground")
+    require(MENU_SCRIPT, "has_complete_tiles()")
     require(MENU_SCRIPT, "_install_save_slots_panel()")
     require(MENU_SCRIPT, "_on_new_game_pressed")
     require(MENU_SCRIPT, "_on_continue_pressed")
 
+    require(TILED_SCRIPT, "const COLUMNS: int = 8")
+    require(TILED_SCRIPT, "const ROWS: int = 4")
+    require(TILED_SCRIPT, "scale_factor: float = maxf")
+    require(TILED_SCRIPT, "has_complete_tiles")
     require(ATMOSPHERE_SCRIPT, "const PARTICLE_COUNT: int = 28")
     require(ATMOSPHERE_SCRIPT, "_draw_torch_glow")
     require(ATMOSPHERE_SCRIPT, "ProjectSettings.get_setting(\"accessibility/reduced_motion\"")
