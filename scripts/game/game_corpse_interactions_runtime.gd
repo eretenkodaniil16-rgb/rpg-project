@@ -1,4 +1,4 @@
-extends "res://scripts/game/game_combat_ai_runtime.gd"
+extends "res://scripts/game/game_movement_reactions_runtime.gd"
 
 const CORPSE_INTERACTION_DISTANCE_FEET: int = 10
 const BODY_DRAG_SPEED_MULTIPLIER: float = 0.58

@@ -8,10 +8,13 @@ signal restraint_state_changed(actor_id: String, bound: bool)
 const CORPSE_SYSTEM_SCRIPT: Script = preload("res://scripts/systems/corpse_interaction_system.gd")
 const DRAG_FOLLOW_DISTANCE_PIXELS: float = 42.0
 const DRAG_SMOOTHING: float = 12.0
+const DEAD_BODY_MODULATE: Color = Color(0.32, 0.32, 0.35, 0.72)
+const UNCONSCIOUS_BODY_MODULATE: Color = Color(0.56, 0.56, 0.6, 0.82)
 
 var _corpse_system: CorpseInteractionSystem = CORPSE_SYSTEM_SCRIPT.new() as CorpseInteractionSystem
 var _body_state: String = CorpseInteractionSystem.BODY_ALIVE
 var _dragged_by: Node2D
+var _body_flash_tween: Tween
 
 
 func _ready() -> void:
@@ -39,6 +42,7 @@ func receive_player_attack(result: AttackResult, show_interface: bool = true) ->
 
 func reset_combat_state(full_restore: bool = true) -> void:
 	stop_body_drag(false)
+	_cancel_body_flash()
 	super.reset_combat_state(full_restore)
 	if not full_restore:
 		return
@@ -66,6 +70,28 @@ func interact() -> void:
 		get_tree().call_group("game_world", "show_combat_message", instruction, true)
 		return
 	super.interact()
+
+
+func can_perform_world_interaction() -> bool:
+	# This is the common body contract. Living dialogue policies belong to more
+	# specialised NPC classes, but every defeated combatant remains inspectable.
+	return is_instance_valid(player_in_range) and is_body_interactable()
+
+
+func get_interaction_label() -> String:
+	if is_dead_body():
+		return "ОСМОТРЕТЬ ТРУП: %s" % combat_name.to_upper()
+	if is_unconscious_body():
+		return "ОСМОТРЕТЬ: %s" % combat_name.to_upper()
+	return "ВЗАИМОДЕЙСТВОВАТЬ: %s" % combat_name.to_upper()
+
+
+func get_interaction_description() -> String:
+	if is_dead_body():
+		return "Осмотреть тело персонажа %s, проверить и забрать доступную добычу." % combat_name
+	if is_unconscious_body():
+		return "Осмотреть персонажа %s без сознания; его можно связать или перетащить." % combat_name
+	return "Взаимодействовать с персонажем %s." % combat_name
 
 
 func is_body_interactable() -> bool:
@@ -232,6 +258,36 @@ func _apply_body_groups() -> void:
 		add_to_group("bound_bodies")
 	else:
 		remove_from_group("bound_bodies")
+
+
+func _update_combat_visuals() -> void:
+	super._update_combat_visuals()
+	if body_visual == null or not is_body_interactable():
+		return
+	body_visual.modulate = DEAD_BODY_MODULATE if is_dead_body() else UNCONSCIOUS_BODY_MODULATE
+
+
+func _flash(color: Color) -> void:
+	if body_visual == null:
+		return
+	_cancel_body_flash()
+	body_visual.modulate = color
+	_body_flash_tween = create_tween()
+	_body_flash_tween.tween_interval(0.22)
+	_body_flash_tween.tween_callback(_restore_body_visual_after_flash)
+
+
+func _restore_body_visual_after_flash() -> void:
+	_body_flash_tween = null
+	# Recompute from the authoritative alive/dead/unconscious state. A hit tween
+	# must never restore Color.WHITE after the same hit created a corpse.
+	_update_combat_visuals()
+
+
+func _cancel_body_flash() -> void:
+	if _body_flash_tween != null:
+		_body_flash_tween.kill()
+		_body_flash_tween = null
 
 
 func _update_drag_position(delta: float) -> void:

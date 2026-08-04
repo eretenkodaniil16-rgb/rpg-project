@@ -1,0 +1,30 @@
+{
+  "guard_post_supply_chest_01": {
+    "container_id": "guard_post_supply_chest_01",
+    "container_type": "chest",
+    "label": "Сундук снабжения",
+    "position": [470.0, 570.0],
+    "locked": false,
+    "lock_id": "",
+    "discovered": true,
+    "items": [
+      {"item_id": "arrow", "quantity": 12},
+      {"item_id": "javelin", "quantity": 2},
+      {"item_id": "gold_coin", "quantity": 8}
+    ]
+  },
+  "guard_post_abandoned_satchel_01": {
+    "container_id": "guard_post_abandoned_satchel_01",
+    "container_type": "bag",
+    "label": "Брошенная сумка",
+    "position": [1010.0, 250.0],
+    "locked": false,
+    "lock_id": "",
+    "discovered": true,
+    "items": [
+      {"item_id": "healers_kit", "quantity": 1},
+      {"item_id": "parchment", "quantity": 3},
+      {"item_id": "thieves_tools", "quantity": 1}
+    ]
+  }
+}

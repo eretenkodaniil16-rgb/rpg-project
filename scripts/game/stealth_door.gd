@@ -2,7 +2,9 @@ class_name StealthDoor
 extends StaticBody2D
 
 const WORLD_INTERACTION_ACTION_ID: String = "world_interact"
-const ADJACENCY_MARGIN: float = 6.0
+const ADJACENCY_MARGIN: float = 28.0
+const INTERACTION_AREA_WIDTH: float = 136.0
+const INTERACTION_AREA_VERTICAL_PADDING: float = 64.0
 
 @export var door_id: String = "west_service_door"
 @export var door_label: String = "Дверь служебной комнаты"
@@ -129,6 +131,15 @@ func is_player_adjacent_for_testing() -> bool:
 	return is_instance_valid(_player_in_range)
 
 
+func get_interaction_trigger_size_for_testing() -> Vector2:
+	if _interaction_area == null:
+		return Vector2.ZERO
+	var collision: CollisionShape2D = _interaction_area.get_node_or_null("CollisionShape2D") as CollisionShape2D
+	if collision == null or not collision.shape is RectangleShape2D:
+		return Vector2.ZERO
+	return (collision.shape as RectangleShape2D).size
+
+
 func _door_state_allows_interaction() -> bool:
 	return _door_state not in ["locked", "blocked", "broken"]
 
@@ -201,8 +212,12 @@ func _build_nodes() -> void:
 	_interaction_area = Area2D.new()
 	_interaction_area.name = "InteractionArea"
 	var interaction_shape := RectangleShape2D.new()
-	interaction_shape.size = Vector2(92.0, door_size.y + 16.0)
+	interaction_shape.size = Vector2(
+		INTERACTION_AREA_WIDTH,
+		door_size.y + INTERACTION_AREA_VERTICAL_PADDING
+	)
 	var interaction_collision := CollisionShape2D.new()
+	interaction_collision.name = "CollisionShape2D"
 	interaction_collision.shape = interaction_shape
 	_interaction_area.add_child(interaction_collision)
 	_interaction_area.body_entered.connect(_on_body_entered)

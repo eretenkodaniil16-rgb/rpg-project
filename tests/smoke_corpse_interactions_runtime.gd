@@ -1,7 +1,7 @@
 extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
-const EXPECTED_RUNTIME: String = "res://scripts/game/game_squad_tactical_plans_runtime.gd"
+const EXPECTED_RUNTIME: String = "res://scripts/game/game_guard_post_polish_runtime.gd"
 
 
 func _init() -> void:
@@ -35,8 +35,9 @@ func _run() -> void:
 
 	var player: Node2D = game.get_node_or_null("Player") as Node2D
 	var guard: Node2D = game.get_node_or_null("StealthTestRoom/ServiceGuard") as Node2D
-	if player == null or guard == null:
-		_fail("Player or service guard is missing.")
+	var loot_panel: LootContainerPanel = game.call("get_loot_container_panel_for_testing") as LootContainerPanel
+	if player == null or guard == null or loot_panel == null:
+		_fail("Player, service guard or common loot panel is missing.")
 		return
 
 	var lethal := AttackResult.new()
@@ -57,14 +58,35 @@ func _run() -> void:
 	game.call("_set_selected_target", guard)
 	var entries: Dictionary = game.call("_build_catalog_entries") as Dictionary
 	var action_ids: Array[String] = _action_ids(entries)
-	if "corpse_loot_all" not in action_ids or "corpse_drag_toggle" not in action_ids or "corpse_loot_item__shortsword" not in action_ids:
+	if "open_selected_body_loot" not in action_ids or "corpse_drag_toggle" not in action_ids or "inspect_target" not in action_ids:
 		_fail("Corpse action catalog is incomplete: %s" % JSON.stringify(action_ids))
 		return
-
-	game.call("_on_catalog_action_requested", "corpse_loot_item__shortsword")
-	if int(state.call("get_item_count", "shortsword")) != 1:
-		_fail("Loot action did not transfer the shortsword.")
+	if "corpse_loot_all" in action_ids:
+		_fail("Legacy Take All corpse action remained beside the common loot panel: %s" % JSON.stringify(action_ids))
 		return
+	for action_id: String in action_ids:
+		if action_id.begins_with("corpse_loot_item__"):
+			_fail("Legacy per-item corpse action remained beside the common loot panel: %s" % JSON.stringify(action_ids))
+			return
+
+	game.call("_on_feedback_catalog_action_requested", "open_selected_body_loot")
+	if not loot_panel.is_open():
+		_fail("Common corpse loot panel did not open.")
+		return
+	var loot_labels: Array[String] = loot_panel.get_item_action_labels_for_testing()
+	if "ПОДОБРАТЬ: КОРОТКИЙ МЕЧ" not in loot_labels:
+		_fail("Common corpse panel does not expose the Russian shortsword pickup action: %s" % JSON.stringify(loot_labels))
+		return
+	game.call("take_active_loot_item_for_testing", "shortsword")
+	if int(state.call("get_item_count", "shortsword")) != 1:
+		_fail("Common loot panel did not transfer the shortsword.")
+		return
+	loot_panel.close_panel()
+	await process_frame
+	if bool(state.get("input_locked")):
+		_fail("Closing the common corpse panel did not restore input.")
+		return
+
 	game.call("_on_catalog_action_requested", "corpse_drag_toggle")
 	if game.call("get_dragged_body_for_testing") != guard:
 		_fail("Body drag did not start.")
@@ -156,7 +178,7 @@ func _run() -> void:
 	await process_frame
 	if FileAccess.file_exists(save_path):
 		DirAccess.remove_absolute(save_path)
-	print("Lethal default, nonlethal melee knockout, restraint actions and corpse regression passed.")
+	print("Lethal default, common corpse loot panel, nonlethal knockout and restraint regression passed.")
 	quit(0)
 
 

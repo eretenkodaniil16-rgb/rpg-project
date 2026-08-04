@@ -1,7 +1,8 @@
 extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
-const RUNTIME_PATH: String = "res://scripts/game/game_squad_tactical_plans_runtime.gd"
+const RUNTIME_PATH: String = "res://scripts/game/game_guard_post_polish_runtime.gd"
+const AUTOSAVE_PATH: String = "user://save_slots/autosave.json"
 
 
 func _init() -> void:
@@ -18,7 +19,7 @@ func _run() -> void:
 	if state == null:
 		_fail("GameState autoload is missing.")
 		return
-	var save_path: String = ProjectSettings.globalize_path("user://savegame.json")
+	var save_path: String = ProjectSettings.globalize_path(AUTOSAVE_PATH)
 	if FileAccess.file_exists(save_path):
 		DirAccess.remove_absolute(save_path)
 	state.call("new_game")
@@ -92,10 +93,10 @@ func _run() -> void:
 	if not actions_button.visible or actions_button.disabled:
 		_fail("The lower-right Actions button is unavailable during exploration.")
 		return
-	actions_button.emit_signal("pressed")
+	mobile_controls.call("simulate_actions_touch_for_testing")
 	await process_frame
 	if not catalog.panel.visible:
-		_fail("The lower-right Actions button did not open the menu outside combat.")
+		_fail("A completed lower-right Actions gesture did not open the menu outside combat.")
 		return
 	var inspect_button: Button = null
 	for button: Node in catalog.action_grid.get_children():
@@ -115,6 +116,11 @@ func _run() -> void:
 		if forbidden in inspected:
 			_fail("Inspect action exposed exact combat values: %s" % forbidden)
 			return
+	# Exploration simulation intentionally pauses while the action catalog is
+	# open. Close the overlay before validating autonomous patrol movement.
+	catalog.close_catalog()
+	state.set("input_locked", false)
+	await process_frame
 
 	var door: StealthDoor = room.get_test_door()
 	var navigation_link: NavigationLink2D = room.get_navigation_link_for_testing()
@@ -169,10 +175,17 @@ func _run() -> void:
 	if catalog.catalog_button.visible:
 		_fail("The duplicate ActionCatalogButton became visible during combat.")
 		return
+	# A stale legacy signal is rejected. A completed GUI gesture opens directly
+	# without a turn-start timer or reusable authorization latch.
 	actions_button.emit_signal("pressed")
 	await process_frame
+	if catalog.panel.visible:
+		_fail("A stale pressed signal opened the combat menu at the turn boundary.")
+		return
+	mobile_controls.call("simulate_actions_touch_for_testing")
+	await process_frame
 	if not catalog.panel.visible:
-		_fail("The lower-right Actions button did not open the combat menu.")
+		_fail("A completed lower-right Actions gesture did not open on the player combat turn.")
 		return
 	catalog.close_catalog()
 
@@ -183,12 +196,20 @@ func _run() -> void:
 	if not guard.is_in_group("combat_targets"):
 		_fail("Joined guard was not activated as a combat target.")
 		return
+	var visible_targets: Array = game.call("get_visible_targets_for_testing") as Array
 	var selected_before_cycle: Node = game.get("_selected_target") as Node
+	var current_visible_index: int = visible_targets.find(selected_before_cycle)
+	var expected_after_cycle: Node = null
+	if not visible_targets.is_empty():
+		if current_visible_index < 0:
+			expected_after_cycle = visible_targets[0] as Node
+		elif current_visible_index + 1 < visible_targets.size():
+			expected_after_cycle = visible_targets[current_visible_index + 1] as Node
 	target_button.emit_signal("pressed")
 	await process_frame
 	var selected_after_cycle: Node = game.get("_selected_target") as Node
-	if selected_after_cycle == null or selected_after_cycle == selected_before_cycle:
-		_fail("Upper-right target selector did not cycle between combat targets.")
+	if selected_after_cycle != expected_after_cycle:
+		_fail("Upper-right target selector did not follow the visible-target cycle contract.")
 		return
 	game.call("force_combat_join_check_for_testing")
 	var turn_system: Variant = game.get("_turn_system")
@@ -221,7 +242,7 @@ func _run() -> void:
 	await process_frame
 	if FileAccess.file_exists(save_path):
 		DirAccess.remove_absolute(save_path)
-	print("NPC context actions, single mobile Actions button, concealed state, navigation, combat join and Combat AI smoke test passed.")
+	print("NPC context actions, GUI-origin mobile Actions button, concealed state, navigation, combat join and Combat AI smoke test passed.")
 	quit(0)
 
 

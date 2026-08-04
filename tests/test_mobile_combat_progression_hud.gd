@@ -11,7 +11,11 @@ func _fail(message: String) -> void:
 
 
 func _run() -> void:
-	GameState.new_game()
+	var state: Node = get_node_or_null("/root/GameState")
+	if state == null:
+		_fail("GameState autoload is missing.")
+		return
+	state.call("new_game")
 	var hero := PlayerCharacter.new()
 	hero.character_name = "Тестовый воин"
 	hero.character_class_id = "fighter"
@@ -24,7 +28,7 @@ func _run() -> void:
 	hero.hit_die_size = 10
 	hero.hit_dice_maximum = 1
 	hero.hit_dice_current = 1
-	GameState.player_character = hero
+	state.set("player_character", hero)
 	ClassDataSystem.new().ensure_starting_loadout(hero)
 
 	var progression: Dictionary = ProgressionSystem.grant_experience(hero, 300)
@@ -32,11 +36,11 @@ func _run() -> void:
 		_fail("Experience did not unlock level 2 without applying it automatically.")
 		return
 	var level_up := LevelUpSystem.new()
-	if not bool(level_up.begin_transaction(hero, GameState).get("success", false)):
+	if not bool(level_up.begin_transaction(hero, state).get("success", false)):
 		_fail("Level-up transaction did not start.")
 		return
-	level_up.choose_fixed_hp(hero, GameState)
-	var level_result: Dictionary = level_up.commit_transaction(hero, GameState)
+	level_up.choose_fixed_hp(hero, state)
+	var level_result: Dictionary = level_up.commit_transaction(hero, state)
 	if hero.level != 2 or not bool(level_result.get("success", false)):
 		_fail("Saved level-up transaction did not advance the fighter to level 2.")
 		return
@@ -127,10 +131,10 @@ func _run() -> void:
 	if confirm_rect.end.y > end_turn_rect.position.y or end_turn_rect.end.y > actions_rect.position.y:
 		_fail("Combat rail order must be movement confirmation, End Turn, then Actions.")
 		return
-	actions_button.emit_signal("pressed")
+	mobile_controls.call("simulate_actions_touch_for_testing")
 	await get_tree().process_frame
 	if not action_catalog.panel.visible:
-		_fail("The lower-right Actions button did not open the combat catalog.")
+		_fail("The completed lower-right Actions gesture did not open the combat catalog.")
 		return
 	action_catalog.close_catalog()
 
@@ -161,12 +165,23 @@ func _run() -> void:
 
 	var action_state: Dictionary = {"id": ""}
 	action_catalog.action_requested.connect(func(action_id: String) -> void: action_state["id"] = action_id)
-	action_catalog.panel.show()
+
+	# Open through the same immediate BaseButton path used on Android. Direct
+	# panel.show() is intentionally rejected by the visibility owner because it
+	# represents the spontaneous flash rather than a user command.
+	mobile_controls.call("simulate_actions_touch_for_testing")
+	if not action_catalog.panel.visible:
+		_fail("Normal Actions tap did not open the catalog for an available action.")
+		return
 	action_catalog.call("_emit_action", "test_action", "Проверка", true)
 	if str(action_state.get("id", "")) != "test_action" or action_catalog.panel.visible:
 		_fail("Available catalog action did not emit or close the catalog.")
 		return
-	action_catalog.panel.show()
+
+	mobile_controls.call("simulate_actions_touch_for_testing")
+	if not action_catalog.panel.visible:
+		_fail("Normal Actions tap did not open the catalog for feedback testing.")
+		return
 	action_catalog.call("_emit_action", "blocked_action", "Нужна соседняя цель.", false)
 	if not action_catalog.panel.visible or "недоступно" not in action_catalog.description_label.text.to_lower():
 		_fail("Unavailable catalog action did not provide visible feedback.")

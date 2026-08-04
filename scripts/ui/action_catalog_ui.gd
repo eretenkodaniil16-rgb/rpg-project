@@ -20,6 +20,7 @@ const ACTION_GROUP_LABELS: Dictionary = {
 	"tactic": "ТАКТИКА"
 }
 const WORLD_INTERACTION_ACTION_ID: String = "world_interact"
+const WORLD_INTERACTION_ACTION_PREFIX: String = "world_interact__"
 
 var catalog_button: Button
 var confirm_move_button: Button
@@ -42,6 +43,7 @@ var _combat_active: bool = false
 var _player_turn: bool = false
 var _group_buttons: Dictionary = {}
 var _category_buttons: Dictionary = {}
+var _explicit_open_required_for_testing: bool = false
 
 
 func _ready() -> void:
@@ -70,9 +72,9 @@ func refresh(
 	confirm_move_button.visible = combat_active and show_catalog_controls and player_turn and has_movement_plan
 	jump_button.hide()
 	if overlay_visible and panel.visible:
-		panel.hide()
+		close_catalog()
 	_entries = entries.duplicate(true)
-	_append_world_interaction_entry()
+	_append_world_interaction_entries()
 	resource_label.text = resource_text
 	header_label.text = "БОЕВЫЕ ДЕЙСТВИЯ · %s" % movement_plan_text if combat_active else "ДЕЙСТВИЯ"
 	catalog_button.disabled = true
@@ -108,6 +110,32 @@ func toggle_catalog() -> void:
 	_toggle_catalog()
 
 
+func request_toggle_from_action_button() -> bool:
+	# This method is the only mobile opening transaction. It performs the GUI
+	# request immediately and stores no token that a delayed signal could reuse.
+	if panel.visible:
+		close_catalog()
+		return false
+	_open_catalog()
+	return panel.visible
+
+
+func authorize_open_once() -> void:
+	# Compatibility no-op. Opening authorization is no longer persistent.
+	pass
+
+
+func require_explicit_open_for_testing(value: bool) -> void:
+	_explicit_open_required_for_testing = value
+	if value:
+		close_catalog()
+
+
+func has_open_authorization_for_testing() -> bool:
+	# The atomic design deliberately has no pending authorization state.
+	return false
+
+
 func close_catalog() -> void:
 	panel.hide()
 	_last_signature = ""
@@ -117,33 +145,86 @@ func get_entries_for_testing() -> Dictionary:
 	return _entries.duplicate(true)
 
 
-func _append_world_interaction_entry() -> void:
-	if not _combat_active:
-		return
+func _append_world_interaction_entries() -> void:
 	var player: Node = get_tree().get_first_node_in_group("player")
 	if not is_instance_valid(player):
 		return
-	var interactable_value: Variant = player.get("interactable")
-	var interactable: Node = interactable_value as Node if interactable_value is Node and is_instance_valid(interactable_value as Node) else null
-	var label: String = "НЕТ ОБЪЕКТА РЯДОМ"
-	var description: String = "Подойдите к двери или другому доступному объекту мира."
-	var enabled: bool = false
-	if interactable != null and interactable.has_method("perform_world_interaction"):
-		label = str(interactable.call("get_combat_interaction_label")) if interactable.has_method("get_combat_interaction_label") else "ВЗАИМОДЕЙСТВОВАТЬ"
-		description = str(interactable.call("get_combat_interaction_description")) if interactable.has_method("get_combat_interaction_description") else "Взаимодействовать с соседним объектом мира."
-		enabled = _player_turn
-		if interactable.has_method("can_perform_world_interaction"):
-			enabled = enabled and bool(interactable.call("can_perform_world_interaction"))
 	var action_value: Variant = _entries.get("action", [])
 	var action_entries: Array = action_value as Array if action_value is Array else []
-	action_entries.append({
-		"id": WORLD_INTERACTION_ACTION_ID,
-		"label": label,
-		"enabled": enabled,
-		"description": description,
-		"group": "world"
-	})
+	var nearby: Array[Node] = _get_registered_interactables(player)
+	var appended_count: int = 0
+	for interactable: Node in nearby:
+		if not _supports_catalog_interaction(interactable):
+			continue
+		var enabled: bool = not _combat_active or _player_turn
+		if interactable.has_method("can_perform_world_interaction"):
+			enabled = enabled and bool(interactable.call("can_perform_world_interaction"))
+		action_entries.append({
+			"id": "%s%d" % [WORLD_INTERACTION_ACTION_PREFIX, interactable.get_instance_id()],
+			"label": _interaction_label(interactable),
+			"enabled": enabled,
+			"description": _interaction_description(interactable),
+			"group": "world"
+		})
+		appended_count += 1
+	if appended_count == 0 and not _has_world_entry(action_entries):
+		action_entries.append({
+			"id": WORLD_INTERACTION_ACTION_ID,
+			"label": "НЕТ ОБЪЕКТА РЯДОМ",
+			"enabled": false,
+			"description": "Войдите в зону двери, персонажа или другого интерактивного объекта.",
+			"group": "world"
+		})
 	_entries["action"] = action_entries
+
+
+func _get_registered_interactables(player: Node) -> Array[Node]:
+	if player.has_method("get_nearby_interactables"):
+		var value: Variant = player.call("get_nearby_interactables")
+		if value is Array:
+			var result: Array[Node] = []
+			for entry: Variant in value as Array:
+				if entry is Node and is_instance_valid(entry as Node):
+					result.append(entry as Node)
+			return result
+	var legacy_value: Variant = player.get("interactable")
+	if legacy_value is Node and is_instance_valid(legacy_value as Node):
+		return [legacy_value as Node]
+	return []
+
+
+func _supports_catalog_interaction(interactable: Node) -> bool:
+	return is_instance_valid(interactable) and (
+		interactable.has_method("interact")
+		or interactable.has_method("perform_world_interaction")
+	)
+
+
+func _interaction_label(interactable: Node) -> String:
+	if interactable.has_method("get_interaction_label"):
+		return str(interactable.call("get_interaction_label"))
+	if interactable.has_method("get_combat_interaction_label"):
+		return str(interactable.call("get_combat_interaction_label"))
+	if interactable.has_method("get_combat_name"):
+		return "ПОГОВОРИТЬ: %s" % str(interactable.call("get_combat_name")).to_upper()
+	return "ВЗАИМОДЕЙСТВОВАТЬ: %s" % interactable.name.to_snake_case().replace("_", " ").to_upper()
+
+
+func _interaction_description(interactable: Node) -> String:
+	if interactable.has_method("get_interaction_description"):
+		return str(interactable.call("get_interaction_description"))
+	if interactable.has_method("get_combat_interaction_description"):
+		return str(interactable.call("get_combat_interaction_description"))
+	if interactable.has_method("get_combat_name"):
+		return "Поговорить с персонажем %s." % str(interactable.call("get_combat_name"))
+	return "Взаимодействовать с выбранным объектом мира."
+
+
+func _has_world_entry(action_entries: Array) -> bool:
+	for value: Variant in action_entries:
+		if value is Dictionary and str((value as Dictionary).get("group", "")) == "world":
+			return true
+	return false
 
 
 func _build_interface() -> void:
@@ -275,11 +356,27 @@ func _make_bottom_rail_button(node_name: String, text_value: String, top: float,
 
 
 func _toggle_catalog() -> void:
-	panel.visible = not panel.visible
 	if panel.visible:
-		_last_signature = ""
-		_ensure_valid_selection()
-		_rebuild_action_grid()
+		close_catalog()
+		return
+	if _catalog_open_requires_action_button_transaction():
+		return
+	_open_catalog()
+
+
+func _open_catalog() -> void:
+	panel.show()
+	_last_signature = ""
+	_ensure_valid_selection()
+	_rebuild_action_grid()
+
+
+func _catalog_open_requires_action_button_transaction() -> bool:
+	return (
+		_explicit_open_required_for_testing
+		or OS.get_name() in ["Android", "iOS"]
+		or OS.has_feature("mobile")
+	)
 
 
 func _select_category(category_id: String) -> void:
@@ -373,6 +470,12 @@ func _emit_action(action_id: String, description: String, available: bool) -> vo
 		description_label.text = "Сейчас недоступно: %s" % description
 		return
 	close_catalog()
+	if action_id.begins_with(WORLD_INTERACTION_ACTION_PREFIX):
+		var instance_text: String = action_id.trim_prefix(WORLD_INTERACTION_ACTION_PREFIX)
+		var player: Node = get_tree().get_first_node_in_group("player")
+		if is_instance_valid(player) and instance_text.is_valid_int() and player.has_method("request_interaction_with_instance"):
+			player.call("request_interaction_with_instance", instance_text.to_int())
+		return
 	if action_id == WORLD_INTERACTION_ACTION_ID:
 		var player: Node = get_tree().get_first_node_in_group("player")
 		if is_instance_valid(player) and player.has_method("request_interaction"):

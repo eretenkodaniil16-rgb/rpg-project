@@ -1,6 +1,7 @@
 extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
+const POSITION_EPSILON: float = 0.01
 
 func _init() -> void:
 	call_deferred("_run")
@@ -88,16 +89,41 @@ func _run() -> void:
 		return
 
 	game.call("_set_selected_target", caretaker)
+	var caretaker_node: Node2D = caretaker as Node2D
+	var player_before_combat: Vector2 = player.global_position
+	var caretaker_before_combat: Vector2 = caretaker_node.global_position
+	var player_cell_before: Vector2i = grid.world_to_cell(player_before_combat)
+	var caretaker_cell_before: Vector2i = grid.world_to_cell(caretaker_before_combat)
 	game.call("_start_turn_based_combat", caretaker)
-	game.call("force_player_turn_for_testing")
-	for _frame: int in range(4):
-		await process_frame
 	if not bool(game.call("is_turn_based_combat_active")):
 		_fail("Turn-based mode did not start.")
 		return
-	if player.global_position != grid.cell_to_world_center(grid.world_to_cell(player.global_position)):
-		_fail("Player is not centered in a grid cell.")
+	var player_cell: Vector2i = grid.world_to_cell(player.global_position)
+	var caretaker_cell: Vector2i = grid.world_to_cell(caretaker_node.global_position)
+	if player_cell != player_cell_before:
+		_fail("Starting SRD combat reassigned the player to another cell.")
 		return
+	if caretaker_cell != caretaker_cell_before:
+		_fail("Starting SRD combat reassigned the caretaker to another cell.")
+		return
+	if player.global_position.distance_to(grid.cell_to_world_center(player_cell)) > POSITION_EPSILON:
+		_fail("SRD combat did not centre the player in the preserved cell.")
+		return
+	if caretaker_node.global_position.distance_to(grid.cell_to_world_center(caretaker_cell)) > POSITION_EPSILON:
+		_fail("SRD combat did not centre the caretaker in the preserved cell.")
+		return
+	if player.global_position.distance_to(player_before_combat) > grid.get_cell_size():
+		_fail("Starting SRD combat moved the player farther than a local correction.")
+		return
+	if caretaker_node.global_position.distance_to(caretaker_before_combat) > grid.get_cell_size():
+		_fail("Starting SRD combat moved the caretaker farther than a local correction.")
+		return
+	if not grid.is_cell_valid(player_cell):
+		_fail("Centred player position does not map to a valid combat cell.")
+		return
+	game.call("force_player_turn_for_testing")
+	for _frame: int in range(4):
+		await process_frame
 	if old_panel.visible or not actions_button.visible or catalog.catalog_button.visible:
 		_fail("Combat catalog visibility is incorrect.")
 		return
@@ -207,5 +233,5 @@ func _run() -> void:
 
 	game.queue_free()
 	await process_frame
-	print("SRD combat dialogue, persistent Actions button, racial abilities and terrain trait smoke test passed.")
+	print("SRD combat centres actors in their existing cells and preserves dialogue, racial abilities and terrain traits.")
 	quit(0)

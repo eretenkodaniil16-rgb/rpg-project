@@ -1,7 +1,7 @@
 extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
-const EXPECTED_RUNTIME: String = "res://scripts/game/game_squad_tactical_plans_runtime.gd"
+const EXPECTED_RUNTIME: String = "res://scripts/game/game_guard_post_polish_runtime.gd"
 const MARKSMAN_SCENE: String = "res://scenes/game/combat_ai_training_marksman.tscn"
 const MAGE_SCENE: String = "res://scenes/game/combat_ai_training_mage.tscn"
 
@@ -50,6 +50,11 @@ func _run() -> void:
 	player.global_position = Vector2(510.0, 360.0)
 	guard.global_position = Vector2(710.0, 360.0)
 	caretaker.global_position = Vector2(760.0, 430.0)
+
+	var environment_events: EnvironmentEventSystem = game.call("get_environment_event_system_for_testing") as EnvironmentEventSystem
+	if environment_events != null:
+		environment_events.clear_combat_memory()
+	game.call("_clear_squad_plan_runtime")
 
 	var guard_profile: Dictionary = game._squad_ai.get_profile("service_guard")
 	var guard_context: Dictionary = _base_context()

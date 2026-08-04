@@ -1,0 +1,85 @@
+name: Validate player visibility and save slots
+
+on:
+  pull_request:
+    paths:
+      - "scripts/core/game_state.gd"
+      - "scripts/systems/save_slot_system.gd"
+      - "scripts/ui/save_slots_panel.gd"
+      - "scripts/ui/game_pause_save_menu.gd"
+      - "scripts/menus/main_menu.gd"
+      - "scripts/game/room_fog_overlay.gd"
+      - "scripts/game/game_guard_post_polish_runtime.gd"
+      - "scenes/game/game.tscn"
+      - "tests/test_save_slot_system.gd"
+      - "tests/smoke_player_visibility_save_runtime.gd"
+      - ".github/workflows/validate-player-visibility-save-slots.yml"
+  push:
+    branches:
+      - feature/player-visibility-save-slots
+
+concurrency:
+  group: visibility-save-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Godot 4.7.1 Standard
+        shell: bash
+        run: |
+          curl --location --fail --retry 3 --output godot.zip "https://downloads.godotengine.org/?flavor=stable&platform=linux.64&slug=linux.x86_64.zip&version=4.7.1"
+          unzip -q godot.zip
+          chmod +x Godot_v4.7.1-stable_linux.x86_64
+
+      - name: Import project and reject parser errors
+        shell: bash
+        run: |
+          rm -rf .godot
+          set -o pipefail
+          timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --editor --path "$GITHUB_WORKSPACE" --quit 2>&1 | tee visibility-save-import.log
+          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script" visibility-save-import.log; then
+            exit 1
+          fi
+
+      - name: Validate save slot storage
+        shell: bash
+        run: timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_save_slot_system.gd 2>&1 | tee save-slot-unit.log
+
+      - name: Simulate visibility save menu and rollback
+        shell: bash
+        run: timeout 360s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_player_visibility_save_runtime.gd 2>&1 | tee visibility-save-smoke.log
+
+      - name: Regression test guard post presentation and parley
+        shell: bash
+        run: timeout 360s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_guard_post_presentation_and_parley.gd 2>&1 | tee guard-post-presentation-regression.log
+
+      - name: Regression test interactive door and death-save flow
+        shell: bash
+        run: timeout 300s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_interactive_tactical_encounter.gd 2>&1 | tee interactive-death-regression.log
+
+      - name: Regression test encounter persistence
+        shell: bash
+        run: timeout 240s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_encounter_runtime.gd 2>&1 | tee encounter-persistence-regression.log
+
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: player-visibility-save-slots-diagnostics
+          path: |
+            visibility-save-import.log
+            save-slot-unit.log
+            visibility-save-smoke.log
+            guard-post-presentation-regression.log
+            interactive-death-regression.log
+            encounter-persistence-regression.log
+          retention-days: 7

@@ -1,8 +1,10 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "profiles": {
     "caretaker": {
       "actor_id": "caretaker",
+      "movement_mode": "stationary",
+      "visible_behavior": "face",
       "view_distance_feet": 55,
       "view_angle_degrees": 105.0,
       "peripheral_distance_feet": 15,
@@ -14,12 +16,17 @@
       "suspicion_decay_per_second": 9.0,
       "noise_suspicion_multiplier": 0.72,
       "investigation_speed_pixels": 92.0,
+      "step_retarget_cooldown_seconds": 2.0,
       "search_duration_seconds": 12.0,
       "alert_cooldown_seconds": 24.0,
       "alert_radius_feet": 45
     },
     "service_guard": {
       "actor_id": "service_guard",
+      "movement_mode": "patrol",
+      "visible_behavior": "continue_patrol",
+      "visible_standoff_pixels": 82.0,
+      "visible_speed_multiplier": 0.72,
       "view_distance_feet": 50,
       "view_angle_degrees": 95.0,
       "peripheral_distance_feet": 12,
@@ -31,6 +38,7 @@
       "suspicion_decay_per_second": 8.0,
       "noise_suspicion_multiplier": 0.66,
       "investigation_speed_pixels": 82.0,
+      "step_retarget_cooldown_seconds": 1.5,
       "search_duration_seconds": 10.0,
       "alert_cooldown_seconds": 20.0,
       "alert_radius_feet": 40
@@ -42,6 +50,18 @@
       "label": "Западная служебная комната",
       "rect": [45.0, 45.0, 190.0, 630.0],
       "ambient_noise_multiplier": 0.8
+    },
+    "outer_guard_room": {
+      "id": "outer_guard_room",
+      "label": "Внешняя комната караульного поста",
+      "rect": [255.0, 45.0, 622.0, 630.0],
+      "ambient_noise_multiplier": 1.0
+    },
+    "inner_watch_room": {
+      "id": "inner_watch_room",
+      "label": "Внутренний пост",
+      "rect": [877.0, 45.0, 358.0, 630.0],
+      "ambient_noise_multiplier": 0.9
     },
     "main_hall": {
       "id": "main_hall",
@@ -55,10 +75,21 @@
       "id": "west_service_door",
       "label": "Дверь служебной комнаты",
       "rect": [227.0, 300.0, 36.0, 120.0],
-      "rooms": ["west_service_room", "main_hall"],
+      "rooms": ["west_service_room", "outer_guard_room"],
       "initial_state": "closed",
       "blocks_line_of_sight_when_closed": true,
       "closed_noise_multiplier": 0.38,
+      "open_noise_multiplier": 0.9,
+      "interaction_noise_feet": 25
+    },
+    "inner_watch_gate": {
+      "id": "inner_watch_gate",
+      "label": "Внутренняя дверь караульного поста",
+      "rect": [869.0, 296.0, 16.0, 128.0],
+      "rooms": ["outer_guard_room", "inner_watch_room"],
+      "initial_state": "locked",
+      "blocks_line_of_sight_when_closed": true,
+      "closed_noise_multiplier": 0.32,
       "open_noise_multiplier": 0.9,
       "interaction_noise_feet": 25
     }

@@ -1,6 +1,7 @@
 extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
+const POSITION_EPSILON: float = 0.01
 
 
 func _init() -> void:
@@ -47,24 +48,42 @@ func _run() -> void:
 		return
 	mobile_controls.call("enable_for_testing")
 	var actions_button: Button = mobile_controls.call("get_actions_button_for_testing") as Button
+	var player_before_combat: Vector2 = player.global_position
+	var caretaker_before_combat: Vector2 = caretaker.global_position
+	var player_cell_before: Vector2i = grid.world_to_cell(player_before_combat)
+	var caretaker_cell_before: Vector2i = grid.world_to_cell(caretaker_before_combat)
 	game.call("_start_turn_based_combat", caretaker)
-	game.call("force_player_turn_for_testing")
-	await process_frame
-	await process_frame
 	if not bool(game.call("is_turn_based_combat_active")):
 		_fail("Turn based combat did not start.")
 		return
-
+	# Initiative may align a sub-cell exploration position to the centre of its
+	# current logical cell, but it must not reassign either actor elsewhere.
 	var player_cell: Vector2i = grid.world_to_cell(player.global_position)
 	var caretaker_cell: Vector2i = grid.world_to_cell(caretaker.global_position)
-	if player.global_position.distance_to(grid.cell_to_world_center(player_cell)) > 0.01:
-		_fail("Player was not snapped to the center of a grid cell.")
+	if player_cell != player_cell_before:
+		_fail("Starting initiative reassigned the player to another cell.")
 		return
-	if caretaker.global_position.distance_to(grid.cell_to_world_center(caretaker_cell)) > 0.01:
-		_fail("Caretaker was not snapped to the center of a grid cell.")
+	if caretaker_cell != caretaker_cell_before:
+		_fail("Starting initiative reassigned the caretaker to another cell.")
 		return
-	if player_cell == caretaker_cell:
-		_fail("Player and caretaker occupied the same combat cell.")
+	if player.global_position.distance_to(grid.cell_to_world_center(player_cell)) > POSITION_EPSILON:
+		_fail("Player was not centred in the preserved combat cell.")
+		return
+	if caretaker.global_position.distance_to(grid.cell_to_world_center(caretaker_cell)) > POSITION_EPSILON:
+		_fail("Caretaker was not centred in the preserved combat cell.")
+		return
+	if player.global_position.distance_to(player_before_combat) > grid.get_cell_size():
+		_fail("Starting initiative moved the player farther than a local cell correction.")
+		return
+	if caretaker.global_position.distance_to(caretaker_before_combat) > grid.get_cell_size():
+		_fail("Starting initiative moved the caretaker farther than a local cell correction.")
+		return
+	game.call("force_player_turn_for_testing")
+	await process_frame
+	await process_frame
+
+	if not grid.is_cell_valid(player_cell) or not grid.is_cell_valid(caretaker_cell):
+		_fail("Combat positions do not map to valid cells.")
 		return
 
 	var catalog: ActionCatalogUI = game.get_node_or_null("Interface/ActionCatalogUI") as ActionCatalogUI
@@ -78,7 +97,7 @@ func _run() -> void:
 	var start_position: Vector2 = player.global_position
 	game.call("request_combat_move", Vector2i(0, -1))
 	await process_frame
-	if player.global_position.distance_to(start_position) > 0.01:
+	if player.global_position.distance_to(start_position) > POSITION_EPSILON:
 		_fail("Planning a route moved the player before confirmation.")
 		return
 	var planned_path: Array = game.get("_planned_path") as Array
@@ -87,8 +106,9 @@ func _run() -> void:
 		return
 	game.call("_confirm_planned_movement")
 	await create_timer(0.3).timeout
-	if absf(player.global_position.y - (start_position.y - 64.0)) > 0.01:
-		_fail("Confirmed movement did not advance exactly one grid cell.")
+	var expected_destination: Vector2 = grid.cell_to_world_center(player_cell + Vector2i(0, -1))
+	if player.global_position.distance_to(expected_destination) > POSITION_EPSILON:
+		_fail("Confirmed movement did not finish at the selected grid-cell center.")
 		return
 	if "Перемещение: 25 футов" not in catalog.resource_label.text:
 		_fail("Confirmed movement did not spend five feet.")
@@ -106,5 +126,5 @@ func _run() -> void:
 		return
 	game.queue_free()
 	await process_frame
-	print("Turn based combat and persistent exploration Actions menu transition smoke test passed.")
+	print("Turn combat centres actors in their existing cells and moves only after confirmation.")
 	quit(0)

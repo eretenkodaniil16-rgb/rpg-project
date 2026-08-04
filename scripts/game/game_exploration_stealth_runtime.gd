@@ -31,6 +31,14 @@ func _process(delta: float) -> void:
 		_sync_combat_alert_records()
 		_refresh_alert_indicator()
 		return
+	# input_locked is the global world-simulation pause used by save/load,
+	# dialogues and blocking overlays. Exploration observers must not consume
+	# search timers, rotate or move while the loaded world is still frozen.
+	if GameState.input_locked:
+		_last_exploration_player_position = player.global_position
+		_step_noise_elapsed = 0.0
+		_refresh_alert_indicator()
+		return
 	_update_exploration_step_noise(delta)
 	_update_exploration_alerts(delta)
 	_alert_persist_elapsed += maxf(delta, 0.0)

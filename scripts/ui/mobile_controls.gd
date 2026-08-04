@@ -88,9 +88,13 @@ func enable_for_testing() -> void:
 
 
 func get_joystick_output_for_testing() -> Vector2:
-	if not is_instance_valid(_player) or not _player.has_method("get_mobile_direction"):
+	if not is_instance_valid(_player):
 		return Vector2.ZERO
-	return _player.call("get_mobile_direction") as Vector2
+	if _player.has_method("get_mobile_facing_direction"):
+		return _player.call("get_mobile_facing_direction") as Vector2
+	if _player.has_method("get_mobile_direction"):
+		return _player.call("get_mobile_direction") as Vector2
+	return Vector2.ZERO
 
 
 func get_jump_button_for_testing() -> Button:
@@ -261,12 +265,20 @@ func _reset_joystick() -> void:
 
 
 func _reset_player_input() -> void:
-	if is_instance_valid(_player) and _player.has_method("clear_mobile_input"):
+	if not is_instance_valid(_player):
+		return
+	if _player.has_method("clear_mobile_facing_input"):
+		_player.call("clear_mobile_facing_input")
+	elif _player.has_method("clear_mobile_input"):
 		_player.call("clear_mobile_input")
 
 
 func _set_player_vector(direction: Vector2) -> void:
-	if is_instance_valid(_player) and _player.has_method("set_mobile_vector"):
+	if not is_instance_valid(_player):
+		return
+	if _player.has_method("set_mobile_facing_vector"):
+		_player.call("set_mobile_facing_vector", direction)
+	elif _player.has_method("set_mobile_vector"):
 		_player.call("set_mobile_vector", direction)
 
 

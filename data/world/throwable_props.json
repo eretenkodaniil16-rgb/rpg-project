@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "props": {
+    "ceramic_mug": {
+      "id": "ceramic_mug",
+      "label": "керамическая кружка",
+      "throw_range_feet": 30,
+      "noise_radius_feet": 45,
+      "noise_intensity": 42,
+      "impact_damage_die": 4,
+      "breaks_on_impact": true,
+      "visual_size": [22.0, 18.0],
+      "visual_color": [0.72, 0.67, 0.56, 1.0]
+    },
+    "iron_candlestick": {
+      "id": "iron_candlestick",
+      "label": "железный подсвечник",
+      "throw_range_feet": 20,
+      "noise_radius_feet": 70,
+      "noise_intensity": 68,
+      "impact_damage_die": 6,
+      "breaks_on_impact": false,
+      "visual_size": [18.0, 30.0],
+      "visual_color": [0.42, 0.45, 0.48, 1.0]
+    },
+    "wooden_stool": {
+      "id": "wooden_stool",
+      "label": "деревянная табуретка",
+      "throw_range_feet": 15,
+      "noise_radius_feet": 80,
+      "noise_intensity": 76,
+      "impact_damage_die": 6,
+      "breaks_on_impact": true,
+      "visual_size": [34.0, 30.0],
+      "visual_color": [0.48, 0.29, 0.16, 1.0]
+    }
+  }
+}

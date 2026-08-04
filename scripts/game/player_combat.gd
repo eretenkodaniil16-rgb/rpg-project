@@ -1,6 +1,8 @@
 extends "res://scripts/game/player.gd"
 
 const GRID_MOVE_REPEAT_SECONDS: float = 0.18
+const CLICK_PATH_REACHED_DISTANCE_PIXELS: float = 8.0
+const CLICK_PATH_BLOCKED_FRAME_LIMIT: int = 10
 const SOCIAL_TERRAIN_CONTROLLER_SCRIPT: Script = preload("res://scripts/game/combat_social_terrain_controller.gd")
 const RACIAL_TRAIT_CONTROLLER_SCRIPT: Script = preload("res://scripts/game/racial_trait_controller.gd")
 
@@ -10,6 +12,10 @@ var _turn_based_mode: bool = false
 var _grid_move_cooldown: float = 0.0
 var _terrain_class_data: ClassDataSystem = ClassDataSystem.new()
 var _origin_feat_data: OriginFeatSystem = OriginFeatSystem.new()
+var _mobile_facing_vector: Vector2 = Vector2.ZERO
+var _exploration_click_path: Array[Vector2] = []
+var _exploration_click_path_index: int = 0
+var _click_path_blocked_frames: int = 0
 
 
 func _ready() -> void:
@@ -25,18 +31,18 @@ func _physics_process(delta: float) -> void:
 		return
 	velocity = Vector2.ZERO
 	_grid_move_cooldown = maxf(_grid_move_cooldown - delta, 0.0)
+	_apply_mobile_facing_input()
 	if GameState.input_locked:
 		return
 	var keyboard_direction: Vector2 = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
-	var direction: Vector2 = keyboard_direction + get_mobile_direction()
-	if direction.length_squared() <= 0.04:
+	if keyboard_direction.length_squared() <= 0.04:
 		_grid_move_cooldown = 0.0
 		return
 	if _grid_move_cooldown > 0.0:
 		return
 	var step := Vector2i(
-		int(signf(direction.x)) if absf(direction.x) >= 0.25 else 0,
-		int(signf(direction.y)) if absf(direction.y) >= 0.25 else 0
+		int(signf(keyboard_direction.x)) if absf(keyboard_direction.x) >= 0.25 else 0,
+		int(signf(keyboard_direction.y)) if absf(keyboard_direction.y) >= 0.25 else 0
 	)
 	if step == Vector2i.ZERO:
 		return
@@ -49,19 +55,105 @@ func _process_exploration_movement(delta: float) -> void:
 	if GameState.input_locked:
 		velocity = Vector2.ZERO
 		return
+	_apply_mobile_facing_input()
 	var keyboard_direction: Vector2 = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
-	var direction: Vector2 = keyboard_direction + get_mobile_direction()
-	if direction.length_squared() > 1.0:
-		direction = direction.normalized()
-	var sample_position: Vector2 = global_position + direction * movement_speed * delta
+	if keyboard_direction.length_squared() > 0.04:
+		_cancel_exploration_click_path()
+		_move_exploration_direction(keyboard_direction.normalized(), delta)
+		return
+	if _exploration_click_path_index < _exploration_click_path.size():
+		_move_along_exploration_click_path(delta)
+		return
+	velocity = Vector2.ZERO
+
+
+func _move_exploration_direction(direction: Vector2, delta: float) -> void:
+	if direction.length_squared() <= 0.0001:
+		velocity = Vector2.ZERO
+		return
+	var normalized_direction: Vector2 = direction.normalized()
+	set_facing_direction(normalized_direction)
+	var sample_position: Vector2 = global_position + normalized_direction * movement_speed * delta
 	var effective_speed: float = get_effective_movement_speed_at(sample_position)
-	velocity = direction * effective_speed
+	velocity = normalized_direction * effective_speed
 	move_and_slide()
-	global_position.x = clampf(global_position.x, movement_bounds.position.x, movement_bounds.end.x)
-	global_position.y = clampf(global_position.y, movement_bounds.position.y, movement_bounds.end.y)
-	GameState.player_position = global_position
-	if velocity.length_squared() > 1.0:
-		set_facing_direction(velocity)
+	_clamp_and_store_player_position()
+
+
+func _move_along_exploration_click_path(delta: float) -> void:
+	while _exploration_click_path_index < _exploration_click_path.size():
+		var current_target: Vector2 = _exploration_click_path[_exploration_click_path_index]
+		if global_position.distance_to(current_target) > CLICK_PATH_REACHED_DISTANCE_PIXELS:
+			break
+		_exploration_click_path_index += 1
+	if _exploration_click_path_index >= _exploration_click_path.size():
+		_cancel_exploration_click_path()
+		velocity = Vector2.ZERO
+		return
+	var target_position: Vector2 = _exploration_click_path[_exploration_click_path_index]
+	var direction: Vector2 = target_position - global_position
+	if direction.length_squared() <= 0.0001:
+		_exploration_click_path_index += 1
+		return
+	var normalized_direction: Vector2 = direction.normalized()
+	set_facing_direction(normalized_direction)
+	var sample_position: Vector2 = global_position + normalized_direction * movement_speed * delta
+	var effective_speed: float = get_effective_movement_speed_at(sample_position)
+	var previous_position: Vector2 = global_position
+	velocity = normalized_direction * effective_speed
+	move_and_slide()
+	_clamp_and_store_player_position()
+	if global_position.distance_squared_to(previous_position) <= 0.01:
+		_click_path_blocked_frames += 1
+		if _click_path_blocked_frames >= CLICK_PATH_BLOCKED_FRAME_LIMIT:
+			_cancel_exploration_click_path()
+	else:
+		_click_path_blocked_frames = 0
+
+
+func set_exploration_click_path(world_points: Array) -> void:
+	var normalized_path: Array[Vector2] = []
+	for value: Variant in world_points:
+		if value is Vector2:
+			normalized_path.append(value as Vector2)
+	_exploration_click_path = normalized_path
+	_exploration_click_path_index = 0
+	_click_path_blocked_frames = 0
+	while _exploration_click_path_index < _exploration_click_path.size() and global_position.distance_to(_exploration_click_path[_exploration_click_path_index]) <= CLICK_PATH_REACHED_DISTANCE_PIXELS:
+		_exploration_click_path_index += 1
+
+
+func cancel_exploration_click_path() -> void:
+	_cancel_exploration_click_path()
+
+
+func has_exploration_click_path() -> bool:
+	return _exploration_click_path_index < _exploration_click_path.size()
+
+
+func get_exploration_click_path_for_testing() -> Array[Vector2]:
+	var result: Array[Vector2] = []
+	for index: int in range(_exploration_click_path_index, _exploration_click_path.size()):
+		result.append(_exploration_click_path[index])
+	return result
+
+
+func set_mobile_facing_vector(direction: Vector2) -> void:
+	_mobile_facing_vector = direction.limit_length(1.0)
+	_apply_mobile_facing_input()
+
+
+func get_mobile_facing_direction() -> Vector2:
+	return _mobile_facing_vector
+
+
+func clear_mobile_facing_input() -> void:
+	_mobile_facing_vector = Vector2.ZERO
+
+
+func clear_mobile_input() -> void:
+	super.clear_mobile_input()
+	clear_mobile_facing_input()
 
 
 func get_effective_movement_speed_at(world_position: Vector2) -> float:
@@ -95,6 +187,7 @@ func set_turn_based_mode(value: bool) -> void:
 	_turn_based_mode = value
 	_grid_move_cooldown = 0.0
 	velocity = Vector2.ZERO
+	_cancel_exploration_click_path()
 	if value:
 		clear_mobile_input()
 
@@ -112,6 +205,23 @@ func set_facing_direction(direction: Vector2) -> void:
 		return
 	_facing_direction = direction.normalized()
 	_update_facing_indicator()
+
+
+func _apply_mobile_facing_input() -> void:
+	if _mobile_facing_vector.length_squared() > 0.0001:
+		set_facing_direction(_mobile_facing_vector)
+
+
+func _cancel_exploration_click_path() -> void:
+	_exploration_click_path.clear()
+	_exploration_click_path_index = 0
+	_click_path_blocked_frames = 0
+
+
+func _clamp_and_store_player_position() -> void:
+	global_position.x = clampf(global_position.x, movement_bounds.position.x, movement_bounds.end.x)
+	global_position.y = clampf(global_position.y, movement_bounds.position.y, movement_bounds.end.y)
+	GameState.player_position = global_position
 
 
 func _build_facing_indicator() -> void:

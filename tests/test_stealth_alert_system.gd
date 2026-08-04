@@ -33,8 +33,11 @@ func _run() -> void:
 	if system.get_room_id_at(Vector2(100.0, 100.0)) != "west_service_room":
 		_fail("West service room lookup failed.")
 		return
-	if system.get_room_id_at(Vector2(900.0, 360.0)) != "main_hall":
-		_fail("Main hall lookup failed.")
+	if system.get_room_id_at(Vector2(500.0, 360.0)) != "outer_guard_room":
+		_fail("Outer guard room lookup failed.")
+		return
+	if system.get_room_id_at(Vector2(900.0, 360.0)) != "inner_watch_room":
+		_fail("Inner watch room lookup failed.")
 		return
 	if system.get_hiding_spot_at(Vector2(100.0, 100.0)).is_empty():
 		_fail("Data-driven hiding spot lookup failed.")
@@ -54,20 +57,42 @@ func _run() -> void:
 		_fail("A fully concealed distant target remained visible.")
 		return
 
-	if not system.door_blocks_line_of_sight(state, Vector2(900.0, 360.0), Vector2(100.0, 360.0)):
+	if not system.door_blocks_line_of_sight(state, Vector2(500.0, 360.0), Vector2(100.0, 360.0)):
 		_fail("Closed service door did not block line of sight.")
 		return
 	if not system.set_door_state(state, "west_service_door", "open"):
-		_fail("Door state could not be changed.")
+		_fail("Service door state could not be changed.")
 		return
-	if system.door_blocks_line_of_sight(state, Vector2(900.0, 360.0), Vector2(100.0, 360.0)):
+	if system.door_blocks_line_of_sight(state, Vector2(500.0, 360.0), Vector2(100.0, 360.0)):
 		_fail("Open service door still blocked line of sight.")
 		return
-	var open_noise: float = system.noise_multiplier_between_rooms(state, "west_service_room", "main_hall")
+	var open_noise: float = system.noise_multiplier_between_rooms(state, "west_service_room", "outer_guard_room")
 	system.set_door_state(state, "west_service_door", "closed")
-	var closed_noise: float = system.noise_multiplier_between_rooms(state, "west_service_room", "main_hall")
+	var closed_noise: float = system.noise_multiplier_between_rooms(state, "west_service_room", "outer_guard_room")
 	if closed_noise >= open_noise:
-		_fail("Closed door did not damp cross-room noise.")
+		_fail("Closed service door did not damp cross-room noise.")
+		return
+
+	if system.get_door_definition("inner_watch_gate").is_empty():
+		_fail("Inner watch gate is missing from world data.")
+		return
+	if system.get_door_state(state, "inner_watch_gate") != "locked":
+		_fail("Inner watch gate did not initialize as locked.")
+		return
+	if not system.door_blocks_line_of_sight(state, Vector2(760.0, 360.0), Vector2(1000.0, 360.0)):
+		_fail("Locked inner watch gate did not block line of sight.")
+		return
+	if not system.set_door_state(state, "inner_watch_gate", "open"):
+		_fail("Inner watch gate state could not be changed.")
+		return
+	if system.door_blocks_line_of_sight(state, Vector2(760.0, 360.0), Vector2(1000.0, 360.0)):
+		_fail("Open inner watch gate still blocked line of sight.")
+		return
+	var inner_open_noise: float = system.noise_multiplier_between_rooms(state, "outer_guard_room", "inner_watch_room")
+	system.set_door_state(state, "inner_watch_gate", "closed")
+	var inner_closed_noise: float = system.noise_multiplier_between_rooms(state, "outer_guard_room", "inner_watch_room")
+	if inner_closed_noise >= inner_open_noise:
+		_fail("Closed inner watch gate did not damp cross-room noise.")
 		return
 
 	var record: Dictionary = system.get_actor_record(state, "caretaker")
@@ -83,7 +108,7 @@ func _run() -> void:
 	var noise_event: Dictionary = {
 		"noise_type": "weapon",
 		"position": [460.0, 360.0],
-		"room_id": "main_hall",
+		"room_id": "outer_guard_room",
 		"radius_feet": 55,
 		"intensity": 62
 	}
@@ -91,7 +116,7 @@ func _run() -> void:
 	if str(noise_record.get("state", "")) != StealthAlertSystem.STATE_INVESTIGATING:
 		_fail("Audible noise did not create an investigation.")
 		return
-	if not system.actor_hears_noise(state, Vector2(900.0, 360.0), "main_hall", noise_event, profile):
+	if not system.actor_hears_noise(state, Vector2(700.0, 360.0), "outer_guard_room", noise_event, profile):
 		_fail("Actor inside the noise radius did not hear it.")
 		return
 
@@ -106,5 +131,5 @@ func _run() -> void:
 		return
 
 	state.queue_free()
-	print("Exploration stealth profiles, vision, doors, noise, suspicion and persistence tests passed.")
+	print("Exploration stealth profiles, split rooms, both doors, noise, suspicion and persistence tests passed.")
 	quit(0)

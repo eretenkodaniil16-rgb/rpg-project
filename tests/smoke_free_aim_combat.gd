@@ -125,7 +125,7 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 	if game.get("_selected_target") == null:
-		_fail("Manual target button did not select a target.")
+		_fail("Manual target button did not select a visible target.")
 		return
 	if not target_label.visible or "футов" not in target_label.text or "состояние неизвестно" not in target_label.text or "здоровье" in target_label.text or "HP" in target_label.text or "КД" in target_label.text or not distance_line.visible:
 		_fail("Manual selection must show only identity, distance and concealed state. Text: %s" % target_label.text)
@@ -136,12 +136,19 @@ func _run() -> void:
 		_fail("Explicit inspection did not reveal qualitative target state safely. Text: %s" % target_label.text)
 		return
 
-	var targets: Array = game.call("_available_targets") as Array
+	var targets: Array = (
+		game.call("get_visible_targets_for_testing") as Array
+		if game.has_method("get_visible_targets_for_testing")
+		else game.call("_available_targets") as Array
+	)
+	if targets.is_empty():
+		_fail("Visibility-aware target list unexpectedly became empty after manual selection.")
+		return
 	for _index: int in range(targets.size()):
 		game.call("_cycle_target")
 		await process_frame
 	if game.get("_selected_target") != null:
-		_fail("Target cycling must return to free-aim mode after the final target.")
+		_fail("Target cycling must return to free-aim mode after the final visible target.")
 		return
 	if target_label.visible or distance_line.visible:
 		_fail("Distance overlay did not hide after returning to free aim.")
@@ -149,5 +156,5 @@ func _run() -> void:
 
 	game.queue_free()
 	await process_frame
-	print("Target-free melee, ranged combat and explicit target inspection smoke test passed.")
+	print("Target-free melee, ranged combat and visibility-aware target inspection smoke test passed.")
 	quit(0)
