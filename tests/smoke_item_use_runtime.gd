@@ -32,9 +32,12 @@ func _run() -> void:
 		await process_frame
 
 	var player: Node = game.get_node_or_null("Player")
-	var inventory_panel: InventoryPanel = game.get_node_or_null("Interface/InventoryPanel") as InventoryPanel
-	if player == null or inventory_panel == null:
-		_fail("Item-use runtime fixtures are incomplete.")
+	var inventory_panel: InventoryPanel = game.get("_inventory_panel") as InventoryPanel
+	if player == null:
+		_fail("Player fixture is missing from the game scene.")
+		return
+	if inventory_panel == null:
+		_fail("Dynamic InventoryPanel fixture was not created by the game runtime.")
 		return
 
 	var potion_definition: Dictionary = state.call("get_item_definition", "potion_of_healing") as Dictionary
