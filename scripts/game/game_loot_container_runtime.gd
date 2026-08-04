@@ -217,23 +217,29 @@ func _append_world_container_entries(entries: Dictionary) -> void:
 func _replace_body_loot_entries(entries: Dictionary) -> void:
 	if not _is_body_target(_selected_target) or not bool(_selected_target.call("is_dead_body")):
 		return
+	# The legacy corpse runtime always emits per-item loot in the action category.
+	# In combat the common panel belongs to bonus actions, so both categories must
+	# be cleaned before the single replacement entry is appended.
+	for filtered_category_id: String in ["action", "bonus"]:
+		var original: Array = entries.get(filtered_category_id, []) as Array
+		var filtered: Array = []
+		for value: Variant in original:
+			if not value is Dictionary:
+				continue
+			var entry: Dictionary = value as Dictionary
+			var action_id: String = str(entry.get("id", ""))
+			if action_id.begins_with("corpse_loot_item__") or action_id == "corpse_loot_all":
+				continue
+			filtered.append(entry)
+		entries[filtered_category_id] = filtered
 	var category_id: String = "bonus" if _turn_system.active else "action"
-	var original: Array = entries.get(category_id, []) as Array
-	var filtered: Array = []
-	for value: Variant in original:
-		if not value is Dictionary:
-			continue
-		var entry: Dictionary = value as Dictionary
-		var action_id: String = str(entry.get("id", ""))
-		if action_id.begins_with("corpse_loot_item__") or action_id == "corpse_loot_all":
-			continue
-		filtered.append(entry)
+	var category_entries: Array = entries.get(category_id, []) as Array
 	var reachable: bool = DistanceSystem.distance_feet(
 		player.global_position,
 		(_selected_target as Node2D).global_position
 	) <= 10
 	var enabled: bool = reachable and (not _turn_system.active or _combat_loot_bonus_action_available())
-	filtered.append(_entry(
+	category_entries.append(_entry(
 		OPEN_BODY_LOOT_ACTION,
 		"ОБЫСКАТЬ: %s" % _target_name(_selected_target).to_upper(),
 		enabled,
@@ -242,7 +248,7 @@ func _replace_body_loot_entries(entries: Dictionary) -> void:
 		),
 		"world"
 	))
-	entries[category_id] = filtered
+	entries[category_id] = category_entries
 
 
 func _nearby_world_containers() -> Array[WorldLootContainer]:
