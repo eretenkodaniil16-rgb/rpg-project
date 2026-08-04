@@ -11,7 +11,11 @@ func _fail(message: String) -> void:
 
 
 func _run() -> void:
-	GameState.new_game()
+	var state: Node = get_node_or_null("/root/GameState")
+	if state == null:
+		_fail("GameState autoload is missing.")
+		return
+	state.call("new_game")
 	var hero := PlayerCharacter.new()
 	hero.character_name = "Тестовый воин"
 	hero.character_class_id = "fighter"
@@ -24,7 +28,7 @@ func _run() -> void:
 	hero.hit_die_size = 10
 	hero.hit_dice_maximum = 1
 	hero.hit_dice_current = 1
-	GameState.player_character = hero
+	state.set("player_character", hero)
 	ClassDataSystem.new().ensure_starting_loadout(hero)
 
 	var progression: Dictionary = ProgressionSystem.grant_experience(hero, 300)
@@ -32,11 +36,11 @@ func _run() -> void:
 		_fail("Experience did not unlock level 2 without applying it automatically.")
 		return
 	var level_up := LevelUpSystem.new()
-	if not bool(level_up.begin_transaction(hero, GameState).get("success", false)):
+	if not bool(level_up.begin_transaction(hero, state).get("success", false)):
 		_fail("Level-up transaction did not start.")
 		return
-	level_up.choose_fixed_hp(hero, GameState)
-	var level_result: Dictionary = level_up.commit_transaction(hero, GameState)
+	level_up.choose_fixed_hp(hero, state)
+	var level_result: Dictionary = level_up.commit_transaction(hero, state)
 	if hero.level != 2 or not bool(level_result.get("success", false)):
 		_fail("Saved level-up transaction did not advance the fighter to level 2.")
 		return
