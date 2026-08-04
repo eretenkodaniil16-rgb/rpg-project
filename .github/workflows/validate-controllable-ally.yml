@@ -7,7 +7,6 @@ on:
       - "scripts/game/controllable_ally.gd"
       - "scripts/game/game_controllable_ally_runtime.gd"
       - "scripts/game/game_controllable_ally_control_runtime.gd"
-      - "scripts/game/game_controllable_ally_damage_runtime.gd"
       - "scripts/game/game_guard_post_polish_runtime.gd"
       - "scripts/systems/turn_based_combat_system.gd"
       - "tests/smoke_controllable_ally_runtime.gd"
