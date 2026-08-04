@@ -57,5 +57,7 @@ func _init() -> void:
 	assert(bool(transactions.commit(state, str(thrown.get("transaction_id", "")), false).get("success", false)))
 	assert(state.get_item_count("javelin") == 0)
 
+	transactions.clear()
+	state.free()
 	print("Inventory reservation, rollback, commit and overbooking tests passed.")
 	quit(0)
