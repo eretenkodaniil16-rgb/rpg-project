@@ -51,7 +51,16 @@ jobs:
 
       - name: Simulate controllable ally runtime
         shell: bash
-        run: timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_controllable_ally_runtime.gd 2>&1 | tee controllable-ally-runtime.log
+        run: |
+          set +e
+          timeout 45s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_controllable_ally_runtime.gd 2>&1 | tee controllable-ally-runtime.log
+          result=${PIPESTATUS[0]}
+          if [ "$result" -ne 0 ]; then
+            while IFS= read -r line; do
+              echo "::error::$line"
+            done < <(tail -n 80 controllable-ally-runtime.log)
+            exit "$result"
+          fi
 
       - name: Regression test item use
         shell: bash
