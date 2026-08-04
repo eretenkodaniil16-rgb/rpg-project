@@ -1,0 +1,93 @@
+name: Validate consumable inventory transactions
+
+on:
+  pull_request:
+    paths:
+      - "project.godot"
+      - "scenes/game/game.tscn"
+      - "scripts/core/game_state_world_snapshot.gd"
+      - "scripts/core/game_state_inventory_transactions.gd"
+      - "scripts/systems/inventory_transaction_system.gd"
+      - "scripts/game/game_consumable_inventory_runtime.gd"
+      - "scripts/game/dropped_inventory_item.gd"
+      - "scripts/game/dropped_inventory_item_manager.gd"
+      - "scripts/game/game_srd_combat.gd"
+      - "scripts/game/game_target_free_attacks.gd"
+      - "data/items/items.json"
+      - "tests/test_inventory_transaction_system.gd"
+      - "tests/smoke_consumable_inventory_runtime.gd"
+      - "tests/smoke_free_aim_combat.gd"
+      - "tests/test_mobile_combat_progression_hud.gd"
+      - "tests/smoke_guard_post_runtime_regressions_v2.gd"
+      - "docs/CONSUMABLE_INVENTORY_TRANSACTIONS.md"
+      - ".github/workflows/validate-consumable-inventory.yml"
+  push:
+    branches:
+      - feature/consumable-ammunition-transactions
+
+concurrency:
+  group: consumable-inventory-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Godot 4.7.1 Standard
+        shell: bash
+        run: |
+          curl --location --fail --retry 3 --output godot.zip "https://downloads.godotengine.org/?flavor=stable&platform=linux.64&slug=linux.x86_64.zip&version=4.7.1"
+          unzip -q godot.zip
+          chmod +x Godot_v4.7.1-stable_linux.x86_64
+
+      - name: Import project and reject parser errors
+        shell: bash
+        run: |
+          rm -rf .godot
+          set -o pipefail
+          timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --editor --path "$GITHUB_WORKSPACE" --quit 2>&1 | tee consumable-import.log
+          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script" consumable-import.log; then
+            exit 1
+          fi
+
+      - name: Validate inventory reservation lifecycle
+        shell: bash
+        run: timeout 120s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_inventory_transaction_system.gd 2>&1 | tee inventory-transactions.log
+
+      - name: Simulate ammunition and thrown weapon lifecycle
+        shell: bash
+        run: timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_consumable_inventory_runtime.gd 2>&1 | tee consumable-runtime.log
+
+      - name: Regression test directional attacks
+        shell: bash
+        run: timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_free_aim_combat.gd 2>&1 | tee free-aim-regression.log
+
+      - name: Regression test mobile combat and HUD
+        shell: bash
+        run: timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_mobile_combat_progression_hud.gd 2>&1 | tee mobile-hud-regression.log
+
+      - name: Regression test guard post runtime
+        shell: bash
+        run: timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_guard_post_runtime_regressions_v2.gd 2>&1 | tee guard-post-regression.log
+
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: consumable-inventory-diagnostics
+          path: |
+            consumable-import.log
+            inventory-transactions.log
+            consumable-runtime.log
+            free-aim-regression.log
+            mobile-hud-regression.log
+            guard-post-regression.log
+          if-no-files-found: warn
+          retention-days: 7
