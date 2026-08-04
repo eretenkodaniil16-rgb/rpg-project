@@ -1,0 +1,39 @@
+{
+  "visual_id": "main_menu_tower_down_v01",
+  "display_name": "Хроники странника: Башня, уходящая вниз",
+  "status": "runtime_candidate",
+  "style": "pixel_art_dark_fantasy",
+  "approved_direction": "variant_a_background_with_logo_variant_02",
+  "resources": {
+    "background_with_title": "res://assets/branding/main_menu/approved/main_menu_tower_down_title_v01.webp",
+    "scene": "res://scenes/menus/main_menu.tscn",
+    "atmosphere_script": "res://scripts/menus/main_menu_atmosphere.gd"
+  },
+  "render_contract": {
+    "source_size": [1280, 720],
+    "target_viewport": [1280, 720],
+    "stretch_mode": "keep_aspect_covered",
+    "title_embedded": true,
+    "particle_count": 28,
+    "heavy_video_background": false
+  },
+  "effects": [
+    "magic_circle_pulse",
+    "magic_beam_breathing",
+    "independent_torch_flicker",
+    "ambient_dust",
+    "blue_magic_motes",
+    "button_focus_tween"
+  ],
+  "fallback": {
+    "background_color": "#06101A",
+    "menu_logic_preserved_without_art": true
+  },
+  "approval": {
+    "background_composition_approved": true,
+    "logo_variant_approved": 2,
+    "windows_physical_tested": false,
+    "android_physical_tested": false,
+    "final": false
+  }
+}
