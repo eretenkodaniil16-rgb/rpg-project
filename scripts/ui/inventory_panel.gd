@@ -1,12 +1,9 @@
 class_name InventoryPanel
 extends Control
 
-signal item_use_requested(item_id: String)
-
 var _class_data: ClassDataSystem = ClassDataSystem.new()
 var _item_list: VBoxContainer
 var _details_label: Label
-var _use_button: Button
 var _equip_button: Button
 var _selected_entry: Dictionary = {}
 
@@ -17,19 +14,14 @@ func _ready() -> void:
 
 
 func open_inventory() -> void:
-	var state: Node = _game_state()
-	if state == null:
-		return
-	state.set("input_locked", true)
+	GameState.input_locked = true
 	show()
 	_refresh()
 
 
 func close_inventory() -> void:
 	hide()
-	var state: Node = _game_state()
-	if state != null:
-		state.set("input_locked", false)
+	GameState.input_locked = false
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -97,13 +89,6 @@ func _build_layout() -> void:
 	_details_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_details_label.text = "Выберите предмет слева."
 	detail_column.add_child(_details_label)
-	_use_button = Button.new()
-	_use_button.text = "ИСПОЛЬЗОВАТЬ"
-	_use_button.custom_minimum_size = Vector2(0.0, 58.0)
-	_use_button.add_theme_font_size_override("font_size", 19)
-	_use_button.pressed.connect(_use_selected)
-	_use_button.hide()
-	detail_column.add_child(_use_button)
 	_equip_button = Button.new()
 	_equip_button.text = "ЭКИПИРОВАТЬ"
 	_equip_button.custom_minimum_size = Vector2(0.0, 58.0)
@@ -115,28 +100,21 @@ func _build_layout() -> void:
 
 func _refresh() -> void:
 	_clear_container(_item_list)
-	var state: Node = _game_state()
-	if state == null or not state.has_method("get_inventory_entries"):
-		_show_unavailable_state()
-		return
-	var entries_value: Variant = state.call("get_inventory_entries")
-	var entries: Array = entries_value as Array if entries_value is Array else []
+	var entries: Array = GameState.get_inventory_entries()
 	if entries.is_empty():
 		var empty_label := Label.new()
 		empty_label.text = "Инвентарь пуст."
 		empty_label.add_theme_font_size_override("font_size", 20)
 		_item_list.add_child(empty_label)
 		_details_label.text = "Предметы появятся здесь после получения наград, находок или добычи."
-		_use_button.hide()
 		_equip_button.hide()
 		return
 	entries.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return str(a.get("type", "")) < str(b.get("type", "")))
-	var character: PlayerCharacter = _player_character(state)
 	for entry_value: Variant in entries:
 		if not entry_value is Dictionary:
 			continue
 		var entry := entry_value as Dictionary
-		var equipped: bool = character != null and _class_data.is_equipped(character, str(entry.get("id", "")))
+		var equipped: bool = _class_data.is_equipped(GameState.player_character, str(entry.get("id", "")))
 		var button := Button.new()
 		button.text = "%s%s ×%d" % ["★ " if equipped else "", str(entry.get("name", "Предмет")), int(entry.get("quantity", 0))]
 		button.custom_minimum_size = Vector2(0.0, 58.0)
@@ -157,31 +135,24 @@ func _show_details(entry: Dictionary) -> void:
 		"currency":"Валюта", "focus":"Магический фокус", "tool":"Инструмент",
 		"book":"Книга", "gear":"Снаряжение", "misc":"Прочее"
 	}.get(type_id, "Прочее")
-	var state: Node = _game_state()
-	var character: PlayerCharacter = _player_character(state)
 	var item_id: String = str(entry.get("id", ""))
-	var equipped: bool = character != null and _class_data.is_equipped(character, item_id)
+	var equipped: bool = _class_data.is_equipped(GameState.player_character, item_id)
 	var equipment_text: String = "\nСостояние: ЭКИПИРОВАНО" if equipped else ""
-	var stats_text: String = _equipment_stats(entry, character)
+	var stats_text: String = _equipment_stats(entry)
 	_details_label.text = "%s\n\nТип: %s\nКоличество: %d%s%s\n\n%s" % [
 		str(entry.get("name", "Предмет")), type_name, int(entry.get("quantity", 0)),
 		equipment_text, stats_text, str(entry.get("description", "Описание отсутствует."))
 	]
-	var use_action_value: Variant = entry.get("use_action", {})
-	var use_action: Dictionary = use_action_value as Dictionary if use_action_value is Dictionary else {}
-	_use_button.visible = not use_action.is_empty()
-	_use_button.disabled = int(entry.get("quantity", 0)) <= 0
-	_use_button.text = str(use_action.get("inventory_label", "ИСПОЛЬЗОВАТЬ"))
 	_equip_button.visible = type_id in ["weapon", "armor", "shield"]
-	_equip_button.disabled = equipped or character == null
+	_equip_button.disabled = equipped
 	_equip_button.text = "ЭКИПИРОВАНО" if equipped else "ЭКИПИРОВАТЬ"
 
 
-func _equipment_stats(entry: Dictionary, character: PlayerCharacter) -> String:
+func _equipment_stats(entry: Dictionary) -> String:
 	var type_id: String = str(entry.get("type", ""))
 	if type_id == "weapon":
 		var dice: Array = entry.get("damage_dice", [1, 1]) as Array
-		var weapon_trained: bool = character != null and character.is_proficient_with_weapon_definition(entry)
+		var weapon_trained: bool = GameState.player_character.is_proficient_with_weapon_definition(entry)
 		return "\nУрон: %dd%d %s\nВладение: %s%s" % [
 			int(dice[0]),
 			int(dice[1]),
@@ -191,14 +162,14 @@ func _equipment_stats(entry: Dictionary, character: PlayerCharacter) -> String:
 		]
 	if type_id == "armor":
 		var armor_category: String = str(entry.get("armor_category", "clothing"))
-		var armor_trained: bool = armor_category == "clothing" or (character != null and character.has_armor_training(armor_category))
+		var armor_trained: bool = armor_category == "clothing" or GameState.player_character.has_armor_training(armor_category)
 		return "\nБазовый КД: %d\nОбучение: %s%s" % [
 			int(entry.get("base_ac", 10)),
 			"есть" if armor_trained else "нет",
 			"" if armor_trained else " — помеха тестам Силы/Ловкости и запрет колдовства"
 		]
 	if type_id == "shield":
-		var shield_trained: bool = character != null and character.has_armor_training("shield")
+		var shield_trained: bool = GameState.player_character.has_armor_training("shield")
 		return "\nБонус КД: +%d\nОбучение: %s%s" % [
 			int(entry.get("ac_bonus", 2)),
 			"есть" if shield_trained else "нет",
@@ -207,42 +178,12 @@ func _equipment_stats(entry: Dictionary, character: PlayerCharacter) -> String:
 	return ""
 
 
-func _use_selected() -> void:
+func _equip_selected() -> void:
 	var item_id: String = str(_selected_entry.get("id", ""))
 	if item_id.is_empty():
 		return
-	item_use_requested.emit(item_id)
-
-
-func _equip_selected() -> void:
-	var state: Node = _game_state()
-	var character: PlayerCharacter = _player_character(state)
-	var item_id: String = str(_selected_entry.get("id", ""))
-	if item_id.is_empty() or character == null:
-		return
-	if _class_data.equip_item(character, item_id):
+	if _class_data.equip_item(GameState.player_character, item_id):
 		_refresh()
-
-
-func _show_unavailable_state() -> void:
-	var error_label := Label.new()
-	error_label.text = "Игровое состояние инвентаря недоступно."
-	error_label.add_theme_font_size_override("font_size", 20)
-	_item_list.add_child(error_label)
-	_details_label.text = "Закройте окно и повторите попытку после загрузки игрового состояния."
-	_use_button.hide()
-	_equip_button.hide()
-
-
-func _game_state() -> Node:
-	return get_tree().root.get_node_or_null("GameState") if is_inside_tree() else null
-
-
-func _player_character(state: Node) -> PlayerCharacter:
-	if state == null:
-		return null
-	var value: Variant = state.get("player_character")
-	return value as PlayerCharacter if value is PlayerCharacter else null
 
 
 func _clear_container(container: Container) -> void:
