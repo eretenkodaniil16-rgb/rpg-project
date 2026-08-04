@@ -18,11 +18,16 @@ func _run() -> void:
 
 	var approved_background: MainMenuTiledBackground = menu.get_node_or_null("ApprovedBackground") as MainMenuTiledBackground
 	assert(approved_background != null, "Approved tiled background node is missing")
-	assert(approved_background.expected_tile_count() == 8, "Unexpected main-menu strip count")
+	assert(approved_background.expected_tile_count() == 19, "Unexpected main-menu strip count")
+	assert(approved_background.source_size() == Vector2(1920.0, 1080.0), "Unexpected HQ background size")
 	assert(approved_background.has_complete_tiles(), "Approved background strip set is incomplete")
 	assert(approved_background.visible, "Approved background must be active when all strips exist")
 	assert(menu.get_node_or_null("FallbackBackground") != null, "Fallback background is missing")
 	assert(menu.get_node_or_null("Atmosphere") is MainMenuAtmosphere, "Atmosphere controller is missing")
+	var title_glow: MainMenuTitleGlow = menu.get_node_or_null("TitleGlow") as MainMenuTitleGlow
+	assert(title_glow != null, "Title glow controller is missing")
+	assert(title_glow.has_glow_material(), "Title glow shader material is missing")
+	assert(title_glow.wait_interval_range() == Vector2(5.0, 10.0), "Unexpected title glow interval")
 
 	for path: String in [
 		"CenterContainer/MenuPanel/MarginContainer/VBoxContainer/ContinueButton",
