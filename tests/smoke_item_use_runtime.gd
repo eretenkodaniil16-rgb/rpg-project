@@ -17,6 +17,10 @@ func _run() -> void:
 	state.set("inventory", {})
 	state.call("add_item", "potion_of_healing", 2, false)
 	state.call("add_item", "caretaker_field_note", 1, false)
+	var character: PlayerCharacter = state.get("player_character") as PlayerCharacter
+	if character == null:
+		_fail("PlayerCharacter was not assigned to GameState.")
+		return
 
 	var packed: PackedScene = load(GAME_SCENE) as PackedScene
 	var game: Node = packed.instantiate() if packed != null else null
@@ -35,8 +39,12 @@ func _run() -> void:
 
 	var potion_definition: Dictionary = state.call("get_item_definition", "potion_of_healing") as Dictionary
 	var note_definition: Dictionary = state.call("get_item_definition", "caretaker_field_note") as Dictionary
+	var arrow_definition: Dictionary = state.call("get_item_definition", "arrow") as Dictionary
 	if potion_definition.is_empty() or note_definition.is_empty():
 		_fail("Item-use extension catalog was not merged into GameState.")
+		return
+	if arrow_definition.is_empty():
+		_fail("Merging item-use definitions removed the base item catalog.")
 		return
 
 	var entries: Dictionary = game.call("get_action_catalog_entries_for_testing") as Dictionary
@@ -53,7 +61,7 @@ func _run() -> void:
 	if not bool(potion_result.get("success", false)):
 		_fail("Healing potion use failed: %s" % potion_result)
 		return
-	if int(state.get("player_character").current_health) != 10:
+	if character.current_health != 10:
 		_fail("Healing potion did not apply the deterministic six-point heal.")
 		return
 	if int(state.call("get_item_count", "potion_of_healing")) != 1:
@@ -80,8 +88,11 @@ func _run() -> void:
 		_fail("Using an item from inventory did not close the overlay and restore input.")
 		return
 
-	state.get("player_character").current_health = 5
+	character.current_health = 5
 	var turn_system: TurnBasedCombatSystem = game.get("_turn_system") as TurnBasedCombatSystem
+	if turn_system == null:
+		_fail("TurnBasedCombatSystem is missing from the item-use runtime.")
+		return
 	turn_system.start_combat(player, [], 0)
 	var combat_result: Dictionary = game.call(
 		"_execute_item_use",
