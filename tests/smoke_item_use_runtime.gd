@@ -32,12 +32,12 @@ func _run() -> void:
 		await process_frame
 
 	var player: Node = game.get_node_or_null("Player")
-	var inventory_panel: InventoryPanel = game.get("_inventory_panel") as InventoryPanel
+	var hub: CharacterHubInventory = game.find_child("CharacterHub", true, false) as CharacterHubInventory
 	if player == null:
 		_fail("Player fixture is missing from the game scene.")
 		return
-	if inventory_panel == null:
-		_fail("Dynamic InventoryPanel fixture was not created by the game runtime.")
+	if hub == null:
+		_fail("Active CharacterHub inventory fixture was not created by the game runtime.")
 		return
 
 	var potion_definition: Dictionary = state.call("get_item_definition", "potion_of_healing") as Dictionary
@@ -71,15 +71,20 @@ func _run() -> void:
 		_fail("Healing potion was not consumed exactly once.")
 		return
 
-	inventory_panel.open_inventory()
+	game.call("_open_inventory")
+	await process_frame
+	var tabs: TabContainer = hub.find_child("CharacterTabs", true, false) as TabContainer
+	if not hub.visible or tabs == null or tabs.current_tab != 1:
+		_fail("The active Character Hub did not open on the inventory tab.")
+		return
 	var note_entry: Dictionary = note_definition.duplicate(true)
 	note_entry["quantity"] = 1
-	inventory_panel.call("_show_details", note_entry)
-	var use_button: Button = inventory_panel.get("_use_button") as Button
+	hub.call("_select_inventory_entry", note_entry)
+	var use_button: Button = hub.find_child("InventoryUseButton", true, false) as Button
 	if use_button == null or not use_button.visible or use_button.text != "ПРОЧИТАТЬ":
-		_fail("Inventory does not expose the data-driven Read button for the story note.")
+		_fail("Character Hub does not expose the data-driven Read button for the story note.")
 		return
-	inventory_panel.call("_use_selected")
+	hub.call("_use_inventory_entry")
 	await process_frame
 	if not bool(state.call("get_flag", "caretaker_field_note_read", false)):
 		_fail("Reading the story note did not set its persistent flag.")
@@ -87,8 +92,8 @@ func _run() -> void:
 	if int(state.call("get_item_count", "caretaker_field_note")) != 1:
 		_fail("Non-consumable story note was removed from inventory.")
 		return
-	if inventory_panel.visible or bool(state.get("input_locked")):
-		_fail("Using an item from inventory did not close the overlay and restore input.")
+	if hub.visible or bool(state.get("input_locked")):
+		_fail("Using an item from Character Hub did not close the overlay and restore input.")
 		return
 
 	character.current_health = 5
@@ -119,7 +124,7 @@ func _run() -> void:
 
 	game.queue_free()
 	await process_frame
-	print("Item-use runtime, inventory button, combat action cost and story flag smoke test passed.")
+	print("Item-use runtime, Character Hub button, combat action cost and story flag smoke test passed.")
 	quit(0)
 
 
