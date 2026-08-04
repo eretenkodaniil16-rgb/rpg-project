@@ -1,5 +1,7 @@
 extends "res://scripts/game/game_consumable_inventory_base_runtime.gd"
 
+const CONSUMABLE_FREE_AIM_BOUNDS: Rect2 = Rect2(45.0, 45.0, 1190.0, 630.0)
+
 
 func _target_is_valid(target: Node) -> bool:
 	# Neutral world actors remain valid informational targets before combat even
@@ -68,20 +70,34 @@ func _request_directional_ranged_attack(weapon: Dictionary) -> void:
 	if normal_range <= 0 or long_range <= 0:
 		show_combat_message("У оружия не задана дальность.", false)
 		return
-	var direction: Vector2 = player.get_facing_direction()
-	var target: Node = _find_directional_ranged_target(
-		weapon,
+	var direction: Vector2 = _get_player_facing_direction()
+	var eligible_targets: Array[Node] = []
+	for candidate: Node in _available_targets():
+		if not candidate is Node2D or not _target_is_valid(candidate):
+			continue
+		if DistanceSystem.distance_feet(
+			player.global_position,
+			(candidate as Node2D).global_position
+		) <= long_range:
+			eligible_targets.append(candidate)
+	var target: Node = DirectionalTargetingSystem.find_first_target(
+		player.global_position,
 		direction,
-		_eligible_targets_for_free_aim()
+		eligible_targets,
+		DirectionalTargetingSystem.feet_to_pixels(long_range)
 	)
 	var ammo_id: String = str(weapon.get("ammunition_id", ""))
 	if _target_is_valid(target):
-		await _perform_directional_attack_on_target(target, weapon, ammo_id)
+		await _perform_srd_weapon_attack(target, weapon, ammo_id)
 		return
 
-	var endpoint: Vector2 = player.global_position + direction * DistanceSystem.feet_to_pixels(normal_range)
+	var endpoint: Vector2 = DirectionalTargetingSystem.endpoint_inside_rect(
+		player.global_position,
+		direction,
+		DirectionalTargetingSystem.feet_to_pixels(normal_range),
+		CONSUMABLE_FREE_AIM_BOUNDS
+	)
 	var consumable_item_id: String = _weapon_consumable_item_id(weapon, ammo_id, normal_range)
-	var transaction_id: String = ""
 	if not consumable_item_id.is_empty():
 		var reservation: Dictionary = GameState.reserve_inventory_item(
 			consumable_item_id,
@@ -100,7 +116,7 @@ func _request_directional_ranged_attack(weapon: Dictionary) -> void:
 				false
 			)
 			return
-		transaction_id = str(reservation.get("transaction_id", ""))
+		var transaction_id: String = str(reservation.get("transaction_id", ""))
 		var committed: Dictionary = GameState.commit_inventory_transaction(transaction_id, false)
 		if not bool(committed.get("success", false)):
 			show_combat_message("Не удалось подтвердить расход предмета. Атака отменена.", false)
@@ -120,6 +136,7 @@ func _request_directional_ranged_attack(weapon: Dictionary) -> void:
 	GameState.save_game()
 	_update_status()
 	show_combat_message("Снаряд ушёл по направлению взгляда, но никого не задел.", false)
+	_sync_exploration_hud_visibility()
 
 
 func resolve_transactional_weapon_attack_for_testing(
