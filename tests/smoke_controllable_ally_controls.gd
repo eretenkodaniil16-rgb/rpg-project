@@ -112,6 +112,12 @@ func _run() -> void:
 		_fail("Irna attack did not consume the primary action.")
 		return
 
+	_stage = "close_attack_result"
+	var attack_popup: Control = game.get("_attack_popup") as Control
+	if attack_popup != null:
+		attack_popup.hide()
+	await process_frame
+
 	_stage = "end_turn"
 	if turn_system.active:
 		game.call("force_controllable_ally_turn_for_testing")
