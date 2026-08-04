@@ -38,17 +38,16 @@ func _run() -> void:
 	_stage = "locate_actors"
 	var player: Node = game.get_node_or_null("Player")
 	var ally: Node = game.call("get_controllable_ally_for_testing")
+	var available_value: Variant = game.call("_available_targets")
 	var opponents: Array[Node] = []
-	var training_dummy: Node = null
-	for target: Node in get_nodes_in_group("combat_targets"):
-		if target.has_method("is_combat_active") and bool(target.call("is_combat_active")):
-			opponents.append(target)
-			if target.name == "TrainingDummy":
-				training_dummy = target
+	if available_value is Array:
+		for value: Variant in available_value as Array:
+			if value is Node and is_instance_valid(value as Node):
+				opponents.append(value as Node)
 	if player == null or ally == null or opponents.is_empty():
 		_fail("Required combat actors are missing.")
 		return
-	var opponent: Node = training_dummy if training_dummy != null else opponents[0]
+	var opponent: Node = opponents[0]
 	var turn_system: TurnBasedCombatSystem = game.get("_turn_system") as TurnBasedCombatSystem
 	turn_system.set_pending_player_controlled_actors([ally])
 	turn_system.start_combat(
@@ -98,7 +97,26 @@ func _run() -> void:
 		_fail("Irna Dodge contract failed.")
 		return
 
+	_stage = "end_turn"
+	game.call("force_controllable_ally_turn_for_testing")
+	game.call("_on_end_turn_requested")
+	if turn_system.active and turn_system.is_actor_turn(ally):
+		_fail("End Turn did not advance away from Irna.")
+		return
+
 	_stage = "attack"
+	if not turn_system.active:
+		turn_system.set_pending_player_controlled_actors([ally])
+		turn_system.start_combat(
+			player,
+			[opponent],
+			0,
+			{
+				player.get_instance_id(): 10,
+				ally.get_instance_id(): 18,
+				opponent.get_instance_id(): 5
+			}
+		)
 	game.call("force_controllable_ally_turn_for_testing")
 	if not bool(game.call("place_controllable_ally_adjacent_for_testing", opponent)):
 		_fail("Could not place Irna in a legal adjacent test cell.")
@@ -115,20 +133,9 @@ func _run() -> void:
 		_fail("Irna attack did not consume the primary action.")
 		return
 
-	_stage = "close_attack_result"
 	var attack_popup: Control = game.get("_attack_popup") as Control
 	if attack_popup != null:
 		attack_popup.hide()
-	await process_frame
-
-	_stage = "end_turn"
-	if turn_system.active:
-		game.call("force_controllable_ally_turn_for_testing")
-		game.call("_on_end_turn_requested")
-		if turn_system.is_actor_turn(ally):
-			_fail("End Turn did not advance away from Irna.")
-			return
-
 	if turn_system.active:
 		game.call("_stop_turn_based_combat", "Control smoke complete.")
 	game.queue_free()
