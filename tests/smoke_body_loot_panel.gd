@@ -41,7 +41,7 @@ func _run() -> void:
 		(guard as Node2D).global_position,
 		CorpseInteractionSystem.BODY_DEAD
 	)
-	guard.call("_restore_body_state")
+	guard.call("_restore_persistent_body")
 	await process_frame
 	if not bool(guard.call("is_dead_body")):
 		_fail("Service guard did not restore the persistent dead-body state.")
