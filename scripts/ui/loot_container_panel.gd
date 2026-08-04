@@ -5,6 +5,8 @@ signal take_item_requested(source_id: String, item_id: String)
 signal take_all_requested(source_id: String)
 signal close_requested
 
+const PANEL_Z_INDEX: int = 4090
+
 var _source_id: String = ""
 var _record: Dictionary = {}
 var _definitions: Dictionary = {}
@@ -21,7 +23,7 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
-	z_index = 4300
+	z_index = PANEL_Z_INDEX
 	_build_ui()
 	visible = false
 
