@@ -21,12 +21,12 @@ TARGET_BONES = (
     "hand.R",
 )
 
-SOURCE_FRAME_CANDIDATES = (8, 6, 5, 1)
+SOURCE_FRAME_CANDIDATES = (8, 6, 5, 4)
 SOURCE_FRAME_LABELS = {
     8: "original_f08",
     6: "selected_f06_arm_pose",
     5: "original_f05",
-    1: "selected_f01_arm_pose",
+    4: "selected_f04_arm_pose",
 }
 ARM_BLEND_CANDIDATES = (0.0, 0.20, 0.40, 0.60, 0.80, 1.00)
 SCREEN_PROJECTION_CANDIDATES = (0.90, 0.75, 0.60, 0.45, 0.30, 0.20)
