@@ -98,6 +98,7 @@ jobs:
           output="artifacts/blender_heart_cycle"
           count="$(find "$output/infographic_phase_previews" -type f -name '*.png' | wc -l)"
           test "$count" -eq 9
+          test -d "$output/review_frames"
           test -f "$output/heart_cutaway_reference_layout_v05_phase_rig_v03_infographic_v04_presentation_v06_animation_v07.blend"
           test -f "$output/heart_cycle_manifest.json"
           test -f "$output/heart_cycle_infographic_preview.png"
@@ -122,6 +123,10 @@ jobs:
           assert export["review_profile"]["output_fps"] == 15
           assert export["review_profile"]["output_frame_count"] == 225
           assert export["review_profile"]["duration_seconds"] == 15.0
+          assert export["intermediate"]["format"] == "PNG sequence"
+          assert export["intermediate"]["resumable"] is True
+          assert export["frames_rendered"] is False
+          assert export["video_rendered"] is False
           assert export["rendered"] is False
           PY
 
