@@ -6,9 +6,11 @@ on:
       - "scenes/game/controllable_ally.tscn"
       - "scripts/game/controllable_ally.gd"
       - "scripts/game/game_controllable_ally_runtime.gd"
+      - "scripts/game/game_controllable_ally_control_runtime.gd"
       - "scripts/game/game_guard_post_polish_runtime.gd"
       - "scripts/systems/turn_based_combat_system.gd"
       - "tests/smoke_controllable_ally_runtime.gd"
+      - "tests/smoke_controllable_ally_controls.gd"
       - "docs/CONTROLLABLE_ALLY_V1.md"
       - ".github/workflows/validate-controllable-ally.yml"
   push:
@@ -49,16 +51,25 @@ jobs:
             exit 1
           fi
 
-      - name: Simulate controllable ally runtime
+      - name: Simulate ally death saves and stabilization
         shell: bash
         run: |
           set +e
           timeout 45s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_controllable_ally_runtime.gd 2>&1 | tee controllable-ally-runtime.log
           result=${PIPESTATUS[0]}
           if [ "$result" -ne 0 ]; then
-            while IFS= read -r line; do
-              echo "::error::$line"
-            done < <(tail -n 160 controllable-ally-runtime.log)
+            while IFS= read -r line; do echo "::error::$line"; done < <(tail -n 160 controllable-ally-runtime.log)
+            exit "$result"
+          fi
+
+      - name: Simulate ally controls and attack
+        shell: bash
+        run: |
+          set +e
+          timeout 45s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_controllable_ally_controls.gd 2>&1 | tee controllable-ally-controls.log
+          result=${PIPESTATUS[0]}
+          if [ "$result" -ne 0 ]; then
+            while IFS= read -r line; do echo "::error::$line"; done < <(tail -n 160 controllable-ally-controls.log)
             exit "$result"
           fi
 
@@ -82,6 +93,7 @@ jobs:
           path: |
             controllable-ally-import.log
             controllable-ally-runtime.log
+            controllable-ally-controls.log
             controllable-ally-item-use.log
             controllable-ally-guard-post.log
             controllable-ally-world-state.log
