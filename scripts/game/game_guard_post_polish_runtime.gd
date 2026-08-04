@@ -62,6 +62,66 @@ func _update_exploration_alerts(delta: float) -> void:
 		_update_exploration_actor(actor, delta)
 
 
+func _request_directional_ranged_attack(weapon: Dictionary) -> void:
+	var normal_range: int = int(weapon.get("range_normal_ft", 0))
+	var long_range: int = int(weapon.get("range_long_ft", normal_range))
+	if normal_range <= 0 or long_range <= 0:
+		show_combat_message("У оружия не задана дальность.", false)
+		return
+	var direction: Vector2 = player.get_facing_direction()
+	var target: Node = _find_directional_ranged_target(
+		weapon,
+		direction,
+		_eligible_targets_for_free_aim()
+	)
+	var ammo_id: String = str(weapon.get("ammunition_id", ""))
+	if _target_is_valid(target):
+		await _perform_directional_attack_on_target(target, weapon, ammo_id)
+		return
+
+	var endpoint: Vector2 = player.global_position + direction * DistanceSystem.feet_to_pixels(normal_range)
+	var consumable_item_id: String = _weapon_consumable_item_id(weapon, ammo_id, normal_range)
+	var transaction_id: String = ""
+	if not consumable_item_id.is_empty():
+		var reservation: Dictionary = GameState.reserve_inventory_item(
+			consumable_item_id,
+			1,
+			"directional_empty_attack",
+			{
+				"weapon_id": str(weapon.get("id", "")),
+				"endpoint": [endpoint.x, endpoint.y],
+				"distance_feet": normal_range
+			}
+		)
+		if not bool(reservation.get("success", false)):
+			var definition: Dictionary = GameState.get_item_definition(consumable_item_id)
+			show_combat_message(
+				"Нет подходящего расходуемого предмета: %s." % str(definition.get("name", consumable_item_id)),
+				false
+			)
+			return
+		transaction_id = str(reservation.get("transaction_id", ""))
+		var committed: Dictionary = GameState.commit_inventory_transaction(transaction_id, false)
+		if not bool(committed.get("success", false)):
+			show_combat_message("Не удалось подтвердить расход предмета. Атака отменена.", false)
+			return
+
+	_set_combat_busy(true)
+	await _play_weapon_projectile(weapon, endpoint, false)
+	if _is_recoverable_thrown_attack(weapon, normal_range):
+		_ensure_dropped_inventory_manager()
+		if _dropped_inventory_manager != null:
+			_dropped_inventory_manager.spawn_dropped_item(
+				str(weapon.get("id", "")),
+				1,
+				_thrown_landing_position(endpoint, false)
+			)
+	_set_combat_busy(false)
+	GameState.save_game()
+	_update_status()
+	show_combat_message("Снаряд ушёл по направлению взгляда, но никого не задел.", false)
+
+
 func resolve_transactional_weapon_attack_for_testing(
 	target: Node,
 	weapon: Dictionary,
