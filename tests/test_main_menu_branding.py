@@ -81,6 +81,10 @@ def main() -> None:
     require(SCENE, 'script = ExtResource("3_tiled_background")')
     require(SCENE, 'node name="Atmosphere"')
     require(SCENE, 'script = ExtResource("2_atmosphere")')
+    require(SCENE, 'node name="Title" type="Label"')
+    require(SCENE, 'text = "ХРОНИКИ СТРАННИКА"')
+    require(SCENE, 'node name="Subtitle" type="Label"')
+    require(SCENE, 'text = "Башня, уходящая вниз"')
     for button_name in ("ContinueButton", "NewGameButton", "QuitButton"):
         require(SCENE, f'node name="{button_name}"')
 
