@@ -48,7 +48,11 @@ func get_world_entity_state(entity_id: String) -> Dictionary:
 
 
 func _build_save_data(kind: String, slot_id: int) -> Dictionary:
-	var save_data: Dictionary = super._build_save_data(kind, slot_id)
+	# A save payload must be an immutable point-in-time snapshot. The inherited
+	# serializer exposes live Dictionary references for inventory, quests and
+	# story flags; detach them before the next gameplay mutation can change an
+	# already prepared autosave or manual-slot payload.
+	var save_data: Dictionary = super._build_save_data(kind, slot_id).duplicate(true)
 	save_data["version"] = WORLD_SAVE_VERSION
 	save_data["world_snapshot"] = _normalize_world_snapshot(world_snapshot)
 	return save_data
