@@ -29,7 +29,8 @@ if (-not $OutputRoot) {
 $Arguments = @(
     "--background",
     "--factory-startup",
-    "--python", (Join-Path $ToolRoot "heart_cycle_build.py"),
+    "--python-exit-code", "1",
+    "--python", (Join-Path $ToolRoot "heart_cycle_phase_rig_render_v03.py"),
     "--",
     "--output-root", $OutputRoot
 )
@@ -38,7 +39,8 @@ if ($RenderAnimation) { $Arguments += "--render-animation" }
 
 Write-Host "Blender: $BlenderExe"
 Write-Host "Output:  $OutputRoot"
+Write-Host "Stage:   heart_cutaway_v02_phase_rig_v03"
 & $BlenderExe @Arguments
 if ($LASTEXITCODE -ne 0) {
-    throw "Blender heart-cycle build failed with exit code $LASTEXITCODE"
+    throw "Blender heart-cycle phase-rig build failed with exit code $LASTEXITCODE"
 }
