@@ -3,11 +3,10 @@ extends Control
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
 const CHARACTER_CREATOR_SCENE: String = "res://scenes/character_creation/character_creator.tscn"
 const SAVE_SLOTS_PANEL_SCRIPT: Script = preload("res://scripts/ui/save_slots_panel.gd")
-const MAIN_MENU_BACKGROUND_PATH: String = "res://assets/branding/main_menu/approved/main_menu_tower_down_title_v01.webp"
 const BUTTON_HOVER_SCALE: Vector2 = Vector2(1.022, 1.022)
 const BUTTON_TWEEN_DURATION: float = 0.16
 
-@onready var approved_background: TextureRect = $ApprovedBackground
+@onready var approved_background: MainMenuTiledBackground = $ApprovedBackground
 @onready var continue_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/ContinueButton
 @onready var new_game_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/NewGameButton
 @onready var quit_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/QuitButton
@@ -18,7 +17,7 @@ var _button_tweens: Dictionary = {}
 
 
 func _ready() -> void:
-	_install_branding_background()
+	approved_background.visible = approved_background.has_complete_tiles()
 	_configure_menu_buttons()
 	_install_save_slots_panel()
 	_refresh_save_status()
@@ -47,17 +46,6 @@ func _on_quit_pressed() -> void:
 	get_tree().quit()
 
 
-func _install_branding_background() -> void:
-	approved_background.visible = false
-	approved_background.texture = null
-	if not ResourceLoader.exists(MAIN_MENU_BACKGROUND_PATH, "Texture2D"):
-		return
-	var resource: Resource = load(MAIN_MENU_BACKGROUND_PATH)
-	if resource is Texture2D:
-		approved_background.texture = resource as Texture2D
-		approved_background.visible = true
-
-
 func _configure_menu_buttons() -> void:
 	for button: Button in _menu_buttons():
 		button.mouse_entered.connect(_animate_menu_button.bind(button, true))
@@ -67,7 +55,11 @@ func _configure_menu_buttons() -> void:
 
 
 func _menu_buttons() -> Array[Button]:
-	return [continue_button, new_game_button, quit_button]
+	var buttons: Array[Button] = []
+	buttons.append(continue_button)
+	buttons.append(new_game_button)
+	buttons.append(quit_button)
+	return buttons
 
 
 func _refresh_button_pivots() -> void:
@@ -83,8 +75,9 @@ func _animate_menu_button(button: Button, highlighted: bool) -> void:
 		var previous: Tween = _button_tweens[key] as Tween
 		if previous != null and previous.is_valid():
 			previous.kill()
-	var target_scale: Vector2 = BUTTON_HOVER_SCALE if highlighted and not button.disabled else Vector2.ONE
-	var target_modulate: Color = Color(1.08, 1.1, 1.12, 1.0) if highlighted and not button.disabled else Color.WHITE
+	var active: bool = highlighted and not button.disabled
+	var target_scale: Vector2 = BUTTON_HOVER_SCALE if active else Vector2.ONE
+	var target_modulate: Color = Color(1.08, 1.1, 1.12, 1.0) if active else Color.WHITE
 	var tween: Tween = create_tween()
 	_button_tweens[key] = tween
 	tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
