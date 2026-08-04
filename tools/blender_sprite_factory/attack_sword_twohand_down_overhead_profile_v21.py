@@ -195,7 +195,10 @@ def _validate_overhead_poses() -> None:
         raise ValueError("two-hand overhead v21 frame order is invalid")
     if tuple(pose.phase for pose in TWOHAND_OVERHEAD_POSES) != FULL_CYCLE_PHASE_ORDER:
         raise ValueError("two-hand overhead v21 phase order is invalid")
-    if any(_pose_values(TWOHAND_OVERHEAD_POSES[index]) for index in (0, 7)):
+    if any(
+        any(_pose_values(TWOHAND_OVERHEAD_POSES[index]))
+        for index in (0, 7)
+    ):
         raise ValueError("two-hand overhead v21 guard/settle must be exact stance deltas")
 
     for pose in TWOHAND_OVERHEAD_POSES[1:7]:
