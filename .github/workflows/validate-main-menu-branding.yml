@@ -1,0 +1,75 @@
+name: Validate main menu branding
+
+on:
+  pull_request:
+    paths:
+      - "assets/branding/main_menu/**"
+      - "scenes/menus/main_menu.tscn"
+      - "scripts/menus/main_menu.gd"
+      - "scripts/menus/main_menu_atmosphere.gd"
+      - "tests/test_main_menu_branding.py"
+      - "tests/smoke_main_menu_branding.gd"
+      - "docs/MAIN_MENU_BRANDING_V01.md"
+      - ".github/workflows/validate-main-menu-branding.yml"
+  push:
+    branches:
+      - art/animated-main-menu-v01
+
+concurrency:
+  group: main-menu-branding-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate WebP and static contracts
+        run: python tests/test_main_menu_branding.py
+
+      - name: Download Godot 4.7.1 Standard
+        shell: bash
+        run: |
+          curl --location --fail --retry 3 \
+            --output godot.zip \
+            "https://github.com/godotengine/godot/releases/download/4.7.1-stable/Godot_v4.7.1-stable_linux.x86_64.zip"
+          unzip -q godot.zip
+          chmod +x Godot_v4.7.1-stable_linux.x86_64
+
+      - name: Import project and reject parser errors
+        shell: bash
+        run: |
+          rm -rf .godot
+          set -o pipefail
+          timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 \
+            --headless --editor --path "$GITHUB_WORKSPACE" --quit \
+            2>&1 | tee main-menu-import.log
+          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script" main-menu-import.log; then
+            exit 1
+          fi
+
+      - name: Smoke test branded menu runtime
+        shell: bash
+        run: |
+          timeout 120s ./Godot_v4.7.1-stable_linux.x86_64 \
+            --headless --path "$GITHUB_WORKSPACE" \
+            --script res://tests/smoke_main_menu_branding.gd \
+            2>&1 | tee main-menu-smoke.log
+          grep -F "Main menu branding smoke test passed" main-menu-smoke.log
+
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: main-menu-branding-diagnostics
+          path: |
+            main-menu-import.log
+            main-menu-smoke.log
+          if-no-files-found: ignore
+          retention-days: 7
