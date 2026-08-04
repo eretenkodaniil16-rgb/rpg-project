@@ -16,13 +16,19 @@ func _ready() -> void:
 	super._ready()
 	_build_facing_indicator()
 	_update_facing_indicator()
+	set_visual_facing(_facing_direction)
 	call_deferred("_install_runtime_controllers")
 
 
 func _physics_process(delta: float) -> void:
-	if not _turn_based_mode:
+	if _turn_based_mode:
+		_process_turn_based_movement(delta)
+	else:
 		_process_exploration_movement(delta)
-		return
+	_sample_visual_motion(delta)
+
+
+func _process_turn_based_movement(delta: float) -> void:
 	velocity = Vector2.ZERO
 	_grid_move_cooldown = maxf(_grid_move_cooldown - delta, 0.0)
 	if GameState.input_locked:
@@ -95,6 +101,7 @@ func set_turn_based_mode(value: bool) -> void:
 	_turn_based_mode = value
 	_grid_move_cooldown = 0.0
 	velocity = Vector2.ZERO
+	set_visual_combat_mode(value)
 	if value:
 		clear_mobile_input()
 
@@ -111,6 +118,7 @@ func set_facing_direction(direction: Vector2) -> void:
 	if direction.length_squared() <= 0.0001:
 		return
 	_facing_direction = direction.normalized()
+	set_visual_facing(_facing_direction)
 	_update_facing_indicator()
 
 

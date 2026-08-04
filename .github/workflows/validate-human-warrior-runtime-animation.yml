@@ -1,0 +1,84 @@
+name: Validate human warrior runtime animation
+
+on:
+  pull_request:
+    paths:
+      - "assets/characters/human/warrior_m01/gameplay/approved/atlases/**"
+      - "data/visuals/human_warrior_m01_runtime_v01.json"
+      - "scripts/game/human_warrior_animation_library.gd"
+      - "scripts/game/player.gd"
+      - "scripts/game/player_combat.gd"
+      - "scripts/ui/human_warrior_animation_test_panel.gd"
+      - "tests/test_human_warrior_runtime_animation.gd"
+      - "docs/HUMAN_WARRIOR_RUNTIME_ANIMATION_TEST.md"
+      - ".github/workflows/validate-human-warrior-runtime-animation.yml"
+permissions:
+  contents: read
+
+concurrency:
+  group: human-warrior-runtime-animation-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Godot 4.7.1 Standard
+        shell: bash
+        run: |
+          curl --location --fail --retry 3 --output godot.zip "https://downloads.godotengine.org/?flavor=stable&platform=linux.64&slug=linux.x86_64.zip&version=4.7.1"
+          unzip -q godot.zip
+          chmod +x Godot_v4.7.1-stable_linux.x86_64
+
+      - name: Import project and reject parser errors
+        shell: bash
+        run: |
+          rm -rf .godot
+          set -o pipefail
+          timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --editor --path "$GITHUB_WORKSPACE" --quit 2>&1 | tee human-warrior-animation-import.log
+          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script" human-warrior-animation-import.log; then
+            exit 1
+          fi
+
+      - name: Create CI scene wrappers for Node tests
+        shell: bash
+        run: |
+          cat > tests/__ci_human_warrior_runtime_animation.tscn <<'EOF'
+          [gd_scene load_steps=2 format=3]
+
+          [ext_resource type="Script" path="res://tests/test_human_warrior_runtime_animation.gd" id="1_test"]
+
+          [node name="HumanWarriorRuntimeAnimationTest" type="Node"]
+          script = ExtResource("1_test")
+          EOF
+          cat > tests/__ci_mobile_combat_progression_hud.tscn <<'EOF'
+          [gd_scene load_steps=2 format=3]
+
+          [ext_resource type="Script" path="res://tests/test_mobile_combat_progression_hud.gd" id="1_test"]
+
+          [node name="MobileCombatProgressionHudTest" type="Node"]
+          script = ExtResource("1_test")
+          EOF
+
+      - name: Validate runtime animation library and fallbacks
+        shell: bash
+        run: timeout 240s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" res://tests/__ci_human_warrior_runtime_animation.tscn 2>&1 | tee human-warrior-animation-test.log
+
+      - name: Regression test mobile combat and progression HUD
+        shell: bash
+        run: timeout 300s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" res://tests/__ci_mobile_combat_progression_hud.tscn 2>&1 | tee mobile-hud-regression.log
+
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: human-warrior-runtime-animation-diagnostics
+          path: |
+            human-warrior-animation-import.log
+            human-warrior-animation-test.log
+            mobile-hud-regression.log
+          retention-days: 7

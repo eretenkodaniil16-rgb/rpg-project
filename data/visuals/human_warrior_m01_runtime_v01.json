@@ -1,0 +1,66 @@
+{
+  "character_id": "human_warrior_m01",
+  "revision": "runtime_v01",
+  "proxy_revision": "v25",
+  "appearance_revision": "v03",
+  "cell_size": 96,
+  "baseline_y": 91,
+  "direction_order": [
+    "down",
+    "left",
+    "right",
+    "up"
+  ],
+  "source": {
+    "combat_idle_revision": "directional_cycles_v14_artist_approved",
+    "armed_walk_animation_revision": "walk_directional_weapon_v15_artist_approved",
+    "armed_walk_render_revision": "walk_directional_weapon_render_v16",
+    "blender_workflow_run_id": 30704702485,
+    "blender_artifact_id": 8820190573,
+    "blender_artifact_sha256": "b2c30af6199ca66449987f5737764649066cabc66589c9c4983107bcc3a09000"
+  },
+  "sets": {
+    "idle": {
+      "sheet_path": "res://assets/characters/human/warrior_m01/gameplay/approved/atlases/human_warrior_m01_idle_v01.png",
+      "animation_prefix": "idle",
+      "frame_count": 1,
+      "fps": 1.0,
+      "loop": true
+    },
+    "walk": {
+      "sheet_path": "res://assets/characters/human/warrior_m01/gameplay/approved/atlases/human_warrior_m01_walk_v01.png",
+      "animation_prefix": "walk",
+      "frame_count": 6,
+      "fps": 8.0,
+      "loop": true
+    },
+    "combat_idle_onehand": {
+      "sheet_path": "res://assets/characters/human/warrior_m01/gameplay/approved/atlases/human_warrior_m01_combat_idle_onehand_v01.png",
+      "animation_prefix": "combat_idle_onehand",
+      "frame_count": 4,
+      "fps": 4.0,
+      "loop": true
+    },
+    "combat_idle_twohand": {
+      "sheet_path": "res://assets/characters/human/warrior_m01/gameplay/approved/atlases/human_warrior_m01_combat_idle_twohand_v01.png",
+      "animation_prefix": "combat_idle_twohand",
+      "frame_count": 4,
+      "fps": 4.0,
+      "loop": true
+    },
+    "walk_onehand": {
+      "sheet_path": "res://assets/characters/human/warrior_m01/gameplay/approved/atlases/human_warrior_m01_walk_onehand_v01.png",
+      "animation_prefix": "walk_onehand",
+      "frame_count": 6,
+      "fps": 8.0,
+      "loop": true
+    },
+    "walk_twohand": {
+      "sheet_path": "res://assets/characters/human/warrior_m01/gameplay/approved/atlases/human_warrior_m01_walk_twohand_v01.png",
+      "animation_prefix": "walk_twohand",
+      "frame_count": 6,
+      "fps": 8.0,
+      "loop": true
+    }
+  }
+}
