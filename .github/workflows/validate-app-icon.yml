@@ -1,0 +1,27 @@
+name: Validate app icon
+
+on:
+  pull_request:
+    paths:
+      - "assets/branding/**"
+      - "project.godot"
+      - "export_presets.cfg"
+      - "tests/test_app_icon_assets.py"
+      - ".github/workflows/validate-app-icon.yml"
+  push:
+    branches:
+      - art/app-icon-dungeon-spiral-v01
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate pixel master, exact nearest scale and Godot references
+        run: python tests/test_app_icon_assets.py
