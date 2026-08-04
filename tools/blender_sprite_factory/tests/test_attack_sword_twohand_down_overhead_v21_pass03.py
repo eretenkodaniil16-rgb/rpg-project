@@ -56,7 +56,7 @@ def test_overhead_pass03_restores_pass02_globals() -> None:
         "SCREEN_PROJECTION_BY_FRAME[TARGET_FRAME]",
         "_apply_pass03_contract",
         "_restore_pass03_contract",
-        "f03_projection_drifted",
+        "f03 projection drifted",
         "f03 still touches canvas edge",
         '"weapon_geometry_changed": False',
         '"root_translation_used": False',
@@ -67,10 +67,10 @@ def test_overhead_pass03_restores_pass02_globals() -> None:
         assert marker in source
 
 
-def test_overhead_workflow_targets_pass03() -> None:
+def test_overhead_workflow_retains_pass03_history() -> None:
     source = WORKFLOW_PATH.read_text(encoding="utf-8")
     assert (
         "blender_sprite_factory_attack_sword_twohand_down_overhead_v21_pass03.py"
         in source
     )
-    assert "twohand_down_overhead_v21_pass03" in source
+    assert "pass03" in source
