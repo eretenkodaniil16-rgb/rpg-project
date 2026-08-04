@@ -8,7 +8,7 @@ import struct
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-TILES = ROOT / "assets/branding/main_menu/approved/tiles"
+STRIPS = ROOT / "assets/branding/main_menu/approved/strips"
 MANIFEST = ROOT / "assets/branding/main_menu/main_menu_tower_down_v01.json"
 SCENE = ROOT / "scenes/menus/main_menu.tscn"
 MENU_SCRIPT = ROOT / "scripts/menus/main_menu.gd"
@@ -16,9 +16,8 @@ TILED_SCRIPT = ROOT / "scripts/menus/main_menu_tiled_background.gd"
 ATMOSPHERE_SCRIPT = ROOT / "scripts/menus/main_menu_atmosphere.gd"
 WEBP_RIFF = b"RIFF"
 WEBP_FORMAT = b"WEBP"
-ROWS = 4
 COLUMNS = 8
-TILE_SIZE = (160, 180)
+STRIP_SIZE = (160, 720)
 
 
 def read_webp_size(path: Path) -> tuple[int, int]:
@@ -53,20 +52,16 @@ def require(path: Path, fragment: str) -> None:
 
 
 def main() -> None:
-    expected_names = [
-        f"main_menu_tile_r{row:02d}_c{column:02d}.webp"
-        for row in range(ROWS)
-        for column in range(COLUMNS)
-    ]
-    actual_names = sorted(path.name for path in TILES.glob("*.webp"))
+    expected_names = [f"main_menu_strip_c{column:02d}.webp" for column in range(COLUMNS)]
+    actual_names = sorted(path.name for path in STRIPS.glob("*.webp"))
     if actual_names != expected_names:
         missing = sorted(set(expected_names) - set(actual_names))
         extra = sorted(set(actual_names) - set(expected_names))
-        raise AssertionError(f"Tile set mismatch; missing={missing}, extra={extra}")
+        raise AssertionError(f"Strip set mismatch; missing={missing}, extra={extra}")
     for name in expected_names:
-        size = read_webp_size(TILES / name)
-        if size != TILE_SIZE:
-            raise AssertionError(f"Unexpected tile size for {name}: {size}")
+        size = read_webp_size(STRIPS / name)
+        if size != STRIP_SIZE:
+            raise AssertionError(f"Unexpected strip size for {name}: {size}")
 
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
     if manifest.get("visual_id") != "main_menu_tower_down_v01":
@@ -76,8 +71,8 @@ def main() -> None:
     if manifest.get("approval", {}).get("logo_variant_approved") != 2:
         raise AssertionError("Approved logo variant must remain 2")
     contract = manifest.get("render_contract", {})
-    if contract.get("tile_grid") != [8, 4] or contract.get("tile_count") != 32:
-        raise AssertionError("Unexpected tile-grid contract")
+    if contract.get("strip_count") != 8 or contract.get("strip_size") != [160, 720]:
+        raise AssertionError("Unexpected strip contract")
     if contract.get("heavy_video_background") is not False:
         raise AssertionError("The Android menu must not use a video background")
 
@@ -96,7 +91,7 @@ def main() -> None:
     require(MENU_SCRIPT, "_on_continue_pressed")
 
     require(TILED_SCRIPT, "const COLUMNS: int = 8")
-    require(TILED_SCRIPT, "const ROWS: int = 4")
+    require(TILED_SCRIPT, "const STRIP_SIZE: Vector2 = Vector2(160.0, 720.0)")
     require(TILED_SCRIPT, "scale_factor: float = maxf")
     require(TILED_SCRIPT, "has_complete_tiles")
     require(ATMOSPHERE_SCRIPT, "const PARTICLE_COUNT: int = 28")
