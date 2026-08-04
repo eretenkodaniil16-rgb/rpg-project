@@ -141,6 +141,7 @@ def _write_manifest_v21_pass55(
         "require_zero_edge_alpha": REQUIRE_ZERO_EDGE_ALPHA,
         "screen_space_trajectory_preserved": PRESERVE_SCREEN_SPACE_TRAJECTORY,
         "action_data_preserved_from_pass54": PRESERVE_ACTION_DATA,
+        "camera_shift_persistent_change": False,
         "source_failed_run_id": SOURCE_FAILED_RUN_ID,
         "source_failed_artifact_id": SOURCE_FAILED_ARTIFACT_ID,
         "source_failed_artifact_sha256": SOURCE_FAILED_ARTIFACT_SHA256,
