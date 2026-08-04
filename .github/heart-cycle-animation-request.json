@@ -1,0 +1,13 @@
+{
+  "revision": "heart_cycle_animation_export_v07",
+  "profile": "review",
+  "resolution": [640, 360],
+  "source_fps": 30,
+  "source_frames": 450,
+  "sample_step": 2,
+  "output_fps": 15,
+  "expected_output_frames": 225,
+  "expected_duration_seconds": 15.0,
+  "requested_at": "2026-08-05",
+  "reason": "Render the first full-loop review after the corrected ventricular layout v05 and flow/presentation validation v06."
+}
