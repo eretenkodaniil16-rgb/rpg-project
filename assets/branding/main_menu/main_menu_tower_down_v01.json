@@ -5,13 +5,18 @@
   "style": "pixel_art_dark_fantasy",
   "approved_direction": "variant_a_background_with_logo_variant_02",
   "resources": {
-    "background_with_title": "res://assets/branding/main_menu/approved/main_menu_tower_down_title_v01.webp",
+    "background_tiles_directory": "res://assets/branding/main_menu/approved/tiles/",
+    "background_tile_pattern": "main_menu_tile_r%02d_c%02d.webp",
     "scene": "res://scenes/menus/main_menu.tscn",
+    "tiled_background_script": "res://scripts/menus/main_menu_tiled_background.gd",
     "atmosphere_script": "res://scripts/menus/main_menu_atmosphere.gd"
   },
   "render_contract": {
     "source_size": [1280, 720],
     "target_viewport": [1280, 720],
+    "tile_grid": [8, 4],
+    "tile_size": [160, 180],
+    "tile_count": 32,
     "stretch_mode": "keep_aspect_covered",
     "title_embedded": true,
     "particle_count": 28,
@@ -27,7 +32,8 @@
   ],
   "fallback": {
     "background_color": "#06101A",
-    "menu_logic_preserved_without_art": true
+    "menu_logic_preserved_without_art": true,
+    "requires_complete_tile_set": true
   },
   "approval": {
     "background_composition_approved": true,
