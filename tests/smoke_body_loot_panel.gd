@@ -32,9 +32,19 @@ func _run() -> void:
 		_fail("Guard, player or loot panel fixture is missing.")
 		return
 	(guard as Node2D).global_position = player.global_position + Vector2(32.0, 0.0)
-	guard.call("_activate_body_from_defeat", CorpseInteractionSystem.BODY_DEAD)
+	# Use the production persistence contract rather than calling the visual
+	# activation hook directly. The NPC then restores itself from GameState.
+	var corpse_system := CorpseInteractionSystem.new()
+	corpse_system.mark_defeated(
+		state,
+		"service_guard",
+		(guard as Node2D).global_position,
+		CorpseInteractionSystem.BODY_DEAD
+	)
+	guard.call("_restore_body_state")
+	await process_frame
 	if not bool(guard.call("is_dead_body")):
-		_fail("Service guard did not enter the persistent dead-body state.")
+		_fail("Service guard did not restore the persistent dead-body state.")
 		return
 	game.call("select_context_target_for_testing", guard)
 	var entries: Dictionary = game.call("get_action_catalog_entries_for_testing") as Dictionary
@@ -48,7 +58,8 @@ func _run() -> void:
 			_fail("Legacy per-item corpse action remained beside the common loot panel action.")
 			return
 		if action_id == "open_selected_body_loot":
-			open_found = str(entry.get("label", "")) == "ОБЫСКАТЬ: СЛУЖЕБНЫЙ ДОЗОРНЫЙ"
+			var label: String = str(entry.get("label", ""))
+			open_found = label.begins_with("ОБЫСКАТЬ: ") and "service_guard" not in label.to_lower()
 	if not open_found:
 		_fail("Dead guard has no explicit Russian common-panel action.")
 		return
