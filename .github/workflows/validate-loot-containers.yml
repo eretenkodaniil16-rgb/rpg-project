@@ -11,6 +11,7 @@ on:
       - "scripts/game/game_consumable_inventory_base_runtime.gd"
       - "scripts/ui/loot_container_panel.gd"
       - "tests/smoke_loot_containers.gd"
+      - "tests/smoke_body_loot_panel.gd"
       - "tests/test_corpse_interaction_system.gd"
       - "tests/smoke_consumable_inventory_runtime.gd"
       - "tests/smoke_action_panel_no_flash.gd"
@@ -61,6 +62,10 @@ jobs:
         shell: bash
         run: timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_loot_containers.gd 2>&1 | tee loot-containers.log
 
+      - name: Simulate corpse loot through common panel
+        shell: bash
+        run: timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_body_loot_panel.gd 2>&1 | tee body-loot-panel.log
+
       - name: Regression test corpse loot
         shell: bash
         run: timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_corpse_interaction_system.gd 2>&1 | tee corpse-loot.log
@@ -89,6 +94,7 @@ jobs:
           path: |
             loot-import.log
             loot-containers.log
+            body-loot-panel.log
             corpse-loot.log
             consumables.log
             actions.log
