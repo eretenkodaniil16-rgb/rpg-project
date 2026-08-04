@@ -38,9 +38,6 @@ func _run() -> void:
 		_fail("Combat lifecycle test nodes are incomplete.")
 		return
 
-	# Encounter roster must be resolved before initiative is rolled. Starting a
-	# fight with the caretaker includes the living service guard independent of
-	# current visibility, patrol frame or hostility signal order.
 	game.call("_start_turn_based_combat", caretaker)
 	if not turn_system.active:
 		_fail("Caretaker combat did not start.")
@@ -51,8 +48,6 @@ func _run() -> void:
 		return
 	game.call("_stop_turn_based_combat", "Тестовый бой остановлен.")
 
-	# Simulate a voluntary NPC step from 5 ft to outside player reach. The route
-	# must pause and expose the existing reaction prompt before committing movement.
 	guard.set("maximum_health", 999)
 	guard.set("current_health", 999)
 	guard.call("enter_combat_hostile")
@@ -91,8 +86,6 @@ func _run() -> void:
 		_fail("NPC movement did not pass through exactly one reaction gateway.")
 		return
 
-	# Disengage and forced movement are explicit exclusions, not implicit NPC AI
-	# privileges. Neither may create a prompt or consume the reaction.
 	turn_system.force_current_actor_for_testing(player)
 	var offer_count: int = int(game.call("get_player_opportunity_offer_count_for_testing"))
 	await game.call(
@@ -119,8 +112,6 @@ func _run() -> void:
 		return
 	game.call("_stop_turn_based_combat", "Тест реакций завершён.")
 
-	# A lethal hit starts a temporary flash and changes body state in the same
-	# frame. After the flash completes, the authoritative dead-body tint must win.
 	guard.set("player_in_range", player)
 	var lethal := AttackResult.new()
 	lethal.hit = true
@@ -144,9 +135,16 @@ func _run() -> void:
 		return
 	game.call("_set_selected_target", guard)
 	var action_ids: Array[String] = _action_ids(game.call("_build_catalog_entries") as Dictionary)
-	if "inspect_target" not in action_ids or "corpse_loot_all" not in action_ids:
-		_fail("Dead body cannot be inspected through the action catalogue: %s" % JSON.stringify(action_ids))
+	if "inspect_target" not in action_ids or "open_selected_body_loot" not in action_ids:
+		_fail("Dead body cannot be inspected through the common loot catalogue: %s" % JSON.stringify(action_ids))
 		return
+	if "corpse_loot_all" in action_ids:
+		_fail("Legacy corpse loot entry remained beside the common loot panel action: %s" % JSON.stringify(action_ids))
+		return
+	for action_id: String in action_ids:
+		if action_id.begins_with("corpse_loot_item__"):
+			_fail("Legacy per-item corpse entry remained beside the common loot panel action: %s" % JSON.stringify(action_ids))
+			return
 
 	game.queue_free()
 	await process_frame
