@@ -255,7 +255,8 @@ func _update_target_label() -> void:
 func _occupied_cells(excluded_actor: Node = null) -> Dictionary:
 	var occupied: Dictionary = super._occupied_cells(excluded_actor)
 	if (
-		_controllable_ally != excluded_actor
+		_turn_system.active
+		and _controllable_ally != excluded_actor
 		and _ally_is_combat_active()
 		and _controllable_ally is Node2D
 	):
