@@ -1,9 +1,12 @@
 class_name InventoryPanel
 extends Control
 
+signal item_use_requested(item_id: String)
+
 var _class_data: ClassDataSystem = ClassDataSystem.new()
 var _item_list: VBoxContainer
 var _details_label: Label
+var _use_button: Button
 var _equip_button: Button
 var _selected_entry: Dictionary = {}
 
@@ -89,6 +92,13 @@ func _build_layout() -> void:
 	_details_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_details_label.text = "Выберите предмет слева."
 	detail_column.add_child(_details_label)
+	_use_button = Button.new()
+	_use_button.text = "ИСПОЛЬЗОВАТЬ"
+	_use_button.custom_minimum_size = Vector2(0.0, 58.0)
+	_use_button.add_theme_font_size_override("font_size", 19)
+	_use_button.pressed.connect(_use_selected)
+	_use_button.hide()
+	detail_column.add_child(_use_button)
 	_equip_button = Button.new()
 	_equip_button.text = "ЭКИПИРОВАТЬ"
 	_equip_button.custom_minimum_size = Vector2(0.0, 58.0)
@@ -107,6 +117,7 @@ func _refresh() -> void:
 		empty_label.add_theme_font_size_override("font_size", 20)
 		_item_list.add_child(empty_label)
 		_details_label.text = "Предметы появятся здесь после получения наград, находок или добычи."
+		_use_button.hide()
 		_equip_button.hide()
 		return
 	entries.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return str(a.get("type", "")) < str(b.get("type", "")))
@@ -143,6 +154,11 @@ func _show_details(entry: Dictionary) -> void:
 		str(entry.get("name", "Предмет")), type_name, int(entry.get("quantity", 0)),
 		equipment_text, stats_text, str(entry.get("description", "Описание отсутствует."))
 	]
+	var use_action_value: Variant = entry.get("use_action", {})
+	var use_action: Dictionary = use_action_value as Dictionary if use_action_value is Dictionary else {}
+	_use_button.visible = not use_action.is_empty()
+	_use_button.disabled = int(entry.get("quantity", 0)) <= 0
+	_use_button.text = str(use_action.get("inventory_label", "ИСПОЛЬЗОВАТЬ"))
 	_equip_button.visible = type_id in ["weapon", "armor", "shield"]
 	_equip_button.disabled = equipped
 	_equip_button.text = "ЭКИПИРОВАНО" if equipped else "ЭКИПИРОВАТЬ"
@@ -176,6 +192,13 @@ func _equipment_stats(entry: Dictionary) -> String:
 			"" if shield_trained else " — бонус КД не действует"
 		]
 	return ""
+
+
+func _use_selected() -> void:
+	var item_id: String = str(_selected_entry.get("id", ""))
+	if item_id.is_empty():
+		return
+	item_use_requested.emit(item_id)
 
 
 func _equip_selected() -> void:
