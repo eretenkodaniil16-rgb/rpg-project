@@ -14,6 +14,7 @@ var _items_box: VBoxContainer = null
 var _take_all_button: Button = null
 var _close_button: Button = null
 var _item_action_labels: Array[String] = []
+var _take_all_allowed: bool = true
 
 
 func _ready() -> void:
@@ -38,6 +39,15 @@ func refresh_source(record: Dictionary, definitions: Dictionary) -> void:
 	_definitions = definitions.duplicate(true)
 	if visible:
 		_rebuild_contents()
+
+
+func set_take_all_enabled(value: bool) -> void:
+	_take_all_allowed = value
+	if _take_all_button != null:
+		var items_value: Variant = _record.get("items", [])
+		var has_items: bool = items_value is Array and not (items_value as Array).is_empty()
+		_take_all_button.disabled = not value or not has_items
+		_take_all_button.tooltip_text = "" if value else "Во время боя предметы подбираются по одному."
 
 
 func close_panel() -> void:
@@ -68,7 +78,7 @@ func press_item_for_testing(item_id: String) -> void:
 
 
 func press_take_all_for_testing() -> void:
-	if visible and not _source_id.is_empty():
+	if visible and not _source_id.is_empty() and _take_all_allowed:
 		take_all_requested.emit(_source_id)
 
 
@@ -86,10 +96,6 @@ func _build_ui() -> void:
 	panel.anchor_top = 0.08
 	panel.anchor_right = 0.92
 	panel.anchor_bottom = 0.92
-	panel.offset_left = 0.0
-	panel.offset_top = 0.0
-	panel.offset_right = 0.0
-	panel.offset_bottom = 0.0
 	panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(panel)
 
@@ -159,7 +165,8 @@ func _rebuild_contents() -> void:
 		child.queue_free()
 	_item_action_labels.clear()
 	_title_label.text = str(_record.get("label", "Добыча"))
-	var items: Array = _record.get("items", []) as Array if _record.get("items", []) is Array else []
+	var items_value: Variant = _record.get("items", [])
+	var items: Array = items_value as Array if items_value is Array else []
 	if items.is_empty():
 		_status_label.text = "Контейнер пуст."
 		_take_all_button.disabled = true
@@ -170,7 +177,7 @@ func _rebuild_contents() -> void:
 		_items_box.add_child(empty_label)
 		return
 	_status_label.text = "Выберите предмет для переноса в инвентарь."
-	_take_all_button.disabled = false
+	_take_all_button.disabled = not _take_all_allowed
 	for value: Variant in items:
 		if not value is Dictionary:
 			continue
@@ -204,6 +211,6 @@ func _on_item_pressed(item_id: String) -> void:
 
 
 func _on_take_all_pressed() -> void:
-	if _source_id.is_empty():
+	if _source_id.is_empty() or not _take_all_allowed:
 		return
 	take_all_requested.emit(_source_id)
