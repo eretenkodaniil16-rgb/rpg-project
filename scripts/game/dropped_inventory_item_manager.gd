@@ -41,7 +41,12 @@ func spawn_dropped_item(
 		"position": [world_position.x, world_position.y]
 	}
 	_records[drop_id] = record
-	return _create_drop_node(record)
+	var dropped: DroppedInventoryItem = _create_drop_node(record)
+	if dropped == null:
+		_records.erase(drop_id)
+		return null
+	_sync_snapshot_cache()
+	return dropped
 
 
 func collect_drop(drop_id: String, save_after: bool = true) -> bool:
@@ -78,6 +83,7 @@ func collect_drop(drop_id: String, save_after: bool = true) -> bool:
 	elif node_value is Node and is_instance_valid(node_value as Node):
 		(node_value as Node).queue_free()
 	_nodes.erase(drop_id)
+	_sync_snapshot_cache()
 	if save_after and state.has_method("save_game"):
 		state.call("save_game")
 	get_tree().call_group(
@@ -125,6 +131,7 @@ func restore_from_world_snapshot() -> void:
 
 func prepare_world_state_for_save() -> void:
 	_prune_invalid_nodes()
+	_sync_snapshot_cache()
 
 
 func can_capture_stable_world_state() -> bool:
@@ -218,6 +225,26 @@ func _prune_invalid_nodes() -> void:
 			stale_ids.append(drop_id)
 	for drop_id: String in stale_ids:
 		_nodes.erase(drop_id)
+
+
+func _sync_snapshot_cache() -> void:
+	var state: Node = _game_state()
+	if (
+		state == null
+		or not state.has_method("get_world_snapshot")
+		or not state.has_method("set_world_snapshot")
+	):
+		return
+	var snapshot: Dictionary = state.call("get_world_snapshot") as Dictionary
+	var environment_value: Variant = snapshot.get("environment", {})
+	var environment: Dictionary = (
+		(environment_value as Dictionary).duplicate(true)
+		if environment_value is Dictionary
+		else {}
+	)
+	environment[SNAPSHOT_KEY] = _records.duplicate(true)
+	snapshot["environment"] = environment
+	state.call("set_world_snapshot", snapshot)
 
 
 func _game_state() -> Node:
