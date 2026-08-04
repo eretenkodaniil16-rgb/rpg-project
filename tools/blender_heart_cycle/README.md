@@ -4,9 +4,9 @@ Procedural Blender foundation for a **frontally cut human heart** with visible c
 
 ## Current model revision
 
-`heart_cutaway_v02_phase_rig_v03`
+`heart_cutaway_v02_phase_rig_v03_infographic_v04`
 
-The current stage combines the anatomy refinement pass `heart_cutaway_v02` with the first physiological phase rig `heart_cycle_phase_rig_v03`.
+The current stage combines the anatomy refinement pass `heart_cutaway_v02`, the physiological phase rig `heart_cycle_phase_rig_v03` and the Russian educational compositor `heart_cycle_infographic_v04`.
 
 ### Anatomy v02
 
@@ -34,8 +34,19 @@ The current stage combines the anatomy refinement pass `heart_cutaway_v02` with 
 - keyframed aortic and pulmonary-artery pressures;
 - keyframed normalized atrial and ventricular volume channels;
 - a seamless loop boundary between frame 450 and frame 1;
-- nine mid-phase preview renders for visual validation;
 - an extended JSON manifest describing the rig and preview frames.
+
+### Infographic compositor v04
+
+- title `СЕРДЕЧНЫЙ ЦИКЛ` at the top of the frame;
+- permanent left information card and the cutaway heart shifted to the right;
+- one Russian phase card for each of the nine phases;
+- phase index, phase name, three explanatory statements and real duration;
+- AV and semilunar valve-state labels;
+- cross-platform Cyrillic font lookup for Windows, Linux and macOS;
+- camera-parented UI that remains stable while the heart deforms;
+- nine mid-phase infographic preview renders;
+- manifest metadata describing language, layout and visible phase fields.
 
 This remains an educational procedural model and is not intended for diagnostic visualization.
 
@@ -61,9 +72,9 @@ PowerShell usage:
   -RenderPreview
 ```
 
-`-RenderPreview` creates the principal preview plus nine phase-specific PNG files in `phase_previews/`.
+`-RenderPreview` creates the principal composed preview plus nine phase-specific PNG files in `infographic_phase_previews/`.
 
-Use `-RenderAnimation` only after the nine phase previews are approved; it renders all 450 PNG frames.
+Use `-RenderAnimation` only after the nine composed phase previews are approved; it renders all 450 PNG frames into `infographic_frames/`.
 
 ## Timeline
 
@@ -81,4 +92,4 @@ Use `-RenderAnimation` only after the nine phase previews are approved; it rende
 
 ## Review boundary
 
-The v03 CI artifact must be reviewed across all nine phase previews before rendering the complete 450-frame sequence. The next pass should correct any visible chamber intersections, excessive valve travel or flow-guide occlusion, then add the educational compositor with the Russian phase title, explanatory text and duration panel.
+The v04 CI artifact must be reviewed across all nine composed phase previews before rendering the complete 450-frame sequence. Review should focus on text fit, Cyrillic glyphs, separation between the left card and the heart, chamber intersections, valve travel and flow-guide occlusion. The next pass then fixes only observed defects before MP4/GIF export.
