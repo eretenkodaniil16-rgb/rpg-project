@@ -7,12 +7,14 @@ const HEALERS_KIT_ID: String = "healers_kit"
 const ITEM_USE_TARGET_DISTANCE_FEET: int = 5
 
 var _item_use_system: ItemUseSystem = ITEM_USE_SYSTEM_SCRIPT.new() as ItemUseSystem
+var _item_use_hub: CharacterHubInventory = null
 
 
 func _ready() -> void:
 	super._ready()
-	if _inventory_panel != null and not _inventory_panel.item_use_requested.is_connected(_on_inventory_item_use_requested):
-		_inventory_panel.item_use_requested.connect(_on_inventory_item_use_requested)
+	_item_use_hub = find_child("CharacterHub", true, false) as CharacterHubInventory
+	if _item_use_hub != null and not _item_use_hub.item_use_requested.is_connected(_on_inventory_item_use_requested):
+		_item_use_hub.item_use_requested.connect(_on_inventory_item_use_requested)
 
 
 func _build_catalog_entries() -> Dictionary:
@@ -31,8 +33,8 @@ func _on_feedback_catalog_action_requested(action_id: String) -> void:
 
 
 func _on_inventory_item_use_requested(item_id: String) -> void:
-	if _inventory_panel != null and _inventory_panel.visible:
-		_inventory_panel.close_inventory()
+	if _item_use_hub != null and _item_use_hub.visible:
+		_item_use_hub.close_sheet()
 	_sync_exploration_hud_visibility()
 	_request_item_use(item_id)
 
