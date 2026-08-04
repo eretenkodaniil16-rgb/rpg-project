@@ -2,7 +2,11 @@ param(
     [string]$BlenderExe = "",
     [string]$OutputRoot = "",
     [switch]$RenderPreview,
-    [switch]$RenderAnimation
+    [switch]$RenderAnimation,
+    [int]$Resolution = 720,
+    [int]$AnimationResolution = 360,
+    [int]$SampleStep = 2,
+    [int]$VideoBitrate = 4500
 )
 
 $ErrorActionPreference = "Stop"
@@ -30,17 +34,23 @@ $Arguments = @(
     "--background",
     "--factory-startup",
     "--python-exit-code", "1",
-    "--python", (Join-Path $ToolRoot "heart_cycle_presentation_polish_v06.py"),
+    "--python", (Join-Path $ToolRoot "heart_cycle_animation_export_v07.py"),
     "--",
-    "--output-root", $OutputRoot
+    "--output-root", $OutputRoot,
+    "--resolution", $Resolution,
+    "--animation-resolution", $AnimationResolution,
+    "--sample-step", $SampleStep,
+    "--video-bitrate", $VideoBitrate
 )
 if ($RenderPreview) { $Arguments += "--render-preview" }
 if ($RenderAnimation) { $Arguments += "--render-animation" }
 
-Write-Host "Blender: $BlenderExe"
-Write-Host "Output:  $OutputRoot"
-Write-Host "Stage:   heart_cutaway_reference_layout_v05_phase_rig_v03_infographic_v04_presentation_v06"
+Write-Host "Blender:     $BlenderExe"
+Write-Host "Output:      $OutputRoot"
+Write-Host "Stage:       heart_cycle_animation_export_v07"
+Write-Host "Preview:     ${Resolution}p"
+Write-Host "Animation:   ${AnimationResolution}p, sample step $SampleStep"
 & $BlenderExe @Arguments
 if ($LASTEXITCODE -ne 0) {
-    throw "Blender polished heart-cycle build failed with exit code $LASTEXITCODE"
+    throw "Blender heart-cycle animation export failed with exit code $LASTEXITCODE"
 }
