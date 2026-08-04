@@ -48,7 +48,7 @@ jobs:
           test -n "$blender"
           echo "BLENDER_EXE=$blender" >> "$GITHUB_ENV"
 
-      - name: Render 15-second review MP4
+      - name: Render 225-frame review PNG sequence
         id: animation-build
         continue-on-error: true
         shell: bash
@@ -68,18 +68,31 @@ jobs:
             --sample-step 2 \
             --video-bitrate 4500 2>&1 | tee heart_cycle_animation_blender.log
 
-      - name: Create GIF and poster
+      - name: Encode MP4, GIF and poster
         if: steps.animation-build.outcome == 'success'
         shell: bash
         run: |
           set -euo pipefail
           output="artifacts/blender_heart_cycle_animation"
+          frames="$output/review_frames"
           video="$output/heart_cycle_review_v07.mp4"
           palette="$output/heart_cycle_review_v07_palette.png"
           gif="$output/heart_cycle_review_v07.gif"
           poster="$output/heart_cycle_review_v07_poster.png"
 
-          test -s "$video"
+          count="$(find "$frames" -maxdepth 1 -type f -name 'heart_cycle_review_*.png' | wc -l)"
+          test "$count" -eq 225
+
+          ffmpeg -y \
+            -framerate 15 \
+            -pattern_type glob \
+            -i "$frames/heart_cycle_review_*.png" \
+            -c:v libx264 \
+            -pix_fmt yuv420p \
+            -b:v 4500k \
+            -movflags +faststart \
+            "$video"
+
           ffmpeg -y -i "$video" \
             -vf "fps=15,scale=480:-1:flags=lanczos,palettegen=max_colors=128:stats_mode=diff" \
             "$palette"
@@ -96,10 +109,12 @@ jobs:
           set -euo pipefail
           python - <<'PY'
           import json
+          import shutil
           import subprocess
           from pathlib import Path
 
           root = Path("artifacts/blender_heart_cycle_animation")
+          frames = root / "review_frames"
           video = root / "heart_cycle_review_v07.mp4"
           gif = root / "heart_cycle_review_v07.gif"
           poster = root / "heart_cycle_review_v07_poster.png"
@@ -109,7 +124,9 @@ jobs:
           )
           manifest = root / "heart_cycle_manifest.json"
 
-          for path in (video, gif, poster, blend, manifest):
+          rendered_frames = sorted(frames.glob("heart_cycle_review_*.png"))
+          assert len(rendered_frames) == 225
+          for path in (*rendered_frames, video, gif, poster, blend, manifest):
               assert path.is_file() and path.stat().st_size > 0, path
 
           probe = json.loads(
@@ -139,8 +156,13 @@ jobs:
           payload = json.loads(manifest.read_text(encoding="utf-8"))
           export = payload["animation_export"]
           assert payload["animation_export_revision"] == "heart_cycle_animation_export_v07"
-          assert export["rendered"] is True
+          assert export["frames_rendered"] is True
+          assert export["video_rendered"] is False
+          assert export["rendered"] is False
           assert export["review_profile"]["output_frame_count"] == 225
+          export["video_rendered"] = True
+          export["rendered"] = True
+          export["intermediate"]["retained_in_delivery_artifact"] = False
           export["verification"] = {
               "status": "passed",
               "actual_width": stream["width"],
@@ -156,6 +178,11 @@ jobs:
               json.dumps(payload, ensure_ascii=False, indent=2),
               encoding="utf-8",
           )
+
+          # Delivery keeps the compact video files. If an encoding or
+          # verification step fails, this line is not reached and the partial
+          # PNG sequence remains available in the failure artifact.
+          shutil.rmtree(frames)
           PY
 
       - name: Upload heart animation artifact
@@ -173,5 +200,5 @@ jobs:
       - name: Require successful animation render
         if: steps.animation-build.outcome != 'success'
         run: |
-          echo "Heart animation render failed; inspect heart_cycle_animation_blender.log in the uploaded artifact."
+          echo "Heart animation frame render failed; inspect heart_cycle_animation_blender.log in the uploaded artifact."
           exit 1
