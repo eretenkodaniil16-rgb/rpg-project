@@ -1,0 +1,98 @@
+name: Validate persistent loot containers
+
+on:
+  pull_request:
+    paths:
+      - "data/world/loot_containers.json"
+      - "scripts/systems/loot_container_system.gd"
+      - "scripts/game/world_loot_container.gd"
+      - "scripts/game/world_loot_container_manager.gd"
+      - "scripts/game/game_loot_container_runtime.gd"
+      - "scripts/game/game_consumable_inventory_base_runtime.gd"
+      - "scripts/ui/loot_container_panel.gd"
+      - "tests/smoke_loot_containers.gd"
+      - "tests/test_corpse_interaction_system.gd"
+      - "tests/smoke_consumable_inventory_runtime.gd"
+      - "tests/smoke_action_panel_no_flash.gd"
+      - "tests/test_mobile_combat_progression_hud.gd"
+      - "tests/test_mobile_combat_progression_hud.tscn"
+      - "tests/smoke_guard_post_runtime_regressions_v2.gd"
+      - "docs/LOOT_CONTAINERS.md"
+      - ".github/workflows/validate-loot-containers.yml"
+  push:
+    branches:
+      - feature/persistent-loot-containers
+
+concurrency:
+  group: loot-containers-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Godot 4.7.1 Standard
+        shell: bash
+        run: |
+          curl --location --fail --retry 3 \
+            --output godot.zip \
+            "https://github.com/godotengine/godot/releases/download/4.7.1-stable/Godot_v4.7.1-stable_linux.x86_64.zip"
+          unzip -q godot.zip
+          chmod +x Godot_v4.7.1-stable_linux.x86_64
+
+      - name: Import project and reject parser errors
+        shell: bash
+        run: |
+          rm -rf .godot
+          set -o pipefail
+          timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --editor --path "$GITHUB_WORKSPACE" --quit 2>&1 | tee loot-import.log
+          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script" loot-import.log; then
+            exit 1
+          fi
+
+      - name: Simulate persistent containers and mobile loot panel
+        shell: bash
+        run: timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_loot_containers.gd 2>&1 | tee loot-containers.log
+
+      - name: Regression test corpse loot
+        shell: bash
+        run: timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_corpse_interaction_system.gd 2>&1 | tee corpse-loot.log
+
+      - name: Regression test consumable inventory
+        shell: bash
+        run: timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_consumable_inventory_runtime.gd 2>&1 | tee consumables.log
+
+      - name: Regression test Actions button
+        shell: bash
+        run: timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_action_panel_no_flash.gd 2>&1 | tee actions.log
+
+      - name: Regression test mobile combat and HUD
+        shell: bash
+        run: timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" res://tests/test_mobile_combat_progression_hud.tscn 2>&1 | tee mobile-hud.log
+
+      - name: Regression test guard post runtime
+        shell: bash
+        run: timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_guard_post_runtime_regressions_v2.gd 2>&1 | tee guard-post.log
+
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: loot-container-diagnostics
+          path: |
+            loot-import.log
+            loot-containers.log
+            corpse-loot.log
+            consumables.log
+            actions.log
+            mobile-hud.log
+            guard-post.log
+          if-no-files-found: warn
+          retention-days: 7
