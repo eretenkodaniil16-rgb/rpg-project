@@ -1,0 +1,45 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/game/controllable_ally.gd" id="1_ally"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_ally"]
+radius = 17.0
+height = 42.0
+
+[node name="ControllableAlly" type="CharacterBody2D"]
+collision_layer = 1
+collision_mask = 1
+motion_mode = 1
+script = ExtResource("1_ally")
+
+[node name="Body" type="Polygon2D" parent="."]
+polygon = PackedVector2Array(-18, -29, 13, -29, 21, -8, 17, 25, 0, 36, -18, 25, -23, -8)
+color = Color(0.19, 0.43, 0.46, 1)
+z_index = 4
+
+[node name="Scarf" type="Polygon2D" parent="."]
+polygon = PackedVector2Array(-16, -20, 14, -20, 12, -10, -13, -8)
+color = Color(0.48, 0.2, 0.25, 1)
+z_index = 5
+
+[node name="Shield" type="Polygon2D" parent="."]
+polygon = PackedVector2Array(-24, -12, -14, -20, -7, -10, -10, 12, -20, 18, -27, 8)
+color = Color(0.5, 0.56, 0.62, 1)
+z_index = 5
+
+[node name="NameLabel" type="Label" parent="."]
+offset_left = -72.0
+offset_top = -62.0
+offset_right = 72.0
+offset_bottom = -36.0
+text = "Ирна"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.66, 0.96, 0.78, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.9)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 15
+z_index = 7
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CapsuleShape2D_ally")

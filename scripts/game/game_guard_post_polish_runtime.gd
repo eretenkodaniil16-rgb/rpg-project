@@ -1,1 +1,1 @@
-extends "res://scripts/game/game_item_use_runtime.gd"
+extends "res://scripts/game/game_controllable_ally_runtime.gd"

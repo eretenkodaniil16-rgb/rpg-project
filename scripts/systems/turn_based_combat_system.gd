@@ -17,6 +17,19 @@ var disengaged: bool = false
 var dodging: bool = false
 
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
+var _pending_player_controlled_actors: Array[Node] = []
+
+
+func set_pending_player_controlled_actors(actors: Array[Node]) -> void:
+	_pending_player_controlled_actors.clear()
+	for actor: Node in actors:
+		if not is_instance_valid(actor) or _pending_player_controlled_actors.has(actor):
+			continue
+		_pending_player_controlled_actors.append(actor)
+
+
+func clear_pending_player_controlled_actors() -> void:
+	_pending_player_controlled_actors.clear()
 
 
 func start_combat(
@@ -34,13 +47,36 @@ func start_combat(
 	var player_initiative_proficiency: int = maxi(player_proficiency_bonus, 0) if player_initiative_proficient else 0
 	if player.has_method("get_initiative_proficiency_bonus"):
 		player_initiative_proficiency = maxi(player_initiative_proficiency, int(player.call("get_initiative_proficiency_bonus")))
-	entries.append(_make_entry(player, true, player_dexterity_modifier, player_initiative_proficiency, initiative_overrides))
+	entries.append(_make_entry(
+		player,
+		true,
+		player_dexterity_modifier,
+		player_initiative_proficiency,
+		initiative_overrides,
+		true
+	))
+	for controlled_actor: Node in _pending_player_controlled_actors:
+		if not is_instance_valid(controlled_actor) or controlled_actor == player:
+			continue
+		if controlled_actor.has_method("is_combat_active") and not bool(controlled_actor.call("is_combat_active")):
+			continue
+		var modifier: int = int(controlled_actor.call("get_initiative_modifier")) if controlled_actor.has_method("get_initiative_modifier") else 0
+		var proficiency: int = int(controlled_actor.call("get_initiative_proficiency_bonus")) if controlled_actor.has_method("get_initiative_proficiency_bonus") else 0
+		entries.append(_make_entry(
+			controlled_actor,
+			true,
+			modifier,
+			maxi(proficiency, 0),
+			initiative_overrides,
+			false
+		))
+	_pending_player_controlled_actors.clear()
 	for opponent: Node in opponents:
-		if not is_instance_valid(opponent):
+		if not is_instance_valid(opponent) or _find_entry_index(opponent) >= 0:
 			continue
 		var modifier: int = int(opponent.call("get_initiative_modifier")) if opponent.has_method("get_initiative_modifier") else 0
 		var proficiency: int = int(opponent.call("get_initiative_proficiency_bonus")) if opponent.has_method("get_initiative_proficiency_bonus") else 0
-		entries.append(_make_entry(opponent, false, modifier, maxi(proficiency, 0), initiative_overrides))
+		entries.append(_make_entry(opponent, false, modifier, maxi(proficiency, 0), initiative_overrides, false))
 	entries.sort_custom(_sort_entries)
 	current_index = _first_active_index()
 	_begin_current_turn()
@@ -51,6 +87,7 @@ func stop_combat() -> void:
 	round_number = 0
 	current_index = -1
 	entries.clear()
+	_pending_player_controlled_actors.clear()
 	action_available = false
 	bonus_action_available = false
 	reaction_available = false
@@ -80,6 +117,24 @@ func current_turn_token() -> String:
 
 func is_player_turn(player: Node) -> bool:
 	return active and current_actor() == player
+
+
+func is_actor_turn(actor: Node) -> bool:
+	return active and is_instance_valid(actor) and current_actor() == actor
+
+
+func is_player_controlled_turn() -> bool:
+	return active and bool(current_entry().get("is_player", false))
+
+
+func is_player_controlled_actor(actor: Node) -> bool:
+	var entry_index: int = _find_entry_index(actor)
+	return entry_index >= 0 and bool(entries[entry_index].get("is_player", false))
+
+
+func is_primary_player_actor(actor: Node) -> bool:
+	var entry_index: int = _find_entry_index(actor)
+	return entry_index >= 0 and bool(entries[entry_index].get("is_primary_player", false))
 
 
 func consume_action() -> bool:
@@ -219,15 +274,21 @@ func _make_entry(
 	is_player: bool,
 	dexterity_modifier: int,
 	initiative_proficiency_bonus: int,
-	overrides: Dictionary
+	overrides: Dictionary,
+	is_primary_player: bool = false
 ) -> Dictionary:
 	var instance_id: int = actor.get_instance_id()
 	var initiative_roll: int = clampi(int(overrides.get(instance_id, _rng.randi_range(1, INITIATIVE_DIE_SIDES))), 1, INITIATIVE_DIE_SIDES)
-	var display_name: String = "Герой" if is_player else (str(actor.call("get_combat_name")) if actor.has_method("get_combat_name") else actor.name)
+	var display_name: String = "Герой"
+	if actor.has_method("get_combat_name"):
+		display_name = str(actor.call("get_combat_name"))
+	elif not is_primary_player:
+		display_name = actor.name
 	return {
 		"node": actor,
 		"name": display_name,
 		"is_player": is_player,
+		"is_primary_player": is_primary_player,
 		"dexterity_modifier": dexterity_modifier,
 		"initiative_proficiency_bonus": initiative_proficiency_bonus,
 		"initiative_roll": initiative_roll,
@@ -256,12 +317,12 @@ func _begin_current_turn() -> void:
 	var actor: Node = entries[current_index].get("node") as Node
 	if is_instance_valid(actor) and actor.has_method("on_combat_turn_started"):
 		actor.call("on_combat_turn_started")
-	var player_turn: bool = bool(entries[current_index].get("is_player", false))
-	if player_turn:
+	var player_controlled_turn: bool = bool(entries[current_index].get("is_player", false))
+	if player_controlled_turn:
 		action_available = true
 		bonus_action_available = true
 		reaction_available = true
-		movement_remaining_feet = BASE_MOVEMENT_FEET
+		movement_remaining_feet = int(actor.call("get_combat_speed_feet")) if is_instance_valid(actor) and actor.has_method("get_combat_speed_feet") else BASE_MOVEMENT_FEET
 		disengaged = false
 		dodging = false
 	else:
