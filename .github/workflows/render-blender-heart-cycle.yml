@@ -38,11 +38,11 @@ jobs:
           PYTHONPATH: tools/blender_heart_cycle
         run: python -m pytest -q tools/blender_heart_cycle
 
-  render-heart-preview:
+  build-animation-ready-heart:
     needs: validate-heart-data
     if: github.event_name == 'workflow_dispatch' || github.head_ref == 'tools/blender-heart-cycle'
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 45
 
     steps:
       - name: Checkout repository
@@ -71,7 +71,7 @@ jobs:
           test -n "$blender"
           echo "BLENDER_EXE=$blender" >> "$GITHUB_ENV"
 
-      - name: Build animation export v07 and render nine phase cards
+      - name: Build animation-ready v07 scene without frame render
         id: heart-build
         continue-on-error: true
         shell: bash
@@ -85,8 +85,7 @@ jobs:
             --python tools/blender_heart_cycle/heart_cycle_animation_export_v07.py \
             -- \
             --output-root "$output" \
-            --render-preview \
-            --resolution 720 \
+            --resolution 360 \
             --animation-resolution 360 \
             --sample-step 2 2>&1 | tee heart_cycle_blender.log
 
@@ -96,12 +95,10 @@ jobs:
         run: |
           set -euo pipefail
           output="artifacts/blender_heart_cycle"
-          count="$(find "$output/infographic_phase_previews" -type f -name '*.png' | wc -l)"
-          test "$count" -eq 9
           test -d "$output/review_frames"
+          test -z "$(find "$output/review_frames" -maxdepth 1 -type f -name '*.png' -print -quit)"
           test -f "$output/heart_cutaway_reference_layout_v05_phase_rig_v03_infographic_v04_presentation_v06_animation_v07.blend"
           test -f "$output/heart_cycle_manifest.json"
-          test -f "$output/heart_cycle_infographic_preview.png"
           python - <<'PY'
           import json
           from pathlib import Path
@@ -117,11 +114,17 @@ jobs:
           assert payload["flow_visibility_validation"]["status"] == "passed"
           assert payload["animation_export_revision"] == "heart_cycle_animation_export_v07"
           export = payload["animation_export"]
-          assert export["source_timeline"]["frame_count"] == 450
-          assert export["source_timeline"]["fps"] == 30
+          assert export["source_timeline"] == {
+              "frame_start": 1,
+              "frame_end": 450,
+              "fps": 30,
+              "frame_count": 450,
+              "duration_seconds": 15.0,
+          }
           assert export["review_profile"]["sample_step"] == 2
           assert export["review_profile"]["output_fps"] == 15
           assert export["review_profile"]["output_frame_count"] == 225
+          assert export["review_profile"]["resolution"] == [640, 360]
           assert export["review_profile"]["duration_seconds"] == 15.0
           assert export["intermediate"]["format"] == "PNG sequence"
           assert export["intermediate"]["resumable"] is True
