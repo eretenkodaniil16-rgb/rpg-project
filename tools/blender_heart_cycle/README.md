@@ -4,21 +4,25 @@ Procedural Blender foundation for a **frontally cut human heart** with visible c
 
 ## Current model revision
 
-`heart_cutaway_v01`
+`heart_cutaway_v02`
 
-The first revision deliberately prioritizes a stable, editable anatomical hierarchy over final sculptural realism. It creates:
+The second revision keeps the stable phase controls from v01 and adds the first dedicated anatomical refinement pass:
 
-- left and right atrial and ventricular cutaway shells;
-- visible chamber surfaces and interventricular septum;
-- mitral, tricuspid, aortic and pulmonary valve assemblies;
-- chordae tendineae and papillary muscle proxies;
-- aorta, pulmonary trunk, venae cavae and pulmonary veins;
-- red/blue flow-arrow groups;
+- non-mirrored ventricular proportions, with a longer thick-walled left ventricle and a broader, shorter right ventricle;
+- reduced and differentiated mitral, tricuspid, aortic and pulmonary valve assemblies;
+- refined papillary-muscle proportions plus a septal papillary muscle for the right ventricle;
+- atrial appendage proxies and visible pectinate-muscle ridges;
+- left- and right-ventricular trabeculae;
+- a right-ventricular moderator band;
+- visible LV and RV outflow-tract ridges;
+- explicit left and right pulmonary-artery branches;
+- revised myocardium, endocardial and valve materials;
+- smaller blood-flow guides so anatomy remains visually dominant;
 - independent atrial and ventricular deformation controls;
 - a 450-frame, 30 FPS timeline with nine named markers;
 - a JSON manifest containing Russian phase text, real durations and frame ranges.
 
-This is an educational procedural proxy and is not intended for diagnostic visualization.
+This remains an educational procedural model and is not intended for diagnostic visualization.
 
 ## Build on Windows
 
@@ -58,6 +62,6 @@ Use `-RenderAnimation` only when the preview is approved; it renders all 450 PNG
 | Быстрое наполнение | 310–354 | 0.08 s |
 | Медленное наполнение | 355–450 | 0.17 s |
 
-## Next anatomical pass
+## Current review boundary
 
-The next pass should refine the ventricular asymmetry, right-ventricular crescent geometry, atrial appendages, outflow tract continuity, valve leaflet topology and endocardial trabeculation before final materials and infographic compositing are locked.
+The v02 CI artifact must be visually reviewed before the geometry is treated as approved. The next pass should focus on leaflet topology, true right-ventricular crescent geometry, endocardial surface integration and a more anatomical relationship between the aortic root, pulmonary root and atrioventricular junctions. After that, the phase rig can be refined beyond uniform controller scaling.
