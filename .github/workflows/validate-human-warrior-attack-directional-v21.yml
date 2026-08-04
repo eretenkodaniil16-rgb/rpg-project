@@ -71,7 +71,8 @@ jobs:
       # twohand up f03 depth contraction review: blender_sprite_factory_attack_sword_twohand_up_f03_review_v21_pass43.py
       # twohand up f03 compact projection review: blender_sprite_factory_attack_sword_twohand_up_f03_review_v21_pass44.py
       # twohand up f03 camera overscan review: blender_sprite_factory_attack_sword_twohand_up_f03_review_v21_pass45.py
-      # selected f01 f02 f03 cycle: blender_sprite_factory_attack_sword_twohand_up_cycle_diagnostic_v21_pass46.py
+      # f01 f02 f03 selected full cycle: blender_sprite_factory_attack_sword_twohand_up_cycle_diagnostic_v21_pass46.py
+      # f04 horizontal overscan full cycle: blender_sprite_factory_attack_sword_twohand_up_cycle_diagnostic_v21_pass47.py
       # blender_sprite_factory_attack_sword_twohand_left_tail_diagnostic_v21.py
       # blender_sprite_factory_attack_sword_twohand_right_batch_diagnostic_v21.py
       # blender_sprite_factory_attack_sword_twohand_right_anticipation_diagnostic_v21.py
@@ -82,7 +83,7 @@ jobs:
       # blender_sprite_factory_attack_sword_onehand_up_depth_search_diagnostic_v21.py
       # blender_sprite_factory_attack_sword_onehand_up_front_depth_diagnostic_v21.py
       # blender_sprite_factory_attack_sword_onehand_up_f05_arm_diagnostic_v21.py
-      - name: Render Blender 5.2 f04 horizontal overscan full cycle pass47
+      - name: Render Blender 5.2 f04 targeted extended overscan pass48
         id: blender-attack-directional
         continue-on-error: true
         shell: bash
@@ -93,26 +94,26 @@ jobs:
             --background \
             --factory-startup \
             --python-exit-code 1 \
-            --python tools/blender_sprite_factory/blender_sprite_factory_attack_sword_twohand_up_cycle_diagnostic_v21_pass47.py \
+            --python tools/blender_sprite_factory/blender_sprite_factory_attack_sword_twohand_up_cycle_diagnostic_v21_pass48.py \
             -- \
             --repo-root "$GITHUB_WORKSPACE" \
             --config tools/blender_sprite_factory/configs/human_warrior_m01.json \
             --run-id "$run_id" \
             --mode all 2>&1 | tee blender_attack_directional_v21.log
 
-      - name: Upload f04 horizontal overscan cycle and source blend
+      - name: Upload f04 targeted extended overscan cycle and source blend
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: human_warrior_m01_proxy_v25_attack_sword_01_twohand_up_pass47_f04_horizontal_overscan_${{ github.run_id }}_${{ github.run_attempt }}
+          name: human_warrior_m01_proxy_v25_attack_sword_01_twohand_up_pass48_f04_targeted_extended_overscan_${{ github.run_id }}_${{ github.run_attempt }}
           path: |
             art/blender_pipeline_runs/human_warrior_m01/**
             blender_attack_directional_v21.log
           if-no-files-found: error
           retention-days: 14
 
-      - name: Require successful f04 horizontal overscan cycle
+      - name: Require successful f04 targeted extended overscan cycle
         if: steps.blender-attack-directional.outcome != 'success'
         run: |
-          echo "Directional attack v21 pass47 f04 horizontal overscan cycle failed; inspect the uploaded artifact."
+          echo "Directional attack v21 pass48 f04 targeted extended overscan cycle failed; inspect the uploaded artifact."
           exit 1
