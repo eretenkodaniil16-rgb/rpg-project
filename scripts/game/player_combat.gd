@@ -20,12 +20,16 @@ var _click_path_blocked_frames: int = 0
 
 func _ready() -> void:
 	super._ready()
+	set_visual_facing(_facing_direction)
 	_build_facing_indicator()
 	_update_facing_indicator()
 	call_deferred("_install_runtime_controllers")
 
 
 func _physics_process(delta: float) -> void:
+	if is_action_animation_locked():
+		velocity = Vector2.ZERO
+		return
 	if not _turn_based_mode:
 		_process_exploration_movement(delta)
 		return
@@ -185,6 +189,7 @@ func on_combat_turn_started() -> void:
 
 func set_turn_based_mode(value: bool) -> void:
 	_turn_based_mode = value
+	set_visual_combat_mode(value)
 	_grid_move_cooldown = 0.0
 	velocity = Vector2.ZERO
 	_cancel_exploration_click_path()
@@ -204,6 +209,7 @@ func set_facing_direction(direction: Vector2) -> void:
 	if direction.length_squared() <= 0.0001:
 		return
 	_facing_direction = direction.normalized()
+	set_visual_facing(_facing_direction)
 	_update_facing_indicator()
 
 
