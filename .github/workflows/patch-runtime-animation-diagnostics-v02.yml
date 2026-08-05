@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   patch:
-    runs-on: ubuntu-slim
+    runs-on: macos-15
     timeout-minutes: 10
     steps:
       - name: Checkout runtime branch
@@ -26,7 +26,7 @@ jobs:
           ref: feature/human-warrior-runtime-animation-v02
 
       - name: Apply diagnostics patch
-        run: python tools/runtime_animation/patch_runtime_animation_diagnostics_v02.py
+        run: python3 tools/runtime_animation/patch_runtime_animation_diagnostics_v02.py
 
       - name: Commit diagnostics
         shell: bash
