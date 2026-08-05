@@ -59,7 +59,7 @@ func _on_feedback_catalog_action_requested(action_id: String) -> void:
 
 
 func _combat_social_controller() -> CombatSocialTerrainController:
-	return _find_combat_social_controller(self)
+	return _find_combat_social_controller(get_tree().root)
 
 
 func _find_combat_social_controller(root_node: Node) -> CombatSocialTerrainController:
