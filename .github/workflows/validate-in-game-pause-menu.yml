@@ -1,0 +1,78 @@
+name: Validate in-game pause menu
+
+on:
+  pull_request:
+    paths:
+      - "scenes/game/game.tscn"
+      - "scenes/ui/in_game_pause_menu.tscn"
+      - "scenes/ui/main_menu_settings_panel.tscn"
+      - "scripts/game/in_game_pause_controller.gd"
+      - "scripts/ui/in_game_pause_menu.gd"
+      - "scripts/ui/main_menu_settings_panel.gd"
+      - "scripts/ui/mobile_controls.gd"
+      - "tests/test_in_game_pause_menu.py"
+      - "tests/smoke_in_game_pause_menu.gd"
+      - "docs/IN_GAME_PAUSE_MENU_V01.md"
+      - ".github/workflows/validate-in-game-pause-menu.yml"
+  push:
+    branches:
+      - feat/in-game-pause-menu-v01
+
+concurrency:
+  group: in-game-pause-menu-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate static contracts
+        run: python tests/test_in_game_pause_menu.py
+
+      - name: Download Godot 4.7.1 Standard
+        shell: bash
+        run: |
+          curl --location --fail --retry 3 \
+            --output godot.zip \
+            "https://github.com/godotengine/godot/releases/download/4.7.1-stable/Godot_v4.7.1-stable_linux.x86_64.zip"
+          unzip -q godot.zip
+          chmod +x Godot_v4.7.1-stable_linux.x86_64
+
+      - name: Import project and reject parser errors
+        shell: bash
+        run: |
+          rm -rf .godot
+          set -o pipefail
+          timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 \
+            --headless --editor --path "$GITHUB_WORKSPACE" --quit \
+            2>&1 | tee in-game-pause-import.log
+          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script" in-game-pause-import.log; then
+            exit 1
+          fi
+
+      - name: Smoke test pause runtime
+        shell: bash
+        run: |
+          timeout 120s ./Godot_v4.7.1-stable_linux.x86_64 \
+            --headless --path "$GITHUB_WORKSPACE" \
+            --script res://tests/smoke_in_game_pause_menu.gd \
+            2>&1 | tee in-game-pause-smoke.log
+          grep -F "In-game pause menu smoke test passed" in-game-pause-smoke.log
+
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: in-game-pause-menu-diagnostics
+          path: |
+            in-game-pause-import.log
+            in-game-pause-smoke.log
+          if-no-files-found: ignore
+          retention-days: 7
