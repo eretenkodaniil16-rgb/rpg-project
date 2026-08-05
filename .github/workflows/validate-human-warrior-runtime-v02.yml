@@ -33,7 +33,17 @@ jobs:
       - name: Download Godot 4.7.1 Standard
         shell: bash
         run: |
-          curl --location --fail --retry 3 --output godot.zip "https://downloads.godotengine.org/?flavor=stable&platform=linux.64&slug=linux.x86_64.zip&version=4.7.1"
+          set -euo pipefail
+          curl \
+            --location \
+            --fail \
+            --retry 4 \
+            --retry-all-errors \
+            --retry-delay 3 \
+            --connect-timeout 20 \
+            --max-time 180 \
+            --output godot.zip \
+            "https://downloads.godotengine.org/?flavor=stable&platform=linux.64&slug=linux.x86_64.zip&version=4.7.1"
           unzip -q godot.zip
           chmod +x Godot_v4.7.1-stable_linux.x86_64
 
