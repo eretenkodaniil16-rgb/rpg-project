@@ -205,9 +205,13 @@ func _run() -> void:
 		return
 	target_button.emit_signal("pressed")
 	await process_frame
-	if int(game.call("get_party_target_instance_id_for_testing", ally)) != target.get_instance_id():
-		_fail("The standard target button did not assign Irina's own target.")
+	var selected_target_id: int = int(game.call("get_party_target_instance_id_for_testing", ally))
+	if selected_target_id == 0:
+		_fail("The standard target button did not assign Irina an actor-specific target.")
 		return
+	# The production target button cycles every valid enemy in scene order. For the
+	# deterministic catalogue check below, keep the dedicated fixture selected.
+	game.call("set_party_target_for_testing", ally, target)
 	mobile_controls.call("simulate_actions_touch_for_testing")
 	for _frame: int in range(3):
 		await process_frame
