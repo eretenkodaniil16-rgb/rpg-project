@@ -125,6 +125,20 @@ func _run() -> void:
 	if not bool(default_snapshot.get("party_mode_pressed", false)) or not bool(default_snapshot.get("irina_disabled", false)):
 		_fail("Party mode does not lock individual Irina selection in the UI.")
 		return
+	if not str(default_snapshot.get("party_mode_text", "")).begins_with("●"):
+		_fail("The selected party mode is not visually explicit.")
+		return
+	if not str(default_snapshot.get("solo_mode_text", "")).begins_with("○"):
+		_fail("The unselected solo mode is not visually distinct.")
+		return
+	if not str(default_snapshot.get("mode_summary", "")).contains("ОТРЯД"):
+		_fail("The party panel does not display the active exploration mode.")
+		return
+	var panel_position: Vector2 = default_snapshot.get("panel_position", Vector2.ZERO) as Vector2
+	var panel_size: Vector2 = default_snapshot.get("panel_size", Vector2.ZERO) as Vector2
+	if panel_position.y < 100.0 or panel_size.x > 300.0 or panel_size.y > 320.0:
+		_fail("The unified party panel exceeds its reserved mobile HUD area.")
+		return
 	if not bool(player.call("is_party_input_enabled")):
 		_fail("The hero input is disabled in default party mode.")
 		return
@@ -146,6 +160,9 @@ func _run() -> void:
 		return
 	if not bool(solo_snapshot.get("solo_mode_pressed", false)) or bool(solo_snapshot.get("irina_disabled", true)):
 		_fail("Solo mode did not unlock individual Irina selection.")
+		return
+	if not str(solo_snapshot.get("solo_mode_text", "")).begins_with("●") or not str(solo_snapshot.get("mode_summary", "")).contains("ОДИНОЧНЫЙ"):
+		_fail("The solo mode selection is not clearly visible.")
 		return
 
 	_stage = "manual_irina_control"
@@ -227,6 +244,9 @@ func _run() -> void:
 	if not bool(combat_snapshot.get("party_mode_disabled", false)) or not bool(combat_snapshot.get("solo_mode_disabled", false)):
 		_fail("Exploration mode switching remains enabled during combat.")
 		return
+	if not str(combat_snapshot.get("mode_summary", "")).contains("НЕДОСТУПНЫ В БОЮ"):
+		_fail("The menu does not clearly indicate that exploration modes are locked during combat.")
+		return
 	party_menu.call("request_mode_for_testing", MODE_SOLO)
 	party_menu.call("request_member_for_testing", PLAYER_MEMBER_ID)
 	await process_frame
@@ -236,6 +256,26 @@ func _run() -> void:
 	if str(game.call("get_exploration_mode_for_testing")) != MODE_PARTY:
 		_fail("Combat changed the locked exploration mode.")
 		return
+
+	_stage = "combat_phase_guard"
+	(player as Node2D).global_position = Vector2(800.0, 360.0)
+	(ally as Node2D).global_position = Vector2(500.0, 360.0)
+	var combat_position_before: Vector2 = (ally as Node2D).global_position
+	# Reproduce the reported failure: a stale local flag must not reactivate the
+	# exploration follower while the initiative system is still active.
+	ally.call("set_turn_based_mode", false)
+	for _frame: int in range(12):
+		await physics_frame
+	if not bool(ally.call("is_combat_phase_active_for_testing")):
+		_fail("Irina does not recognize the active combat phase from game-world.")
+		return
+	if bool(ally.call("is_following_player")):
+		_fail("Irina reports exploration follow mode during active combat.")
+		return
+	if not (ally as Node2D).global_position.is_equal_approx(combat_position_before):
+		_fail("Irina abandoned her combat position and followed the hero.")
+		return
+	ally.call("set_turn_based_mode", true)
 
 	_stage = "full_targeting"
 	if not bool(game.call("place_controllable_ally_adjacent_for_testing", target)):
@@ -269,7 +309,7 @@ func _run() -> void:
 	game.queue_free()
 	await process_frame
 	_completed = true
-	print("Party/solo mode switching, manual Irina exploration, follow resume, initiative lock and full target button passed.")
+	print("Party/solo mode layout, manual Irina exploration, combat phase guard, initiative lock and full target button passed.")
 	quit(0)
 
 
