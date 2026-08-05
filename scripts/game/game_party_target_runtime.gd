@@ -6,6 +6,8 @@ const TARGET_HANDLER_METHODS: Array[StringName] = [
 	&"_on_active_party_target_requested"
 ]
 
+var _last_target_request_diagnostics: Dictionary = {}
+
 
 func _ready() -> void:
 	super._ready()
@@ -36,13 +38,44 @@ func _bind_active_party_target_button() -> void:
 
 func _on_active_party_target_requested() -> void:
 	_close_action_catalog_immediately()
+	var current_actor: Node = _turn_system.current_actor() if _turn_system.active else null
+	_last_target_request_diagnostics = {
+		"handler_called": true,
+		"handlers": get_target_button_handlers_for_testing(),
+		"controllable_ally_turn": _is_controllable_ally_turn(),
+		"input_locked": GameState.input_locked,
+		"attack_in_progress": _attack_in_progress,
+		"overlay_visible": _any_overlay_visible(),
+		"button_disabled": _target_button.disabled if _target_button != null else true,
+		"current_actor_id": current_actor.get_instance_id() if is_instance_valid(current_actor) else 0,
+		"ally_id": _controllable_ally.get_instance_id() if is_instance_valid(_controllable_ally) else 0,
+		"candidates": _target_candidate_diagnostics()
+	}
 	if not _is_controllable_ally_turn():
 		super._on_party_target_requested()
 		return
 	if GameState.input_locked or _attack_in_progress or _any_overlay_visible():
+		_last_target_request_diagnostics["status"] = "blocked"
 		return
 	_cycle_full_irina_target()
+	_last_target_request_diagnostics["status"] = "resolved"
+	_last_target_request_diagnostics["selected_target_id"] = get_party_target_instance_id_for_testing(_controllable_ally)
 	_refresh_party_menu()
+
+
+func _target_candidate_diagnostics() -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	for candidate_value: Variant in get_tree().get_nodes_in_group("combat_targets"):
+		if not candidate_value is Node:
+			continue
+		var candidate: Node = candidate_value as Node
+		result.append({
+			"name": candidate.name,
+			"id": candidate.get_instance_id(),
+			"active": candidate.has_method("is_combat_active") and bool(candidate.call("is_combat_active")),
+			"valid_for_irina": _full_irina_target_is_valid(candidate)
+		})
+	return result
 
 
 func _cycle_full_irina_target() -> void:
@@ -101,3 +134,7 @@ func get_target_button_handlers_for_testing() -> Array[String]:
 		if callable_value is Callable:
 			result.append(str((callable_value as Callable).get_method()))
 	return result
+
+
+func get_last_target_request_diagnostics_for_testing() -> Dictionary:
+	return _last_target_request_diagnostics.duplicate(true)
