@@ -9,6 +9,7 @@ from combat_idle_directional_cycles_builder_v14 import (
 from combat_idle_down_weapon_variants_profile_v09 import (
     load_weapon_stance_profile_v09,
 )
+from hit_down_cycle_profile_v01 import load_hit_down_cycle_profile_v01
 from hit_down_keyposes_profile_v01 import (
     HitDownPoseDeltaV01,
     load_hit_down_keyposes_profile_v01,
@@ -270,10 +271,16 @@ def _hit_channels(
     }
 
 
-def create_hit_down_keypose_actions_v01(context: factory.BuildContext) -> None:
+def _create_hit_action(
+    context: factory.BuildContext,
+    profile: object,
+    *,
+    animation_revision: str,
+    manual_keypose_review_required: bool,
+    manual_cycle_review_required: bool,
+) -> None:
     create_combat_idle_directional_cycles_v14(context)
     _assert_rig_contract(context)
-    profile = load_hit_down_keyposes_profile_v01(context.config.character_id)
     stance_profile = load_weapon_stance_profile_v09(context.config.character_id)
     stance_by_id = {item.variant_id: item for item in stance_profile.variants}
     stance = stance_by_id[profile.stance_variant_id]
@@ -289,7 +296,7 @@ def create_hit_down_keypose_actions_v01(context: factory.BuildContext) -> None:
         fps=profile.fps,
     )
     action["profile_revision"] = profile.revision
-    action["animation_revision"] = "keyposes_v01"
+    action["animation_revision"] = animation_revision
     action["animation_family"] = "hit_01"
     action["direction"] = profile.direction
     action["stance_variant_id"] = profile.stance_variant_id
@@ -298,9 +305,11 @@ def create_hit_down_keypose_actions_v01(context: factory.BuildContext) -> None:
     action["incoming_direction"] = profile.incoming_direction
     action["frame_count"] = len(profile.poses)
     action["phase_order"] = ",".join(profile.phase_order)
-    action["guard_exactly_matches_approved_source"] = True
+    action["approved_keyposes_preserved_exactly"] = True
     action["shared_reaction_motion"] = True
-    action["manual_keypose_review_required"] = True
+    action["manual_keypose_review_required"] = manual_keypose_review_required
+    action["manual_cycle_review_required"] = manual_cycle_review_required
+    action["full_hit_cycle_candidate"] = manual_cycle_review_required
     action["full_hit_cycle_not_yet_approved"] = True
     action["runtime_connected"] = False
     action["appearance_revision"] = profile.appearance_revision
@@ -314,12 +323,13 @@ def create_hit_down_keypose_actions_v01(context: factory.BuildContext) -> None:
     action.use_fake_user = True
 
     scene = factory.bpy.context.scene
-    scene["hit_down_keyposes_revision"] = profile.revision
-    scene["hit_down_keypose_action"] = action.name
-    scene["hit_down_keypose_frame_count"] = len(profile.poses)
+    scene["hit_down_profile_revision"] = profile.revision
+    scene["hit_down_action"] = action.name
+    scene["hit_down_frame_count"] = len(profile.poses)
     scene["hit_down_direction"] = profile.direction
     scene["hit_down_incoming_direction"] = profile.incoming_direction
-    scene["hit_down_manual_review_required"] = True
+    scene["hit_down_manual_keypose_review_required"] = manual_keypose_review_required
+    scene["hit_down_manual_cycle_review_required"] = manual_cycle_review_required
     scene["hit_down_full_cycle_not_yet_approved"] = True
     scene["hit_down_runtime_connected"] = False
     scene["hit_down_root_translation_used"] = False
@@ -327,3 +337,25 @@ def create_hit_down_keypose_actions_v01(context: factory.BuildContext) -> None:
     scene["hit_down_negative_scale_used"] = False
     scene["hit_down_geometry_changed"] = False
     scene["hit_down_material_changed"] = False
+
+
+def create_hit_down_keypose_actions_v01(context: factory.BuildContext) -> None:
+    profile = load_hit_down_keyposes_profile_v01(context.config.character_id)
+    _create_hit_action(
+        context,
+        profile,
+        animation_revision="keyposes_v01_pass02",
+        manual_keypose_review_required=True,
+        manual_cycle_review_required=False,
+    )
+
+
+def create_hit_down_cycle_actions_v01(context: factory.BuildContext) -> None:
+    profile = load_hit_down_cycle_profile_v01(context.config.character_id)
+    _create_hit_action(
+        context,
+        profile,
+        animation_revision="cycle_v01",
+        manual_keypose_review_required=False,
+        manual_cycle_review_required=True,
+    )
