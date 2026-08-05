@@ -19,9 +19,9 @@
   "rms_dbfs": -16.177,
   "boundary_value_delta": 0.0,
   "boundary_slope_delta": 5e-08,
-  "ogg_bytes": 1058824,
-  "ogg_sha256": "4f23483ef1803b048809f029f50675d18ca0d100e856ee5dece7859bac59bdeb",
-  "wav_sha256": "0991e37dfa89c68deb4dd9f53b1bf441aff5db4e37d6766a1db36068d0264c61",
+  "ogg_bytes": 1058816,
+  "ogg_sha256": "3795f0f9e1ae987ae15fa3a3bc8806a73046e2eab35f3a027f5ebc0eb91cae5f",
+  "wav_sha256": "6daca2d0bf52d3dc3e8af30dc75ee04c64d14fb7229c3a5669be7fefc595a738",
   "midi_sha256": "0834a5342f16b674f8580b796ecd6f4d3f0d625979c75a2ce98edcbe1bafdf13",
   "source_score_sha256": "35994e2e84594f0653f91063bc2790ea0859b587845828dccb58dfc86503001e"
 }
