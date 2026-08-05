@@ -13,9 +13,9 @@ func _init() -> void:
 
 
 func _watchdog() -> void:
-	await create_timer(25.0).timeout
+	await create_timer(35.0).timeout
 	if not _completed:
-		_fail("Ally control smoke timed out at stage: %s" % _stage)
+		_fail("Party control smoke timed out at stage: %s" % _stage)
 
 
 func _run() -> void:
@@ -36,140 +36,203 @@ func _run() -> void:
 	for _frame: int in range(18):
 		await process_frame
 
-	_stage = "locate_actors"
+	_stage = "locate_runtime"
 	var player: Node = game.get_node_or_null("Player")
 	var ally: Node = game.call("get_controllable_ally_for_testing")
 	var mobile_controls: Node = game.get_node_or_null("Interface/MobileControls")
 	var action_catalog: Node = game.get_node_or_null("Interface/ActionCatalogUI")
-	var available_value: Variant = game.call("_available_targets")
-	var opponents: Array[Node] = []
-	if available_value is Array:
-		for value: Variant in available_value as Array:
-			if value is Node and is_instance_valid(value as Node):
-				opponents.append(value as Node)
-	if player == null or ally == null or mobile_controls == null or action_catalog == null or opponents.is_empty():
-		_fail("Required combat actors or mobile UI nodes are missing.")
+	var target_button: Button = game.get("_target_button") as Button
+	var opponents: Array[Node] = _available_opponents(game)
+	if player == null or ally == null or mobile_controls == null or action_catalog == null or target_button == null or opponents.size() < 2:
+		_fail("Required party actors, two targets, or mobile UI nodes are missing.")
 		return
 	var mobile_script: Script = mobile_controls.get_script() as Script
 	if mobile_script == null or mobile_script.resource_path != EXPECTED_MOBILE_SCRIPT:
 		_fail("Game scene does not use the party-aware mobile controls runtime.")
 		return
-	var opponent: Node = opponents[0]
+	mobile_controls.call("enable_for_testing")
+
+	var first_target: Node = opponents[0]
+	var second_target: Node = opponents[1]
 	var turn_system: TurnBasedCombatSystem = game.get("_turn_system") as TurnBasedCombatSystem
 	turn_system.set_pending_player_controlled_actors([ally])
 	turn_system.start_combat(
 		player,
-		[opponent],
+		opponents,
 		0,
 		{
-			player.get_instance_id(): 10,
+			player.get_instance_id(): 20,
 			ally.get_instance_id(): 18,
-			opponent.get_instance_id(): 5
+			first_target.get_instance_id(): 10,
+			second_target.get_instance_id(): 8
 		}
 	)
 	game.call("_begin_current_turn")
-	if not turn_system.is_actor_turn(ally):
-		_fail("Irna did not receive the first deterministic turn.")
-		return
-	mobile_controls.call("enable_for_testing")
 
-	_stage = "mobile_movement"
-	var moved: bool = false
-	for direction: Vector2 in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
-		var position_before: Vector2 = (ally as Node2D).global_position
-		mobile_controls.call("move_joystick_for_testing", direction)
-		for _frame: int in range(3):
-			await process_frame
-		mobile_controls.call("move_joystick_for_testing", Vector2.ZERO)
-		await process_frame
-		if not (ally as Node2D).global_position.is_equal_approx(position_before):
-			moved = true
-			break
-	if not moved or turn_system.movement_remaining_feet >= int(ally.call("get_combat_speed_feet")):
-		_fail("Real mobile joystick input did not move Irna or spend movement.")
+	_stage = "hero_context"
+	if not turn_system.is_actor_turn(player):
+		_fail("The hero did not receive the deterministic first turn.")
+		return
+	if int(game.call("get_active_controlled_actor_instance_id_for_testing")) != player.get_instance_id():
+		_fail("The hero is not the active input owner on the hero turn.")
+		return
+	game.call("set_party_target_for_testing", player, first_target)
+	if int(game.call("get_party_target_instance_id_for_testing", player)) != first_target.get_instance_id():
+		_fail("The hero target was not stored in the hero control context.")
+		return
+	var hero_action_before: bool = turn_system.action_available
+	var hero_movement_before: int = turn_system.movement_remaining_feet
+	if not hero_action_before or hero_movement_before <= 0:
+		_fail("The hero did not receive an independent action and movement budget.")
 		return
 
-	_stage = "mobile_action_catalog"
+	_stage = "ally_context"
 	game.call("force_controllable_ally_turn_for_testing")
+	await process_frame
+	if int(game.call("get_active_controlled_actor_instance_id_for_testing")) != ally.get_instance_id():
+		_fail("Irna is not the active input owner on her initiative turn.")
+		return
+	if int(game.call("get_party_target_instance_id_for_testing", ally)) != 0:
+		_fail("Irna inherited the hero target instead of receiving a separate target context.")
+		return
+	if int(game.call("get_party_target_instance_id_for_testing", player)) != first_target.get_instance_id():
+		_fail("Switching to Irna erased the hero target context.")
+		return
+
+	_stage = "real_target_button"
+	target_button.emit_signal("pressed")
+	await process_frame
+	if int(game.call("get_party_target_instance_id_for_testing", ally)) == 0:
+		_fail("The real target button did not select a target for Irna.")
+		return
+	game.call("set_party_target_for_testing", ally, second_target)
+	if int(game.call("get_party_target_instance_id_for_testing", ally)) != second_target.get_instance_id():
+		_fail("Irna could not retain her own selected target.")
+		return
+	if int(game.call("get_party_target_instance_id_for_testing", player)) != first_target.get_instance_id():
+		_fail("Irna target selection overwrote the hero target.")
+		return
+
+	_stage = "ally_planned_movement"
+	var hero_position_before: Vector2 = (player as Node2D).global_position
+	var ally_position_before: Vector2 = (ally as Node2D).global_position
+	var ally_movement_before: int = turn_system.movement_remaining_feet
+	var route_created: bool = await _create_route_with_mobile_joystick(game, mobile_controls, ally)
+	if not route_created:
+		_fail("The mobile joystick could not create an independent route for Irna.")
+		return
+	if int(game.call("get_planned_movement_owner_instance_id_for_testing")) != ally.get_instance_id():
+		_fail("The planned route is not owned by Irna.")
+		return
+	if not (ally as Node2D).global_position.is_equal_approx(ally_position_before):
+		_fail("Irna moved before her route was confirmed.")
+		return
+	if not (player as Node2D).global_position.is_equal_approx(hero_position_before):
+		_fail("Planning Irna movement changed the hero position.")
+		return
+
+	_stage = "ally_confirm_movement"
+	action_catalog.emit_signal("action_requested", "confirm_move")
+	for _frame: int in range(20):
+		await process_frame
+	if (ally as Node2D).global_position.is_equal_approx(ally_position_before):
+		_fail("Confirming Irna movement did not move Irna.")
+		return
+	if not (player as Node2D).global_position.is_equal_approx(hero_position_before):
+		_fail("Confirming Irna movement moved the hero.")
+		return
+	if turn_system.movement_remaining_feet >= ally_movement_before:
+		_fail("Irna movement did not consume Irna's movement budget.")
+		return
+
+	_stage = "ally_action_catalog"
+	game.call("force_controllable_ally_turn_for_testing")
+	game.call("set_party_target_for_testing", ally, second_target)
+	if not bool(game.call("place_controllable_ally_adjacent_for_testing", second_target)):
+		_fail("Could not place Irna beside her selected target for the attack test.")
+		return
 	mobile_controls.call("simulate_actions_touch_for_testing")
 	for _frame: int in range(3):
 		await process_frame
 	if not bool(action_catalog.call("is_catalog_open")):
-		_fail("The real mobile Actions button could not keep Irna's catalogue open.")
+		_fail("The real Actions button could not open Irna's own action catalogue.")
 		return
 	var entries: Dictionary = action_catalog.call("get_entries_for_testing") as Dictionary
-	if not _catalog_has_action(entries, "attack") or not _catalog_has_action(entries, "dodge") or not _catalog_has_action(entries, "end_turn"):
-		_fail("Irna's mobile catalogue is missing required actions: %s" % JSON.stringify(entries))
-		return
-	action_catalog.emit_signal("action_requested", "dodge")
-	await process_frame
-	if turn_system.action_available or not bool(ally.call("is_dodging")):
-		_fail("Irna Dodge did not execute through the real action catalogue signal.")
-		return
-	action_catalog.call("close_catalog")
-
-	_stage = "dash"
-	game.call("force_controllable_ally_turn_for_testing")
-	var base_speed: int = int(ally.call("get_combat_speed_feet"))
-	game.call("_on_dash_requested")
-	if turn_system.action_available or turn_system.movement_remaining_feet != base_speed * 2:
-		_fail("Irna Dash did not consume action and double movement.")
-		return
-
-	_stage = "disengage"
-	game.call("force_controllable_ally_turn_for_testing")
-	game.call("_on_disengage_requested")
-	if turn_system.action_available or not turn_system.disengaged:
-		_fail("Irna Disengage contract failed.")
-		return
-
-	_stage = "end_turn_catalog"
-	game.call("force_controllable_ally_turn_for_testing")
-	action_catalog.emit_signal("action_requested", "end_turn")
-	await process_frame
-	if turn_system.active and turn_system.is_actor_turn(ally):
-		_fail("Action catalogue End Turn did not advance away from Irna.")
-		return
-
-	_stage = "attack"
-	if not turn_system.active:
-		turn_system.set_pending_player_controlled_actors([ally])
-		turn_system.start_combat(
-			player,
-			[opponent],
-			0,
-			{
-				player.get_instance_id(): 10,
-				ally.get_instance_id(): 18,
-				opponent.get_instance_id(): 5
-			}
-		)
-	game.call("force_controllable_ally_turn_for_testing")
-	if not bool(game.call("place_controllable_ally_adjacent_for_testing", opponent)):
-		_fail("Could not place Irna in a legal adjacent test cell.")
-		return
-	var attack: Dictionary = await game.call(
-		"perform_controllable_ally_attack_for_testing",
-		opponent,
-		20
-	) as Dictionary
-	if not bool(attack.get("success", false)) or not bool(attack.get("hit", false)):
-		_fail("Irna production attack did not resolve as a hit: %s" % attack)
-		return
+	for required_action: String in ["select_ally_target", "attack", "dash", "disengage", "dodge", "end_turn"]:
+		if not _catalog_has_action(entries, required_action):
+			_fail("Irna's catalogue is missing action '%s': %s" % [required_action, JSON.stringify(entries)])
+			return
+	action_catalog.emit_signal("action_requested", "attack")
+	for _frame: int in range(4):
+		await process_frame
 	if turn_system.action_available:
-		_fail("Irna attack did not consume the primary action.")
+		_fail("Irna attack did not consume Irna's primary action.")
 		return
 
-	var attack_popup: Control = game.get("_attack_popup") as Control
-	if attack_popup != null:
-		attack_popup.hide()
+	_stage = "hero_context_restored"
+	game.call("force_player_turn_for_testing")
+	await process_frame
+	if int(game.call("get_active_controlled_actor_instance_id_for_testing")) != player.get_instance_id():
+		_fail("Control did not return to the hero on the hero initiative turn.")
+		return
+	if int(game.call("get_party_target_instance_id_for_testing", player)) != first_target.get_instance_id():
+		_fail("The hero target was not restored after Irna's turn.")
+		return
+	if int(game.call("get_party_target_instance_id_for_testing", ally)) != second_target.get_instance_id():
+		_fail("Irna target was lost after control returned to the hero.")
+		return
+	if not turn_system.action_available:
+		_fail("Irna spending her action also spent the hero action.")
+		return
+	if turn_system.movement_remaining_feet != int((player as Node).call("get_combat_speed_feet")):
+		_fail("The hero did not receive a fresh movement budget on the hero turn.")
+		return
+
+	_stage = "hero_route_owner"
+	var ally_position_after_turn: Vector2 = (ally as Node2D).global_position
+	var hero_route_created: bool = await _create_route_with_mobile_joystick(game, mobile_controls, player)
+	if not hero_route_created:
+		_fail("The same mobile joystick could not create the hero's separate route.")
+		return
+	if int(game.call("get_planned_movement_owner_instance_id_for_testing")) != player.get_instance_id():
+		_fail("The hero route is not owned by the hero.")
+		return
+	if not (ally as Node2D).global_position.is_equal_approx(ally_position_after_turn):
+		_fail("Planning the hero route changed Irna's position.")
+		return
+
 	if turn_system.active:
-		game.call("_stop_turn_based_combat", "Control smoke complete.")
+		game.call("_stop_turn_based_combat", "Party control smoke complete.")
 	game.queue_free()
 	await process_frame
 	_completed = true
-	print("Controllable ally mobile joystick, action catalogue, turn actions and attack smoke passed.")
+	print("Independent hero and Irna initiative, movement, action and target contexts passed.")
 	quit(0)
+
+
+func _create_route_with_mobile_joystick(game: Node, mobile_controls: Node, expected_owner: Node) -> bool:
+	game.call("_clear_movement_plan")
+	for direction: Vector2 in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
+		mobile_controls.call("move_joystick_for_testing", direction)
+		for _frame: int in range(4):
+			await process_frame
+		mobile_controls.call("release_joystick_for_testing")
+		await process_frame
+		var path: Array = game.call("get_planned_path_for_testing") as Array
+		if path.size() > 1 and int(game.call("get_planned_movement_owner_instance_id_for_testing")) == expected_owner.get_instance_id():
+			return true
+		game.call("_clear_movement_plan")
+	return false
+
+
+func _available_opponents(game: Node) -> Array[Node]:
+	var result: Array[Node] = []
+	var available_value: Variant = game.call("_available_targets")
+	if available_value is Array:
+		for value: Variant in available_value as Array:
+			if value is Node and is_instance_valid(value as Node):
+				result.append(value as Node)
+	return result
 
 
 func _catalog_has_action(entries: Dictionary, action_id: String) -> bool:
@@ -184,7 +247,7 @@ func _catalog_has_action(entries: Dictionary, action_id: String) -> bool:
 
 func _make_hero() -> PlayerCharacter:
 	var hero := PlayerCharacter.new()
-	hero.character_name = "Испытатель управления"
+	hero.character_name = "Испытатель партийного управления"
 	hero.character_class_id = "fighter"
 	hero.character_class_name = "Воин"
 	hero.race_id = "human"
