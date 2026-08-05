@@ -8,6 +8,7 @@ const REPLACED_CATALOG_METHODS: Array[StringName] = [
 
 var _last_party_action_id: String = ""
 var _last_party_action_result: Dictionary = {}
+var _last_test_placement: Dictionary = {}
 
 
 func _ready() -> void:
@@ -76,6 +77,7 @@ func _on_party_catalog_action_requested(action_id: String) -> void:
 			_last_party_action_result["selected_target_id"] = selected_before.get_instance_id() if is_instance_valid(selected_before) else 0
 			_last_party_action_result["selected_target_name"] = _target_name(selected_before) if is_instance_valid(selected_before) else ""
 			_last_party_action_result["target_position"] = [target_position_before.x, target_position_before.y]
+			_last_party_action_result["placement_snapshot"] = _last_test_placement.duplicate(true)
 		"dash":
 			var dash_action_before: bool = _turn_system.action_available
 			_on_dash_requested()
@@ -136,6 +138,29 @@ func force_controllable_ally_turn_for_testing() -> void:
 	# the ally receives input or opens her Actions catalogue.
 	_call_ally("set_turn_based_mode", [true])
 	super.force_controllable_ally_turn_for_testing()
+
+
+func place_controllable_ally_adjacent_for_testing(target: Node) -> bool:
+	var placed: bool = super.place_controllable_ally_adjacent_for_testing(target)
+	var ally_position: Vector2 = (
+		(_controllable_ally as Node2D).global_position
+		if _controllable_ally is Node2D
+		else Vector2.INF
+	)
+	var target_position: Vector2 = (
+		(target as Node2D).global_position
+		if target is Node2D
+		else Vector2.INF
+	)
+	_last_test_placement = {
+		"placed": placed,
+		"ally_position": [ally_position.x, ally_position.y],
+		"target_id": target.get_instance_id() if is_instance_valid(target) else 0,
+		"target_name": _target_name(target) if is_instance_valid(target) else "",
+		"target_position": [target_position.x, target_position.y],
+		"distance_feet": DistanceSystem.distance_feet(ally_position, target_position) if placed else -1
+	}
+	return placed
 
 
 func get_catalog_action_handler_methods_for_testing() -> Array[String]:
