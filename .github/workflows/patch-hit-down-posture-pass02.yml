@@ -1,0 +1,45 @@
+name: Patch hit down posture pass02
+
+on:
+  push:
+    branches:
+      - tools/human-warrior-hit-down-keyposes-v01
+    paths:
+      - ".github/workflows/patch-hit-down-posture-pass02.yml"
+      - "tools/blender_sprite_factory/patch_hit_down_posture_pass02.py"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: patch-hit-down-posture-pass02-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 10
+    steps:
+      - name: Checkout art branch
+        uses: actions/checkout@v4
+        with:
+          ref: tools/human-warrior-hit-down-keyposes-v01
+
+      - name: Apply posture correction
+        run: python3 tools/blender_sprite_factory/patch_hit_down_posture_pass02.py
+
+      - name: Commit corrected profile and tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add \
+            tools/blender_sprite_factory/hit_down_keyposes_profile_v01.py \
+            tools/blender_sprite_factory/tests/test_hit_down_keyposes_v01.py
+          if git diff --cached --quiet; then
+            echo "Posture pass02 is already applied."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "art: развернуть наклон hit_down назад pass02"
+          git push origin HEAD:tools/human-warrior-hit-down-keyposes-v01
