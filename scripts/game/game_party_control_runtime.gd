@@ -18,6 +18,9 @@ func _ready() -> void:
 func _bind_party_action_catalog() -> void:
 	if _action_catalog_ui == null:
 		return
+	var social_controller: CombatSocialTerrainController = _combat_social_controller()
+	if social_controller != null:
+		social_controller.use_external_catalog_dispatch()
 	var signal_name: StringName = &"action_requested"
 	var stale_connections: Array[Callable] = []
 	for connection_value: Variant in _action_catalog_ui.get_signal_connection_list(signal_name):
@@ -39,7 +42,8 @@ func _bind_party_action_catalog() -> void:
 	if not _action_catalog_ui.is_connected(signal_name, feedback_handler):
 		_action_catalog_ui.connect(signal_name, feedback_handler)
 	var party_handler := Callable(self, PARTY_CATALOG_METHOD)
-	_action_catalog_ui.connect(signal_name, party_handler)
+	if not _action_catalog_ui.is_connected(signal_name, party_handler):
+		_action_catalog_ui.connect(signal_name, party_handler)
 
 
 func _on_feedback_catalog_action_requested(action_id: String) -> void:
@@ -47,7 +51,25 @@ func _on_feedback_catalog_action_requested(action_id: String) -> void:
 		return
 	if _turn_system.active and not _turn_system.is_actor_turn(player):
 		return
+	if action_id == "combat_dialogue" or action_id.begins_with("social:"):
+		var social_controller: CombatSocialTerrainController = _combat_social_controller()
+		if social_controller != null and social_controller.handle_catalog_action(action_id):
+			return
 	super._on_feedback_catalog_action_requested(action_id)
+
+
+func _combat_social_controller() -> CombatSocialTerrainController:
+	return _find_combat_social_controller(self)
+
+
+func _find_combat_social_controller(root_node: Node) -> CombatSocialTerrainController:
+	for child: Node in root_node.get_children():
+		if child is CombatSocialTerrainController:
+			return child as CombatSocialTerrainController
+		var nested: CombatSocialTerrainController = _find_combat_social_controller(child)
+		if nested != null:
+			return nested
+	return null
 
 
 func _remember_target_for_active_actor() -> void:
@@ -108,8 +130,6 @@ func _refresh_action_catalog() -> void:
 
 
 func _build_irna_catalog_entries(context_target: Node) -> Dictionary:
-	# Build the inherited Irna catalogue after synchronizing the shared visual
-	# pointer, then apply availability from the actor-specific target context.
 	var entries: Dictionary = super._build_catalog_entries()
 	var context_target_valid: bool = _target_is_valid(context_target)
 	var distance_feet: int = -1
