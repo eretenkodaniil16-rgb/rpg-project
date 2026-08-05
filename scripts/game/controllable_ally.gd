@@ -7,7 +7,7 @@ const DEFAULT_FOLLOW_SPEED_PIXELS: float = 150.0
 const MELEE_REACH_FEET: int = 5
 
 @export var character_id: String = "companion_irna_guard_01"
-@export var combat_name: String = "Ирна"
+@export var combat_name: String = "Ирина"
 @export var armor_class: int = 14
 @export var maximum_health: int = 12
 @export var initiative_modifier: int = 2
@@ -39,6 +39,7 @@ var _manual_control_enabled: bool = false
 var _manual_move_vector: Vector2 = Vector2.ZERO
 var _turn_marker: Label = null
 var _status_label: Label = null
+var _game_world: Node = null
 var _dice: DiceRoller = DiceRoller.new()
 
 
@@ -51,13 +52,19 @@ func _ready() -> void:
 		current_health = maximum_health
 	if name_label != null:
 		name_label.text = combat_name
+	_resolve_game_world()
 	_build_runtime_labels()
 	_update_combat_visuals()
 
 
 func _physics_process(_delta: float) -> void:
-	if _turn_based_mode or current_health <= 0 or _combat_state.dead:
+	# The active initiative owned by game-world is the authoritative phase source.
+	# The local flag remains a fast mirror, but a delayed save restore or a testing
+	# entry point must never re-enable exploration follow while combat is active.
+	if _combat_session_active() or current_health <= 0 or _combat_state.dead:
 		velocity = Vector2.ZERO
+		_manual_move_vector = Vector2.ZERO
+		_follow_engaged = false
 		return
 	var state: Node = get_tree().root.get_node_or_null("GameState")
 	if state != null and bool(state.get("input_locked")):
@@ -67,6 +74,22 @@ func _physics_process(_delta: float) -> void:
 		_process_manual_exploration_movement()
 		return
 	_process_follow_movement()
+
+
+func _combat_session_active() -> bool:
+	if _turn_based_mode:
+		return true
+	_resolve_game_world()
+	return (
+		is_instance_valid(_game_world)
+		and _game_world.has_method("is_party_combat_active")
+		and bool(_game_world.call("is_party_combat_active"))
+	)
+
+
+func _resolve_game_world() -> void:
+	if not is_instance_valid(_game_world):
+		_game_world = get_tree().get_first_node_in_group("game_world")
 
 
 func _process_manual_exploration_movement() -> void:
@@ -103,24 +126,28 @@ func _process_follow_movement() -> void:
 
 
 func set_manual_control_enabled(value: bool) -> void:
-	_manual_control_enabled = value
+	_manual_control_enabled = value and not _combat_session_active()
 	_manual_move_vector = Vector2.ZERO
 	_follow_engaged = false
 	velocity = Vector2.ZERO
 
 
 func set_manual_move_vector(direction: Vector2) -> void:
-	_manual_move_vector = direction.limit_length(1.0) if _manual_control_enabled else Vector2.ZERO
+	_manual_move_vector = (
+		direction.limit_length(1.0)
+		if _manual_control_enabled and not _combat_session_active()
+		else Vector2.ZERO
+	)
 
 
 func is_manual_control_enabled() -> bool:
-	return _manual_control_enabled
+	return _manual_control_enabled and not _combat_session_active()
 
 
 func is_following_player() -> bool:
 	return (
 		not _manual_control_enabled
-		and not _turn_based_mode
+		and not _combat_session_active()
 		and current_health > 0
 		and not _combat_state.dead
 	)
@@ -128,6 +155,10 @@ func is_following_player() -> bool:
 
 func get_manual_move_vector_for_testing() -> Vector2:
 	return _manual_move_vector
+
+
+func is_combat_phase_active_for_testing() -> bool:
+	return _combat_session_active()
 
 
 func get_actor_id() -> String:
@@ -194,7 +225,10 @@ func set_turn_based_mode(value: bool) -> void:
 	_turn_based_mode = value
 	_manual_move_vector = Vector2.ZERO
 	velocity = Vector2.ZERO
-	if not value:
+	_follow_engaged = false
+	if value:
+		_manual_control_enabled = false
+	else:
 		_turn_active = false
 		_dodging = false
 	_update_combat_visuals()
@@ -337,7 +371,7 @@ func build_basic_attack_result(target: Node, roll_override: int = -1) -> AttackR
 	if distance > MELEE_REACH_FEET:
 		result.out_of_range = true
 		result.automatic_miss = true
-		result.note = "Ирна должна находиться в соседней клетке."
+		result.note = "Ирина должна находиться в соседней клетке."
 		return result
 	var natural: int = clampi(roll_override, 1, 20) if roll_override >= 1 else _dice.roll_die(20)
 	var target_ac: int = int(target.call("get_armor_class")) if target.has_method("get_armor_class") else 10
@@ -356,7 +390,7 @@ func build_basic_attack_result(target: Node, roll_override: int = -1) -> AttackR
 			damage += _dice.roll_die(maxi(damage_die, 2))
 		result.damage = maxi(damage, 0)
 	else:
-		result.note = "Атака Ирны не достигает цели."
+		result.note = "Атака Ирины не достигает цели."
 	return result
 
 
@@ -408,6 +442,8 @@ func restore_world_state(state: Dictionary) -> void:
 	defeated = bool(state.get("defeated", false)) or _combat_state.dead
 	hostile = false
 	_turn_active = false
+	# The local phase mirror may be restored later by game-world. Until then,
+	# _combat_session_active() still prevents follow movement during initiative.
 	_turn_based_mode = false
 	_manual_control_enabled = false
 	_manual_move_vector = Vector2.ZERO
