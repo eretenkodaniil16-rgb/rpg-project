@@ -10,9 +10,17 @@ func _initialize() -> void:
 
 
 func _run() -> void:
+	var music_manager: Node = root.get_node_or_null("MusicManager")
+	assert(music_manager != null, "MusicManager autoload is missing")
+	assert(music_manager.has_method("get_bus_volume_linear"), "MusicManager volume getter is missing")
+	assert(music_manager.has_method("set_bus_volume_linear"), "MusicManager volume setter is missing")
 	var original_reduced_motion: bool = InterfaceSettingsStore.load_and_apply()
-	var original_master_volume: float = MusicManager.get_bus_volume_linear(MASTER_BUS)
-	var original_music_volume: float = MusicManager.get_bus_volume_linear(MUSIC_BUS)
+	var original_master_volume: float = float(
+		music_manager.call("get_bus_volume_linear", MASTER_BUS)
+	)
+	var original_music_volume: float = float(
+		music_manager.call("get_bus_volume_linear", MUSIC_BUS)
+	)
 
 	var packed: PackedScene = load(MAIN_MENU_SCENE) as PackedScene
 	assert(packed != null, "Main menu scene must load")
@@ -60,11 +68,17 @@ func _run() -> void:
 	music_slider.value = 46.0
 	await process_frame
 	assert(
-		is_equal_approx(MusicManager.get_bus_volume_linear(MASTER_BUS), 0.37),
+		is_equal_approx(
+			float(music_manager.call("get_bus_volume_linear", MASTER_BUS)),
+			0.37
+		),
 		"Master volume was not applied through MusicManager"
 	)
 	assert(
-		is_equal_approx(MusicManager.get_bus_volume_linear(MUSIC_BUS), 0.46),
+		is_equal_approx(
+			float(music_manager.call("get_bus_volume_linear", MUSIC_BUS)),
+			0.46
+		),
 		"Music volume was not applied through MusicManager"
 	)
 
@@ -89,8 +103,18 @@ func _run() -> void:
 	assert(not settings_panel.is_open(), "Settings panel must close")
 	assert(settings_button.focus_mode == Control.FOCUS_ALL, "Menu focus must be restored")
 
-	MusicManager.set_bus_volume_linear(MASTER_BUS, original_master_volume, true)
-	MusicManager.set_bus_volume_linear(MUSIC_BUS, original_music_volume, true)
+	music_manager.call(
+		"set_bus_volume_linear",
+		MASTER_BUS,
+		original_master_volume,
+		true
+	)
+	music_manager.call(
+		"set_bus_volume_linear",
+		MUSIC_BUS,
+		original_music_volume,
+		true
+	)
 	InterfaceSettingsStore.set_reduced_motion_enabled(original_reduced_motion)
 	menu.queue_free()
 	await process_frame
