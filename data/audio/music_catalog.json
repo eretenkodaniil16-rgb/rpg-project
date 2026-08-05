@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "catalog_id": "chronicles_of_the_wanderer_music_v01",
-  "asset_status": "awaiting_original_audio",
+  "asset_status": "main_theme_prototype_ready_for_review",
   "contexts": {
     "main_menu": {
       "track_id": "main_theme",
