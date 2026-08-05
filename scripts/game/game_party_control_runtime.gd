@@ -115,6 +115,14 @@ func start_party_combat_for_testing(
 	_begin_current_turn()
 
 
+func force_controllable_ally_turn_for_testing() -> void:
+	# Some focused tests start the domain turn system directly. Preserve the same
+	# invariant as production combat: exploration following must be disabled before
+	# the ally receives input or opens her Actions catalogue.
+	_call_ally("set_turn_based_mode", [true])
+	super.force_controllable_ally_turn_for_testing()
+
+
 func get_catalog_action_handler_methods_for_testing() -> Array[String]:
 	var result: Array[String] = []
 	if _action_catalog_ui == null:
