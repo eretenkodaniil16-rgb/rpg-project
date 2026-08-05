@@ -51,7 +51,8 @@ def _point(curve: object, frame_number: int) -> object:
         if abs(float(point.co[0]) - float(frame_number)) <= 1.0e-4:
             return point
     raise RuntimeError(
-        "onehand directional v22 missing keyframe: "n        f"{curve.data_path}[{curve.array_index}]@{frame_number}"
+        "onehand directional v22 missing keyframe: "
+        f"{curve.data_path}[{curve.array_index}]@{frame_number}"
     )
 
 
