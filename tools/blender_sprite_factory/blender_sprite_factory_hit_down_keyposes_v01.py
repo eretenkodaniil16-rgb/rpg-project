@@ -237,7 +237,7 @@ def _write_cycle_sheet(
                     tile_width,
                     tile_height,
                     column_index * tile_width,
-                    row_index * tile_height,
+                    (len(profiles) - 1 - row_index) * tile_height,
                 )
             finally:
                 factory.bpy.data.images.remove(image)
