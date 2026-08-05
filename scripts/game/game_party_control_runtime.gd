@@ -55,25 +55,25 @@ func _on_party_catalog_action_requested(action_id: String) -> void:
 		"attack":
 			_last_party_action_result = _request_controllable_ally_attack()
 		"dash":
-			var action_before: bool = _turn_system.action_available
+			var dash_action_before: bool = _turn_system.action_available
 			_on_dash_requested()
 			_last_party_action_result = {
-				"success": action_before and not _turn_system.action_available,
-				"status": "dash_resolved" if action_before and not _turn_system.action_available else "dash_rejected"
+				"success": dash_action_before and not _turn_system.action_available,
+				"status": "dash_resolved" if dash_action_before and not _turn_system.action_available else "dash_rejected"
 			}
 		"disengage":
-			var action_before: bool = _turn_system.action_available
+			var disengage_action_before: bool = _turn_system.action_available
 			_on_disengage_requested()
 			_last_party_action_result = {
-				"success": action_before and not _turn_system.action_available,
-				"status": "disengage_resolved" if action_before and not _turn_system.action_available else "disengage_rejected"
+				"success": disengage_action_before and not _turn_system.action_available,
+				"status": "disengage_resolved" if disengage_action_before and not _turn_system.action_available else "disengage_rejected"
 			}
 		"dodge":
-			var action_before: bool = _turn_system.action_available
+			var dodge_action_before: bool = _turn_system.action_available
 			_on_dodge_requested()
 			_last_party_action_result = {
-				"success": action_before and not _turn_system.action_available,
-				"status": "dodge_resolved" if action_before and not _turn_system.action_available else "dodge_rejected"
+				"success": dodge_action_before and not _turn_system.action_available,
+				"status": "dodge_resolved" if dodge_action_before and not _turn_system.action_available else "dodge_rejected"
 			}
 		"end_turn":
 			_on_end_turn_requested()
