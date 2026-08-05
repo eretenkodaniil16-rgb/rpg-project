@@ -8,7 +8,7 @@ const IRINA_ACTION_LABELS: Dictionary = {
 	"disengage": "ОТХОД",
 	"dodge": "УКЛОНЕНИЕ",
 	"end_turn": "ЗАВЕРШИТЬ ХОД",
-	"reaction_status": "РЕАКЦИЯ"
+	"ally_reaction_status": "РЕАКЦИЯ"
 }
 
 
@@ -120,8 +120,8 @@ func _normalize_irina_action_entry(entry: Dictionary) -> void:
 	var action_id: String = str(entry.get("id", ""))
 	if IRINA_ACTION_LABELS.has(action_id):
 		var label: String = str(IRINA_ACTION_LABELS[action_id])
-		if action_id == "reaction_status":
-			label += " ГОТОВА" if bool(entry.get("enabled", false)) else " ИСПОЛЬЗОВАНА"
+		if action_id == "ally_reaction_status":
+			label += " ГОТОВА" if _turn_system.has_reaction(_controllable_ally) else " ИСПОЛЬЗОВАНА"
 		entry["label"] = label
 	match action_id:
 		"confirm_move":
@@ -136,7 +136,7 @@ func _normalize_irina_action_entry(entry: Dictionary) -> void:
 			entry["description"] = "Атаки видимых противников совершаются с помехой до следующего хода."
 		"end_turn":
 			entry["description"] = "Завершить текущий ход."
-		"reaction_status":
+		"ally_reaction_status":
 			entry["description"] = "Реакция текущего персонажа."
 
 
