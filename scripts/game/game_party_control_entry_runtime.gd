@@ -1,6 +1,16 @@
 extends "res://scripts/game/game_party_control_runtime.gd"
 
 
+func _on_catalog_action_requested(action_id: String) -> void:
+	# Keep the legacy direct runtime facade stable for tests and integrations.
+	# The UI signal itself remains connected only to the two actor-gated handlers,
+	# so this compatibility entry point cannot execute an action twice.
+	if _is_controllable_ally_turn():
+		_on_party_catalog_action_requested(action_id)
+		return
+	_on_feedback_catalog_action_requested(action_id)
+
+
 func refresh_active_party_action_catalog() -> void:
 	if not _is_controllable_ally_turn() or _action_catalog_ui == null:
 		return
