@@ -27,6 +27,13 @@ ONEHAND_EDGE_ALPHA_EXCEPTIONS = {
     ("down", 7): {"left": 4, "right": 0, "top": 0, "bottom": 0},
     ("down", 8): {"left": 5, "right": 0, "top": 0, "bottom": 0},
 }
+ONEHAND_FIRST_LAST_IDENTICAL = {
+    "down": True,
+    "left": False,
+    "right": True,
+    "up": False,
+}
+TWOHAND_FIRST_LAST_IDENTICAL = {direction: True for direction in DIRECTIONS}
 
 
 def _parse_args() -> argparse.Namespace:
@@ -108,6 +115,7 @@ def _assemble_atlas(
     output_path: Path,
     *,
     edge_exceptions: dict[tuple[str, int], dict[str, int]],
+    expected_first_last_identical: dict[str, bool],
 ) -> dict[str, object]:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     atlas = Image.new(
@@ -132,11 +140,14 @@ def _assemble_atlas(
             frame_key = f"{direction}/f{frame_number:02d}"
             frame_hashes[frame_key] = hashlib.sha256(path.read_bytes()).hexdigest()
             edge_contract[frame_key] = expected_edges
-        first_last_identical[direction] = (
-            direction_images[0].tobytes() == direction_images[-1].tobytes()
-        )
-        if not first_last_identical[direction]:
-            raise RuntimeError(f"f01/f08 mismatch for {direction}: {output_path.name}")
+
+        identical = direction_images[0].tobytes() == direction_images[-1].tobytes()
+        first_last_identical[direction] = identical
+        if identical != bool(expected_first_last_identical[direction]):
+            raise RuntimeError(
+                f"f01/f08 contract drift for {direction}: "
+                f"actual={identical}, expected={expected_first_last_identical[direction]}"
+            )
 
     atlas.save(output_path, format="PNG", optimize=False, compress_level=9)
     return {
@@ -178,12 +189,14 @@ def main() -> int:
         args.onehand_root,
         onehand_path,
         edge_exceptions=ONEHAND_EDGE_ALPHA_EXCEPTIONS,
+        expected_first_last_identical=ONEHAND_FIRST_LAST_IDENTICAL,
     )
     twohand = _assemble_atlas(
         _find_twohand_frame,
         args.twohand_root,
         twohand_path,
         edge_exceptions={},
+        expected_first_last_identical=TWOHAND_FIRST_LAST_IDENTICAL,
     )
 
     payload = {
