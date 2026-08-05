@@ -95,6 +95,26 @@
       "fps": 12.0,
       "loop": false,
       "edge_alpha_required": true,
+      "edge_alpha_exceptions": {
+        "down/f01": {
+          "left": 5,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "down/f07": {
+          "left": 4,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "down/f08": {
+          "left": 5,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        }
+      },
       "first_last_identical": true
     },
     "attack_sword_01_twohand": {
@@ -104,6 +124,7 @@
       "fps": 12.0,
       "loop": false,
       "edge_alpha_required": true,
+      "edge_alpha_exceptions": {},
       "first_last_identical": true
     }
   }
