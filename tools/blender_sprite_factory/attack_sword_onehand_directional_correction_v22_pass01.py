@@ -19,23 +19,24 @@ FRAME_WEIGHTS = {
     6: 0.55,
 }
 
-# Small action-local rotations only. They preserve the source timing and
-# trajectory while improving the projected sword-arm silhouette.
+# Extremely small action-local rotations only. Direction comes from the real
+# rig rotation; these deltas only preserve weapon-arm readability and remove
+# local projection collisions without changing the attack character.
 BONE_DELTAS_DEGREES_BY_DIRECTION = {
     "left": {
-        "upper_arm.R": (0.0, 2.5, -1.0),
-        "forearm.R": (0.0, 3.0, -1.5),
-        "hand.R": (0.0, 1.0, -2.0),
+        "upper_arm.R": (0.0, 1.5, -0.75),
+        "forearm.R": (0.0, 2.0, -1.0),
+        "hand.R": (0.0, 0.75, -1.25),
     },
     "right": {
-        "upper_arm.R": (0.5, -2.0, 1.0),
-        "forearm.R": (0.5, -2.5, 1.5),
-        "hand.R": (0.0, -1.0, 2.0),
+        "upper_arm.R": (0.25, -1.5, 0.75),
+        "forearm.R": (0.25, -2.0, 1.0),
+        "hand.R": (0.0, -0.75, 1.25),
     },
     "up": {
-        "upper_arm.R": (2.0, 0.5, -1.0),
-        "forearm.R": (3.0, 0.5, -1.5),
-        "hand.R": (1.5, 0.0, -2.0),
+        "upper_arm.R": (1.5, 0.25, -0.75),
+        "forearm.R": (2.0, 0.25, -1.0),
+        "hand.R": (1.0, 0.0, -1.25),
     },
 }
 
