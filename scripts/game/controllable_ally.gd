@@ -35,6 +35,8 @@ var _turn_based_mode: bool = false
 var _combat_overlay_visible: bool = true
 var _dodging: bool = false
 var _follow_engaged: bool = false
+var _manual_control_enabled: bool = false
+var _manual_move_vector: Vector2 = Vector2.ZERO
 var _turn_marker: Label = null
 var _status_label: Label = null
 var _dice: DiceRoller = DiceRoller.new()
@@ -61,6 +63,27 @@ func _physics_process(_delta: float) -> void:
 	if state != null and bool(state.get("input_locked")):
 		velocity = Vector2.ZERO
 		return
+	if _manual_control_enabled:
+		_process_manual_exploration_movement()
+		return
+	_process_follow_movement()
+
+
+func _process_manual_exploration_movement() -> void:
+	_follow_engaged = false
+	var keyboard_direction: Vector2 = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
+	var direction: Vector2 = keyboard_direction + _manual_move_vector
+	if direction.length_squared() > 1.0:
+		direction = direction.normalized()
+	if direction.length_squared() <= 0.04:
+		velocity = Vector2.ZERO
+		return
+	set_facing_direction(direction)
+	velocity = direction.normalized() * maxf(follow_speed_pixels, 1.0)
+	move_and_slide()
+
+
+func _process_follow_movement() -> void:
 	var player: Node2D = get_tree().get_first_node_in_group("player") as Node2D
 	if player == null:
 		velocity = Vector2.ZERO
@@ -74,9 +97,37 @@ func _physics_process(_delta: float) -> void:
 	if not _follow_engaged or distance <= 0.001:
 		velocity = Vector2.ZERO
 		return
-	_facing_direction = offset.normalized()
+	set_facing_direction(offset)
 	velocity = _facing_direction * maxf(follow_speed_pixels, 1.0)
 	move_and_slide()
+
+
+func set_manual_control_enabled(value: bool) -> void:
+	_manual_control_enabled = value
+	_manual_move_vector = Vector2.ZERO
+	_follow_engaged = false
+	velocity = Vector2.ZERO
+
+
+func set_manual_move_vector(direction: Vector2) -> void:
+	_manual_move_vector = direction.limit_length(1.0) if _manual_control_enabled else Vector2.ZERO
+
+
+func is_manual_control_enabled() -> bool:
+	return _manual_control_enabled
+
+
+func is_following_player() -> bool:
+	return (
+		not _manual_control_enabled
+		and not _turn_based_mode
+		and current_health > 0
+		and not _combat_state.dead
+	)
+
+
+func get_manual_move_vector_for_testing() -> Vector2:
+	return _manual_move_vector
 
 
 func get_actor_id() -> String:
@@ -141,6 +192,7 @@ func set_facing_direction(direction: Vector2) -> void:
 
 func set_turn_based_mode(value: bool) -> void:
 	_turn_based_mode = value
+	_manual_move_vector = Vector2.ZERO
 	velocity = Vector2.ZERO
 	if not value:
 		_turn_active = false
@@ -231,6 +283,8 @@ func stabilize_with_healers_kit() -> Dictionary:
 func enter_dying() -> void:
 	current_health = 0
 	defeated = false
+	_manual_control_enabled = false
+	_manual_move_vector = Vector2.ZERO
 	_combat_state.enter_dying()
 	_turn_active = false
 	_update_combat_visuals()
@@ -246,6 +300,8 @@ func recover_to_one_hit_point() -> void:
 func mark_dead() -> void:
 	current_health = 0
 	defeated = true
+	_manual_control_enabled = false
+	_manual_move_vector = Vector2.ZERO
 	_combat_state.dead = true
 	_combat_state.stable = false
 	_combat_state.add_condition("unconscious")
@@ -353,6 +409,9 @@ func restore_world_state(state: Dictionary) -> void:
 	hostile = false
 	_turn_active = false
 	_turn_based_mode = false
+	_manual_control_enabled = false
+	_manual_move_vector = Vector2.ZERO
+	_follow_engaged = false
 	_update_combat_visuals()
 
 
