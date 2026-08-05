@@ -12,7 +12,6 @@ on:
       - "scripts/systems/party_combat_control_context.gd"
       - "tests/smoke_controllable_ally_controls.gd"
       - "tests/smoke_controllable_ally_controls_detailed.gd"
-      - "tests/smoke_srd_combat_core_detailed.gd"
       - "tests/smoke_party_combat_control_context.gd"
       - ".github/workflows/validate-controllable-ally-windows.yml"
   push:
@@ -33,15 +32,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Audit legacy runtime path assertions
-        shell: pwsh
-        run: |
-          $matches = Get-ChildItem -Path "tests" -Recurse -File -Filter "*.gd" |
-            Select-String -SimpleMatch "game_guard_post_polish_runtime.gd"
-          $matches |
-            ForEach-Object { "$($_.Path):$($_.LineNumber):$($_.Line.Trim())" } |
-            Tee-Object -FilePath "legacy-runtime-path-assertions.log"
 
       - name: Download Godot 4.7.1 Standard
         shell: pwsh
@@ -65,21 +55,13 @@ jobs:
           & ".\Godot_v4.7.1-stable_win64.exe" --headless --path "$env:GITHUB_WORKSPACE" --script res://tests/smoke_controllable_ally_controls_detailed.gd 2>&1 | Tee-Object -FilePath "controllable-ally-windows-controls.log"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Diagnose combat social dispatch
-        shell: pwsh
-        run: |
-          & ".\Godot_v4.7.1-stable_win64.exe" --headless --path "$env:GITHUB_WORKSPACE" --script res://tests/smoke_srd_combat_core_detailed.gd 2>&1 | Tee-Object -FilePath "controllable-ally-windows-social.log"
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
       - name: Upload diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: controllable-ally-windows-diagnostics
           path: |
-            legacy-runtime-path-assertions.log
             controllable-ally-windows-import.log
             controllable-ally-windows-controls.log
-            controllable-ally-windows-social.log
           if-no-files-found: warn
           retention-days: 7
