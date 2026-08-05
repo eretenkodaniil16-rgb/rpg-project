@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "composition_id": "exploration_calm_v01",
+  "title_ru": "Тихая дорога",
+  "title_en": "The Quiet Road",
+  "status": "review_candidate",
+  "original_composition": true,
+  "related_leitmotif": "main_theme_v01",
+  "tempo_bpm": 72,
+  "time_signature": [
+    6,
+    8
+  ],
+  "key_center": "D",
+  "mode": "minor_with_dorian_colour",
+  "bars": 36,
+  "sample_rate": 48000,
+  "form": [
+    {
+      "id": "threshold",
+      "bars": [1, 8],
+      "description": "Первые шаги и разреженное появление мотива"
+    },
+    {
+      "id": "open_road",
+      "bars": [9, 17],
+      "description": "Более ясное движение и расширенная дорийская окраска"
+    },
+    {
+      "id": "shadowed_path",
+      "bars": [18, 25],
+      "description": "Тихое напряжение без перехода в боевую музыку"
+    },
+    {
+      "id": "homeward_loop",
+      "bars": [26, 36],
+      "description": "Возвращение к D minor и подготовка бесшовного повтора"
+    }
+  ],
+  "motif_variation": {
+    "source_notes": ["D4", "A3", "C4", "Eb4", "D4"],
+    "exploration_notes": ["D4", "A3", "C4", "E4", "D4"],
+    "description": "Осветлённая дорийская вариация лейтмотива странника"
+  },
+  "instrumentation": [
+    "low_bowed_strings",
+    "dark_plucked_strings",
+    "wooden_flute",
+    "distant_bell",
+    "air_and_room_texture"
+  ],
+  "production_notes": {
+    "target": "Godot 4.7.1 world exploration loop",
+    "target_format": "Ogg Vorbis stereo 48 kHz",
+    "loop_strategy": "three-cycle render with middle-cycle extraction",
+    "dynamic_goal": "quiet travel, reflective discovery, no combat climax"
+  }
+}

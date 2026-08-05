@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "composition_id": "exploration_calm_v01",
+  "status": "review_candidate",
+  "generation_method": "deterministic_score_and_procedural_renderer",
+  "external_audio_samples_embedded": false,
+  "external_midi_or_score_imported": false,
+  "lyrics_or_voice_recordings_used": false,
+  "related_original_composition": "main_theme_v01",
+  "source_files": [
+    "res://assets/audio/music/source/exploration_calm_v01_score.json",
+    "res://tools/audio/generate_exploration_calm_v01.py"
+  ],
+  "release_requires_in_game_verification": true,
+  "notes": "Original exploration variation composed and rendered for Chronicles of the Wanderer. No third-party recordings, sample packs, imported MIDI, or protected musical material are used."
+}
