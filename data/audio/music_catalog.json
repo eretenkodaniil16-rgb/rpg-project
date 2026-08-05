@@ -3,34 +3,13 @@
   "catalog_id": "chronicles_of_the_wanderer_music_v01",
   "asset_status": "main_theme_calm_and_tension_integrated",
   "contexts": {
-    "main_menu": {
-      "track_id": "main_theme",
-      "fade_seconds": 1.5
-    },
-    "character_creation": {
-      "track_id": "main_theme",
-      "fade_seconds": 1.5
-    },
-    "world_exploration": {
-      "track_id": "exploration_calm",
-      "fade_seconds": 2.0
-    },
-    "world_tension": {
-      "track_id": "exploration_tension",
-      "fade_seconds": 1.25
-    },
-    "combat_standard": {
-      "track_id": "combat_standard",
-      "fade_seconds": 0.75
-    },
-    "combat_climax": {
-      "track_id": "combat_climax",
-      "fade_seconds": 0.75
-    },
-    "aftermath": {
-      "track_id": "aftermath",
-      "fade_seconds": 1.5
-    }
+    "main_menu": {"track_id": "main_theme", "fade_seconds": 1.5},
+    "character_creation": {"track_id": "main_theme", "fade_seconds": 1.5},
+    "world_exploration": {"track_id": "exploration_calm", "fade_seconds": 2.0},
+    "world_tension": {"track_id": "exploration_tension", "fade_seconds": 1.25},
+    "combat_standard": {"track_id": "combat_standard", "fade_seconds": 0.75},
+    "combat_climax": {"track_id": "combat_climax", "fade_seconds": 0.75},
+    "aftermath": {"track_id": "aftermath", "fade_seconds": 1.5}
   },
   "tracks": {
     "main_theme": {
@@ -58,60 +37,20 @@
       "volume_db": -6.0,
       "loop": true,
       "render_status": "master_candidate",
-      "composition_id": "exploration_tension_v01"
+      "composition_id": "exploration_tension_v01",
+      "render_id": "exploration_tension_v01_master_candidate_02",
+      "arrangement_revision": 2,
+      "danger_profile": "nearby_threat"
     },
-    "combat_standard": {
-      "path": "",
-      "enabled": false,
-      "bus": "Music",
-      "volume_db": -4.0,
-      "loop": true
-    },
-    "combat_climax": {
-      "path": "",
-      "enabled": false,
-      "bus": "Music",
-      "volume_db": -3.0,
-      "loop": true
-    },
-    "aftermath": {
-      "path": "",
-      "enabled": false,
-      "bus": "Music",
-      "volume_db": -6.0,
-      "loop": true
-    }
+    "combat_standard": {"path": "", "enabled": false, "bus": "Music", "volume_db": -4.0, "loop": true},
+    "combat_climax": {"path": "", "enabled": false, "bus": "Music", "volume_db": -3.0, "loop": true},
+    "aftermath": {"path": "", "enabled": false, "bus": "Music", "volume_db": -6.0, "loop": true}
   },
   "stingers": {
-    "combat_start": {
-      "path": "",
-      "enabled": false,
-      "bus": "Music",
-      "volume_db": -2.0
-    },
-    "victory": {
-      "path": "",
-      "enabled": false,
-      "bus": "Music",
-      "volume_db": -2.0
-    },
-    "quest_received": {
-      "path": "",
-      "enabled": false,
-      "bus": "UI",
-      "volume_db": -3.0
-    },
-    "quest_completed": {
-      "path": "",
-      "enabled": false,
-      "bus": "UI",
-      "volume_db": -3.0
-    },
-    "secret_discovered": {
-      "path": "",
-      "enabled": false,
-      "bus": "UI",
-      "volume_db": -3.0
-    }
+    "combat_start": {"path": "", "enabled": false, "bus": "Music", "volume_db": -2.0},
+    "victory": {"path": "", "enabled": false, "bus": "Music", "volume_db": -2.0},
+    "quest_received": {"path": "", "enabled": false, "bus": "UI", "volume_db": -3.0},
+    "quest_completed": {"path": "", "enabled": false, "bus": "UI", "volume_db": -3.0},
+    "secret_discovered": {"path": "", "enabled": false, "bus": "UI", "volume_db": -3.0}
   }
 }

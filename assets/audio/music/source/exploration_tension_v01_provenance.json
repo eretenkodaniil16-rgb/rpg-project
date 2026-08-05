@@ -2,29 +2,28 @@
   "schema_version": 1,
   "composition_id": "exploration_tension_v01",
   "title_ru": "Тени рядом",
+  "arrangement_revision": 2,
+  "revision_title_ru": "Опасность ближе",
   "authoring_method": "deterministic procedural composition and synthesis",
   "original_for_project": true,
   "external_recordings_used": false,
   "external_sample_packs_used": false,
   "imported_midi_used": false,
   "derived_from_project_leitmotif": "main_theme_v01",
-  "approved_source_motif": [
-    "D4",
-    "A3",
-    "C4",
-    "Eb4",
-    "D4"
+  "approved_source_motif": ["D4", "A3", "C4", "Eb4", "D4"],
+  "approved_change_scope": [
+    "stronger low-string pulse",
+    "minor-second and tritone pressure",
+    "controlled double heartbeat accents",
+    "denser near-contact section"
   ],
   "renderer": "tools/audio/generate_exploration_tension_v01.py",
+  "renderer_version": "procedural_tension_renderer_v02",
   "license_status": "original project asset",
-  "review_status": "master_candidate",
+  "review_status": "approved_master_candidate",
+  "approval_date": "2026-08-06",
   "renderer_dependencies": {
     "numpy": "2.3.5",
     "ffmpeg": "system libvorbis encoder"
-  },
-  "pcm_reproducibility": {
-    "signature": "signed int16 high-byte SHA-256",
-    "shift_bits": 8,
-    "reason": "cross-runner floating-point output differs by at most one int16 LSB"
   }
 }
