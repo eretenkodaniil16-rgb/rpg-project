@@ -302,6 +302,11 @@ def render(score_path: Path, output: Path) -> dict:
     output.mkdir(parents=True, exist_ok=True)
     wav_path = output / "exploration_tension_v01_master.wav"
     pcm = np.clip(cycle * 32767.0, -32768, 32767).astype("<i2")
+    # Supported Linux runners may differ by one final int16 LSB
+    # in a negligible number of samples. The signed high-byte hash
+    # remains a strict and stable cross-platform waveform fingerprint.
+    pcm_signature_shift_bits = 8
+    pcm_signature = (pcm.astype(np.int32) >> pcm_signature_shift_bits).astype("<i2")
     with wave.open(str(wav_path), "wb") as wav_file:
         wav_file.setnchannels(2)
         wav_file.setsampwidth(2)
@@ -343,6 +348,8 @@ def render(score_path: Path, output: Path) -> dict:
         "ogg_bytes": ogg_path.stat().st_size,
         "ogg_sha256": hashlib.sha256(ogg_path.read_bytes()).hexdigest(),
         "wav_sha256": hashlib.sha256(wav_path.read_bytes()).hexdigest(),
+        "pcm_signature_shift_bits": pcm_signature_shift_bits,
+        "pcm_signature_sha256": hashlib.sha256(pcm_signature.tobytes()).hexdigest(),
         "midi_sha256": hashlib.sha256(midi_path.read_bytes()).hexdigest(),
         "source_score_sha256": hashlib.sha256(json.dumps(score, sort_keys=True).encode("utf-8")).hexdigest()
     }

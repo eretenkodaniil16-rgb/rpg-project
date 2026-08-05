@@ -21,5 +21,10 @@
   "renderer_dependencies": {
     "numpy": "2.3.5",
     "ffmpeg": "system libvorbis encoder"
+  },
+  "pcm_reproducibility": {
+    "signature": "signed int16 high-byte SHA-256",
+    "shift_bits": 8,
+    "reason": "cross-runner floating-point output differs by at most one int16 LSB"
   }
 }

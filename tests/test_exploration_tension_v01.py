@@ -44,6 +44,8 @@ def main() -> None:
     require(ogg_sha == manifest["ogg_sha256"], "Ogg SHA-256 does not match manifest")
     require(manifest["duration_seconds"] == 81.6, "manifest duration must be 81.6 seconds")
     require(manifest["numpy_version"] == "2.3.5", "renderer NumPy version must be pinned")
+    require(manifest["pcm_signature_shift_bits"] == 8, "PCM signature shift contract changed")
+    require(len(manifest["pcm_signature_sha256"]) == 64, "PCM signature SHA-256 is missing")
     require(manifest["sample_rate"] == 48_000 and manifest["channels"] == 2, "master must be 48 kHz stereo")
     require(-4.5 <= manifest["peak_dbfs"] <= -2.5, "peak level is outside the approved range")
     require(-20.0 <= manifest["rms_dbfs"] <= -13.0, "RMS level is outside the approved range")
