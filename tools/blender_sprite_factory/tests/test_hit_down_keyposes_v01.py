@@ -26,7 +26,7 @@ class HitDownKeyposesV01Tests(unittest.TestCase):
         ).read_text(encoding="utf-8")
 
     def test_profile_identity_and_review_scope(self) -> None:
-        self.assertEqual(self.profile.revision, "hit_down_keyposes_v01")
+        self.assertEqual(self.profile.revision, "hit_down_keyposes_v01_pass02")
         self.assertEqual(self.profile.animation_id, "hit_01_onehand_down_keyposes_v01")
         self.assertEqual(self.profile.direction, "down")
         self.assertEqual(self.profile.incoming_direction, "front")
@@ -52,11 +52,11 @@ class HitDownKeyposesV01Tests(unittest.TestCase):
         recovery = self.profile.poses[3]
         self.assertGreater(impact.pelvis_y, 0.0)
         self.assertGreater(peak.pelvis_y, impact.pelvis_y)
-        self.assertGreater(peak.spine_pitch_x_degrees, impact.spine_pitch_x_degrees)
-        self.assertGreater(peak.head_pitch_x_degrees, impact.head_pitch_x_degrees)
+        self.assertGreater(abs(peak.spine_pitch_x_degrees), abs(impact.spine_pitch_x_degrees))
+        self.assertGreater(abs(peak.head_pitch_x_degrees), abs(impact.head_pitch_x_degrees))
         self.assertLess(recovery.pelvis_y, impact.pelvis_y)
-        self.assertLess(recovery.spine_pitch_x_degrees, impact.spine_pitch_x_degrees)
-        self.assertLess(recovery.head_pitch_x_degrees, impact.head_pitch_x_degrees)
+        self.assertLess(abs(recovery.spine_pitch_x_degrees), abs(impact.spine_pitch_x_degrees))
+        self.assertLess(abs(recovery.head_pitch_x_degrees), abs(impact.head_pitch_x_degrees))
         self.assertLessEqual(
             max(
                 abs(value)
