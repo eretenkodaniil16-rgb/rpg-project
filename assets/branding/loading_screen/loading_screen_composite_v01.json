@@ -1,0 +1,26 @@
+{
+  "visual_id": "loading_screen_composite_v01",
+  "type": "loading_screen_composite",
+  "status": "runtime_candidate",
+  "connected_to_game_transitions": false,
+  "background_mode": "procedural_fallback",
+  "background_path": "",
+  "approved_background_reference_available": false,
+  "title_render_mode": "live_text",
+  "title": "Хроники странника",
+  "subtitle_render_mode": "live_text",
+  "subtitle": "Башня, уходящая вниз",
+  "loading_bar_visual_id": "loading_bar_v03",
+  "loading_bar_scene_path": "res://scenes/ui/loading_progress_bar_v03.tscn",
+  "preview_scene_path": "res://scenes/menus/loading_screen_composite_preview_v01.tscn",
+  "size": {
+    "width": 1672,
+    "height": 941
+  },
+  "notes": [
+    "The truncated WebP background was removed from the runtime tree.",
+    "Preview uses a deterministic dark procedural fallback until the approved HQ background is published through a reliable binary channel.",
+    "Title and subtitle are exact live Godot text and are covered by static and runtime spelling checks.",
+    "Does not replace real runtime loading transitions."
+  ]
+}
