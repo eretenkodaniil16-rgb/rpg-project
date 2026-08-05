@@ -51,18 +51,15 @@ func _on_active_party_target_requested() -> void:
 		"ally_id": _controllable_ally.get_instance_id() if is_instance_valid(_controllable_ally) else 0,
 		"candidates": _target_candidate_diagnostics()
 	}
-	print("Party target request before resolution: %s" % JSON.stringify(_last_target_request_diagnostics))
 	if not _is_controllable_ally_turn():
 		super._on_party_target_requested()
 		return
 	if GameState.input_locked or _attack_in_progress or _any_overlay_visible():
 		_last_target_request_diagnostics["status"] = "blocked"
-		print("Party target request result: %s" % JSON.stringify(_last_target_request_diagnostics))
 		return
 	_cycle_full_irina_target()
 	_last_target_request_diagnostics["status"] = "resolved"
 	_last_target_request_diagnostics["selected_target_id"] = get_party_target_instance_id_for_testing(_controllable_ally)
-	print("Party target request result: %s" % JSON.stringify(_last_target_request_diagnostics))
 	_refresh_party_menu()
 
 
