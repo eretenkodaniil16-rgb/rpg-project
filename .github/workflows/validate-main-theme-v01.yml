@@ -5,14 +5,21 @@ on:
     paths:
       - "assets/audio/music/source/main_theme_v01_score.json"
       - "assets/audio/music/source/main_theme_v01_provenance.json"
+      - "assets/audio/music/source/main_theme_v01_master_manifest.json"
+      - "assets/audio/music/exports/main_theme_v01_master.ogg"
+      - "data/audio/music_catalog.json"
+      - "scripts/audio/music_manager.gd"
       - "tools/audio/generate_main_theme_v01.py"
+      - "tools/audio/render_main_theme_v01_master.py"
       - "tests/test_main_theme_v01.py"
+      - "tests/test_main_theme_v01_master.py"
+      - "tests/test_music_manager.gd"
       - "docs/MAIN_THEME_V01.md"
       - ".github/workflows/validate-main-theme-v01.yml"
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: main-theme-v01-${{ github.event.pull_request.number || github.ref }}
@@ -21,21 +28,54 @@ concurrency:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
-      - name: Checkout repository
+      - name: Checkout feature branch
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
 
-      - name: Install synthesis dependency
-        run: python -m pip install --disable-pip-version-check numpy
+      - name: Install synthesis dependencies
+        run: python -m pip install --disable-pip-version-check numpy scipy
 
-      - name: Validate composition and render previews
+      - name: Validate approved composition
         run: python tests/test_main_theme_v01.py
 
-      - name: Upload MIDI, WAV and Ogg preview
+      - name: Render master candidate
+        run: |
+          python tools/audio/render_main_theme_v01_master.py \
+            --score assets/audio/music/source/main_theme_v01_score.json \
+            --output build/audio/main_theme_v01_master
+          mkdir -p assets/audio/music/exports assets/audio/music/source
+          cp build/audio/main_theme_v01_master/main_theme_v01_master_candidate.ogg \
+            assets/audio/music/exports/main_theme_v01_master.ogg
+          cp build/audio/main_theme_v01_master/main_theme_v01_master_manifest.json \
+            assets/audio/music/source/main_theme_v01_master_manifest.json
+
+      - name: Validate master and menu integration
+        run: python tests/test_main_theme_v01_master.py
+
+      - name: Commit reproducible game resource
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        run: |
+          git add \
+            assets/audio/music/exports/main_theme_v01_master.ogg \
+            assets/audio/music/source/main_theme_v01_master_manifest.json
+          if git diff --cached --quiet; then
+            echo "Master resource already matches the renderer."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "feat(audio): обновить игровой master main theme"
+          git push origin HEAD:${{ github.head_ref }}
+
+      - name: Upload rendered previews
         uses: actions/upload-artifact@v4
         with:
-          name: main-theme-v01-preview
-          path: build/audio/main_theme_v01/
+          name: main-theme-v01-rendered-previews
+          path: |
+            build/audio/main_theme_v01/
+            build/audio/main_theme_v01_master/
           if-no-files-found: error
           retention-days: 14
