@@ -10,6 +10,14 @@ func _fail(message: String) -> void:
 	quit(1)
 
 
+func _find_active_music_player(music_manager: Node) -> AudioStreamPlayer:
+	for player_name: String in ["MusicPlayer1", "MusicPlayer2"]:
+		var player: AudioStreamPlayer = music_manager.get_node_or_null(player_name) as AudioStreamPlayer
+		if player != null and player.playing and player.stream != null:
+			return player
+	return null
+
+
 func _run() -> void:
 	await process_frame
 	var music_manager: Node = root.get_node_or_null("MusicManager")
@@ -30,9 +38,10 @@ func _run() -> void:
 		if not bool(music_manager.call("has_context", context_id)):
 			_fail("Missing music context: %s" % String(context_id))
 			return
-	if not bool(music_manager.call("has_track", &"main_theme")):
-		_fail("Required main_theme track is missing.")
-		return
+	for track_id: StringName in [&"main_theme", &"exploration_calm"]:
+		if not bool(music_manager.call("has_track", track_id)):
+			_fail("Required music track is missing: %s" % String(track_id))
+			return
 	if bool(music_manager.call("play_context", &"missing_context", 0.0)):
 		_fail("Unknown context must be rejected.")
 		return
@@ -46,18 +55,35 @@ func _run() -> void:
 	if StringName(str(music_manager.call("get_current_track_id"))) != &"main_theme":
 		_fail("Main menu did not select main_theme.")
 		return
-	var player: AudioStreamPlayer = music_manager.get_node_or_null("MusicPlayer1") as AudioStreamPlayer
-	if player == null or player.stream == null:
-		player = music_manager.get_node_or_null("MusicPlayer2") as AudioStreamPlayer
-	if player == null or player.stream == null:
+	var player: AudioStreamPlayer = _find_active_music_player(music_manager)
+	if player == null:
 		_fail("Main menu theme was not assigned to a music player.")
 		return
 	if not (player.stream is AudioStreamOggVorbis):
 		_fail("Main menu resource must import as AudioStreamOggVorbis.")
 		return
 	if not (player.stream as AudioStreamOggVorbis).loop:
-		_fail("Native Ogg loop was not enabled.")
+		_fail("Native Ogg loop was not enabled for main_theme.")
 		return
+
+	if not bool(music_manager.call("play_context", &"world_exploration", 0.0)):
+		_fail("Enabled exploration context failed to start.")
+		return
+	await process_frame
+	if StringName(str(music_manager.call("get_current_context_id"))) != &"world_exploration":
+		_fail("World exploration context was not retained.")
+		return
+	if StringName(str(music_manager.call("get_current_track_id"))) != &"exploration_calm":
+		_fail("World exploration did not select exploration_calm.")
+		return
+	player = _find_active_music_player(music_manager)
+	if player == null or not (player.stream is AudioStreamOggVorbis):
+		_fail("Exploration resource must import as AudioStreamOggVorbis.")
+		return
+	if not (player.stream as AudioStreamOggVorbis).loop:
+		_fail("Native Ogg loop was not enabled for exploration_calm.")
+		return
+
 	var managed_buses: Array = music_manager.call("get_managed_bus_names") as Array
 	for bus_value: Variant in managed_buses:
 		var bus_name: StringName = StringName(str(bus_value))
