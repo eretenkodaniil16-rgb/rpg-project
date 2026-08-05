@@ -35,10 +35,6 @@ func _bind_party_action_catalog() -> void:
 		if _action_catalog_ui.is_connected(signal_name, existing):
 			_action_catalog_ui.disconnect(signal_name, existing)
 
-	# Keep the original feedback pipeline for the main hero. It contains the full
-	# inherited action chain, including combat dialogue, item use, Hide and world
-	# interactions. The party handler is a second, actor-gated route used only on
-	# Irna's initiative turn. Exactly one route is active for any catalogue event.
 	var feedback_handler := Callable(self, FEEDBACK_CATALOG_METHOD)
 	if not _action_catalog_ui.is_connected(signal_name, feedback_handler):
 		_action_catalog_ui.connect(signal_name, feedback_handler)
@@ -55,10 +51,6 @@ func _on_feedback_catalog_action_requested(action_id: String) -> void:
 
 
 func _remember_target_for_active_actor() -> void:
-	# `_selected_target` is a shared presentation pointer. It can be cleared
-	# transiently while an overlay is rebuilt, so a null value must not erase the
-	# authoritative per-actor target. Explicit deselection paths clear the context
-	# themselves.
 	var actor: Node = _party_control_context.active_actor()
 	if is_instance_valid(actor) and _target_is_valid(_selected_target):
 		_party_control_context.set_target(actor, _selected_target)
@@ -77,44 +69,59 @@ func _sync_selected_target_from_party_context() -> Node:
 
 
 func _refresh_action_catalog() -> void:
-	if _turn_system.active and _turn_system.is_player_controlled_turn():
-		_sync_selected_target_from_party_context()
-	super._refresh_action_catalog()
+	if not _is_controllable_ally_turn():
+		super._refresh_action_catalog()
+		return
+	if _action_catalog_ui == null:
+		return
 
+	var context_target: Node = _party_control_context.target_for(_controllable_ally)
+	var context_target_valid: bool = _target_is_valid(context_target)
+	if context_target_valid:
+		_party_control_context.set_target(_controllable_ally, context_target)
+		if _selected_target != context_target:
+			_set_selected_target(context_target)
 
-func _build_catalog_entries() -> Dictionary:
-	# Capture the actor-specific target before the inherited catalogue builder runs.
-	# Several older layers still use the shared `_selected_target` presentation
-	# pointer and may clear it while rebuilding categories. That transient UI state
-	# must not disable Irna's action or erase her authoritative target context.
-	var ally_turn_before_super: bool = _is_controllable_ally_turn()
-	var context_target_before_super: Node = (
-		_party_control_context.target_for(_controllable_ally)
-		if ally_turn_before_super
-		else null
+	var entries: Dictionary = _build_irna_catalog_entries(context_target)
+	var has_plan: bool = _planned_path.size() > 1
+	var target_text: String = "цель не выбрана"
+	if context_target_valid:
+		target_text = "цель: %s" % _target_name(context_target)
+	_action_catalog_ui.refresh(
+		true,
+		true,
+		_any_overlay_visible(),
+		entries,
+		"Ирина · Раунд %d · Действие: %s · Реакция: %s · Перемещение: %d футов" % [
+			_turn_system.round_number,
+			"готово" if _turn_system.action_available else "использовано",
+			"готова" if _turn_system.has_reaction(_controllable_ally) else "использована",
+			_turn_system.movement_remaining_feet
+		],
+		"%s · %s" % [
+			target_text,
+			"маршрут не выбран" if not has_plan else "маршрут: %d футов" % _planned_cost_feet
+		],
+		has_plan,
+		_planned_cost_feet
 	)
-	var context_target_valid_before_super: bool = _target_is_valid(context_target_before_super)
-	var selected_before_super: Node = _selected_target
-	var distance_before_super: int = -1
-	if (
-		context_target_valid_before_super
-		and _controllable_ally is Node2D
-		and context_target_before_super is Node2D
-	):
-		distance_before_super = DistanceSystem.distance_feet(
-			(_controllable_ally as Node2D).global_position,
-			(context_target_before_super as Node2D).global_position
-		)
 
+
+func _build_irna_catalog_entries(context_target: Node) -> Dictionary:
+	# Build the inherited Irna catalogue after synchronizing the shared visual
+	# pointer, then apply availability from the actor-specific target context.
 	var entries: Dictionary = super._build_catalog_entries()
-	if not ally_turn_before_super:
-		return entries
-
-	if context_target_valid_before_super:
-		_party_control_context.set_target(_controllable_ally, context_target_before_super)
-		if _selected_target != context_target_before_super:
-			_set_selected_target(context_target_before_super)
-
+	var context_target_valid: bool = _target_is_valid(context_target)
+	var distance_feet: int = -1
+	if (
+		context_target_valid
+		and _controllable_ally is Node2D
+		and context_target is Node2D
+	):
+		distance_feet = DistanceSystem.distance_feet(
+			(_controllable_ally as Node2D).global_position,
+			(context_target as Node2D).global_position
+		)
 	var state: CombatantState = _active_party_state()
 	var can_act: bool = (
 		state != null
@@ -122,9 +129,9 @@ func _build_catalog_entries() -> Dictionary:
 		and _srd_rules.can_take_action(state)
 	)
 	var target_melee: bool = (
-		context_target_valid_before_super
-		and distance_before_super >= 0
-		and distance_before_super <= DistanceSystem.MELEE_REACH_FEET
+		context_target_valid
+		and distance_feet >= 0
+		and distance_feet <= DistanceSystem.MELEE_REACH_FEET
 	)
 	_last_catalog_context_diagnostics = {
 		"active_actor_id": (
@@ -133,23 +140,10 @@ func _build_catalog_entries() -> Dictionary:
 			else 0
 		),
 		"ally_id": _controllable_ally.get_instance_id() if is_instance_valid(_controllable_ally) else 0,
-		"context_target_id_before_super": (
-			context_target_before_super.get_instance_id()
-			if is_instance_valid(context_target_before_super)
-			else 0
-		),
-		"context_target_valid_before_super": context_target_valid_before_super,
-		"selected_target_id_before_super": (
-			selected_before_super.get_instance_id()
-			if is_instance_valid(selected_before_super)
-			else 0
-		),
-		"selected_target_id_after_super": (
-			_selected_target.get_instance_id()
-			if is_instance_valid(_selected_target)
-			else 0
-		),
-		"distance_feet": distance_before_super,
+		"context_target_id": context_target.get_instance_id() if is_instance_valid(context_target) else 0,
+		"context_target_valid": context_target_valid,
+		"selected_target_id": _selected_target.get_instance_id() if is_instance_valid(_selected_target) else 0,
+		"distance_feet": distance_feet,
 		"can_act": can_act,
 		"target_melee": target_melee
 	}
@@ -167,7 +161,7 @@ func _build_catalog_entries() -> Dictionary:
 			"select_ally_target":
 				entry["label"] = (
 					"СМЕНИТЬ ЦЕЛЬ ИРИНЫ"
-					if context_target_valid_before_super
+					if context_target_valid
 					else "ВЫБРАТЬ ЦЕЛЬ ИРИНЫ"
 				)
 			_:
@@ -253,10 +247,6 @@ func start_party_combat_for_testing(
 	opponents: Array[Node],
 	initiative_overrides: Dictionary
 ) -> void:
-	# Reproduce the production combat-entry contract while retaining deterministic
-	# initiative for the end-to-end party-control test. Starting TurnBasedCombatSystem
-	# directly leaves exploration movement enabled on the ally and produces a false
-	# out-of-range failure while the Actions catalogue is open.
 	if _turn_system.active or not is_instance_valid(player) or not is_instance_valid(_controllable_ally):
 		return
 	_turn_system.set_pending_player_controlled_actors([_controllable_ally])
@@ -273,9 +263,6 @@ func start_party_combat_for_testing(
 
 
 func force_controllable_ally_turn_for_testing() -> void:
-	# Some focused tests start the domain turn system directly. Preserve the same
-	# invariant as production combat: exploration following must be disabled before
-	# the ally receives input or opens her Actions catalogue.
 	_call_ally("set_turn_based_mode", [true])
 	super.force_controllable_ally_turn_for_testing()
 
