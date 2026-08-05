@@ -33,7 +33,7 @@ jobs:
 
       - name: Expand approved revision sources
         run: |
-          base64 --decode tools/audio/tension_rev02_bundle.b64 > /tmp/tension-rev02.tar.gz
+          base64 --decode --ignore-garbage tools/audio/tension_rev02_bundle.b64 > /tmp/tension-rev02.tar.gz
           tar -xzf /tmp/tension-rev02.tar.gz
 
       - name: Render exact Linux game master
@@ -74,7 +74,7 @@ jobs:
           git add tools/audio/generate_exploration_tension_v01.py
           git add .github/workflows/validate-exploration-tension-v01.yml
           git add -f assets/audio/music/exports/exploration_tension_v01_master.ogg
-          git add -u tools/audio/tension_rev02_bundle.b64 tools/audio/validate-exploration-tension-v01.final.yml
+          git add -u tools/audio/tension_rev02_bundle.b64
           git commit -m "feat(audio): утвердить более опасный tension master"
           git push origin "HEAD:${HEAD_BRANCH}"
 
