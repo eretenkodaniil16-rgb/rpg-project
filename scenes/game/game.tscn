@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/game/game_base.tscn" id="1_base"]
 [ext_resource type="Script" path="res://scripts/game/game_guard_post_polish_runtime.gd" id="2_feature"]
@@ -9,6 +9,7 @@
 [ext_resource type="Script" path="res://scripts/game/world_snapshot_readiness_guard.gd" id="7_snapshot_guard"]
 [ext_resource type="Script" path="res://scripts/game/world_alert_snapshot_synchronizer.gd" id="8_alert_sync"]
 [ext_resource type="Script" path="res://scripts/game/player_control_modes.gd" id="9_player_control"]
+[ext_resource type="Script" path="res://scripts/game/in_game_pause_controller.gd" id="10_pause"]
 
 [node name="Game" instance=ExtResource("1_base")]
 script = ExtResource("2_feature")
@@ -31,6 +32,10 @@ script = ExtResource("6_world_controller")
 
 [node name="WorldSnapshotReadinessGuard" type="Node" parent="."]
 script = ExtResource("7_snapshot_guard")
+
+[node name="InGamePauseController" type="Node" parent="." groups=["pause_menu_controller"]]
+process_mode = 3
+script = ExtResource("10_pause")
 
 [node name="MobileControls" parent="Interface" index="3"]
 script = ExtResource("5_mobile_context")
