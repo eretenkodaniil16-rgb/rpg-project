@@ -14,6 +14,7 @@ from attack_sword_onehand_directional_correction_v22_pass01 import (
     BONE_DELTAS_DEGREES_BY_DIRECTION,
     FRAME_WEIGHTS,
     PRESERVE_DOWN_PIXELS,
+    PRESERVE_ONEHAND_UP_V21,
     PRESERVE_SOURCE_FCURVE_TIMING,
     PRESERVE_TWOHAND_BASELINE,
     SOURCE_MASTER_ACTION_ID,
@@ -48,6 +49,11 @@ class AttackSwordOnehandDirectionalV22Pass01Tests(unittest.TestCase):
                 self.assertEqual(len(values), 3)
                 self.assertLessEqual(max(abs(value) for value in values), 2.0)
 
+    def test_up_action_is_preserved_without_local_deltas(self) -> None:
+        self.assertTrue(PRESERVE_ONEHAND_UP_V21)
+        for values in BONE_DELTAS_DEGREES_BY_DIRECTION["up"].values():
+            self.assertEqual(values, (0.0, 0.0, 0.0))
+
     def test_preservation_contract_is_explicit(self) -> None:
         self.assertTrue(PRESERVE_SOURCE_FCURVE_TIMING)
         self.assertTrue(PRESERVE_DOWN_PIXELS)
@@ -76,6 +82,7 @@ class AttackSwordOnehandDirectionalV22Pass01Tests(unittest.TestCase):
         self.assertNotIn(".copy()", source)
         self.assertNotIn("scale = -", source)
         self.assertIn("directional_copy_of_approved_local_motion", source)
+        self.assertIn("onehand_directional_up_source_preserved", source)
 
 
 if __name__ == "__main__":
