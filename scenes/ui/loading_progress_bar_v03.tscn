@@ -1,0 +1,79 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/loading_progress_bar_v03.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/branding/loading_screen/approved/loading_bar_v03/loading_bar_track_v03.png" id="2_track"]
+[ext_resource type="Texture2D" path="res://assets/branding/loading_screen/approved/loading_bar_v03/loading_bar_fill_v03.png" id="3_fill"]
+[ext_resource type="Texture2D" path="res://assets/branding/loading_screen/approved/loading_bar_v03/loading_bar_glint_v03.png" id="4_glint"]
+[ext_resource type="Texture2D" path="res://assets/branding/loading_screen/approved/loading_bar_v03/loading_bar_left_cap_v03.png" id="5_left"]
+[ext_resource type="Texture2D" path="res://assets/branding/loading_screen/approved/loading_bar_v03/loading_bar_right_cap_v03.png" id="6_right"]
+[ext_resource type="Texture2D" path="res://assets/branding/loading_screen/approved/loading_bar_v03/loading_bar_center_rune_v03.png" id="7_center"]
+
+[node name="LoadingProgressBarV03" type="Control"]
+custom_minimum_size = Vector2(640, 84)
+layout_mode = 3
+anchors_preset = 0
+offset_right = 1200.0
+offset_bottom = 128.0
+mouse_filter = 2
+script = ExtResource("1_script")
+
+[node name="Track" type="TextureRect" parent="."]
+layout_mode = 0
+offset_right = 128.0
+offset_bottom = 128.0
+mouse_filter = 2
+texture = ExtResource("2_track")
+expand_mode = 1
+stretch_mode = 0
+
+[node name="FillClip" type="Control" parent="."]
+clip_contents = true
+layout_mode = 0
+offset_right = 640.0
+offset_bottom = 44.0
+mouse_filter = 2
+
+[node name="FillTexture" type="TextureRect" parent="FillClip"]
+layout_mode = 0
+offset_right = 640.0
+offset_bottom = 44.0
+mouse_filter = 2
+texture = ExtResource("3_fill")
+expand_mode = 1
+stretch_mode = 0
+
+[node name="Glint" type="TextureRect" parent="FillClip"]
+layout_mode = 0
+offset_right = 64.0
+offset_bottom = 44.0
+mouse_filter = 2
+texture = ExtResource("4_glint")
+expand_mode = 1
+stretch_mode = 0
+
+[node name="LeftCap" type="TextureRect" parent="."]
+layout_mode = 0
+offset_right = 176.0
+offset_bottom = 128.0
+mouse_filter = 2
+texture = ExtResource("5_left")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="RightCap" type="TextureRect" parent="."]
+layout_mode = 0
+offset_right = 176.0
+offset_bottom = 128.0
+mouse_filter = 2
+texture = ExtResource("6_right")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="CenterRune" type="TextureRect" parent="."]
+layout_mode = 0
+offset_right = 144.0
+offset_bottom = 144.0
+mouse_filter = 2
+texture = ExtResource("7_center")
+expand_mode = 1
+stretch_mode = 5

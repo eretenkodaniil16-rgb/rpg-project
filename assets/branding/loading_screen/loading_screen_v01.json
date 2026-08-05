@@ -1,0 +1,53 @@
+{
+  "visual_id": "loading_bar_v03",
+  "display_name": "Модульная полоса загрузки — вариант 3",
+  "status": "runtime_candidate",
+  "scope": "textures_and_visual_preview_only",
+  "godot_version": "4.7.1",
+  "style": "cold_blue_rune_steel",
+  "approved_variant": 3,
+  "components": {
+    "left_cap": "res://assets/branding/loading_screen/approved/loading_bar_v03/loading_bar_left_cap_v03.png",
+    "track": "res://assets/branding/loading_screen/approved/loading_bar_v03/loading_bar_track_v03.png",
+    "fill": "res://assets/branding/loading_screen/approved/loading_bar_v03/loading_bar_fill_v03.png",
+    "glint": "res://assets/branding/loading_screen/approved/loading_bar_v03/loading_bar_glint_v03.png",
+    "right_cap": "res://assets/branding/loading_screen/approved/loading_bar_v03/loading_bar_right_cap_v03.png",
+    "center_rune": "res://assets/branding/loading_screen/approved/loading_bar_v03/loading_bar_center_rune_v03.png"
+  },
+  "stretch_contract": {
+    "minimum_size": [640, 84],
+    "reference_size": [1200, 128],
+    "filter": "linear",
+    "fill_is_clipped_by_progress": true,
+    "center_rune_is_fixed": true,
+    "end_caps_keep_aspect": true
+  },
+  "resources": {
+    "reusable_scene": "res://scenes/ui/loading_progress_bar_v03.tscn",
+    "preview_scene": "res://scenes/menus/loading_screen_texture_preview.tscn",
+    "controller": "res://scripts/ui/loading_progress_bar_v03.gd",
+    "preview_controller": "res://scripts/menus/loading_screen_texture_preview.gd"
+  },
+  "background_reference": {
+    "approved_test_variant_exists": true,
+    "included_in_this_stage": false,
+    "reason": "Фон будет подготовлен отдельным HQ-слоем после проверки модульной полосы без смешивания задач."
+  },
+  "integration": {
+    "connected_to_game_transitions": false,
+    "changes_gameplay_logic": false,
+    "preview_uses_neutral_background": true,
+    "fallback_background": "#020711"
+  },
+  "animation": {
+    "glint_cycle_seconds": 2.8,
+    "preview_progress_cycle_seconds": 8.0,
+    "disabled_by_reduced_motion": true
+  },
+  "approval": {
+    "loading_bar_variant_approved": true,
+    "physical_windows_tested": false,
+    "physical_android_tested": false,
+    "final": false
+  }
+}

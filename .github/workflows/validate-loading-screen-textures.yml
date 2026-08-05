@@ -1,0 +1,31 @@
+name: Validate loading screen textures
+
+on:
+  pull_request:
+    paths:
+      - "assets/branding/loading_screen/**"
+      - "scenes/ui/loading_progress_bar_v03.tscn"
+      - "scenes/menus/loading_screen_texture_preview.tscn"
+      - "scripts/ui/loading_progress_bar_v03.gd"
+      - "scripts/menus/loading_screen_texture_preview.gd"
+      - "tests/test_loading_screen_textures.py"
+      - "tests/smoke_loading_screen_textures.gd"
+      - "docs/LOADING_SCREEN_TEXTURES_V01.md"
+      - ".github/workflows/validate-loading-screen-textures.yml"
+  push:
+    branches:
+      - art/loading-screen-textures-v01
+
+permissions:
+  contents: read
+
+jobs:
+  validate-static:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install validation dependency
+        run: python -m pip install --disable-pip-version-check Pillow==11.3.0
+      - name: Validate texture dimensions, alpha and contracts
+        run: python tests/test_loading_screen_textures.py
