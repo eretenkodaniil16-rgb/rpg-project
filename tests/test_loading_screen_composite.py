@@ -7,13 +7,16 @@ from PIL import Image
 
 BACKGROUND = Path("assets/branding/loading_screen/approved/loading_screen_composite_v01/loading_screen_composite_v01.webp")
 MANIFEST = Path("assets/branding/loading_screen/loading_screen_composite_v01.json")
+LOGO_MANIFEST = Path("assets/branding/loading_screen/loading_screen_logo_blue_v01.json")
 SCENE = Path("scenes/menus/loading_screen_composite_preview_v01.tscn")
 SCRIPT = Path("scripts/menus/loading_screen_composite_preview_v01.gd")
 EXPECTED_SIZE = (1672, 941)
+CORRECT_SUBTITLE = "Башня, уходящая вниз"
+INVALID_SUBTITLE_FRAGMENTS = ("вннз", "вннс", "уходяшая", "уходящяя", "Башня уходящая")
 
 
 def test_files_exist() -> None:
-    for path in (BACKGROUND, MANIFEST, SCENE, SCRIPT):
+    for path in (BACKGROUND, MANIFEST, LOGO_MANIFEST, SCENE, SCRIPT):
         assert path.exists(), f"Missing required file: {path}"
 
 
@@ -33,6 +36,11 @@ def test_manifest_contract() -> None:
     assert manifest["loading_bar_visual_id"] == "loading_bar_v03"
     assert (manifest["size"]["width"], manifest["size"]["height"]) == EXPECTED_SIZE
 
+    logo_manifest = json.loads(LOGO_MANIFEST.read_text(encoding="utf-8"))
+    assert logo_manifest["subtitle"] == CORRECT_SUBTITLE
+    assert logo_manifest["subtitle_render_mode"] == "live_text_overlay"
+    assert logo_manifest["baked_subtitle_authoritative"] is False
+
 
 def test_scene_uses_modular_bar_and_adaptive_anchors() -> None:
     scene = SCENE.read_text(encoding="utf-8")
@@ -41,3 +49,11 @@ def test_scene_uses_modular_bar_and_adaptive_anchors() -> None:
     assert "anchor_left = 0.18" in scene
     assert "anchor_right = 0.82" in scene
     assert "stretch_mode = 6" in scene
+
+
+def test_subtitle_is_exact_live_text() -> None:
+    scene = SCENE.read_text(encoding="utf-8")
+    assert 'name="SubtitleCorrection"' in scene
+    assert f'text = "{CORRECT_SUBTITLE}"' in scene
+    for invalid_fragment in INVALID_SUBTITLE_FRAGMENTS:
+        assert invalid_fragment not in scene
