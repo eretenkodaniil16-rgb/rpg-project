@@ -75,8 +75,7 @@ func _input(event: InputEvent) -> void:
 
 
 func _exit_tree() -> void:
-	_active_touch_index = -1
-	_reset_player_input()
+	release_all_input()
 
 
 func enable_for_testing() -> void:
@@ -114,6 +113,11 @@ func move_joystick_for_testing(normalized_direction: Vector2) -> void:
 
 
 func release_joystick_for_testing() -> void:
+	release_all_input()
+
+
+func release_all_input() -> void:
+	_active_touch_index = -1
 	_reset_joystick()
 
 
@@ -300,6 +304,12 @@ func _on_jump_pressed() -> void:
 
 
 func _on_menu_pressed() -> void:
+	if not is_instance_valid(_game_world):
+		_game_world = get_tree().get_first_node_in_group("game_world")
+	var pause_controller: Node = get_tree().get_first_node_in_group("pause_menu_controller")
+	if pause_controller != null and pause_controller.has_method("toggle_pause_menu"):
+		pause_controller.call("toggle_pause_menu")
+		return
 	if is_instance_valid(_game_world) and _game_world.has_method("return_to_menu"):
 		_game_world.call("return_to_menu")
 
