@@ -3,18 +3,27 @@ extends Control
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
 const CHARACTER_CREATOR_SCENE: String = "res://scenes/character_creation/character_creator.tscn"
 const SAVE_SLOTS_PANEL_SCRIPT: Script = preload("res://scripts/ui/save_slots_panel.gd")
+const BUTTON_HOVER_SCALE: Vector2 = Vector2(1.022, 1.022)
+const BUTTON_TWEEN_DURATION: float = 0.16
 
+@onready var approved_background: MainMenuTiledBackground = $ApprovedBackground
 @onready var continue_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/ContinueButton
+@onready var new_game_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/NewGameButton
+@onready var quit_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/QuitButton
 @onready var status_label: Label = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/StatusLabel
 
 var _save_slots_panel: SaveSlotsPanel
+var _button_tweens: Dictionary = {}
 
 
 func _ready() -> void:
+	approved_background.visible = approved_background.has_complete_tiles()
+	_configure_menu_buttons()
 	_install_save_slots_panel()
 	_refresh_save_status()
 	if not GameState.save_slots_changed.is_connected(_refresh_save_status):
 		GameState.save_slots_changed.connect(_refresh_save_status)
+	call_deferred("_refresh_button_pivots")
 
 
 func _exit_tree() -> void:
@@ -35,6 +44,45 @@ func _on_continue_pressed() -> void:
 
 func _on_quit_pressed() -> void:
 	get_tree().quit()
+
+
+func _configure_menu_buttons() -> void:
+	for button: Button in _menu_buttons():
+		button.mouse_entered.connect(_animate_menu_button.bind(button, true))
+		button.mouse_exited.connect(_animate_menu_button.bind(button, false))
+		button.focus_entered.connect(_animate_menu_button.bind(button, true))
+		button.focus_exited.connect(_animate_menu_button.bind(button, false))
+
+
+func _menu_buttons() -> Array[Button]:
+	var buttons: Array[Button] = []
+	buttons.append(continue_button)
+	buttons.append(new_game_button)
+	buttons.append(quit_button)
+	return buttons
+
+
+func _refresh_button_pivots() -> void:
+	for button: Button in _menu_buttons():
+		button.pivot_offset = button.size * 0.5
+
+
+func _animate_menu_button(button: Button, highlighted: bool) -> void:
+	if not is_instance_valid(button):
+		return
+	var key: int = button.get_instance_id()
+	if _button_tweens.has(key):
+		var previous: Tween = _button_tweens[key] as Tween
+		if previous != null and previous.is_valid():
+			previous.kill()
+	var active: bool = highlighted and not button.disabled
+	var target_scale: Vector2 = BUTTON_HOVER_SCALE if active else Vector2.ONE
+	var target_modulate: Color = Color(1.08, 1.1, 1.12, 1.0) if active else Color.WHITE
+	var tween: Tween = create_tween()
+	_button_tweens[key] = tween
+	tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(button, "scale", target_scale, BUTTON_TWEEN_DURATION)
+	tween.parallel().tween_property(button, "modulate", target_modulate, BUTTON_TWEEN_DURATION)
 
 
 func _install_save_slots_panel() -> void:
