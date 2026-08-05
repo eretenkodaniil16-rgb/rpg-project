@@ -176,7 +176,16 @@ func _run() -> void:
 		_fail("One-handed attack lock was not released after f08.")
 		return
 	if sprite.animation != &"combat_idle_onehand_left":
-		_fail("One-handed attack did not return to the matching combat idle.")
+		_fail(
+			"One-handed post-attack mismatch: animation=%s playing=%s frame=%d weapon=%s debug=%s"
+			% [
+				str(sprite.animation),
+				str(sprite.is_playing()),
+				sprite.frame,
+				runtime_character.equipped_weapon_id,
+				str(player.call("get_visual_debug_state"))
+			]
+		)
 		return
 
 	runtime_character.equipped_weapon_id = "greatsword"
@@ -211,7 +220,16 @@ func _run() -> void:
 		_fail("Two-handed attack lock was not released after f08.")
 		return
 	if sprite.animation != &"combat_idle_twohand_up":
-		_fail("Two-handed attack did not return to the matching combat idle.")
+		_fail(
+			"Two-handed post-attack mismatch: animation=%s playing=%s frame=%d weapon=%s debug=%s"
+			% [
+				str(sprite.animation),
+				str(sprite.is_playing()),
+				sprite.frame,
+				runtime_character.equipped_weapon_id,
+				str(player.call("get_visual_debug_state"))
+			]
+		)
 		return
 
 	runtime_character.equipped_weapon_id = "mace"
