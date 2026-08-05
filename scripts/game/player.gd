@@ -209,7 +209,14 @@ func start_melee_attack_animation(
 		direction = _visual_facing_direction
 	if direction.length_squared() <= 0.0001:
 		direction = Vector2.RIGHT
-	_visual_facing_direction = direction.normalized()
+	var normalized_attack_direction: Vector2 = direction.normalized()
+	# Synchronize both the authored visual and the production combat-facing state
+	# before enabling the lock. Subsequent external facing requests are ignored
+	# until the attack has completed.
+	if has_method("set_facing_direction"):
+		call("set_facing_direction", normalized_attack_direction)
+	else:
+		set_visual_facing(normalized_attack_direction)
 	_visual_motion_state = VISUAL_STATE_IDLE
 	_visual_stop_grace_remaining = 0.0
 	velocity = Vector2.ZERO

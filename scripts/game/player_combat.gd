@@ -206,6 +206,8 @@ func get_facing_direction() -> Vector2:
 
 
 func set_facing_direction(direction: Vector2) -> void:
+	if is_action_animation_locked():
+		return
 	if direction.length_squared() <= 0.0001:
 		return
 	_facing_direction = direction.normalized()

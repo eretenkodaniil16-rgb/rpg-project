@@ -158,6 +158,10 @@ func _run() -> void:
 	)) != -1:
 		_fail("A repeated attack was accepted while the first animation was active.")
 		return
+	player.call("set_facing_direction", Vector2.RIGHT)
+	if Vector2(player.call("get_facing_direction")).dot(Vector2.LEFT) < 0.99:
+		_fail("Facing changed while the one-handed attack lock was active.")
+		return
 	player.velocity = Vector2(120.0, 0.0)
 	player.call("_physics_process", 1.0 / 60.0)
 	if player.velocity != Vector2.ZERO:
