@@ -493,7 +493,11 @@ func _on_character_sprite_animation_finished() -> void:
 		return
 	if _character_sprite.animation != _active_attack_animation:
 		return
-	_finish_melee_attack(_active_attack_sequence_id)
+	# AnimatedSprite2D completes its internal non-loop transition after emitting
+	# animation_finished. Finalizing synchronously can restore the finished attack
+	# over the combat idle selected by _refresh_visual_animation(). Keep the local
+	# action lock until the deferred call establishes the post-attack state.
+	call_deferred("_finish_melee_attack", _active_attack_sequence_id)
 
 
 func _fire_attack_contact(sequence_id: int) -> void:
