@@ -1,0 +1,515 @@
+{
+  "revision": "animation_assets_v01",
+  "cell_size": 96,
+  "baseline_y": 91,
+  "direction_order": [
+    "down",
+    "left",
+    "right",
+    "up"
+  ],
+  "existing_atlas_sha256": {
+    "human_warrior_m01_idle_v01.png": "d7d95cbe8e29625337b06e1b2aaa95d795679476acb9fe68fdbc615635984795",
+    "human_warrior_m01_walk_v01.png": "51089c22a5654e7f448c8f9b2d7494a58900810d08345919ca84d266126c0abd",
+    "human_warrior_m01_combat_idle_onehand_v01.png": "934aec4a29db7afad22e7fd465d35d2442a796fddc435ad9fb3038a04f4a1ffd",
+    "human_warrior_m01_combat_idle_twohand_v01.png": "8ac5905f2a861f7c54fa9da42737471bd4446e39e953964ffec4b171797354d0",
+    "human_warrior_m01_walk_onehand_v01.png": "aff81fdfc754ad58865016956e5d2ab69bd82fbb74b917b13f7063d63f0a5ed1",
+    "human_warrior_m01_walk_twohand_v01.png": "805bc513c4a1e3434280571854ba4874dcb89ef663e01f7abf92c300059669e8"
+  },
+  "attack_atlases": {
+    "onehand": {
+      "path": "assets/characters/human/warrior_m01/gameplay/approved/atlases/human_warrior_m01_attack_sword_01_onehand_v01.png",
+      "sha256": "8f7e8824f12104cccdfa6ccbed237a4b5198f0e3494738b7244019e995dc048c",
+      "size": [
+        768,
+        384
+      ],
+      "frame_hashes": {
+        "down/f01": "13ba06d5940bad9f0a8abb85c3aca0fb61de54be9bc99a1b2e8c55cc153215b7",
+        "down/f02": "cb077fe80c005a950d7286884c0ef123c496919367b7aa171d414dee50cd9af3",
+        "down/f03": "d798cd49af2396573f332692277184c2d5aea55a0909f11a907ec9ad2542079a",
+        "down/f04": "ec7b85fd6daba21004bd2efa731396b06595d2a98ac4a60be365649719a50ced",
+        "down/f05": "9712e9eca0ae4ac91ed377e8673c342a0d850c0e81f04954686b58e20773721f",
+        "down/f06": "e30086f3948799cad49292f62f785a00d20b7ae16f87e506f18ba25eedd19ac3",
+        "down/f07": "bc6161994e1bd5bae9745aeae50312240ca01ae2b03495247fce74c51b56470b",
+        "down/f08": "13ba06d5940bad9f0a8abb85c3aca0fb61de54be9bc99a1b2e8c55cc153215b7",
+        "left/f01": "8a2e8c7f6ed3034ebb2498c64d1fe3b5dcd72a652b1f279d441ba2feae9ec55a",
+        "left/f02": "e28f212043a9a56802c8c86498d15bb1706ec754f42f1f2b54f78028707f1444",
+        "left/f03": "2b928830a44b3c292b7f3437129f94c145f6ce8ab5ae96a34838746967ecc275",
+        "left/f04": "e52236d13b6b7373fab6461551e49594a48131df697d52ffd014da9d68eb941a",
+        "left/f05": "d47c2735a0c415722121604a1ce601708cafc121d38c0f8f2ec4dc9aae3d5e24",
+        "left/f06": "d99720fc0598f5eca072d141dfa8a12e80ba2cd7179fcd4222f6fef448da584d",
+        "left/f07": "4cf23631eed11c2878deeeebe6c5c0a4dae30e85b0df16e33164a27ce679eb51",
+        "left/f08": "6a6e28f7cd355141af8325cebe47b5857115b91a609ff59c5f1fbb98f885355a",
+        "right/f01": "af75b9650c1b3b707a8500bc55549ca02f8e14e9a8bf90345257c23a1c938f0b",
+        "right/f02": "748b3d8511d58b2c3692b5d4d7cf7d513d1426690f2bdf39ab7e194d5b617a95",
+        "right/f03": "50fdb1305e48799b290c17db6caec996d275dadff9c6df9c648641d545522d79",
+        "right/f04": "830726a4065b095b244aee8f80bc57327b4e4eaea482c85df9df40dc543af4f7",
+        "right/f05": "752ce09914cedf496265ffada71f6bc582db597e4ec18d98081b523a969b3f02",
+        "right/f06": "4a44f736eb4e9caf5ba10e4e2bdaab363223d3c23c545daaba6e3baa6aecd17c",
+        "right/f07": "3ed59ceaebff5d6c9104892cc88e2fdf01aba749e8450d2540d71c4f47aa917b",
+        "right/f08": "af75b9650c1b3b707a8500bc55549ca02f8e14e9a8bf90345257c23a1c938f0b",
+        "up/f01": "e2777fd8f4f53cf6ebbf0bb0f930a4b947c38e420447d57464ea5a0b2a03be2e",
+        "up/f02": "901a159a2d1c954a85faa3617db0e2300357ed42913d875bde717359f3df4852",
+        "up/f03": "efc79b6ea433e570ed6b1f4fa4e6661776312c5f186f14d0a49421ac6fd99073",
+        "up/f04": "856b5e653e1c83e506af888f5b79f83c4818a5c2d2a1182ba6540fb2c8498233",
+        "up/f05": "35a5a3329910f59fe5b156cc22676bd8bdceb66ba31b0413ef7b9f8eebfd74d0",
+        "up/f06": "7a5991e2ed481dca51f4982859ceac73f9955b71954024cd5a69d5680b00a0f3",
+        "up/f07": "fec3abb37d41f787c3884bb395c349911ae85bb21a8aa39a087b06267b1361c6",
+        "up/f08": "56c6ad4d2e66d781ca5e06461d11c11abaae66ce7f2a94c3a2e1d348cfb05128"
+      },
+      "edge_alpha_contract": {
+        "down/f01": {
+          "left": 5,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "down/f02": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "down/f03": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "down/f04": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "down/f05": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "down/f06": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "down/f07": {
+          "left": 4,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "down/f08": {
+          "left": 5,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "left/f01": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "left/f02": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "left/f03": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "left/f04": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "left/f05": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "left/f06": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "left/f07": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "left/f08": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "right/f01": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "right/f02": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "right/f03": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "right/f04": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "right/f05": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "right/f06": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "right/f07": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "right/f08": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "up/f01": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "up/f02": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "up/f03": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "up/f04": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "up/f05": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "up/f06": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "up/f07": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "up/f08": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        }
+      },
+      "first_last_identical": {
+        "down": true,
+        "left": false,
+        "right": true,
+        "up": false
+      }
+    },
+    "twohand": {
+      "path": "assets/characters/human/warrior_m01/gameplay/approved/atlases/human_warrior_m01_attack_sword_01_twohand_v01.png",
+      "sha256": "72a8340c9492848d6f2a243a3b36b32e959a545966da067f645ed311e117fa79",
+      "size": [
+        768,
+        384
+      ],
+      "frame_hashes": {
+        "down/f01": "a16c3acd22d1bc0508ef5b94332c54c61a373bf06ead27a9a5691966350f93f6",
+        "down/f02": "783128aeecb3f8aa716809c80e101f642bf7727aacd25b70abaeef40b907f2a3",
+        "down/f03": "1a15887f6c523d836db22fc8476b343d5f97cd95ea7a3517922305bc471b7a7c",
+        "down/f04": "08c19c99b559f4adc280265602082b08717ea1780b6085ce68e831cf75ddebac",
+        "down/f05": "d20623c4f403dec840c0fac1ba579267b934e7d987fb5691967786fa2f33b2fa",
+        "down/f06": "0a7536f621d61371ea3e9285549c408121dd0edd726fd9226151a036eda3438c",
+        "down/f07": "76d72940020dea8b02907eae8feb10b2f27fcad54b19d58a0704f9236e42f440",
+        "down/f08": "a16c3acd22d1bc0508ef5b94332c54c61a373bf06ead27a9a5691966350f93f6",
+        "left/f01": "2f036e749880363d52630ff5d4d5f1692bb988162457a3e1112ae52379c91685",
+        "left/f02": "353a2fef8a8d9a59e617d3838e36d9345b098a5e82f618766a2ce0debc67302c",
+        "left/f03": "b4885033a3b1b2ee245d69deae39331e0297b34a55ce2c9498762eaf907c328a",
+        "left/f04": "4599be4154ce0c96f64a26797c62f3aa9609ac6f6065e025f2cf9b04f4193068",
+        "left/f05": "6e9c3163f3cb07a7eff68e39da258e2581210b442fe08c6cae1548466a14212f",
+        "left/f06": "f45a06e48fa04219e3dfffb25ee3fd0eff893785774be479b19e08c4cad2db43",
+        "left/f07": "6ccd1bc4792cecca06248fe4d642bb1de5f1f0c1e7dd8baaea3e5c6565d95693",
+        "left/f08": "2f036e749880363d52630ff5d4d5f1692bb988162457a3e1112ae52379c91685",
+        "right/f01": "7b906571215a57c06e5614a6954ec83fc3ab71fc3440e5f827ac933166ac6624",
+        "right/f02": "cf69568e3abf50b8756722508540c2acaa3b3dd73bb672419b39f602754870ec",
+        "right/f03": "5451e22abce03f5f7e2f37c457a6f321f2c6b6bd8d0ac088032c7ab26435b0f9",
+        "right/f04": "168b0b675df0d89620f0c5b2505cec86a33058e49bb19d8db22f2ab73b8e8cb8",
+        "right/f05": "c280492b1389fc8584cafd40c82dd8961159f092d989c1e4171ce99dc8e75e42",
+        "right/f06": "f089ae985c44258dc43b049a32c0c6c38fa7c10a2409c2909273c5968acfe4a5",
+        "right/f07": "2dda800d6c670d0254bc3731c0625459a86acef3fa1139eb800368e39e526d8c",
+        "right/f08": "7b906571215a57c06e5614a6954ec83fc3ab71fc3440e5f827ac933166ac6624",
+        "up/f01": "7bb2c5b8723801952c25c6e780ffc6e22797ac22ccc43e3da273d23e415ad8ca",
+        "up/f02": "b72c94322dbe9639d7f7e25820f0b023b9f3d5851b09ffc07eee9e8b3ee59960",
+        "up/f03": "0d92abe9063776ba69fdaca106fb423862c660f02c59e6826c85764bbb066d6e",
+        "up/f04": "4f1a1fabaa7d34519a4993b3252b6ef630562bf8f993aeec1415117a303ffed4",
+        "up/f05": "329ca9b3664af0029e48f2c1ea1d5f38f89d1cd0e171a1188e684de724d90df9",
+        "up/f06": "b19094e4701dcd5546a7189b65ce26f296fbc746cafedf0c3024e44655738125",
+        "up/f07": "70511bd3738c42d41b28707d7e09501ace9e8eddaeb947d99b254fb258d93798",
+        "up/f08": "7bb2c5b8723801952c25c6e780ffc6e22797ac22ccc43e3da273d23e415ad8ca"
+      },
+      "edge_alpha_contract": {
+        "down/f01": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "down/f02": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "down/f03": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "down/f04": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "down/f05": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "down/f06": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "down/f07": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "down/f08": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "left/f01": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "left/f02": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "left/f03": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "left/f04": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "left/f05": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "left/f06": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "left/f07": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "left/f08": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "right/f01": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "right/f02": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "right/f03": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "right/f04": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "right/f05": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "right/f06": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "right/f07": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "right/f08": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "up/f01": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "up/f02": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "up/f03": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "up/f04": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "up/f05": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "up/f06": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "up/f07": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "up/f08": {
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        }
+      },
+      "first_last_identical": {
+        "down": true,
+        "left": true,
+        "right": true,
+        "up": true
+      }
+    }
+  },
+  "source_artifacts": {
+    "onehand": {
+      "artifact_id": 8932504901,
+      "artifact_sha256": "da09d827e77a61e554b257f42fd4d78ea1c590ca20ae81018d567f578595007b"
+    },
+    "twohand": {
+      "artifact_id": 8913799114,
+      "artifact_sha256": "5c3f5ede5f50c72952b7f52d67b1e7d2e51d52aba83d6cd074a55c07e5262f38"
+    }
+  }
+}
