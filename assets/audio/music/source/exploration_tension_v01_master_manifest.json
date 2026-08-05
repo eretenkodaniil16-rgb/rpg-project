@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "composition_id": "exploration_tension_v01",
+  "title_ru": "Тени рядом",
+  "render_id": "exploration_tension_v01_master_candidate_02",
+  "status": "integrated_master_candidate",
+  "renderer": "procedural_tension_renderer_v02",
+  "arrangement_revision": 2,
+  "danger_density_pass": "approved_2026-08-06",
+  "numpy_version": "2.3.5",
+  "external_samples_used": false,
+  "sample_rate": 48000,
+  "channels": 2,
+  "tempo_bpm": 75,
+  "time_signature": [
+    6,
+    8
+  ],
+  "bars": 34,
+  "duration_seconds": 81.6,
+  "midi_note_count": 249,
+  "peak_dbfs": -1.8,
+  "rms_dbfs": -16.005,
+  "boundary_value_delta": 0.0,
+  "boundary_slope_delta": 7e-08,
+  "ogg_bytes": 1270463,
+  "ogg_sha256": "b376a70d0c10e7ccad99996bb3ae2201c21a4eaeac1578c5c2919164f39c7c18",
+  "wav_sha256": "50458a633d8b50476c24d50e0130d941dae9c664af7790b589348783d2def4db",
+  "midi_sha256": "a599802deeabd6754c170f3c4ea585d0a955924c2433e38cfdb0012cdc1ec911",
+  "source_score_sha256": "1fa9e3a4ed619352b064f80daec8bd03b3b6525f6f93a9d0a376f5fe0fde0b4e",
+  "pcm_signature_shift_bits": 8,
+  "pcm_signature_sha256": "57f76d8e10396187b572c76cb42d365b38afe81d08fe271b59869ea4b7972d0d",
+  "change_scope": [
+    "stronger low-string pulse",
+    "minor-second and tritone pressure",
+    "controlled double heartbeat accents",
+    "denser near-contact section"
+  ]
+}
