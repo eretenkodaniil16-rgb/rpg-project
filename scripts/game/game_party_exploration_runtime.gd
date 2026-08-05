@@ -9,12 +9,14 @@ var _exploration_controlled_actor: Node = null
 var _exploration_mobile_vector: Vector2 = Vector2.ZERO
 var _exploration_mode_id: String = EXPLORATION_MODE_PARTY
 var _party_menu_ui: PartyMenuUI = null
+var _last_synced_combat_active: bool = false
 
 
 func _ready() -> void:
 	super._ready()
 	_exploration_controlled_actor = player
 	_apply_exploration_control_owner(player)
+	_synchronize_ally_combat_mode(true)
 	_replace_bound_handler(
 		_target_button,
 		&"pressed",
@@ -26,8 +28,25 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	super._process(delta)
+	_synchronize_ally_combat_mode()
 	_validate_exploration_control_owner()
 	_refresh_party_menu()
+
+
+func _synchronize_ally_combat_mode(force: bool = false) -> void:
+	var combat_active: bool = is_party_combat_active()
+	if not force and combat_active == _last_synced_combat_active:
+		return
+	_last_synced_combat_active = combat_active
+	_call_ally("set_turn_based_mode", [combat_active])
+	if combat_active:
+		_exploration_mobile_vector = Vector2.ZERO
+		_call_ally("set_manual_move_vector", [Vector2.ZERO])
+		_call_ally("set_manual_control_enabled", [false])
+
+
+func is_party_combat_active() -> bool:
+	return _turn_system != null and _turn_system.active
 
 
 func _bind_party_menu() -> void:
@@ -58,18 +77,17 @@ func _on_party_target_requested() -> void:
 func _on_party_exploration_mode_requested(mode_id: String) -> void:
 	if mode_id not in [EXPLORATION_MODE_PARTY, EXPLORATION_MODE_SOLO]:
 		return
-	if _turn_system.active:
+	if is_party_combat_active():
 		_refresh_party_menu()
 		return
 	if mode_id == _exploration_mode_id:
 		_refresh_party_menu()
 		return
 	_exploration_mode_id = mode_id
+	_apply_exploration_control_owner(player)
 	if _exploration_mode_id == EXPLORATION_MODE_PARTY:
-		_apply_exploration_control_owner(player)
 		show_combat_message("Режим отряда: управление героем, Ирина следует за ним.", true)
 	else:
-		_apply_exploration_control_owner(player)
 		show_combat_message("Одиночный режим: можно выбрать отдельного персонажа.", true)
 	_refresh_party_menu()
 
@@ -80,7 +98,7 @@ func _on_party_member_control_requested(character_id: String) -> void:
 		show_combat_message("Этот участник отряда недоступен.", false)
 		_refresh_party_menu()
 		return
-	if _turn_system.active:
+	if is_party_combat_active():
 		var current_actor: Node = _turn_system.current_actor()
 		if requested_actor != current_actor:
 			show_combat_message("В бою активного персонажа определяет инициатива.", false)
@@ -107,7 +125,7 @@ func _on_party_member_control_requested(character_id: String) -> void:
 func _apply_exploration_control_owner(actor: Node) -> void:
 	if not is_instance_valid(actor):
 		actor = player
-	if _exploration_mode_id == EXPLORATION_MODE_PARTY:
+	if _exploration_mode_id == EXPLORATION_MODE_PARTY or is_party_combat_active():
 		actor = player
 	_exploration_controlled_actor = actor
 	_exploration_mobile_vector = Vector2.ZERO
@@ -120,11 +138,11 @@ func _apply_exploration_control_owner(actor: Node) -> void:
 			player.call("clear_mobile_facing_input")
 	if is_instance_valid(_controllable_ally):
 		_call_ally("set_manual_move_vector", [Vector2.ZERO])
-		_call_ally("set_manual_control_enabled", [actor == _controllable_ally])
+		_call_ally("set_manual_control_enabled", [actor == _controllable_ally and not is_party_combat_active()])
 
 
 func _validate_exploration_control_owner() -> void:
-	if _turn_system.active:
+	if is_party_combat_active():
 		return
 	if _exploration_mode_id == EXPLORATION_MODE_PARTY:
 		if _exploration_controlled_actor != player:
@@ -171,7 +189,7 @@ func _irina_can_be_manually_controlled() -> bool:
 func _refresh_party_menu() -> void:
 	if _party_menu_ui == null:
 		return
-	var combat_active: bool = _turn_system.active
+	var combat_active: bool = is_party_combat_active()
 	var active_actor: Node = _exploration_controlled_actor
 	var enemy_turn: bool = false
 	if combat_active:
@@ -198,7 +216,7 @@ func _refresh_party_menu() -> void:
 
 
 func set_mobile_control_vector(direction: Vector2) -> void:
-	if _turn_system.active:
+	if is_party_combat_active():
 		super.set_mobile_control_vector(direction)
 		return
 	var normalized: Vector2 = direction.limit_length(1.0)
@@ -221,37 +239,39 @@ func set_mobile_control_vector(direction: Vector2) -> void:
 
 
 func clear_mobile_control_vector() -> void:
-	if _turn_system.active:
+	if is_party_combat_active():
 		super.clear_mobile_control_vector()
 		return
 	set_mobile_control_vector(Vector2.ZERO)
 
 
 func get_mobile_control_vector_for_testing() -> Vector2:
-	if _turn_system.active:
+	if is_party_combat_active():
 		return super.get_mobile_control_vector_for_testing()
 	return _exploration_mobile_vector
 
 
 func is_controlled_actor_input_owner(actor: Node) -> bool:
-	if _turn_system.active:
+	if is_party_combat_active():
 		return super.is_controlled_actor_input_owner(actor)
 	return actor == _exploration_controlled_actor
 
 
 func get_active_player_controlled_actor() -> Node:
-	if _turn_system.active:
+	if is_party_combat_active():
 		return super.get_active_player_controlled_actor()
 	return _exploration_controlled_actor
 
 
 func _begin_current_turn() -> void:
+	_synchronize_ally_combat_mode(true)
 	super._begin_current_turn()
 	_refresh_party_menu()
 
 
 func _stop_turn_based_combat(message: String) -> void:
 	super._stop_turn_based_combat(message)
+	_synchronize_ally_combat_mode(true)
 	if _exploration_mode_id == EXPLORATION_MODE_PARTY:
 		_apply_exploration_control_owner(player)
 	else:
