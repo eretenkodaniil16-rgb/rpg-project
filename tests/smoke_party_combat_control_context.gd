@@ -62,9 +62,9 @@ func _run() -> void:
 		0,
 		{
 			player.get_instance_id(): 20,
-			ally.get_instance_id(): 18,
-			first_target.get_instance_id(): 10,
-			second_target.get_instance_id(): 8
+			ally.get_instance_id(): 1,
+			first_target.get_instance_id(): 1,
+			second_target.get_instance_id(): 1
 		}
 	)
 	game.call("_begin_current_turn")
