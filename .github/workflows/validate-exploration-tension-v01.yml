@@ -53,17 +53,12 @@ jobs:
           python tests/test_exploration_tension_v01.py
           python tests/test_music_system_foundation.py
 
-      - name: Replace bootstrap with permanent read-only validation
-        run: |
-          cp tools/audio/validate-exploration-tension-v01.final.yml \
-            .github/workflows/validate-exploration-tension-v01.yml
-          rm tools/audio/validate-exploration-tension-v01.final.yml
-          rm tools/audio/tension_rev02_bundle.b64
-
-      - name: Commit approved revision to pull request branch
+      - name: Commit approved audio revision
         env:
           HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
         run: |
+          rm tools/audio/tension_rev02_bundle.b64
+          rm tools/audio/validate-exploration-tension-v01.final.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add assets/audio/music/source/exploration_tension_v01_score.json
@@ -73,7 +68,6 @@ jobs:
           git add docs/EXPLORATION_TENSION_V01.md
           git add tests/test_exploration_tension_v01.py
           git add tools/audio/generate_exploration_tension_v01.py
-          git add .github/workflows/validate-exploration-tension-v01.yml
           git add -f assets/audio/music/exports/exploration_tension_v01_master.ogg
           git add -u tools/audio/tension_rev02_bundle.b64
           git commit -m "feat(audio): утвердить более опасный tension master"
