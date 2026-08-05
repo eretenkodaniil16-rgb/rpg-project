@@ -30,7 +30,7 @@ jobs:
 
       - name: Run focused static tests
         env:
-          PYTHONPATH: .
+          PYTHONPATH: .:tools/blender_sprite_factory
         run: |
           python -m unittest \
             tools.blender_sprite_factory.tests.test_death_down_keyposes_v01 \
