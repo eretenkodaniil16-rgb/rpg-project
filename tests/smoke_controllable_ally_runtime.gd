@@ -2,7 +2,7 @@ extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
 const ALLY_ID: String = "companion_irna_guard_01"
-const STABILIZE_LABEL: String = "СТАБИЛИЗИРОВАТЬ: ИРНА"
+const STABILIZE_LABEL: String = "СТАБИЛИЗИРОВАТЬ: ИРИНА"
 
 var _stage: String = "init"
 var _completed: bool = false
@@ -106,7 +106,7 @@ func _run() -> void:
 	game.call("_begin_current_turn")
 	var entries: Dictionary = game.call("get_action_catalog_entries_for_testing") as Dictionary
 	if not _has_action_label(entries, STABILIZE_LABEL):
-		_fail("The real action catalog does not expose the Russian healer-kit action for Irna.")
+		_fail("The real action catalog does not expose the Russian healer-kit action for Irina.")
 		return
 	_stage = "execute_stabilization"
 	var stabilization: Dictionary = game.call("_stabilize_controllable_ally") as Dictionary
