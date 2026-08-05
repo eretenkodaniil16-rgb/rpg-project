@@ -1,8 +1,26 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/menus/loading_screen_composite_preview_v01.gd" id="1_script"]
 [ext_resource type="Texture2D" path="res://assets/branding/loading_screen/approved/loading_screen_composite_v01/loading_screen_composite_v01.webp" id="2_bg"]
 [ext_resource type="PackedScene" path="res://scenes/ui/loading_progress_bar_v03.tscn" id="3_bar"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_subtitle"]
+bg_color = Color(0.00392157, 0.0156863, 0.0313726, 0.94)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.0313726, 0.392157, 0.603922, 0.72)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+shadow_color = Color(0, 0.164706, 0.27451, 0.72)
+shadow_size = 12
+content_margin_left = 18.0
+content_margin_top = 6.0
+content_margin_right = 18.0
+content_margin_bottom = 6.0
 
 [node name="LoadingScreenCompositePreviewV01" type="Control"]
 layout_mode = 3
@@ -34,6 +52,30 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 color = Color(0, 0, 0, 0.0352941)
+
+[node name="SubtitleCorrection" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchor_left = 0.33
+anchor_top = 0.415
+anchor_right = 0.67
+anchor_bottom = 0.492
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_subtitle")
+
+[node name="Subtitle" type="Label" parent="SubtitleCorrection"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.32549, 0.854902, 1, 1)
+theme_override_colors/font_shadow_color = Color(0, 0.054902, 0.101961, 1)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 27
+text = "Башня, уходящая вниз"
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="LoadingLabel" type="Label" parent="."]
 layout_mode = 1
