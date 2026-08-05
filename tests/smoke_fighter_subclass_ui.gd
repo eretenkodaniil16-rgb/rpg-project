@@ -40,9 +40,10 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 
-	if str(game.get_script().resource_path) != "res://scripts/game/game_guard_post_polish_runtime.gd":
-		_fail("Game scene does not use the runtime layered above Combat AI, pursuit, encounters and fighter subclasses.")
-		return
+	for method_name: StringName in [&"_build_catalog_entries", &"_ability_attempt_is_valid"]:
+		if not game.has_method(method_name):
+			_fail("Final game runtime is missing fighter-subclass capability: %s" % method_name)
+			return
 	if FighterSubclassSystem.TACTICAL_ABILITY_ID not in hero.known_features:
 		_fail("Game startup did not synchronize the selected fighter subclass.")
 		return
