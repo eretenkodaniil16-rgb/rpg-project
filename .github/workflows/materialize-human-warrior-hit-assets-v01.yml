@@ -1,0 +1,70 @@
+name: Materialize human warrior hit assets v01
+
+on:
+  push:
+    branches:
+      - feature/human-warrior-hit-runtime-v01
+    paths:
+      - ".github/workflows/materialize-human-warrior-hit-assets-v01.yml"
+      - "tools/runtime_animation/materialize_human_warrior_hit_assets_v01.py"
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: materialize-human-warrior-hit-assets-v01-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout integration branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/human-warrior-hit-runtime-v01
+
+      - name: Install image dependency
+        run: python -m pip install --disable-pip-version-check pillow
+
+      - name: Download and verify approved directional hit artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/hit-artifact"
+          gh api \
+            --method GET \
+            -H "Accept: application/vnd.github+json" \
+            "/repos/${GITHUB_REPOSITORY}/actions/artifacts/8946526523/zip" \
+            > "$RUNNER_TEMP/hit-artifact.zip"
+          actual="$(sha256sum "$RUNNER_TEMP/hit-artifact.zip" | cut -d' ' -f1)"
+          expected="205ff1786f5fa04e6d6011c4668408906f21cee795b89ba4dc1fc32d34c1164b"
+          test "$actual" = "$expected"
+          unzip -q "$RUNNER_TEMP/hit-artifact.zip" -d "$RUNNER_TEMP/hit-artifact"
+
+      - name: Build approved hit atlases
+        shell: bash
+        run: |
+          python tools/runtime_animation/materialize_human_warrior_hit_assets_v01.py \
+            --artifact-root "$RUNNER_TEMP/hit-artifact" \
+            --output-dir assets/characters/human/warrior_m01/gameplay/approved/atlases
+
+      - name: Commit generated atlases
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add \
+            assets/characters/human/warrior_m01/gameplay/approved/atlases/human_warrior_m01_hit_01_onehand_v01.png \
+            assets/characters/human/warrior_m01/gameplay/approved/atlases/human_warrior_m01_hit_01_twohand_v01.png
+          if git diff --cached --quiet; then
+            echo "Approved hit atlases are already materialized."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "art: materialize approved human warrior hit atlases"
+          git push origin HEAD:feature/human-warrior-hit-runtime-v01
