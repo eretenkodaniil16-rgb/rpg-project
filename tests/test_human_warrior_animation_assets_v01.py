@@ -55,6 +55,9 @@ class HumanWarriorAnimationAssetsV01Tests(unittest.TestCase):
             )
             self.assertTrue(set(image.getchannel("A").getdata()).issubset({0, 255}))
             edge_exceptions = dict(spec.get("edge_alpha_exceptions", {}))
+            settle_contract = dict(
+                spec.get("first_last_identical_by_direction", {})
+            )
 
             for row, direction in enumerate(DIRECTION_ORDER):
                 cells: list[Image.Image] = []
@@ -91,8 +94,13 @@ class HumanWarriorAnimationAssetsV01Tests(unittest.TestCase):
                             expected_edges,
                             f"edge alpha: {set_id}/{frame_key}",
                         )
-                if bool(spec.get("first_last_identical", False)):
-                    self.assertEqual(cells[0].tobytes(), cells[-1].tobytes())
+
+                if settle_contract:
+                    self.assertEqual(
+                        cells[0].tobytes() == cells[-1].tobytes(),
+                        bool(settle_contract[direction]),
+                        f"settle contract: {set_id}/{direction}",
+                    )
 
     def test_lock_hashes_match(self) -> None:
         hashes = dict(self.lock["existing_atlas_sha256"])
