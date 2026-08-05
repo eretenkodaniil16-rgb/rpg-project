@@ -3,7 +3,7 @@ from __future__ import annotations
 
 CORRECTION_PASS = "v22_pass01"
 ONEHAND_DIRECTIONAL_REVISION = (
-    "onehand_directional_local_readability_v22_pass01"
+    "onehand_directional_minimal_readability_v22_pass01"
 )
 SOURCE_MASTER_ACTION_ID = "attack_sword_01_onehand_down_v20"
 TARGET_DIRECTIONS = ("left", "right", "up")
@@ -19,24 +19,24 @@ FRAME_WEIGHTS = {
     6: 0.55,
 }
 
-# Extremely small action-local rotations only. Direction comes from the real
-# rig rotation; these deltas only preserve weapon-arm readability and remove
-# local projection collisions without changing the attack character.
+# The rig rotation remains the primary directional transform. These values are
+# intentionally tiny and only prevent projected arm/sword collisions. The up
+# Action already satisfies the v21 depth-aware contract and is preserved exactly.
 BONE_DELTAS_DEGREES_BY_DIRECTION = {
     "left": {
-        "upper_arm.R": (0.0, 1.5, -0.75),
+        "upper_arm.R": (0.0, 1.5, -0.5),
         "forearm.R": (0.0, 2.0, -1.0),
-        "hand.R": (0.0, 0.75, -1.25),
+        "hand.R": (0.0, 0.5, -1.0),
     },
     "right": {
-        "upper_arm.R": (0.25, -1.5, 0.75),
-        "forearm.R": (0.25, -2.0, 1.0),
-        "hand.R": (0.0, -0.75, 1.25),
+        "upper_arm.R": (0.25, -1.25, 0.5),
+        "forearm.R": (0.25, -1.5, 0.75),
+        "hand.R": (0.0, -0.5, 1.0),
     },
     "up": {
-        "upper_arm.R": (1.5, 0.25, -0.75),
-        "forearm.R": (2.0, 0.25, -1.0),
-        "hand.R": (1.0, 0.0, -1.25),
+        "upper_arm.R": (0.0, 0.0, 0.0),
+        "forearm.R": (0.0, 0.0, 0.0),
+        "hand.R": (0.0, 0.0, 0.0),
     },
 }
 
@@ -52,6 +52,7 @@ APPROVED_TWOHAND_ARTIFACT_SHA256 = (
 PRESERVE_SOURCE_FCURVE_TIMING = True
 PRESERVE_DOWN_PIXELS = True
 PRESERVE_TWOHAND_BASELINE = True
+PRESERVE_ONEHAND_UP_V21 = True
 ROOT_TRANSLATION_USED = False
 MIRRORING_USED = False
 NEGATIVE_SCALE_USED = False
