@@ -1,7 +1,6 @@
 extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
-const EXPECTED_RUNTIME: String = "res://scripts/game/game_guard_post_polish_runtime.gd"
 const TOP_WALL_ID: String = "west_partition_top"
 const BOTTOM_WALL_ID: String = "west_partition_bottom"
 const DOOR_BLOCKER_ID: String = "west_service_door_blocker"
@@ -30,9 +29,11 @@ func _run() -> void:
 	root.add_child(game)
 	for _frame: int in range(35):
 		await process_frame
-	var game_script: Script = game.get_script() as Script
-	if game_script == null or game_script.resource_path != EXPECTED_RUNTIME:
-		_fail("Game scene does not use the two-room tactical runtime.")
+	if (
+		not game.has_method("prepare_inner_watch_combatants_for_testing")
+		or not game.has_method("get_encounter_roster_for_testing")
+	):
+		_fail("Game scene does not provide the two-room tactical runtime contract.")
 		return
 	game.set_process(false)
 
