@@ -1,0 +1,21 @@
+{
+  "visual_id": "loading_screen_logo_blue_v01",
+  "type": "loading_screen_logo",
+  "status": "runtime_candidate",
+  "approved_by_owner": true,
+  "source_size": [896, 430],
+  "subtitle": "Башня, уходящая вниз",
+  "strip_count": 22,
+  "strip_widths": [112,112,112,112,112,112,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14],
+  "strip_directory": "res://assets/branding/loading_screen/approved/loading_screen_logo_blue_v01/strips/",
+  "scene_path": "res://scenes/ui/loading_screen_logo_layer_v01.tscn",
+  "preview_scene_path": "res://scenes/menus/loading_screen_logo_preview_v01.tscn",
+  "glow": {
+    "wait_seconds_min": 5.0,
+    "wait_seconds_max": 10.0,
+    "fade_in_seconds": 0.7,
+    "hold_seconds": 0.45,
+    "fade_out_seconds": 1.0,
+    "disabled_by_reduced_motion": true
+  }
+}
