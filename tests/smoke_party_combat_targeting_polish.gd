@@ -148,8 +148,12 @@ func _run() -> void:
 	if selected_target != ally:
 		_fail("The enemy lost Irina as its selected attack target.")
 		return
+	var hero_character: PlayerCharacter = game_state.get("player_character") as PlayerCharacter
+	if hero_character == null:
+		_fail("The hero character model is missing during enemy attack routing.")
+		return
 	var ally_health_before: int = int(ally.call("get_current_health"))
-	var hero_health_before: int = GameState.player_character.current_health
+	var hero_health_before: int = hero_character.current_health
 	var attack_result: Dictionary = await game.call(
 		"resolve_npc_attack",
 		attacker,
@@ -164,7 +168,7 @@ func _run() -> void:
 	if int(ally.call("get_current_health")) >= ally_health_before:
 		_fail("The enemy attack did not damage selected Irina.")
 		return
-	if GameState.player_character.current_health != hero_health_before:
+	if hero_character.current_health != hero_health_before:
 		_fail("The attack selected for Irina also damaged the hero.")
 		return
 
