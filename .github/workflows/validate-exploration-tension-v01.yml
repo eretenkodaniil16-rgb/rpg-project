@@ -32,11 +32,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install audio toolchain
+      - name: Install pinned audio toolchain
         run: |
           sudo apt-get update
           sudo apt-get install --yes ffmpeg
-          python -m pip install --disable-pip-version-check numpy
+          python -m pip install --disable-pip-version-check --upgrade "numpy==2.3.5"
 
       - name: Compile renderer
         run: python -m py_compile tools/audio/generate_exploration_tension_v01.py
@@ -60,6 +60,7 @@ jobs:
           from pathlib import Path
           expected = json.loads(Path("assets/audio/music/source/exploration_tension_v01_master_manifest.json").read_text())
           rendered = json.loads(Path("build/audio/exploration_tension_v01/exploration_tension_v01_master_manifest.json").read_text())
+          assert rendered["numpy_version"] == expected["numpy_version"] == "2.3.5"
           assert rendered["wav_sha256"] == expected["wav_sha256"], "deterministic WAV render changed"
           assert rendered["duration_seconds"] == expected["duration_seconds"]
           assert rendered["boundary_value_delta"] <= 0.002
