@@ -29,6 +29,8 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run focused static tests
+        env:
+          PYTHONPATH: tools/blender_sprite_factory
         run: |
           python -m unittest \
             tools.blender_sprite_factory.tests.test_hit_down_keyposes_v01
@@ -89,7 +91,7 @@ jobs:
           path: |
             art/blender_pipeline_runs/human_warrior_m01/**
             blender_hit_down_keyposes_v01.log
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 14
 
       - name: Require successful hit_down render
