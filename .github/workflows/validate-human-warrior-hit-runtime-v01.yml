@@ -84,14 +84,6 @@ jobs:
           [node name="HumanWarriorRuntimeV02Test" type="Node"]
           script = ExtResource("1_test")
           EOF
-          cat > tests/__ci_damage_fall_reactions_runtime.tscn <<'EOF'
-          [gd_scene load_steps=2 format=3]
-
-          [ext_resource type="Script" path="res://tests/smoke_damage_fall_reactions_runtime.gd" id="1_test"]
-
-          [node name="DamageFallReactionsRuntimeTest" type="Node"]
-          script = ExtResource("1_test")
-          EOF
 
       - name: Validate hit runtime and production damage trigger
         shell: bash
@@ -103,7 +95,7 @@ jobs:
 
       - name: Regression test damage and fall reactions
         shell: bash
-        run: timeout 360s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" res://tests/__ci_damage_fall_reactions_runtime.tscn 2>&1 | tee damage-fall-regression.log
+        run: timeout 360s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_damage_fall_reactions_runtime.gd 2>&1 | tee damage-fall-regression.log
 
       - name: Upload diagnostics
         if: always()
