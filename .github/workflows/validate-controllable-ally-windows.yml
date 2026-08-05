@@ -1,0 +1,64 @@
+name: Validate controllable ally on Windows
+
+on:
+  pull_request:
+    paths:
+      - "scenes/game/game.tscn"
+      - "scripts/game/game_party_control_runtime.gd"
+      - "scripts/game/game_controllable_ally_mobile_runtime.gd"
+      - "scripts/ui/mobile_controls_party_routing.gd"
+      - "scripts/systems/party_combat_control_context.gd"
+      - "tests/smoke_controllable_ally_controls.gd"
+      - "tests/smoke_party_combat_control_context.gd"
+      - ".github/workflows/validate-controllable-ally-windows.yml"
+  push:
+    branches:
+      - feature/controllable-ally-v1
+
+concurrency:
+  group: controllable-ally-windows-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Godot 4.7.1 Standard
+        shell: pwsh
+        run: |
+          Invoke-WebRequest `
+            -Uri "https://github.com/godotengine/godot/releases/download/4.7.1-stable/Godot_v4.7.1-stable_win64.exe.zip" `
+            -OutFile "godot.zip"
+          Expand-Archive -Path "godot.zip" -DestinationPath "." -Force
+
+      - name: Import project and reject parser errors
+        shell: pwsh
+        run: |
+          Remove-Item -Path ".godot" -Recurse -Force -ErrorAction SilentlyContinue
+          & ".\Godot_v4.7.1-stable_win64.exe" --headless --editor --path "$env:GITHUB_WORKSPACE" --quit 2>&1 | Tee-Object -FilePath "controllable-ally-windows-import.log"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (Select-String -Path "controllable-ally-windows-import.log" -Pattern "SCRIPT ERROR|Parse Error|Failed to load script") { exit 1 }
+
+      - name: Simulate independent party controls
+        shell: pwsh
+        run: |
+          & ".\Godot_v4.7.1-stable_win64.exe" --headless --path "$env:GITHUB_WORKSPACE" --script res://tests/smoke_controllable_ally_controls.gd 2>&1 | Tee-Object -FilePath "controllable-ally-windows-controls.log"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: controllable-ally-windows-diagnostics
+          path: |
+            controllable-ally-windows-import.log
+            controllable-ally-windows-controls.log
+          if-no-files-found: warn
+          retention-days: 7
