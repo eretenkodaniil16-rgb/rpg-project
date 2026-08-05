@@ -1,0 +1,99 @@
+name: Publish approved combat standard revision 02
+
+on:
+  push:
+    branches:
+      - feature/combat-standard-v01
+    paths:
+      - "tools/audio/combat_standard_v02_bundle.tar.gz"
+      - ".github/workflows/publish-combat-standard-v02.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-combat-standard-v02
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/combat-standard-v01
+          fetch-depth: 0
+
+      - name: Install pinned audio toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes ffmpeg
+          python -m pip install --disable-pip-version-check --upgrade "numpy==2.3.5"
+
+      - name: Expand approved revision sources
+        run: tar -xzf tools/audio/combat_standard_v02_bundle.tar.gz
+
+      - name: Render exact Linux game master
+        run: |
+          python -m py_compile tools/audio/generate_combat_standard_v01.py
+          python tools/audio/generate_combat_standard_v01.py \
+            --score assets/audio/music/source/combat_standard_v01_score.json \
+            --output build/audio/combat_standard_v01
+          cp build/audio/combat_standard_v01/combat_standard_v01_master.ogg \
+            assets/audio/music/exports/combat_standard_v01_master.ogg
+          cp build/audio/combat_standard_v01/combat_standard_v01_master_manifest.json \
+            assets/audio/music/source/combat_standard_v01_master_manifest.json
+
+      - name: Update catalog revision
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          path = Path("data/audio/music_catalog.json")
+          catalog = json.loads(path.read_text(encoding="utf-8"))
+          track = catalog["tracks"]["combat_standard"]
+          track.update({
+              "render_id": "combat_standard_v01_master_candidate_02",
+              "arrangement_revision": 2,
+              "combat_profile": "sharp_standard_turn_based",
+              "tempo_bpm": 96,
+              "sharpness_pass": "approved_2026-08-06",
+          })
+          path.write_text(json.dumps(catalog, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+          PY
+
+      - name: Validate approved revision
+        run: |
+          python tests/test_combat_standard_v01.py
+          python tests/test_music_system_foundation.py
+
+      - name: Commit approved combat revision
+        env:
+          HEAD_BRANCH: feature/combat-standard-v01
+        run: |
+          rm tools/audio/combat_standard_v02_bundle.tar.gz
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tools/audio/generate_combat_standard_v01.py
+          git add assets/audio/music/source/combat_standard_v01_score.json
+          git add assets/audio/music/source/combat_standard_v01_provenance.json
+          git add assets/audio/music/source/combat_standard_v01_master_manifest.json
+          git add -f assets/audio/music/exports/combat_standard_v01_master.ogg
+          git add data/audio/music_catalog.json
+          git add docs/COMBAT_STANDARD_V01.md
+          git add tests/test_combat_standard_v01.py
+          git add -u tools/audio/combat_standard_v02_bundle.tar.gz
+          git commit -m "feat(audio): утвердить резкую боевую тему revision 02"
+          git push origin "HEAD:${HEAD_BRANCH}"
+
+      - name: Upload approved listening artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: combat-standard-v01-revision-02-approved-preview
+          path: build/audio/combat_standard_v01/
+          if-no-files-found: ignore
+          retention-days: 14
