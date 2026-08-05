@@ -1,0 +1,52 @@
+name: Patch human warrior hit runtime v01
+
+on:
+  push:
+    branches:
+      - feature/human-warrior-hit-runtime-v01
+    paths:
+      - ".github/workflows/patch-human-warrior-hit-runtime-v01.yml"
+      - "tools/runtime_animation/patch_human_warrior_hit_runtime_v01.py"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: patch-human-warrior-hit-runtime-v01-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout integration branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/human-warrior-hit-runtime-v01
+
+      - name: Install patch dependency
+        run: python -m pip install --disable-pip-version-check pillow
+
+      - name: Apply focused runtime patch
+        run: python tools/runtime_animation/patch_human_warrior_hit_runtime_v01.py
+
+      - name: Commit runtime implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add \
+            scripts/game/human_warrior_animation_library.gd \
+            scripts/game/player.gd \
+            scripts/game/game_damage_fall_reactions_runtime.gd \
+            data/visuals/human_warrior_m01_animation_assets_v01.lock.json \
+            tests/test_human_warrior_animation_assets_v01.py \
+            tests/test_human_warrior_runtime_animation_v02.gd
+          if git diff --cached --quiet; then
+            echo "Runtime patch is already applied."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "feat: подключить directional hit reaction runtime"
+          git push origin HEAD:feature/human-warrior-hit-runtime-v01
