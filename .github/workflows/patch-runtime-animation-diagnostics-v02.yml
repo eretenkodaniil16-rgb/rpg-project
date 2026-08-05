@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   patch:
-    runs-on: macos-15
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 10
     steps:
       - name: Checkout runtime branch
