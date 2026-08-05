@@ -1,9 +1,10 @@
-name: Validate human warrior hit down keyposes v01
+name: Validate human warrior hit down cycle v01
 
 on:
   pull_request:
     paths:
       - "tools/blender_sprite_factory/hit_down_keyposes_profile_v01.py"
+      - "tools/blender_sprite_factory/hit_down_cycle_profile_v01.py"
       - "tools/blender_sprite_factory/hit_down_keyposes_builder_v01.py"
       - "tools/blender_sprite_factory/blender_sprite_factory_hit_down_keyposes_v01.py"
       - "tools/blender_sprite_factory/tests/test_hit_down_keyposes_v01.py"
@@ -15,11 +16,11 @@ permissions:
   contents: read
 
 concurrency:
-  group: human-warrior-hit-down-keyposes-v01-${{ github.event.pull_request.number || github.ref }}
+  group: human-warrior-hit-down-cycle-v01-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  render-hit-down-keyposes-v01:
+  render-hit-down-cycle-v01:
     if: github.event_name == 'workflow_dispatch' || github.head_ref == 'tools/human-warrior-hit-down-keyposes-v01'
     runs-on: ubuntu-latest
     timeout-minutes: 180
@@ -65,7 +66,7 @@ jobs:
           test -n "$blender"
           echo "BLENDER_EXE=$blender" >> "$GITHUB_ENV"
 
-      - name: Render four hit_down review keyposes
+      - name: Render six-frame hit_down cycle
         id: blender-hit-down
         continue-on-error: true
         shell: bash
@@ -81,21 +82,21 @@ jobs:
             --repo-root "$GITHUB_WORKSPACE" \
             --config tools/blender_sprite_factory/configs/human_warrior_m01.json \
             --run-id "$run_id" \
-            --mode all 2>&1 | tee blender_hit_down_keyposes_v01.log
+            --mode all 2>&1 | tee blender_hit_down_cycle_v01.log
 
-      - name: Upload hit_down review frames and source blend
+      - name: Upload hit_down cycle frames and source blend
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: human_warrior_m01_hit_down_keyposes_v01_${{ github.run_id }}_${{ github.run_attempt }}
+          name: human_warrior_m01_hit_down_cycle_v01_${{ github.run_id }}_${{ github.run_attempt }}
           path: |
             art/blender_pipeline_runs/human_warrior_m01/**
-            blender_hit_down_keyposes_v01.log
+            blender_hit_down_cycle_v01.log
           if-no-files-found: warn
           retention-days: 14
 
-      - name: Require successful hit_down render
+      - name: Require successful hit_down cycle render
         if: steps.blender-hit-down.outcome != 'success'
         run: |
-          echo "hit_down keyposes v01 failed; inspect the uploaded artifact."
+          echo "hit_down cycle v01 failed; inspect the uploaded artifact."
           exit 1
