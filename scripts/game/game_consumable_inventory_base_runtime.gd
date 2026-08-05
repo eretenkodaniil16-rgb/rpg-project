@@ -99,10 +99,12 @@ func _perform_transactional_weapon_attack(
 	if result.hit:
 		_apply_mitigation_to_result(result, _state_for(target))
 	var ranged_attack: bool = DistanceSystem.is_ranged_attack(weapon, distance)
+	var contact_applied: bool = false
 	if ranged_attack:
 		await _play_weapon_projectile(weapon, target_position, result.hit)
+		contact_applied = _apply_player_attack_contact(target, result)
 	else:
-		player.play_attack_animation(target_position)
+		contact_applied = await _play_player_melee_attack_to_completion(target, weapon, result)
 	if _is_recoverable_thrown_attack(weapon, distance):
 		_ensure_dropped_inventory_manager()
 		if _dropped_inventory_manager != null:
@@ -111,10 +113,13 @@ func _perform_transactional_weapon_attack(
 				1,
 				_thrown_landing_position(target_position, result.hit)
 			)
-	if _target_is_valid(target):
-		target.call("receive_player_attack", result, true)
-		if int(target.call("get_current_health")) <= 0:
-			_release_grapples_for(target)
+	if (
+		contact_applied
+		and is_instance_valid(target)
+		and target.has_method("get_current_health")
+		and int(target.call("get_current_health")) <= 0
+	):
+		_release_grapples_for(target)
 	_update_status()
 	_set_combat_busy(false)
 	GameState.save_game()

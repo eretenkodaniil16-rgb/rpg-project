@@ -37,11 +37,24 @@ class HumanWarriorAnimationAssetsV01Tests(unittest.TestCase):
         self.assertEqual(self.manifest["character_id"], "human_warrior_m01")
         self.assertEqual(self.manifest["revision"], "animation_assets_v01")
         self.assertEqual(self.manifest["art_status"], "approved")
-        self.assertFalse(self.manifest["runtime_connected"])
+        self.assertTrue(self.manifest["runtime_connected"])
         self.assertEqual(self.manifest["cell_size"], CELL_SIZE)
         self.assertEqual(self.manifest["baseline_y"], 91)
         self.assertEqual(self.manifest["direction_order"], list(DIRECTION_ORDER))
         self.assertEqual(len(self.manifest["sets"]), 8)
+
+        runtime = dict(self.manifest["runtime"])
+        self.assertEqual(
+            runtime["visual_controller"],
+            "res://scripts/game/player.gd",
+        )
+        self.assertEqual(
+            runtime["animation_event"],
+            "AnimatedSprite2D.frame_changed",
+        )
+        self.assertEqual(runtime["contact_frame_number"], 4)
+        self.assertTrue(runtime["movement_locked_during_attack"])
+        self.assertTrue(runtime["repeat_attack_locked"])
 
     def test_all_atlases(self) -> None:
         for set_id, spec in self.manifest["sets"].items():

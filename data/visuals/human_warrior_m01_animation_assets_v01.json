@@ -3,7 +3,7 @@
   "revision": "animation_assets_v01",
   "art_status": "approved",
   "approval_date": "2026-08-05",
-  "runtime_connected": false,
+  "runtime_connected": true,
   "cell_size": 96,
   "baseline_y": 91,
   "direction_order": [
@@ -12,6 +12,13 @@
     "right",
     "up"
   ],
+  "runtime": {
+    "visual_controller": "res://scripts/game/player.gd",
+    "animation_event": "AnimatedSprite2D.frame_changed",
+    "contact_frame_number": 4,
+    "movement_locked_during_attack": true,
+    "repeat_attack_locked": true
+  },
   "source": {
     "idle_walk": {
       "branch": "feature/human-warrior-runtime-animation-test",
@@ -94,6 +101,12 @@
       "frame_count": 8,
       "fps": 12.0,
       "loop": false,
+      "contact_frame": 4,
+      "weapon_ids": [
+        "longsword",
+        "shortsword",
+        "scimitar"
+      ],
       "edge_alpha_required": true,
       "edge_alpha_exceptions": {
         "down/f01": {
@@ -128,6 +141,10 @@
       "frame_count": 8,
       "fps": 12.0,
       "loop": false,
+      "contact_frame": 4,
+      "weapon_ids": [
+        "greatsword"
+      ],
       "edge_alpha_required": true,
       "edge_alpha_exceptions": {},
       "first_last_identical_by_direction": {
