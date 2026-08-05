@@ -11,6 +11,7 @@ collision_layer = 1
 collision_mask = 1
 motion_mode = 1
 script = ExtResource("1_ally")
+combat_name = "Ирина"
 
 [node name="Body" type="Polygon2D" parent="."]
 polygon = PackedVector2Array(-18, -29, 13, -29, 21, -8, 17, 25, 0, 36, -18, 25, -23, -8)
@@ -32,7 +33,7 @@ offset_left = -72.0
 offset_top = -62.0
 offset_right = 72.0
 offset_bottom = -36.0
-text = "Ирна"
+text = "Ирина"
 horizontal_alignment = 1
 theme_override_colors/font_color = Color(0.66, 0.96, 0.78, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.9)
