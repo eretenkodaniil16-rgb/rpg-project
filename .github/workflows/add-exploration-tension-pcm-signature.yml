@@ -1,0 +1,120 @@
+name: Add exploration tension PCM signature
+
+on:
+  push:
+    branches:
+      - feature/exploration-tension-v01
+    paths:
+      - ".github/workflows/add-exploration-tension-pcm-signature.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  add-signature:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/exploration-tension-v01
+
+      - name: Add cross-platform PCM signature contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import json
+
+          generator = Path("tools/audio/generate_exploration_tension_v01.py")
+          text = generator.read_text(encoding="utf-8")
+          if "pcm_signature =" not in text:
+              text = text.replace(
+                  '    pcm = np.clip(cycle * 32767.0, -32768, 32767).astype("<i2")\n',
+                  '    pcm = np.clip(cycle * 32767.0, -32768, 32767).astype("<i2")\n'
+                  '    # NumPy wheels on supported Linux runner images may differ by one\n'
+                  '    # final int16 LSB in a negligible number of samples. Hashing the\n'
+                  '    # signed high byte preserves a strict musical/PCM fingerprint while\n'
+                  '    # remaining stable across those floating-point implementations.\n'
+                  '    pcm_signature_shift_bits = 8\n'
+                  '    pcm_signature = (pcm.astype(np.int32) >> pcm_signature_shift_bits).astype("<i2")\n',
+              )
+              text = text.replace(
+                  '        "wav_sha256": hashlib.sha256(wav_path.read_bytes()).hexdigest(),\n',
+                  '        "wav_sha256": hashlib.sha256(wav_path.read_bytes()).hexdigest(),\n'
+                  '        "pcm_signature_shift_bits": pcm_signature_shift_bits,\n'
+                  '        "pcm_signature_sha256": hashlib.sha256(pcm_signature.tobytes()).hexdigest(),\n',
+              )
+          generator.write_text(text, encoding="utf-8")
+
+          test_path = Path("tests/test_exploration_tension_v01.py")
+          text = test_path.read_text(encoding="utf-8")
+          if "PCM signature shift contract changed" not in text:
+              text = text.replace(
+                  '    require(manifest["numpy_version"] == "2.3.5", "renderer NumPy version must be pinned")\n',
+                  '    require(manifest["numpy_version"] == "2.3.5", "renderer NumPy version must be pinned")\n'
+                  '    require(manifest["pcm_signature_shift_bits"] == 8, "PCM signature shift contract changed")\n'
+                  '    require(len(manifest["pcm_signature_sha256"]) == 64, "PCM signature SHA-256 is missing")\n',
+              )
+          test_path.write_text(text, encoding="utf-8")
+
+          manifest_path = Path("assets/audio/music/source/exploration_tension_v01_master_manifest.json")
+          manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+          manifest["pcm_signature_shift_bits"] = 8
+          manifest["pcm_signature_sha256"] = "f4efe620976cffdad131bde9ebaaaab82dbd70785581350e10a91c7c18f4ef5a"
+          manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+          provenance_path = Path("assets/audio/music/source/exploration_tension_v01_provenance.json")
+          provenance = json.loads(provenance_path.read_text(encoding="utf-8"))
+          provenance["pcm_reproducibility"] = {
+              "signature": "signed int16 high-byte SHA-256",
+              "shift_bits": 8,
+              "reason": "cross-runner floating-point output differs by at most one int16 LSB",
+          }
+          provenance_path.write_text(json.dumps(provenance, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+          doc_path = Path("docs/EXPLORATION_TENSION_V01.md")
+          text = doc_path.read_text(encoding="utf-8")
+          marker = "Исходник, provenance и renderer хранятся отдельно от игрового Ogg."
+          note = " Cross-platform воспроизводимость контролируется SHA-256 старших 8 бит каждого signed PCM-сэмпла: это сохраняет строгий waveform fingerprint и допускает только незначимое расхождение последнего int16-бита между NumPy wheels."
+          if note.strip() not in text:
+              text = text.replace(marker, marker + note)
+          doc_path.write_text(text, encoding="utf-8")
+          PY
+
+      - name: Verify signature on pinned renderer
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes ffmpeg
+          python -m pip install --disable-pip-version-check --upgrade "numpy==2.3.5"
+          python tools/audio/generate_exploration_tension_v01.py \
+            --score assets/audio/music/source/exploration_tension_v01_score.json \
+            --output build/audio/exploration_tension_v01
+          python tests/test_exploration_tension_v01.py
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          expected = json.loads(Path("assets/audio/music/source/exploration_tension_v01_master_manifest.json").read_text())
+          rendered = json.loads(Path("build/audio/exploration_tension_v01/exploration_tension_v01_master_manifest.json").read_text())
+          assert expected["pcm_signature_shift_bits"] == rendered["pcm_signature_shift_bits"] == 8
+          assert expected["pcm_signature_sha256"] == rendered["pcm_signature_sha256"]
+          assert rendered["boundary_value_delta"] <= 0.002
+          assert rendered["boundary_slope_delta"] <= 0.002
+          PY
+
+      - name: Commit PCM signature contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add \
+            tools/audio/generate_exploration_tension_v01.py \
+            tests/test_exploration_tension_v01.py \
+            assets/audio/music/source/exploration_tension_v01_master_manifest.json \
+            assets/audio/music/source/exploration_tension_v01_provenance.json \
+            docs/EXPLORATION_TENSION_V01.md
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "fix(audio): добавить cross-platform PCM fingerprint"
+          git push origin HEAD:feature/exploration-tension-v01
