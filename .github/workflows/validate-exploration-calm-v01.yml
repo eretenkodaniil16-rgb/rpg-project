@@ -17,7 +17,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: exploration-calm-v01-${{ github.event.pull_request.number || github.ref }}
@@ -28,10 +28,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - name: Checkout feature branch
+      - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Install audio toolchain
         run: |
@@ -42,27 +40,10 @@ jobs:
       - name: Compile renderer
         run: python -m py_compile tools/audio/generate_exploration_calm_v01.py
 
-      - name: Render independent candidate
+      - name: Verify committed game export exists
         run: |
-          python tools/audio/generate_exploration_calm_v01.py \
-            --score assets/audio/music/source/exploration_calm_v01_score.json \
-            --output build/audio/exploration_calm_v01
-
-      - name: Stage first game export
-        id: stage_export
-        shell: bash
-        run: |
-          set -euo pipefail
-          target_ogg="assets/audio/music/exports/exploration_calm_v01_master.ogg"
-          target_manifest="assets/audio/music/source/exploration_calm_v01_master_manifest.json"
-          if [[ -f "$target_ogg" && -f "$target_manifest" ]]; then
-            echo "created=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          mkdir -p assets/audio/music/exports assets/audio/music/source
-          cp build/audio/exploration_calm_v01/exploration_calm_v01_master.ogg "$target_ogg"
-          cp build/audio/exploration_calm_v01/exploration_calm_v01_master_manifest.json "$target_manifest"
-          echo "created=true" >> "$GITHUB_OUTPUT"
+          test -s assets/audio/music/exports/exploration_calm_v01_master.ogg
+          test -s assets/audio/music/source/exploration_calm_v01_master_manifest.json
 
       - name: Validate composition, resource and catalog
         run: python tests/test_exploration_calm_v01.py
@@ -70,16 +51,11 @@ jobs:
       - name: Validate shared music contracts
         run: python tests/test_music_system_foundation.py
 
-      - name: Commit first generated game export
-        if: steps.stage_export.outputs.created == 'true' && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+      - name: Render independent listening preview
         run: |
-          git add -f \
-            assets/audio/music/exports/exploration_calm_v01_master.ogg \
-            assets/audio/music/source/exploration_calm_v01_master_manifest.json
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "feat(audio): добавить игровой master exploration calm"
-          git push origin HEAD:${{ github.head_ref }}
+          python tools/audio/generate_exploration_calm_v01.py \
+            --score assets/audio/music/source/exploration_calm_v01_score.json \
+            --output build/audio/exploration_calm_v01
 
       - name: Upload listening and source artifacts
         uses: actions/upload-artifact@v4
