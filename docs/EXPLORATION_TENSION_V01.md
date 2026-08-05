@@ -16,6 +16,8 @@
 
 Исходник, provenance и renderer хранятся отдельно от игрового Ogg. Cross-platform воспроизводимость контролируется SHA-256 старших 8 бит каждого signed PCM-сэмпла: это сохраняет строгий waveform fingerprint и допускает только незначимое расхождение последнего int16-бита между NumPy wheels. Для воспроизводимого PCM-рендера закреплён NumPy 2.3.5; смена версии требует отдельной проверки и нового manifest. Внешние записи, sample pack и импортированный MIDI не используются.
 
+Игровой master: Ogg Vorbis stereo 48 кГц, 1 058 816 байт, SHA-256 `3795f0f9e1ae987ae15fa3a3bc8806a73046e2eab35f3a027f5ebc0eb91cae5f`, peak `-3.223 dBFS`, RMS `-16.177 dBFS`. PCM boundary value delta `0.0`, slope delta `0.00000005`; cross-platform fingerprint `f4efe620976cffdad131bde9ebaaaab82dbd70785581350e10a91c7c18f4ef5a`.
+
 ## Контексты
 
 ```text
