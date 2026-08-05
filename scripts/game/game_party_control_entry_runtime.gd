@@ -85,24 +85,20 @@ func _build_active_irna_catalog_entries(context_target: Node) -> Dictionary:
 
 	var action_value: Variant = entries.get("action", [])
 	var action_entries: Array = action_value as Array if action_value is Array else []
-	for index: int in range(action_entries.size()):
-		var value: Variant = action_entries[index]
+	var playable_entries: Array = []
+	for value: Variant in action_entries:
 		if not value is Dictionary:
 			continue
 		var entry: Dictionary = (value as Dictionary).duplicate(true)
-		match str(entry.get("id", "")):
-			"attack":
-				entry["enabled"] = can_act and target_melee
-			"select_ally_target":
-				entry["label"] = (
-					"СМЕНИТЬ ЦЕЛЬ ИРИНЫ"
-					if context_target_valid
-					else "ВЫБРАТЬ ЦЕЛЬ ИРИНЫ"
-				)
-			_:
-				pass
-		action_entries[index] = entry
-	entries["action"] = action_entries
+		var action_id: String = str(entry.get("id", ""))
+		# Target selection belongs to the same dedicated target button used by the
+		# main hero. It is not an action-catalog command for a second-class NPC.
+		if action_id == "select_ally_target":
+			continue
+		if action_id == "attack":
+			entry["enabled"] = can_act and target_melee
+		playable_entries.append(entry)
+	entries["action"] = playable_entries
 	return entries
 
 
