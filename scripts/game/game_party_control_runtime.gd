@@ -60,7 +60,22 @@ func _on_party_catalog_action_requested(action_id: String) -> void:
 			_cancel_planned_movement()
 			_last_party_action_result = {"success": true, "status": "movement_cancelled"}
 		"attack":
+			var selected_before: Node = _selected_target
+			var ally_position_before: Vector2 = (
+				(_controllable_ally as Node2D).global_position
+				if _controllable_ally is Node2D
+				else Vector2.INF
+			)
+			var target_position_before: Vector2 = (
+				(selected_before as Node2D).global_position
+				if selected_before is Node2D
+				else Vector2.INF
+			)
 			_last_party_action_result = _request_controllable_ally_attack()
+			_last_party_action_result["ally_position"] = [ally_position_before.x, ally_position_before.y]
+			_last_party_action_result["selected_target_id"] = selected_before.get_instance_id() if is_instance_valid(selected_before) else 0
+			_last_party_action_result["selected_target_name"] = _target_name(selected_before) if is_instance_valid(selected_before) else ""
+			_last_party_action_result["target_position"] = [target_position_before.x, target_position_before.y]
 		"dash":
 			var dash_action_before: bool = _turn_system.action_available
 			_on_dash_requested()
