@@ -58,14 +58,14 @@ jobs:
       - name: Validate master and menu integration
         run: python tests/test_main_theme_v01_master.py
 
-      - name: Commit reproducible game resource
+      - name: Commit generated game resource
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         run: |
-          git add \
+          git add -f \
             assets/audio/music/exports/main_theme_v01_master.ogg \
             assets/audio/music/source/main_theme_v01_master_manifest.json
           if git diff --cached --quiet; then
-            echo "Master resource already matches the renderer."
+            echo "Master resource already matches the current render."
             exit 0
           fi
           git config user.name "github-actions[bot]"
