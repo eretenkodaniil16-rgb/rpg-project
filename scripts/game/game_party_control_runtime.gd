@@ -1,10 +1,8 @@
 extends "res://scripts/game/game_guard_post_polish_runtime.gd"
 
-const REPLACED_CATALOG_METHODS: Array[StringName] = [
-	&"_on_catalog_action_requested",
-	&"_on_feedback_catalog_action_requested",
-	&"_on_party_catalog_action_requested"
-]
+const LEGACY_CATALOG_METHOD: StringName = &"_on_catalog_action_requested"
+const FEEDBACK_CATALOG_METHOD: StringName = &"_on_feedback_catalog_action_requested"
+const PARTY_CATALOG_METHOD: StringName = &"_on_party_catalog_action_requested"
 
 var _last_party_action_id: String = ""
 var _last_party_action_result: Dictionary = {}
@@ -20,7 +18,7 @@ func _bind_party_action_catalog() -> void:
 	if _action_catalog_ui == null:
 		return
 	var signal_name: StringName = &"action_requested"
-	var owned_connections: Array[Callable] = []
+	var stale_connections: Array[Callable] = []
 	for connection_value: Variant in _action_catalog_ui.get_signal_connection_list(signal_name):
 		if not connection_value is Dictionary:
 			continue
@@ -28,13 +26,31 @@ func _bind_party_action_catalog() -> void:
 		if not callable_value is Callable:
 			continue
 		var existing: Callable = callable_value as Callable
-		if existing.get_object() == self and existing.get_method() in REPLACED_CATALOG_METHODS:
-			owned_connections.append(existing)
-	for existing: Callable in owned_connections:
+		if existing.get_object() != self:
+			continue
+		if existing.get_method() in [LEGACY_CATALOG_METHOD, PARTY_CATALOG_METHOD]:
+			stale_connections.append(existing)
+	for existing: Callable in stale_connections:
 		if _action_catalog_ui.is_connected(signal_name, existing):
 			_action_catalog_ui.disconnect(signal_name, existing)
-	var party_handler := Callable(self, "_on_party_catalog_action_requested")
+
+	# Keep the original feedback pipeline for the main hero. It contains the full
+	# inherited action chain, including combat dialogue, item use, Hide and world
+	# interactions. The party handler is a second, actor-gated route used only on
+	# Irna's initiative turn. Exactly one route is active for any catalogue event.
+	var feedback_handler := Callable(self, FEEDBACK_CATALOG_METHOD)
+	if not _action_catalog_ui.is_connected(signal_name, feedback_handler):
+		_action_catalog_ui.connect(signal_name, feedback_handler)
+	var party_handler := Callable(self, PARTY_CATALOG_METHOD)
 	_action_catalog_ui.connect(signal_name, party_handler)
+
+
+func _on_feedback_catalog_action_requested(action_id: String) -> void:
+	if _is_controllable_ally_turn():
+		return
+	if _turn_system.active and not _turn_system.is_actor_turn(player):
+		return
+	super._on_feedback_catalog_action_requested(action_id)
 
 
 func _remember_target_for_active_actor() -> void:
@@ -66,14 +82,10 @@ func _refresh_action_catalog() -> void:
 
 
 func _on_party_catalog_action_requested(action_id: String) -> void:
+	if not _is_controllable_ally_turn():
+		return
 	_last_party_action_id = action_id
 	_last_party_action_result = {}
-	if not _is_controllable_ally_turn():
-		# Forward exactly once through the inherited feedback chain. Calling the
-		# virtual method on self from this leaf can re-enter the party dispatcher
-		# when signal bindings are rebuilt and can execute hero actions twice.
-		super._on_feedback_catalog_action_requested(action_id)
-		return
 	if action_id.begins_with(ALLY_WORLD_INTERACTION_PREFIX):
 		_last_party_action_result = {"success": false, "status": "world_interaction_primary_only"}
 		show_combat_message("Взаимодействия с миром выполняет основной герой на своём ходу.", false)
