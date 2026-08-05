@@ -1,4 +1,4 @@
-name: Validate human warrior death down keyposes v01
+name: Validate human warrior base death down keyposes v01
 
 on:
   pull_request:
@@ -15,11 +15,11 @@ permissions:
   contents: read
 
 concurrency:
-  group: human-warrior-death-down-keyposes-v01-${{ github.event.pull_request.number || github.ref }}
+  group: human-warrior-base-death-down-keyposes-v01-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  render-death-down-keyposes-v01:
+  render-base-death-down-keyposes-v01:
     if: github.event_name == 'workflow_dispatch' || github.head_ref == 'tools/human-warrior-death-down-keyposes-v01'
     runs-on: ubuntu-latest
     timeout-minutes: 180
@@ -66,7 +66,7 @@ jobs:
           test -n "$blender"
           echo "BLENDER_EXE=$blender" >> "$GITHUB_ENV"
 
-      - name: Render onehand death down keyposes v01
+      - name: Render three weapon-agnostic death down keypose variants
         id: blender-death-down
         continue-on-error: true
         shell: bash
@@ -84,11 +84,11 @@ jobs:
             --run-id "$run_id" \
             --mode all 2>&1 | tee blender_death_down_keyposes_v01.log
 
-      - name: Upload death down review artifact
+      - name: Upload base death down review artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: human_warrior_m01_death_down_keyposes_v01_${{ github.run_id }}_${{ github.run_attempt }}
+          name: human_warrior_m01_base_death_down_keyposes_v01_${{ github.run_id }}_${{ github.run_attempt }}
           path: |
             art/blender_pipeline_runs/human_warrior_m01/**
             blender_death_down_keyposes_v01.log
@@ -98,5 +98,5 @@ jobs:
       - name: Require successful keypose render
         if: steps.blender-death-down.outcome != 'success'
         run: |
-          echo "death down keyposes v01 failed; inspect the uploaded artifact."
+          echo "base death down keyposes v01 failed; inspect the uploaded artifact."
           exit 1

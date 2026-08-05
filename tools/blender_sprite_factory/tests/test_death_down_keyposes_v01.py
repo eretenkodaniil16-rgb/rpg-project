@@ -6,8 +6,10 @@ from pathlib import Path
 from tools.blender_sprite_factory.death_down_keyposes_profile_v01 import (
     DEATH_DOWN_KEYPOSE_FRAME_ORDER,
     DEATH_DOWN_KEYPOSE_PHASE_ORDER,
+    DEATH_DOWN_VARIANT_IDS,
     HUMAN_WARRIOR_M01_DEATH_DOWN_KEYPOSES_V01,
     load_death_down_keyposes_profile_v01,
+    load_death_down_keyposes_profiles_v01,
 )
 
 
@@ -18,72 +20,104 @@ ADAPTER_PATH = ROOT / "tools" / "blender_sprite_factory" / "blender_sprite_facto
 
 
 class DeathDownKeyposesV01Tests(unittest.TestCase):
-    def test_profile_identity_is_locked(self) -> None:
-        profile = load_death_down_keyposes_profile_v01("human_warrior_m01")
-        self.assertEqual(profile, HUMAN_WARRIOR_M01_DEATH_DOWN_KEYPOSES_V01)
-        self.assertEqual(profile.revision, "death_down_keyposes_v01_pass02")
-        self.assertEqual(profile.animation_id, "death_01_onehand_down_keyposes_v01")
-        self.assertEqual(profile.direction, "down")
-        self.assertEqual(profile.frame_order, DEATH_DOWN_KEYPOSE_FRAME_ORDER)
-        self.assertEqual(profile.phase_order, DEATH_DOWN_KEYPOSE_PHASE_ORDER)
-        self.assertEqual(profile.fps, 8)
-        self.assertFalse(profile.loop)
-        self.assertTrue(profile.final_pose_persistent)
-        self.assertTrue(profile.weapon_release_deferred)
-
-    def test_stage_is_onehand_down_only(self) -> None:
-        profile = load_death_down_keyposes_profile_v01("human_warrior_m01")
-        self.assertEqual(profile.stance_variant_id, "onehand_ready")
-        self.assertEqual(profile.stance_source_revision, "v09_artist_approved")
-        self.assertEqual(profile.weapon_cycle_id, "onehand_ready")
-        self.assertEqual(profile.fall_side, "character_right_back_diagonal")
-        self.assertEqual(profile.appearance_revision, "v03")
-        self.assertEqual(profile.head_revision, "v22")
-        self.assertEqual(profile.proxy_revision, "v25")
-
-    def test_motion_progresses_from_guard_to_stable_ground_pose(self) -> None:
-        profile = load_death_down_keyposes_profile_v01("human_warrior_m01")
-        poses = profile.poses
-        self.assertTrue(all(value == 0.0 for value in poses[0].translation_deltas()))
-        self.assertTrue(all(value == 0.0 for value in poses[0].rotation_deltas()))
-        self.assertEqual([pose.phase for pose in poses], list(profile.phase_order))
-        self.assertEqual([pose.frame for pose in poses], list(profile.frame_order))
-
-        pelvis_z = [pose.pelvis_z for pose in poses]
-        self.assertEqual(pelvis_z, sorted(pelvis_z, reverse=True))
-        self.assertLess(poses[-1].pelvis_z, -0.55)
-        self.assertLess(poses[-1].spine_pitch_x_degrees, -70.0)
-        self.assertLess(poses[-1].pelvis_roll_z_degrees, -60.0)
-        self.assertGreater(poses[-1].shin_left_x_degrees, 80.0)
-        self.assertGreater(poses[-1].upper_arm_left_z_degrees, 60.0)
-        self.assertLess(poses[-1].upper_arm_right_z_degrees, -50.0)
-        self.assertNotEqual(
-            poses[-1].upper_arm_left_z_degrees,
-            -poses[-1].upper_arm_right_z_degrees,
+    def test_three_weapon_agnostic_variants_are_locked(self) -> None:
+        profiles = load_death_down_keyposes_profiles_v01("human_warrior_m01")
+        self.assertEqual(profiles, HUMAN_WARRIOR_M01_DEATH_DOWN_KEYPOSES_V01)
+        self.assertEqual(
+            tuple(profile.death_variant_id for profile in profiles),
+            DEATH_DOWN_VARIANT_IDS,
+        )
+        self.assertEqual(len(profiles), 3)
+        self.assertTrue(all(not profile.weapon_visible for profile in profiles))
+        self.assertTrue(
+            all(profile.source_stance_variant_id == "onehand_ready" for profile in profiles)
+        )
+        self.assertTrue(
+            all(profile.source_stance_revision.endswith("source_only") for profile in profiles)
         )
 
-    def test_profile_rejects_unknown_character(self) -> None:
-        with self.assertRaises(KeyError):
-            load_death_down_keyposes_profile_v01("unknown_character")
+    def test_shared_keypose_contract(self) -> None:
+        for profile in load_death_down_keyposes_profiles_v01("human_warrior_m01"):
+            self.assertEqual(profile.direction, "down")
+            self.assertEqual(profile.frame_order, DEATH_DOWN_KEYPOSE_FRAME_ORDER)
+            self.assertEqual(profile.phase_order, DEATH_DOWN_KEYPOSE_PHASE_ORDER)
+            self.assertEqual(profile.fps, 8)
+            self.assertFalse(profile.loop)
+            self.assertTrue(profile.final_pose_persistent)
+            self.assertEqual(profile.appearance_revision, "v03")
+            self.assertEqual(profile.head_revision, "v22")
+            self.assertEqual(profile.proxy_revision, "v25")
+            self.assertEqual([pose.phase for pose in profile.poses], list(profile.phase_order))
+            self.assertEqual([pose.frame for pose in profile.poses], list(profile.frame_order))
+            self.assertTrue(all(value == 0.0 for value in profile.poses[0].translation_deltas()))
+            self.assertTrue(all(value == 0.0 for value in profile.poses[0].rotation_deltas()))
+            self.assertLess(profile.poses[-1].pelvis_z, -0.59)
 
-    def test_builder_reuses_existing_pose_channel_contract(self) -> None:
+    def test_death_01_preserves_approved_pass02(self) -> None:
+        profile = load_death_down_keyposes_profile_v01(
+            "human_warrior_m01",
+            "death_01_base",
+        )
+        self.assertEqual(
+            profile.revision,
+            "death_01_base_down_keyposes_v01_pass02_approved",
+        )
+        self.assertEqual(profile.gore_mode, "none")
+        self.assertIsNone(profile.detached_part_id)
+        self.assertIsNone(profile.detachment_frame)
+        self.assertEqual(profile.poses[-1].pelvis_roll_z_degrees, -68.0)
+        self.assertEqual(profile.poses[-1].spine_pitch_x_degrees, -74.0)
+
+    def test_death_02_and_death_03_are_visually_distinct(self) -> None:
+        death_02 = load_death_down_keyposes_profile_v01(
+            "human_warrior_m01",
+            "death_02_base",
+        )
+        death_03 = load_death_down_keyposes_profile_v01(
+            "human_warrior_m01",
+            "death_03_base",
+        )
+        self.assertEqual(death_02.gore_mode, "severe_impact")
+        self.assertGreater(death_02.poses[-1].spine_pitch_x_degrees, 80.0)
+        self.assertGreater(death_02.poses[-1].pelvis_roll_z_degrees, 70.0)
+        self.assertEqual(death_03.gore_mode, "left_forearm_detachment")
+        self.assertEqual(death_03.detached_part_id, "left_forearm_and_hand")
+        self.assertEqual(death_03.detachment_frame, 4)
+        self.assertLess(death_03.poses[-1].spine_pitch_x_degrees, -80.0)
+        self.assertGreater(death_03.poses[-1].pelvis_roll_z_degrees, 80.0)
+
+    def test_profile_rejects_unknown_identifiers(self) -> None:
+        with self.assertRaises(KeyError):
+            load_death_down_keyposes_profiles_v01("unknown_character")
+        with self.assertRaises(KeyError):
+            load_death_down_keyposes_profile_v01(
+                "human_warrior_m01",
+                "death_99_base",
+            )
+
+    def test_builder_creates_base_actions_and_gore_modules(self) -> None:
         source = BUILDER_PATH.read_text(encoding="utf-8")
         self.assertIn("create_combat_idle_directional_cycles_v14", source)
         self.assertIn("_hit_channels", source)
-        self.assertIn("_assert_rig_contract", source)
-        self.assertIn('action["animation_family"] = "death_01"', source)
-        self.assertIn('action["root_translation_used"] = False', source)
-        self.assertIn('action["mirroring_used"] = False', source)
-        self.assertIn('action["weapon_release_deferred"]', source)
+        self.assertIn('action["grip_mode"] = "base"', source)
+        self.assertIn('action["weapon_agnostic"] = True', source)
+        self.assertIn('action["weapon_visible"]', source)
+        self.assertIn("death03_detached_forearm_L", source)
+        self.assertIn("death03_left_elbow_stump", source)
+        self.assertIn('scene["death_down_action_count"] = len(actions)', source)
+        self.assertIn('scene["death_down_runtime_connected"] = False', source)
 
-    def test_renderer_writes_review_artifact_and_contract(self) -> None:
+    def test_renderer_exports_three_rows_without_weapon(self) -> None:
         source = ADAPTER_PATH.read_text(encoding="utf-8")
         self.assertIn("EXPECTED_FRAME_NUMBERS = (1, 2, 3, 4, 5)", source)
-        self.assertIn("human_warrior_m01_death_01_onehand_down_keyposes_v01.png", source)
-        self.assertIn("baseline_y", source)
-        self.assertIn("edge_alpha", source)
-        self.assertIn('"down_keyposes_only": True', source)
-        self.assertIn('"full_cycle_not_yet_approved": True', source)
+        self.assertIn("human_warrior_m01_death_base_down_keyposes_v01.png", source)
+        self.assertIn("weapon_adapter._set_v12_weapon(None, None)", source)
+        self.assertNotIn("profile.weapon_cycle_id", source)
+        self.assertIn("_apply_gore_state", source)
+        self.assertIn("left_forearm_detachment", source)
+        self.assertIn('"variant_count": len(profiles)', source)
+        self.assertIn('"weapon_agnostic": True', source)
+        self.assertIn('"random_runtime_selection_not_started": True', source)
         self.assertIn('"runtime_connected": False', source)
 
     def test_source_files_exist(self) -> None:

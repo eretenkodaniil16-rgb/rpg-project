@@ -16,17 +16,31 @@ import blender_sprite_factory as factory
 import blender_sprite_factory_combat_idle_directional_v11 as directional_adapter
 import blender_sprite_factory_combat_idle_directional_weapon_v12 as weapon_adapter
 import blender_sprite_factory_combat_idle_down_v01 as base_adapter
-from death_down_keyposes_builder_v01 import create_death_down_keypose_action_v01
-from death_down_keyposes_profile_v01 import load_death_down_keyposes_profile_v01
+from death_down_keyposes_builder_v01 import (
+    _GORE_DETACHED_CAP,
+    _GORE_DETACHED_FOREARM,
+    _GORE_DETACHED_HAND,
+    _GORE_ORIGINAL_FOREARM,
+    _GORE_ORIGINAL_HAND,
+    _GORE_STUMP_CAP,
+    create_death_down_keypose_actions_v01,
+)
+from death_down_keyposes_profile_v01 import (
+    load_death_down_keyposes_profiles_v01,
+)
 from factory_config import CONTACT_SHEET_BACKGROUND_HEX
 
 
 PROFILE_PATH = SCRIPT_DIR / "death_down_keyposes_profile_v01.py"
 BUILDER_PATH = SCRIPT_DIR / "death_down_keyposes_builder_v01.py"
-CONTACT_SHEET_NAME = "human_warrior_m01_death_01_onehand_down_keyposes_v01.png"
+CONTACT_SHEET_NAME = "human_warrior_m01_death_base_down_keyposes_v01.png"
 EXPECTED_FRAME_NUMBERS = (1, 2, 3, 4, 5)
 MAX_ALLOWED_EDGE_PIXELS = 18
 BASE_WRITE_RUN_MANIFEST = factory._write_run_manifest
+
+
+def _profiles(character_id: str) -> tuple[object, ...]:
+    return load_death_down_keyposes_profiles_v01(character_id)
 
 
 def _find_frames(
@@ -45,7 +59,7 @@ def _find_frames(
         )
     )
     if tuple(item.frame_number for item in matches) != EXPECTED_FRAME_NUMBERS:
-        raise RuntimeError("death down keyposes v01 rendered an incomplete frame set")
+        raise RuntimeError(f"death down keyposes v01 incomplete set: {animation_id}")
     return matches
 
 
@@ -68,20 +82,24 @@ def _edge_alpha_counts(path: Path) -> dict[str, int]:
         factory.bpy.data.images.remove(image)
 
 
-def _assert_frame_contract(frames: tuple[factory.FrameArtifact, ...]) -> None:
+def _assert_frame_contract(
+    frames: tuple[factory.FrameArtifact, ...],
+    *,
+    death_variant_id: str,
+) -> None:
     if {item.baseline_y for item in frames} != {91}:
         raise RuntimeError(
-            "death down keyposes v01 baseline drifted: "
+            f"{death_variant_id} baseline drifted: "
             f"{sorted({item.baseline_y for item in frames})}"
         )
     for item in frames:
         if item.sprite_width <= 0 or item.sprite_height <= 0:
             raise RuntimeError(
-                f"death down keyposes v01 produced empty f{item.frame_number:02d}"
+                f"{death_variant_id} produced empty f{item.frame_number:02d}"
             )
         if item.sprite_width > 96 or item.sprite_height > 96:
             raise RuntimeError(
-                "death down keyposes v01 exceeds 96x96 canvas: "
+                f"{death_variant_id} exceeds 96x96: "
                 f"f{item.frame_number:02d}={item.sprite_width}x{item.sprite_height}"
             )
         edge_counts = _edge_alpha_counts(item.output_path)
@@ -92,9 +110,72 @@ def _assert_frame_contract(frames: tuple[factory.FrameArtifact, ...]) -> None:
         }
         if clipped:
             raise RuntimeError(
-                "death down keyposes v01 exceeds review edge budget: "
+                f"{death_variant_id} exceeds review edge budget: "
                 f"f{item.frame_number:02d}={clipped}"
             )
+
+
+def _set_hidden(obj: factory.bpy.types.Object, hidden: bool) -> None:
+    obj.hide_render = hidden
+    obj.hide_viewport = hidden
+
+
+def _required_object(name: str) -> factory.bpy.types.Object:
+    obj = factory.bpy.data.objects.get(name)
+    if obj is None:
+        raise RuntimeError(f"death gore object is missing: {name}")
+    return obj
+
+
+def _reset_gore_state() -> None:
+    for name in (_GORE_ORIGINAL_FOREARM, _GORE_ORIGINAL_HAND):
+        _set_hidden(_required_object(name), False)
+    for name in (
+        _GORE_DETACHED_FOREARM,
+        _GORE_DETACHED_HAND,
+        _GORE_STUMP_CAP,
+        _GORE_DETACHED_CAP,
+    ):
+        _set_hidden(_required_object(name), True)
+
+
+def _apply_gore_state(profile: object, frame_number: int) -> None:
+    _reset_gore_state()
+    if profile.gore_mode != "left_forearm_detachment":
+        return
+    if profile.detachment_frame is None or frame_number < profile.detachment_frame:
+        return
+
+    original_forearm = _required_object(_GORE_ORIGINAL_FOREARM)
+    original_hand = _required_object(_GORE_ORIGINAL_HAND)
+    detached_forearm = _required_object(_GORE_DETACHED_FOREARM)
+    detached_hand = _required_object(_GORE_DETACHED_HAND)
+    stump = _required_object(_GORE_STUMP_CAP)
+    detached_cap = _required_object(_GORE_DETACHED_CAP)
+
+    _set_hidden(original_forearm, True)
+    _set_hidden(original_hand, True)
+    for obj in (detached_forearm, detached_hand, stump, detached_cap):
+        _set_hidden(obj, False)
+
+    detached_forearm.matrix_world = original_forearm.matrix_world.copy()
+    detached_hand.matrix_world = original_hand.matrix_world.copy()
+    detached_cap.matrix_world = stump.matrix_world.copy()
+
+    if frame_number == profile.detachment_frame:
+        offset = (0.34, -0.15, -0.12)
+        rotation = (12.0, -8.0, 24.0)
+    else:
+        offset = (0.50, -0.22, -0.19)
+        rotation = (20.0, -12.0, 38.0)
+
+    for obj in (detached_forearm, detached_hand, detached_cap):
+        obj.location.x += offset[0]
+        obj.location.y += offset[1]
+        obj.location.z += offset[2]
+        obj.rotation_euler[0] += math.radians(rotation[0])
+        obj.rotation_euler[1] += math.radians(rotation[1])
+        obj.rotation_euler[2] += math.radians(rotation[2])
 
 
 def render_death_down_keyposes_v01(
@@ -103,17 +184,11 @@ def render_death_down_keyposes_v01(
 ) -> list[factory.FrameArtifact]:
     config = context.config
     revision = context.proxy_revision
-    profile = load_death_down_keyposes_profile_v01(config.character_id)
+    profiles = _profiles(config.character_id)
     raw_dir = run_dir / "raw"
     frame_dir = run_dir / "frames"
     raw_dir.mkdir(exist_ok=True)
     frame_dir.mkdir(exist_ok=True)
-
-    action = factory.bpy.data.actions.get(
-        f"{config.character_id}_{profile.animation_id}"
-    )
-    if action is None or action.get("profile_revision") != profile.revision:
-        raise RuntimeError("death down keyposes v01 action is missing")
 
     idle_action = factory.bpy.data.actions[f"{config.character_id}_idle"]
     weapon_adapter._set_v12_weapon(None, None)
@@ -122,35 +197,54 @@ def render_death_down_keyposes_v01(
     artifacts: list[factory.FrameArtifact] = []
 
     try:
-        factory._assign_action(context.rig, action)
-        weapon_adapter._set_v12_weapon(profile.weapon_cycle_id, "down")
-        context.rig.rotation_euler[2] = math.radians(config.directions["down"])
-
-        for frame_number in profile.frame_order:
-            artifact, _ = factory._render_frame(
-                context,
-                animation_id=profile.animation_id,
-                direction="down",
-                frame_number=frame_number,
-                raw_dir=raw_dir,
-                frame_dir=frame_dir,
-                output_name=(
-                    f"{config.character_id}_{profile.animation_id}_"
-                    f"f{frame_number:02d}_proxy_{revision}.png"
-                ),
-                fixed_scale=down_calibration.scale,
-                fixed_center_x=down_calibration.source_center_x,
+        for profile in profiles:
+            action = factory.bpy.data.actions.get(
+                f"{config.character_id}_{profile.animation_id}"
             )
-            artifacts.append(artifact)
+            if action is None or action.get("profile_revision") != profile.revision:
+                raise RuntimeError(
+                    f"death down keyposes action is missing: {profile.animation_id}"
+                )
+            factory._assign_action(context.rig, action)
+            weapon_adapter._set_v12_weapon(None, None)
+            context.rig.rotation_euler[2] = math.radians(config.directions["down"])
+
+            for frame_number in profile.frame_order:
+                factory.bpy.context.scene.frame_set(frame_number)
+                factory.bpy.context.view_layer.update()
+                _apply_gore_state(profile, frame_number)
+                artifact, _ = factory._render_frame(
+                    context,
+                    animation_id=profile.animation_id,
+                    direction="down",
+                    frame_number=frame_number,
+                    raw_dir=raw_dir,
+                    frame_dir=frame_dir,
+                    output_name=(
+                        f"{config.character_id}_{profile.animation_id}_"
+                        f"f{frame_number:02d}_proxy_{revision}.png"
+                    ),
+                    fixed_scale=down_calibration.scale,
+                    fixed_center_x=down_calibration.source_center_x,
+                )
+                artifacts.append(artifact)
+
+            frames = _find_frames(artifacts, animation_id=profile.animation_id)
+            _assert_frame_contract(frames, death_variant_id=profile.death_variant_id)
     finally:
+        _reset_gore_state()
         weapon_adapter._set_v12_weapon(None, None)
         factory._assign_action(context.rig, idle_action)
         context.rig.rotation_euler[2] = math.radians(config.directions["down"])
         factory.bpy.context.scene.frame_set(1)
         factory.bpy.context.view_layer.update()
 
-    frames = _find_frames(artifacts, animation_id=profile.animation_id)
-    _assert_frame_contract(frames)
+    expected_count = len(profiles) * len(EXPECTED_FRAME_NUMBERS)
+    if len(artifacts) != expected_count:
+        raise RuntimeError(
+            f"death down keyposes v01 requires {expected_count} frames, "
+            f"got {len(artifacts)}"
+        )
     return artifacts
 
 
@@ -159,12 +253,11 @@ def _write_keypose_sheet(
     artifacts: list[factory.FrameArtifact],
     output_path: Path,
 ) -> Path:
-    profile = load_death_down_keyposes_profile_v01(config.character_id)
-    frames = _find_frames(artifacts, animation_id=profile.animation_id)
+    profiles = _profiles(config.character_id)
     tile_width = config.technical.canvas_width
     tile_height = config.technical.canvas_height
-    width = tile_width * len(frames)
-    height = tile_height
+    width = tile_width * len(EXPECTED_FRAME_NUMBERS)
+    height = tile_height * len(profiles)
     background = factory._hex_to_linear_rgb(CONTACT_SHEET_BACKGROUND_HEX)
     pixels = [
         component
@@ -172,26 +265,28 @@ def _write_keypose_sheet(
         for component in (*background, 1.0)
     ]
 
-    for column_index, artifact in enumerate(frames):
-        image = factory.bpy.data.images.load(
-            str(artifact.output_path),
-            check_existing=False,
-        )
-        try:
-            factory._copy_tile(
-                pixels,
-                width,
-                tuple(image.pixels[:]),
-                tile_width,
-                tile_height,
-                column_index * tile_width,
-                0,
+    for row_index, profile in enumerate(profiles):
+        frames = _find_frames(artifacts, animation_id=profile.animation_id)
+        for column_index, artifact in enumerate(frames):
+            image = factory.bpy.data.images.load(
+                str(artifact.output_path),
+                check_existing=False,
             )
-        finally:
-            factory.bpy.data.images.remove(image)
+            try:
+                factory._copy_tile(
+                    pixels,
+                    width,
+                    tuple(image.pixels[:]),
+                    tile_width,
+                    tile_height,
+                    column_index * tile_width,
+                    (len(profiles) - 1 - row_index) * tile_height,
+                )
+            finally:
+                factory.bpy.data.images.remove(image)
 
     sheet = factory.bpy.data.images.new(
-        "human_warrior_m01_death_down_keyposes_v01",
+        "human_warrior_m01_death_base_down_keyposes_v01",
         width=width,
         height=height,
         alpha=True,
@@ -219,52 +314,31 @@ def _write_contact_sheet_v01(
     return result
 
 
-def _write_manifest_v01(
+def _profile_payload(
     context: factory.BuildContext,
-    run_dir: Path,
-    run_id: str,
-    blend_path: Path,
+    profile: object,
     artifacts: list[factory.FrameArtifact],
-    contact_sheet: Path | None,
-) -> Path:
-    manifest_path = BASE_WRITE_RUN_MANIFEST(
-        context,
-        run_dir,
-        run_id,
-        blend_path,
-        artifacts,
-        contact_sheet,
-    )
-    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
-    profile = load_death_down_keyposes_profile_v01(context.config.character_id)
+    named_sheet: Path,
+) -> dict[str, object]:
     frames = _find_frames(artifacts, animation_id=profile.animation_id)
-    named_sheet = run_dir / CONTACT_SHEET_NAME
-    if not named_sheet.is_file():
-        raise RuntimeError("death down keyposes v01 contact sheet is missing")
-
-    payload["contact_sheet_review"] = {
-        "background_color": CONTACT_SHEET_BACKGROUND_HEX,
-        "rows_top_to_bottom": [profile.stance_variant_id],
-        "columns_left_to_right": list(profile.phase_order),
-    }
-    payload["death_down_keyposes_v01"] = {
+    return {
         "profile_revision": profile.revision,
+        "death_variant_id": profile.death_variant_id,
         "animation_id": profile.animation_id,
         "direction": profile.direction,
         "fps": profile.fps,
         "loop": profile.loop,
-        "stance_variant_id": profile.stance_variant_id,
-        "stance_source_revision": profile.stance_source_revision,
-        "weapon_cycle_id": profile.weapon_cycle_id,
+        "source_stance_variant_id": profile.source_stance_variant_id,
+        "source_stance_revision": profile.source_stance_revision,
+        "weapon_visible": profile.weapon_visible,
+        "weapon_agnostic": True,
         "fall_side": profile.fall_side,
         "final_pose_persistent": profile.final_pose_persistent,
-        "weapon_release_deferred": profile.weapon_release_deferred,
+        "gore_mode": profile.gore_mode,
+        "detached_part_id": profile.detached_part_id,
+        "detachment_frame": profile.detachment_frame,
         "profile_path": context.config.relative_to_repo(PROFILE_PATH),
         "profile_sha256": hashlib.sha256(PROFILE_PATH.read_bytes()).hexdigest(),
-        "builder_path": context.config.relative_to_repo(BUILDER_PATH),
-        "builder_sha256": hashlib.sha256(BUILDER_PATH.read_bytes()).hexdigest(),
-        "adapter_path": context.config.relative_to_repo(SCRIPT_PATH),
-        "adapter_sha256": hashlib.sha256(SCRIPT_PATH.read_bytes()).hexdigest(),
         "contact_sheet": context.config.relative_to_repo(named_sheet),
         "total_rendered_frames": len(frames),
         "appearance_revision": profile.appearance_revision,
@@ -283,9 +357,9 @@ def _write_manifest_v01(
         ],
         "locked_contract": {
             "down_keyposes_only": True,
-            "onehand_only": True,
+            "base_weapon_agnostic": True,
+            "weapon_visible": False,
             "final_pose_persistent": True,
-            "weapon_release_deferred": True,
             "root_translation_used": False,
             "mirroring_used": False,
             "negative_scale_used": False,
@@ -293,17 +367,75 @@ def _write_manifest_v01(
             "materials_changed": False,
             "manual_keypose_review_required": True,
             "full_cycle_not_yet_approved": True,
+            "random_runtime_selection_not_started": True,
             "runtime_connected": False,
         },
     }
+
+
+def _write_manifest_v01(
+    context: factory.BuildContext,
+    run_dir: Path,
+    run_id: str,
+    blend_path: Path,
+    artifacts: list[factory.FrameArtifact],
+    contact_sheet: Path | None,
+) -> Path:
+    manifest_path = BASE_WRITE_RUN_MANIFEST(
+        context,
+        run_dir,
+        run_id,
+        blend_path,
+        artifacts,
+        contact_sheet,
+    )
+    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    profiles = _profiles(context.config.character_id)
+    named_sheet = run_dir / CONTACT_SHEET_NAME
+    if not named_sheet.is_file():
+        raise RuntimeError("death base down keyposes contact sheet is missing")
+
+    payload["contact_sheet_review"] = {
+        "background_color": CONTACT_SHEET_BACKGROUND_HEX,
+        "rows_top_to_bottom": [profile.death_variant_id for profile in profiles],
+        "columns_left_to_right": list(profiles[0].phase_order),
+    }
+    payload["death_base_down_keyposes_v01"] = {
+        profile.death_variant_id: _profile_payload(
+            context,
+            profile,
+            artifacts,
+            named_sheet,
+        )
+        for profile in profiles
+    }
+    payload["death_base_down_keyposes_v01_shared"] = {
+        "builder_path": context.config.relative_to_repo(BUILDER_PATH),
+        "builder_sha256": hashlib.sha256(BUILDER_PATH.read_bytes()).hexdigest(),
+        "adapter_path": context.config.relative_to_repo(SCRIPT_PATH),
+        "adapter_sha256": hashlib.sha256(SCRIPT_PATH.read_bytes()).hexdigest(),
+        "contact_sheet": context.config.relative_to_repo(named_sheet),
+        "variant_count": len(profiles),
+        "frames_per_variant": len(EXPECTED_FRAME_NUMBERS),
+        "total_rendered_frames": len(artifacts),
+        "weapon_agnostic": True,
+        "weapon_visible": False,
+        "detachment_variant_count": sum(
+            profile.detached_part_id is not None for profile in profiles
+        ),
+    }
     payload.setdefault("animation_contract", {}).update(
         {
-            "death_01_current_stage": "onehand_down_keyposes_v01",
-            "death_01_keypose_count": len(frames),
-            "death_01_fps": profile.fps,
-            "death_01_final_pose_persistent": True,
-            "death_01_manual_keypose_review_required": True,
-            "death_01_runtime_connected": False,
+            "death_current_stage": "base_down_keyposes_v01",
+            "death_variant_ids": [profile.death_variant_id for profile in profiles],
+            "death_variant_count": len(profiles),
+            "death_keypose_count_per_variant": len(EXPECTED_FRAME_NUMBERS),
+            "death_total_frame_count": len(artifacts),
+            "death_fps": profiles[0].fps,
+            "death_weapon_agnostic": True,
+            "death_weapon_visible": False,
+            "death_random_runtime_selection_not_started": True,
+            "death_runtime_connected": False,
         }
     )
     manifest_path.write_text(
@@ -314,7 +446,7 @@ def _write_manifest_v01(
 
 
 def main() -> int:
-    base_adapter.create_combat_idle_down_actions_v01 = create_death_down_keypose_action_v01
+    base_adapter.create_combat_idle_down_actions_v01 = create_death_down_keypose_actions_v01
     base_adapter.render_pilot_combat_idle_down_v01 = render_death_down_keyposes_v01
     base_adapter._write_contact_sheet_combat_idle_down_v01 = _write_contact_sheet_v01
     base_adapter._write_run_manifest_combat_idle_down_v01 = _write_manifest_v01
