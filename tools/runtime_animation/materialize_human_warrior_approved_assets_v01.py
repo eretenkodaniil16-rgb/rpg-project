@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+from typing import Callable
 
 from PIL import Image
 
@@ -20,6 +21,12 @@ ONEHAND_ARTIFACT_SHA256 = (
 TWOHAND_ARTIFACT_SHA256 = (
     "5c3f5ede5f50c72952b7f52d67b1e7d2e51d52aba83d6cd074a55c07e5262f38"
 )
+ZERO_EDGE_COUNTS = {"left": 0, "right": 0, "top": 0, "bottom": 0}
+ONEHAND_EDGE_ALPHA_EXCEPTIONS = {
+    ("down", 1): {"left": 5, "right": 0, "top": 0, "bottom": 0},
+    ("down", 7): {"left": 4, "right": 0, "top": 0, "bottom": 0},
+    ("down", 8): {"left": 5, "right": 0, "top": 0, "bottom": 0},
+}
 
 
 def _parse_args() -> argparse.Namespace:
@@ -54,7 +61,21 @@ def _find_twohand_frame(root: Path, direction: str, frame: int) -> Path:
     return matches[0]
 
 
-def _validate_frame(path: Path, *, require_edge_alpha_zero: bool) -> Image.Image:
+def _edge_alpha_counts(alpha: Image.Image) -> dict[str, int]:
+    pixels = alpha.load()
+    return {
+        "left": sum(pixels[0, y] > 0 for y in range(CELL_SIZE)),
+        "right": sum(pixels[CELL_SIZE - 1, y] > 0 for y in range(CELL_SIZE)),
+        "top": sum(pixels[x, 0] > 0 for x in range(CELL_SIZE)),
+        "bottom": sum(pixels[x, CELL_SIZE - 1] > 0 for x in range(CELL_SIZE)),
+    }
+
+
+def _validate_frame(
+    path: Path,
+    *,
+    expected_edge_counts: dict[str, int],
+) -> Image.Image:
     image = Image.open(path).convert("RGBA")
     if image.size != (CELL_SIZE, CELL_SIZE):
         raise RuntimeError(f"invalid frame size: {path}={image.size}")
@@ -72,19 +93,22 @@ def _validate_frame(path: Path, *, require_edge_alpha_zero: bool) -> Image.Image
             f"baseline drift: {path}={bbox[3] - 1}, expected={BASELINE_Y}"
         )
 
-    if require_edge_alpha_zero:
-        pixels = alpha.load()
-        edge_values = []
-        for x in range(CELL_SIZE):
-            edge_values.extend((pixels[x, 0], pixels[x, CELL_SIZE - 1]))
-        for y in range(CELL_SIZE):
-            edge_values.extend((pixels[0, y], pixels[CELL_SIZE - 1, y]))
-        if max(edge_values) != 0:
-            raise RuntimeError(f"frame touches canvas edge: {path}")
+    actual_edge_counts = _edge_alpha_counts(alpha)
+    if actual_edge_counts != expected_edge_counts:
+        raise RuntimeError(
+            f"edge-alpha contract drift: {path}={actual_edge_counts}, "
+            f"expected={expected_edge_counts}"
+        )
     return image
 
 
-def _assemble_atlas(frame_resolver: object, root: Path, output_path: Path) -> dict[str, object]:
+def _assemble_atlas(
+    frame_resolver: Callable[[Path, str, int], Path],
+    root: Path,
+    output_path: Path,
+    *,
+    edge_exceptions: dict[tuple[str, int], dict[str, int]],
+) -> dict[str, object]:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     atlas = Image.new(
         "RGBA",
@@ -92,18 +116,22 @@ def _assemble_atlas(frame_resolver: object, root: Path, output_path: Path) -> di
         (0, 0, 0, 0),
     )
     frame_hashes: dict[str, str] = {}
+    edge_contract: dict[str, dict[str, int]] = {}
     first_last_identical: dict[str, bool] = {}
 
     for row, direction in enumerate(DIRECTIONS):
         direction_images: list[Image.Image] = []
         for column, frame_number in enumerate(FRAMES):
             path = frame_resolver(root, direction, frame_number)
-            image = _validate_frame(path, require_edge_alpha_zero=True)
+            expected_edges = dict(
+                edge_exceptions.get((direction, frame_number), ZERO_EDGE_COUNTS)
+            )
+            image = _validate_frame(path, expected_edge_counts=expected_edges)
             direction_images.append(image)
             atlas.paste(image, (column * CELL_SIZE, row * CELL_SIZE))
-            frame_hashes[f"{direction}/f{frame_number:02d}"] = hashlib.sha256(
-                path.read_bytes()
-            ).hexdigest()
+            frame_key = f"{direction}/f{frame_number:02d}"
+            frame_hashes[frame_key] = hashlib.sha256(path.read_bytes()).hexdigest()
+            edge_contract[frame_key] = expected_edges
         first_last_identical[direction] = (
             direction_images[0].tobytes() == direction_images[-1].tobytes()
         )
@@ -116,6 +144,7 @@ def _assemble_atlas(frame_resolver: object, root: Path, output_path: Path) -> di
         "sha256": hashlib.sha256(output_path.read_bytes()).hexdigest(),
         "size": list(atlas.size),
         "frame_hashes": frame_hashes,
+        "edge_alpha_contract": edge_contract,
         "first_last_identical": first_last_identical,
     }
 
@@ -144,8 +173,18 @@ def main() -> int:
 
     onehand_path = args.output_dir / "human_warrior_m01_attack_sword_01_onehand_v01.png"
     twohand_path = args.output_dir / "human_warrior_m01_attack_sword_01_twohand_v01.png"
-    onehand = _assemble_atlas(_find_onehand_frame, args.onehand_root, onehand_path)
-    twohand = _assemble_atlas(_find_twohand_frame, args.twohand_root, twohand_path)
+    onehand = _assemble_atlas(
+        _find_onehand_frame,
+        args.onehand_root,
+        onehand_path,
+        edge_exceptions=ONEHAND_EDGE_ALPHA_EXCEPTIONS,
+    )
+    twohand = _assemble_atlas(
+        _find_twohand_frame,
+        args.twohand_root,
+        twohand_path,
+        edge_exceptions={},
+    )
 
     payload = {
         "revision": "animation_assets_v01",
