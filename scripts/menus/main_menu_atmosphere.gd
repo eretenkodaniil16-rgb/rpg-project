@@ -43,6 +43,18 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 
+func set_reduced_motion(enabled: bool) -> void:
+	_reduced_motion = enabled
+	if _reduced_motion:
+		_elapsed = 0.0
+	set_process(not _reduced_motion)
+	queue_redraw()
+
+
+func is_reduced_motion_enabled() -> bool:
+	return _reduced_motion
+
+
 func _draw() -> void:
 	var viewport_size: Vector2 = size
 	if viewport_size.x <= 1.0 or viewport_size.y <= 1.0:

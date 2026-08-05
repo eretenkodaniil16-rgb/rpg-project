@@ -32,10 +32,12 @@ func _run() -> void:
 	for path: String in [
 		"CenterContainer/MenuPanel/MarginContainer/VBoxContainer/ContinueButton",
 		"CenterContainer/MenuPanel/MarginContainer/VBoxContainer/NewGameButton",
+		"CenterContainer/MenuPanel/MarginContainer/VBoxContainer/SettingsButton",
 		"CenterContainer/MenuPanel/MarginContainer/VBoxContainer/QuitButton",
 	]:
 		assert(menu.get_node_or_null(path) is Button, "Working menu button is missing: %s" % path)
 
+	assert(menu.get_node_or_null("SettingsLayer") is MainMenuSettingsPanel, "Settings layer is missing")
 	menu.queue_free()
 	await process_frame
 	print("Main menu branding smoke test passed")
