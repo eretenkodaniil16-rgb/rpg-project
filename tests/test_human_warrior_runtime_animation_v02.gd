@@ -9,7 +9,9 @@ const EXPECTED_SETS: Dictionary = {
 	"walk_onehand": 6,
 	"walk_twohand": 6,
 	"attack_sword_01_onehand": 8,
-	"attack_sword_01_twohand": 8
+	"attack_sword_01_twohand": 8,
+	"hit_01_onehand": 6,
+	"hit_01_twohand": 6
 }
 
 
@@ -73,8 +75,8 @@ func _run() -> void:
 		return
 
 	var frames: SpriteFrames = sprite.sprite_frames
-	if frames == null or frames.get_animation_names().size() != 32:
-		_fail("Runtime animation library must expose 32 directional animations.")
+	if frames == null or frames.get_animation_names().size() != 40:
+		_fail("Runtime animation library must expose 40 directional animations.")
 		return
 	for prefix_value: Variant in EXPECTED_SETS.keys():
 		var prefix: String = str(prefix_value)

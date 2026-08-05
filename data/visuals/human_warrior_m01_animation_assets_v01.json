@@ -2,7 +2,7 @@
   "character_id": "human_warrior_m01",
   "revision": "animation_assets_v01",
   "art_status": "approved",
-  "approval_date": "2026-08-05",
+  "approval_date": "2026-08-06",
   "runtime_connected": true,
   "cell_size": 96,
   "baseline_y": 91,
@@ -17,7 +17,11 @@
     "animation_event": "AnimatedSprite2D.frame_changed",
     "contact_frame_number": 4,
     "movement_locked_during_attack": true,
-    "repeat_attack_locked": true
+    "repeat_attack_locked": true,
+    "hit_reaction_damage_threshold": 1,
+    "hit_reaction_movement_locked": true,
+    "hit_reaction_facing_locked": true,
+    "death_priority_over_hit": true
   },
   "source": {
     "idle_walk": {
@@ -44,6 +48,21 @@
       "artifact_sha256": "5c3f5ede5f50c72952b7f52d67b1e7d2e51d52aba83d6cd074a55c07e5262f38",
       "source_action": "attack_sword_01_twohand_down_overhead_v21",
       "directional_revision": "twohand_overhead_directional_v21_pass05"
+    },
+    "hit_01_directional": {
+      "branch": "tools/human-warrior-hit-down-keyposes-v01",
+      "commit": "03d205388d71d01333796a92daa3d47059151218",
+      "merged_art_commit": "a1ecd49f",
+      "pull_request": 80,
+      "workflow_run": 31044413873,
+      "artifact_id": 8946526523,
+      "artifact_sha256": "205ff1786f5fa04e6d6011c4668408906f21cee795b89ba4dc1fc32d34c1164b",
+      "directional_revision": "hit_directional_cycles_v01",
+      "grips": [
+        "onehand_ready",
+        "twohand_center_high"
+      ],
+      "mirroring_used": false
     }
   },
   "sets": {
@@ -152,6 +171,67 @@
         "left": true,
         "right": true,
         "up": true
+      }
+    },
+    "hit_01_onehand": {
+      "sheet_path": "res://assets/characters/human/warrior_m01/gameplay/approved/atlases/human_warrior_m01_hit_01_onehand_v01.png",
+      "animation_prefix": "hit_01_onehand",
+      "frame_count": 6,
+      "fps": 15.0,
+      "loop": false,
+      "edge_alpha_required": true,
+      "edge_alpha_exceptions": {
+        "down/f01": {
+          "left": 4,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "down/f03": {
+          "left": 4,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "down/f04": {
+          "left": 5,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "down/f05": {
+          "left": 5,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "down/f06": {
+          "left": 5,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        }
+      },
+      "first_last_identical_by_direction": {
+        "down": false,
+        "left": false,
+        "right": false,
+        "up": false
+      }
+    },
+    "hit_01_twohand": {
+      "sheet_path": "res://assets/characters/human/warrior_m01/gameplay/approved/atlases/human_warrior_m01_hit_01_twohand_v01.png",
+      "animation_prefix": "hit_01_twohand",
+      "frame_count": 6,
+      "fps": 15.0,
+      "loop": false,
+      "edge_alpha_required": true,
+      "edge_alpha_exceptions": {},
+      "first_last_identical_by_direction": {
+        "down": false,
+        "left": false,
+        "right": false,
+        "up": false
       }
     }
   }

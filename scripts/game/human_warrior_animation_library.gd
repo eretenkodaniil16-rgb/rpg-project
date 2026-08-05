@@ -14,7 +14,9 @@ const EXPECTED_SET_IDS: Array[String] = [
 	"walk_onehand",
 	"walk_twohand",
 	"attack_sword_01_onehand",
-	"attack_sword_01_twohand"
+	"attack_sword_01_twohand",
+	"hit_01_onehand",
+	"hit_01_twohand"
 ]
 
 var _last_error: String = ""
