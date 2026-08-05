@@ -1,0 +1,41 @@
+name: Validate main theme v01
+
+on:
+  pull_request:
+    paths:
+      - "assets/audio/music/source/main_theme_v01_score.json"
+      - "assets/audio/music/source/main_theme_v01_provenance.json"
+      - "tools/audio/generate_main_theme_v01.py"
+      - "tests/test_main_theme_v01.py"
+      - "docs/MAIN_THEME_V01.md"
+      - ".github/workflows/validate-main-theme-v01.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: main-theme-v01-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install synthesis dependency
+        run: python -m pip install --disable-pip-version-check numpy
+
+      - name: Validate composition and render previews
+        run: python tests/test_main_theme_v01.py
+
+      - name: Upload MIDI, WAV and Ogg preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: main-theme-v01-preview
+          path: build/audio/main_theme_v01/
+          if-no-files-found: error
+          retention-days: 14
