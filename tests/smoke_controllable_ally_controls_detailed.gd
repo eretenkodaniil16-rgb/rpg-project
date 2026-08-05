@@ -12,7 +12,8 @@ func _create_route_with_mobile_joystick(
 		# deliberately locks all spatial input until it is acknowledged.
 		popup.call("_on_continue_pressed")
 		await process_frame
-		if GameState.input_locked:
+		var state: Node = root.get_node_or_null("GameState")
+		if state != null and bool(state.get("input_locked")):
 			return false
 	return await super._create_route_with_mobile_joystick(
 		game,
