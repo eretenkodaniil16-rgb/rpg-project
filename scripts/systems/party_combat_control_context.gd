@@ -23,13 +23,11 @@ func owns_input(actor: Node) -> bool:
 
 
 func set_target(actor: Node, target: Node) -> void:
-	if not is_instance_valid(actor):
+	if not is_instance_valid(actor) or not is_instance_valid(target):
+		# A missing shared UI pointer is not an explicit target-cancel command.
+		# Call clear_target(actor) when the player deliberately removes a target.
 		return
-	var actor_id: int = actor.get_instance_id()
-	if is_instance_valid(target):
-		_targets_by_actor_id[actor_id] = target
-	else:
-		_targets_by_actor_id.erase(actor_id)
+	_targets_by_actor_id[actor.get_instance_id()] = target
 
 
 func target_for(actor: Node) -> Node:
