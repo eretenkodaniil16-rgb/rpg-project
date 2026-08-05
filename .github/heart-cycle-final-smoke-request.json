@@ -1,0 +1,14 @@
+{
+  "revision": "heart_cycle_final_export_v08",
+  "requested_at": "2026-08-05T16:05:00+03:00",
+  "profile": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "frame_start": 1,
+    "frame_end": 1,
+    "render_samples": 128,
+    "native_blender_render": true,
+    "upscale": false
+  }
+}
