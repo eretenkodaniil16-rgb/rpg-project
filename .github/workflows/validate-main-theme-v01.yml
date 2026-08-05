@@ -19,7 +19,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: main-theme-v01-${{ github.event.pull_request.number || github.ref }}
@@ -30,10 +30,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - name: Checkout feature branch
+      - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Install audio toolchain
         run: |
@@ -44,34 +42,14 @@ jobs:
       - name: Validate approved composition
         run: python tests/test_main_theme_v01.py
 
-      - name: Render master candidate
+      - name: Validate committed master and menu integration
+        run: python tests/test_main_theme_v01_master.py
+
+      - name: Render independent listening preview
         run: |
           python tools/audio/render_main_theme_v01_master.py \
             --score assets/audio/music/source/main_theme_v01_score.json \
             --output build/audio/main_theme_v01_master
-          mkdir -p assets/audio/music/exports assets/audio/music/source
-          cp build/audio/main_theme_v01_master/main_theme_v01_master_candidate.ogg \
-            assets/audio/music/exports/main_theme_v01_master.ogg
-          cp build/audio/main_theme_v01_master/main_theme_v01_master_manifest.json \
-            assets/audio/music/source/main_theme_v01_master_manifest.json
-
-      - name: Validate master and menu integration
-        run: python tests/test_main_theme_v01_master.py
-
-      - name: Commit generated game resource
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        run: |
-          git add -f \
-            assets/audio/music/exports/main_theme_v01_master.ogg \
-            assets/audio/music/source/main_theme_v01_master_manifest.json
-          if git diff --cached --quiet; then
-            echo "Master resource already matches the current render."
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "feat(audio): обновить игровой master main theme"
-          git push origin HEAD:${{ github.head_ref }}
 
       - name: Upload rendered previews
         uses: actions/upload-artifact@v4
