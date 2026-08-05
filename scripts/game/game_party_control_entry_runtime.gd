@@ -1,5 +1,16 @@
 extends "res://scripts/game/game_party_control_runtime.gd"
 
+const IRINA_ACTION_LABELS: Dictionary = {
+	"attack": "АТАКА КОРОТКИМ МЕЧОМ",
+	"confirm_move": "ПОДТВЕРДИТЬ ПЕРЕМЕЩЕНИЕ",
+	"cancel_move": "ОТМЕНИТЬ ПУТЬ",
+	"dash": "РЫВОК",
+	"disengage": "ОТХОД",
+	"dodge": "УКЛОНЕНИЕ",
+	"end_turn": "ЗАВЕРШИТЬ ХОД",
+	"reaction_status": "РЕАКЦИЯ"
+}
+
 
 func _on_catalog_action_requested(action_id: String) -> void:
 	# Keep the legacy direct runtime facade stable for tests and integrations.
@@ -22,7 +33,7 @@ func refresh_active_party_action_catalog() -> void:
 		if _selected_target != context_target:
 			_set_selected_target(context_target)
 
-	var entries: Dictionary = _build_active_irna_catalog_entries(context_target)
+	var entries: Dictionary = _build_active_irina_catalog_entries(context_target)
 	var has_plan: bool = _planned_path.size() > 1
 	var target_text: String = "цель не выбрана"
 	if context_target_valid:
@@ -48,7 +59,7 @@ func refresh_active_party_action_catalog() -> void:
 	)
 
 
-func _build_active_irna_catalog_entries(context_target: Node) -> Dictionary:
+func _build_active_irina_catalog_entries(context_target: Node) -> Dictionary:
 	var entries: Dictionary = super._build_catalog_entries()
 	var context_target_valid: bool = _ally_target_is_valid(context_target)
 	var distance_feet: int = -1
@@ -83,23 +94,50 @@ func _build_active_irna_catalog_entries(context_target: Node) -> Dictionary:
 		"target_melee": target_melee
 	}
 
-	var action_value: Variant = entries.get("action", [])
-	var action_entries: Array = action_value as Array if action_value is Array else []
-	var playable_entries: Array = []
-	for value: Variant in action_entries:
-		if not value is Dictionary:
+	for category_id: String in ["action", "bonus", "free", "reaction"]:
+		var category_value: Variant = entries.get(category_id, [])
+		if not category_value is Array:
 			continue
-		var entry: Dictionary = (value as Dictionary).duplicate(true)
-		var action_id: String = str(entry.get("id", ""))
-		# Target selection belongs to the same dedicated target button used by the
-		# main hero. It is not an action-catalog command for a second-class NPC.
-		if action_id == "select_ally_target":
-			continue
-		if action_id == "attack":
-			entry["enabled"] = can_act and target_melee
-		playable_entries.append(entry)
-	entries["action"] = playable_entries
+		var playable_entries: Array = []
+		for value: Variant in category_value as Array:
+			if not value is Dictionary:
+				continue
+			var entry: Dictionary = (value as Dictionary).duplicate(true)
+			var action_id: String = str(entry.get("id", ""))
+			# Target selection belongs to the same dedicated target button used by the
+			# main hero. It is not an action-catalog command for a second-class NPC.
+			if action_id == "select_ally_target":
+				continue
+			_normalize_irina_action_entry(entry)
+			if action_id == "attack":
+				entry["enabled"] = can_act and target_melee
+			playable_entries.append(entry)
+		entries[category_id] = playable_entries
 	return entries
+
+
+func _normalize_irina_action_entry(entry: Dictionary) -> void:
+	var action_id: String = str(entry.get("id", ""))
+	if IRINA_ACTION_LABELS.has(action_id):
+		var label: String = str(IRINA_ACTION_LABELS[action_id])
+		if action_id == "reaction_status":
+			label += " ГОТОВА" if bool(entry.get("enabled", false)) else " ИСПОЛЬЗОВАНА"
+		entry["label"] = label
+	match action_id:
+		"confirm_move":
+			entry["description"] = "Выполнить выбранный маршрут."
+		"cancel_move":
+			entry["description"] = "Очистить выбранный маршрут."
+		"dash":
+			entry["description"] = "Получить дополнительное перемещение за основное действие."
+		"disengage":
+			entry["description"] = "До конца хода не провоцировать атаки по возможности."
+		"dodge":
+			entry["description"] = "Атаки видимых противников совершаются с помехой до следующего хода."
+		"end_turn":
+			entry["description"] = "Завершить текущий ход."
+		"reaction_status":
+			entry["description"] = "Реакция текущего персонажа."
 
 
 func _ally_target_is_valid(target: Node) -> bool:
@@ -174,7 +212,7 @@ func _request_controllable_ally_attack(
 	if not _ally_target_is_valid(target):
 		target = _party_control_context.target_for(_controllable_ally)
 	if not _ally_target_is_valid(target):
-		show_combat_message("Для атаки Ирины выберите доступного противника.", false)
+		show_combat_message("Для атаки выберите доступного противника.", false)
 		return {"success": false, "status": "target_required"}
 
 	var hidden_trigger_before: bool = _allow_hidden_combat_trigger
