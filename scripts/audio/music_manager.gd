@@ -143,6 +143,7 @@ func play_music(track_id: StringName, fade_seconds: float = DEFAULT_CROSSFADE_SE
 	var stream: AudioStream = _load_audio_stream(track, "track", track_id)
 	if stream == null:
 		return false
+	stream = _configure_stream_loop(stream, bool(track.get("loop", false)))
 	if _current_track_id == track_id and _active_player().playing:
 		return true
 	_crossfade_to_track(stream, track_id, track, maxf(fade_seconds, 0.0))
@@ -388,6 +389,20 @@ func _load_audio_stream(definition: Dictionary, kind: String, audio_id: StringNa
 		push_warning("Ресурс %s '%s' не является AudioStream: %s" % [kind, String(audio_id), resource_path])
 		return null
 	return resource as AudioStream
+
+
+func _configure_stream_loop(stream: AudioStream, should_loop: bool) -> AudioStream:
+	var configured_stream: AudioStream = stream.duplicate() as AudioStream
+	if configured_stream == null:
+		configured_stream = stream
+	if configured_stream is AudioStreamOggVorbis:
+		(configured_stream as AudioStreamOggVorbis).loop = should_loop
+	elif configured_stream is AudioStreamWAV:
+		var wav_stream: AudioStreamWAV = configured_stream as AudioStreamWAV
+		wav_stream.loop_mode = (
+			AudioStreamWAV.LOOP_FORWARD if should_loop else AudioStreamWAV.LOOP_DISABLED
+		)
+	return configured_stream
 
 
 func _resolve_bus(definition: Dictionary) -> StringName:
