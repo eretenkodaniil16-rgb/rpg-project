@@ -34,6 +34,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Audit legacy runtime path assertions
+        shell: pwsh
+        run: |
+          $matches = Get-ChildItem -Path "tests" -Recurse -File -Filter "*.gd" |
+            Select-String -SimpleMatch "game_guard_post_polish_runtime.gd"
+          $matches |
+            ForEach-Object { "$($_.Path):$($_.LineNumber):$($_.Line.Trim())" } |
+            Tee-Object -FilePath "legacy-runtime-path-assertions.log"
+
       - name: Download Godot 4.7.1 Standard
         shell: pwsh
         run: |
@@ -68,6 +77,7 @@ jobs:
         with:
           name: controllable-ally-windows-diagnostics
           path: |
+            legacy-runtime-path-assertions.log
             controllable-ally-windows-import.log
             controllable-ally-windows-controls.log
             controllable-ally-windows-social.log
