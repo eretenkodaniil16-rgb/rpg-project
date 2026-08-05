@@ -53,6 +53,10 @@ func _run() -> void:
 	if player == null:
 		_fail("Player node is missing from the production game scene.")
 		return
+	var runtime_character: PlayerCharacter = game_state.get("player_character") as PlayerCharacter
+	if runtime_character == null:
+		_fail("Production scene has no runtime player character.")
+		return
 	var body: Polygon2D = player.get_node_or_null("Body") as Polygon2D
 	var sprite: AnimatedSprite2D = player.find_child("CharacterSprite", true, false) as AnimatedSprite2D
 	if body == null or sprite == null:
@@ -121,7 +125,7 @@ func _run() -> void:
 
 	player.call("set_visual_preview_mode", &"auto")
 	player.call("set_turn_based_mode", true)
-	hero.equipped_weapon_id = "longsword"
+	runtime_character.equipped_weapon_id = "longsword"
 	player.call("_process", 0.0)
 	player.call("set_facing_direction", Vector2.LEFT)
 	var onehand_contact: Dictionary = {"called": false, "frame": -1}
@@ -175,7 +179,7 @@ func _run() -> void:
 		_fail("One-handed attack did not return to the matching combat idle.")
 		return
 
-	hero.equipped_weapon_id = "greatsword"
+	runtime_character.equipped_weapon_id = "greatsword"
 	player.call("_process", 0.0)
 	player.call("set_facing_direction", Vector2.UP)
 	var twohand_contact: Dictionary = {"called": false, "frame": -1}
@@ -210,7 +214,7 @@ func _run() -> void:
 		_fail("Two-handed attack did not return to the matching combat idle.")
 		return
 
-	hero.equipped_weapon_id = "mace"
+	runtime_character.equipped_weapon_id = "mace"
 	player.call("_process", 0.0)
 	var fallback_contact: Dictionary = {"called": false}
 	var fallback_callback := func() -> void:
@@ -236,7 +240,7 @@ func _run() -> void:
 		_fail("Fallback melee action left the player locked.")
 		return
 
-	hero.race_id = "elf"
+	runtime_character.race_id = "elf"
 	player.call("apply_character_appearance")
 	if sprite.visible or body.color.a < 0.9:
 		_fail("Unsupported character did not fall back to the procedural visual.")
