@@ -4,14 +4,19 @@ on:
   pull_request:
     paths:
       - "scenes/game/game.tscn"
+      - "scripts/game/controllable_ally.gd"
+      - "scripts/game/player_control_modes.gd"
       - "scripts/game/game_party_control_runtime.gd"
       - "scripts/game/game_party_control_entry_runtime.gd"
       - "scripts/game/game_party_control_social_entry_runtime.gd"
+      - "scripts/game/game_party_exploration_runtime.gd"
       - "scripts/game/game_controllable_ally_mobile_runtime.gd"
       - "scripts/ui/mobile_controls_party_routing.gd"
+      - "scripts/ui/party_menu_ui.gd"
       - "scripts/systems/party_combat_control_context.gd"
       - "tests/smoke_controllable_ally_controls.gd"
       - "tests/smoke_controllable_ally_controls_detailed.gd"
+      - "tests/smoke_party_menu_exploration_control.gd"
       - "tests/smoke_party_combat_control_context.gd"
       - ".github/workflows/validate-controllable-ally-windows.yml"
   push:
@@ -28,7 +33,7 @@ permissions:
 jobs:
   validate:
     runs-on: windows-latest
-    timeout-minutes: 15
+    timeout-minutes: 18
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -55,6 +60,12 @@ jobs:
           & ".\Godot_v4.7.1-stable_win64.exe" --headless --path "$env:GITHUB_WORKSPACE" --script res://tests/smoke_controllable_ally_controls_detailed.gd 2>&1 | Tee-Object -FilePath "controllable-ally-windows-controls.log"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: Simulate party menu exploration control
+        shell: pwsh
+        run: |
+          & ".\Godot_v4.7.1-stable_win64.exe" --headless --path "$env:GITHUB_WORKSPACE" --script res://tests/smoke_party_menu_exploration_control.gd 2>&1 | Tee-Object -FilePath "party-menu-windows.log"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Upload diagnostics
         if: always()
         uses: actions/upload-artifact@v4
@@ -63,5 +74,6 @@ jobs:
           path: |
             controllable-ally-windows-import.log
             controllable-ally-windows-controls.log
+            party-menu-windows.log
           if-no-files-found: warn
           retention-days: 7
