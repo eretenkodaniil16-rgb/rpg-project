@@ -37,6 +37,34 @@ func _bind_party_action_catalog() -> void:
 	_action_catalog_ui.connect(signal_name, party_handler)
 
 
+func _remember_target_for_active_actor() -> void:
+	# `_selected_target` is a shared presentation pointer. It can be cleared
+	# transiently while an overlay is rebuilt, so a null value must not erase the
+	# authoritative per-actor target. Explicit deselection paths clear the context
+	# themselves.
+	var actor: Node = _party_control_context.active_actor()
+	if is_instance_valid(actor) and _target_is_valid(_selected_target):
+		_party_control_context.set_target(actor, _selected_target)
+
+
+func _sync_selected_target_from_party_context() -> Node:
+	var actor: Node = _party_control_context.active_actor()
+	if not is_instance_valid(actor):
+		return null
+	var target: Node = _party_control_context.target_for(actor)
+	if not _target_is_valid(target):
+		return null
+	if _selected_target != target:
+		_set_selected_target(target)
+	return target
+
+
+func _refresh_action_catalog() -> void:
+	if _turn_system.active and _turn_system.is_player_controlled_turn():
+		_sync_selected_target_from_party_context()
+	super._refresh_action_catalog()
+
+
 func _on_party_catalog_action_requested(action_id: String) -> void:
 	_last_party_action_id = action_id
 	_last_party_action_result = {}
@@ -61,7 +89,10 @@ func _on_party_catalog_action_requested(action_id: String) -> void:
 			_cancel_planned_movement()
 			_last_party_action_result = {"success": true, "status": "movement_cancelled"}
 		"attack":
-			var selected_before: Node = _selected_target
+			var context_target: Node = _party_control_context.target_for(_controllable_ally)
+			if _target_is_valid(context_target):
+				_set_selected_target(context_target)
+			var selected_before: Node = context_target if _target_is_valid(context_target) else _selected_target
 			var ally_position_before: Vector2 = (
 				(_controllable_ally as Node2D).global_position
 				if _controllable_ally is Node2D
@@ -72,8 +103,9 @@ func _on_party_catalog_action_requested(action_id: String) -> void:
 				if selected_before is Node2D
 				else Vector2.INF
 			)
-			_last_party_action_result = _request_controllable_ally_attack()
+			_last_party_action_result = _request_controllable_ally_attack(selected_before)
 			_last_party_action_result["ally_position"] = [ally_position_before.x, ally_position_before.y]
+			_last_party_action_result["context_target_id"] = context_target.get_instance_id() if is_instance_valid(context_target) else 0
 			_last_party_action_result["selected_target_id"] = selected_before.get_instance_id() if is_instance_valid(selected_before) else 0
 			_last_party_action_result["selected_target_name"] = _target_name(selected_before) if is_instance_valid(selected_before) else ""
 			_last_party_action_result["target_position"] = [target_position_before.x, target_position_before.y]
