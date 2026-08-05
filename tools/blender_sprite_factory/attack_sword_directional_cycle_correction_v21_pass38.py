@@ -1,0 +1,63 @@
+from __future__ import annotations
+
+
+CORRECTION_PASS = "v21_pass38"
+TWOHAND_UP_F03_CONTINUITY_REVIEW_REVISION = (
+    "twohand_up_f03_selected_f02_to_f04_continuity_review_v21_pass38"
+)
+
+TARGET_ACTION_ID = "attack_sword_01_twohand_up_v21"
+TARGET_GRIP_ID = "twohand_center_high"
+TARGET_DIRECTION = "up"
+TARGET_FRAME = 3
+PREVIOUS_REFERENCE_FRAME = 2
+NEXT_REFERENCE_FRAME = 4
+
+SELECTED_F02_SOURCE_FRAME = 4
+SELECTED_F02_ARM_BLEND = 0.40
+SELECTED_F02_DEPTH_BRANCH = "flipped"
+SELECTED_F02_WEAPON_OFFSET_DEGREES = 0.0
+SELECTED_F02_SCREEN_PROJECTION = 0.40
+
+SOURCE_POSE_CODES = (102, 4, 5, 6, 7, 8)
+SOURCE_POSE_LABELS = {
+    102: "selected_f02",
+    4: "original_f04",
+    5: "original_f05",
+    6: "original_f06",
+    7: "original_f07",
+    8: "original_f08",
+}
+ARM_BLEND_CANDIDATES = (
+    0.10,
+    0.20,
+    0.30,
+    0.40,
+    0.50,
+    0.60,
+    0.70,
+    0.80,
+    0.90,
+    1.00,
+)
+MAX_ABS_WEAPON_OFFSET_DEGREES = 48.0
+TARGET_ABS_WEAPON_OFFSET_DEGREES = 24.0
+REVIEW_VARIANT_COUNT = 6
+
+MIN_VISIBLE_BLADE_HEAD_CLEARANCE_PIXELS = 0.0
+MIN_VISIBLE_BLADE_SAMPLES = 8
+MIN_CAMERA_MARGIN_PIXELS = 1.0
+REQUIRE_ZERO_EDGE_ALPHA = True
+USE_MINIMAX_CONTINUITY = True
+SELECT_UNIQUE_ARM_PROFILES_FIRST = True
+PREFER_SOURCE_DEPTH_BRANCH = True
+
+SOURCE_FAILED_RUN_ID = 30856727623
+SOURCE_FAILED_ARTIFACT_ID = 8872812482
+SOURCE_FAILED_ARTIFACT_SHA256 = (
+    "2a56cf852cfdabdedd05185f3d2f3bd8c401b766684f8e8489eb214bde12b9c5"
+)
+SOURCE_FAILURE = (
+    "pass37 rendered the selected f01 and f02 frames, then the legacy planner "
+    "found no geometry-safe candidate for twohand_center_high/up/f03"
+)

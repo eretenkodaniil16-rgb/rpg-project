@@ -1,0 +1,32 @@
+from __future__ import annotations
+
+CORRECTION_PASS = "v21_pass31"
+TWOHAND_UP_F01_CENTRAL_REVIEW_REVISION = (
+    "twohand_up_f01_central_high_grip_review_v21_pass31"
+)
+
+TARGET_ACTION_ID = "attack_sword_01_twohand_up_v21"
+TARGET_GRIP_ID = "twohand_center_high"
+TARGET_DIRECTION = "up"
+TARGET_FRAME = 1
+
+SOURCE_FRAME_CANDIDATES = (2, 8, 3, 7, 4, 6, 5)
+ARM_BLEND_CANDIDATES = (0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90, 1.00)
+MAX_ABS_WEAPON_OFFSET_DEGREES = 48.0
+PREFERRED_ABS_WEAPON_OFFSET_DEGREES = 24.0
+REVIEW_VARIANT_COUNT = 4
+
+MIN_VISIBLE_BLADE_HEAD_CLEARANCE_PIXELS = 1.0
+MIN_VISIBLE_BLADE_SAMPLES = 4
+MIN_CAMERA_MARGIN_PIXELS = 1.0
+REQUIRE_ZERO_EDGE_ALPHA = True
+
+REJECTED_REVIEW_RUN_ID = 30851687993
+REJECTED_REVIEW_ARTIFACT_ID = 8871022374
+REJECTED_REVIEW_ARTIFACT_SHA256 = (
+    "d3ef54e8676a3f98f4583cf6a7e1c8ad5364714338c736050f35c66b13e20b83"
+)
+REJECTION_REASON = (
+    "all pass30 review candidates required 72-96 degree weapon offsets and "
+    "read as a horizontal left-side sword instead of a central high two-hand grip"
+)

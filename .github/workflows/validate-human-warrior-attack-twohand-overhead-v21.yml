@@ -1,0 +1,85 @@
+name: Validate human warrior twohand overhead v21
+
+on:
+  pull_request:
+    paths:
+      - "tools/blender_sprite_factory/**"
+      - ".github/workflows/validate-human-warrior-attack-twohand-overhead-v21.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: human-warrior-twohand-overhead-v21-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  render-twohand-down-overhead-v21:
+    if: github.event_name == 'pull_request' && github.head_ref == 'tools/human-warrior-attack-sword-down-keyposes-v17'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install headless render dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xvfb libgl1 libxi6 libxrender1 libxkbcommon-x11-0
+
+      - name: Download and verify Blender 5.2.0 LTS
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/blender-5.2.0-linux-x64.tar.xz"
+          extract="$RUNNER_TEMP/blender-5.2.0"
+          curl -L --fail --retry 3 --output "$archive" \
+            "https://download.blender.org/release/Blender5.2/blender-5.2.0-linux-x64.tar.xz"
+          actual="$(sha256sum "$archive" | cut -d' ' -f1)"
+          expected="96f6c181a30f4950607839dc84d42a354b250d8a0231b098b59b7bc69c351c48"
+          test "$actual" = "$expected"
+          mkdir -p "$extract"
+          tar -xJf "$archive" -C "$extract"
+          blender="$(find "$extract" -type f -name blender -perm -111 | head -n 1)"
+          test -n "$blender"
+          echo "BLENDER_EXE=$blender" >> "$GITHUB_ENV"
+
+      # Historical review entrypoints retained for reproducibility:
+      # blender_sprite_factory_attack_sword_twohand_down_overhead_v21.py
+      # blender_sprite_factory_attack_sword_twohand_down_overhead_v21_pass02.py
+      # blender_sprite_factory_attack_sword_twohand_down_overhead_v21_pass03.py
+      - name: Render Blender 5.2 normalized-margin overhead pass04
+        id: blender-twohand-overhead
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          run_id="${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}"
+          xvfb-run -a "$BLENDER_EXE" \
+            --background \
+            --factory-startup \
+            --python-exit-code 1 \
+            --python tools/blender_sprite_factory/blender_sprite_factory_attack_sword_twohand_down_overhead_v21_pass04.py \
+            -- \
+            --repo-root "$GITHUB_WORKSPACE" \
+            --config tools/blender_sprite_factory/configs/human_warrior_m01.json \
+            --run-id "$run_id" \
+            --mode all 2>&1 | tee blender_twohand_overhead_v21_pass04.log
+
+      - name: Upload normalized-margin overhead review and source blend
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: human_warrior_m01_proxy_v25_twohand_down_overhead_v21_pass04_${{ github.run_id }}_${{ github.run_attempt }}
+          path: |
+            art/blender_pipeline_runs/human_warrior_m01/**
+            blender_twohand_overhead_v21_pass04.log
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Require successful normalized-margin overhead render
+        if: steps.blender-twohand-overhead.outcome != 'success'
+        run: |
+          echo "Twohand overhead v21 pass04 render failed; inspect the uploaded artifact."
+          exit 1

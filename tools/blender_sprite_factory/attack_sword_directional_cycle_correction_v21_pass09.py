@@ -1,0 +1,52 @@
+from __future__ import annotations
+
+
+CORRECTION_PASS = "v21_pass09"
+TWOHAND_LEFT_WINDUP_REVISION = (
+    "twohand_left_windup_arm_projection_v21_pass09"
+)
+TARGET_ACTION_ID = "attack_sword_01_twohand_left_v21"
+TARGET_GRIP_ID = "twohand_center_high"
+TARGET_DIRECTION = "left"
+TARGET_FRAME = 2
+GUARD_FRAME = 1
+TARGET_BONES = (
+    "upper_arm.L",
+    "forearm.L",
+    "hand.L",
+    "upper_arm.R",
+    "forearm.R",
+    "hand.R",
+)
+SELECTED_ARM_BLEND = 0.10
+SELECTED_SCREEN_PROJECTION = 0.82
+SELECTED_WEAPON_OFFSET_DEGREES = 54.0
+SELECTED_HEAD_CLEARANCE_PIXELS = 7.259
+SELECTED_CAMERA_MARGIN_PIXELS = 10.763
+SELECTED_ATTEMPT = 3
+MIN_HEAD_CLEARANCE_PIXELS = 4.0
+MIN_CAMERA_MARGIN_PIXELS = 1.0
+REQUIRE_ZERO_EDGE_ALPHA = True
+DIAGNOSTIC_RUN_ID = 30747037081
+DIAGNOSTIC_ARTIFACT_ID = 8833238034
+DIAGNOSTIC_ARTIFACT_SHA256 = (
+    "c17b8af54a0145a01fff4c92016af12462cc3cba7374fbcd2e72569cbad0f94d"
+)
+DIAGNOSTIC_FRAME_SIZE = (96, 96)
+DIAGNOSTIC_ALPHA_BBOX = (4, 2, 64, 92)
+DIAGNOSTIC_EDGE_ALPHA_COUNTS = {
+    "left": 0,
+    "right": 0,
+    "top": 0,
+    "bottom": 0,
+}
+SOURCE_FAILED_RUN_ID = 30744357391
+SOURCE_FAILED_ARTIFACT_ID = 8832432523
+SOURCE_FAILED_ARTIFACT_SHA256 = (
+    "b7211593521ce8d396e646c0da8b4a7d9ffdbb8e7e13a6a848523707239cad37"
+)
+SOURCE_FAILURE = (
+    "twohand_left/f02 full screen projection cleared the head but touched "
+    "the normalized top edge"
+)
+APPROVED_DOWN_PROJECTION_REFERENCE = 0.74

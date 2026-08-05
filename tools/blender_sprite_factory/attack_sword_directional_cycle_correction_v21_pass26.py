@@ -1,0 +1,92 @@
+from __future__ import annotations
+
+
+CORRECTION_PASS = "v21_pass26"
+ONEHAND_UP_FINAL_REVISION = "onehand_up_f05_arm_clearance_integrated_v21_pass26"
+TARGET_ACTION_ID = "attack_sword_01_onehand_up_v21"
+TARGET_GRIP_ID = "onehand_ready"
+TARGET_DIRECTION = "up"
+TARGET_FRAMES = (5, 6, 7, 8)
+ARM_TARGET_FRAME = 5
+TARGET_BONES = (
+    "upper_arm.R",
+    "forearm.R",
+    "hand.R",
+)
+SELECTED_ARM_PROFILE = {
+    "source_blend": 0.0,
+    "scale": 0.5,
+    "sweep_sign": 1.0,
+    "lift_sign": -1.0,
+}
+BASE_BONE_DELTAS_DEGREES = {
+    "upper_arm.R": (-26.0, 14.0, 0.0),
+    "forearm.R": (-40.0, 20.0, 0.0),
+    "hand.R": (-14.0, 8.0, 0.0),
+}
+SELECTED_BONE_DELTAS_DEGREES = {
+    "upper_arm.R": (13.0, 7.0, 0.0),
+    "forearm.R": (20.0, 10.0, 0.0),
+    "hand.R": (7.0, 4.0, 0.0),
+}
+SOURCE_FRAME_BY_TARGET = {5: 4, 6: 5, 7: 8, 8: 1}
+SELECTED_REQUESTED_SCREEN_PROJECTION_BY_FRAME = {
+    5: 0.95,
+    6: 0.95,
+    7: 0.95,
+    8: 0.95,
+}
+SELECTED_APPLIED_SCREEN_PROJECTION_BY_FRAME = {
+    5: 0.6740550972732144,
+    6: 0.565852928466782,
+    7: 0.89469133177676,
+    8: 0.8286171550694129,
+}
+SELECTED_WEAPON_OFFSET_DEGREES_BY_FRAME = {
+    5: -24.0,
+    6: 0.0,
+    7: 0.0,
+    8: 0.0,
+}
+VALIDATED_HEAD_CLEARANCE_PIXELS_BY_FRAME = {
+    5: 1.735,
+    6: 3.491191864013672,
+    7: 10.167351342241583,
+    8: 9.442726135253906,
+}
+VALIDATED_CAMERA_MARGIN_PIXELS_BY_FRAME = {
+    5: 17.536405563354492,
+    6: 18.514400482177734,
+    7: 15.084754943847656,
+    8: 13.099262237548828,
+}
+MIN_HEAD_CLEARANCE_PIXELS_BY_FRAME = {
+    5: 1.5,
+    6: 3.0,
+    7: 9.0,
+    8: 9.0,
+}
+MIN_CAMERA_MARGIN_PIXELS = 12.0
+REQUIRE_ZERO_EDGE_ALPHA = True
+FLIP_CAMERA_DEPTH_BRANCH = True
+DIAGNOSTIC_FRAME_SIZE = (96, 96)
+DIAGNOSTIC_ALPHA_BBOX_BY_FRAME = {
+    5: (30, 20, 88, 92),
+    6: (28, 21, 87, 92),
+    7: (28, 21, 92, 92),
+    8: (28, 21, 94, 92),
+}
+DIAGNOSTIC_EDGE_ALPHA_COUNTS_BY_FRAME = {
+    frame: {"left": 0, "right": 0, "top": 0, "bottom": 0}
+    for frame in TARGET_FRAMES
+}
+SOURCE_DIAGNOSTIC_RUN_ID = 30773183585
+SOURCE_DIAGNOSTIC_ARTIFACT_ID = 8841230831
+SOURCE_DIAGNOSTIC_ARTIFACT_SHA256 = (
+    "027d398317782ad515e771cfc9f033b2b8347310ff74270578d1bdc766bd2c70"
+)
+SOURCE_FULL_CONTEXT_RUN_ID = 30773644539
+SOURCE_FULL_CONTEXT_ARTIFACT_ID = 8841651589
+SOURCE_FULL_CONTEXT_ARTIFACT_SHA256 = (
+    "a225560a66d4071811dbe517bc4b9ca6494bca553b718c56e96c34441109c1af"
+)

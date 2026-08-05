@@ -1,0 +1,60 @@
+from __future__ import annotations
+
+
+CORRECTION_PASS = "v21_pass51"
+TWOHAND_UP_F01_TO_F07_SELECTED_CYCLE_REVISION = (
+    "twohand_up_f01_to_f07_selected_local_overscan_full_cycle_"
+    "diagnostic_v21_pass51"
+)
+
+TARGET_ACTION_ID = "attack_sword_01_twohand_up_v21"
+TARGET_GRIP_ID = "twohand_center_high"
+TARGET_DIRECTION = "up"
+TARGET_FRAME = 7
+FRAME_ORDER = (1, 2, 3, 4, 5, 6, 7, 8)
+
+F07_SOURCE_FRAME = 6
+F07_SOURCE_FRAME_ORDER = 1
+F07_SOURCE_FRAME_LABEL = "selected_f06_arm_pose"
+F07_ARM_BLEND = 0.20
+F07_DEPTH_BRANCH = "source"
+F07_WEAPON_OFFSET_DEGREES = 60.0
+F07_REQUESTED_SCREEN_PROJECTION = 0.90
+F07_VALIDATED_SCREEN_PROJECTION = 0.90
+F07_VALIDATED_SOURCE_PROJECTION = 0.931707515535577
+F07_VALIDATED_HEAD_CLEARANCE_PIXELS = 1.726267390695735
+F07_VALIDATED_VISIBLE_BLADE_SAMPLES = 1319
+F07_VALIDATED_OCCLUDED_BLADE_SAMPLES = 0
+F07_VALIDATED_CAMERA_MARGIN_PIXELS = 3.2125403881073
+F07_CONTINUITY_FROM_F06_RMS_DEGREES = 8.506270239741731
+F07_CONTINUITY_TO_F08_RMS_DEGREES = 8.34631375295874
+F07_CONTINUITY_SCORE = 16.85258399270047
+F07_MAXIMUM_TRANSITION_RMS_DEGREES = 8.506270239741731
+F07_UNSHIFTED_EDGE_COUNTS = {"bottom": 0, "left": 5, "right": 0, "top": 0}
+F07_CAMERA_SHIFT_X_CANDIDATES = (
+    -0.020,
+    -0.030,
+    -0.040,
+    -0.050,
+    -0.060,
+    -0.070,
+    -0.080,
+    -0.090,
+    -0.100,
+    -0.120,
+)
+REQUIRE_ZERO_EDGE_ALPHA = True
+
+SOURCE_REVIEW_RUN_ID = 30906793443
+SOURCE_REVIEW_ARTIFACT_ID = 8891481877
+SOURCE_REVIEW_ARTIFACT_SHA256 = (
+    "2e68118e52650991842151ca983266b3a7dd84847f294c64e6ba9b9f4f37e8a3"
+)
+SOURCE_REVIEW_VARIANT = 1
+SOURCE_REVIEW_FINDING = (
+    "pass50 variant 1 used the selected f06 arm pose at blend 0.20, source "
+    "depth, projection 0.90 and weapon offset 60 degrees; it provided the "
+    "most balanced f06-to-f07-to-f08 continuity at 8.506 and 8.346 degrees, "
+    "with 1319 visible blade samples and only five left-edge pixels requiring "
+    "temporary horizontal overscan"
+)

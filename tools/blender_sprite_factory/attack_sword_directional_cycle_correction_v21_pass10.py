@@ -1,0 +1,35 @@
+from __future__ import annotations
+
+
+CORRECTION_PASS = "v21_pass10"
+TWOHAND_LEFT_ANTICIPATION_REVISION = (
+    "twohand_left_anticipation_from_windup_projection_v21_pass10"
+)
+TARGET_ACTION_ID = "attack_sword_01_twohand_left_v21"
+TARGET_GRIP_ID = "twohand_center_high"
+TARGET_DIRECTION = "left"
+TARGET_FRAME = 3
+SOURCE_FRAME = 2
+TARGET_BONES = (
+    "upper_arm.L",
+    "forearm.L",
+    "hand.L",
+    "upper_arm.R",
+    "forearm.R",
+    "hand.R",
+)
+ARM_BLEND_CANDIDATES = (0.00, 0.10, 0.20, 0.30, 0.40, 0.50)
+SCREEN_PROJECTION_CANDIDATES = (0.82, 0.78, 0.74, 0.70)
+ANGLE_OFFSET_CANDIDATES = (44.0, 48.0, 52.0, 56.0, 60.0, 64.0, 68.0)
+MIN_HEAD_CLEARANCE_PIXELS = 4.0
+MIN_CAMERA_MARGIN_PIXELS = 1.0
+REQUIRE_ZERO_EDGE_ALPHA = True
+SOURCE_FAILED_RUN_ID = 30747420266
+SOURCE_FAILED_ARTIFACT_ID = 8833482546
+SOURCE_FAILED_ARTIFACT_SHA256 = (
+    "61feb774840b3a8719685ae3a2a39f3df283fd9d82f6c1279985f10dad627fe0"
+)
+SOURCE_FAILURE = "twohand_center_high/left/f03 no geometry-safe ±40 degree candidate"
+F02_REFERENCE_ARM_BLEND = 0.10
+F02_REFERENCE_SCREEN_PROJECTION = 0.82
+F02_REFERENCE_WEAPON_OFFSET_DEGREES = 54.0

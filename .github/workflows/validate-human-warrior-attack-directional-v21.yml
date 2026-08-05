@@ -1,0 +1,127 @@
+name: Validate human warrior attack directional v21
+
+on:
+  pull_request:
+    paths:
+      - "tools/blender_sprite_factory/**"
+      - ".github/workflows/validate-human-warrior-attack-directional-v21.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: human-warrior-attack-directional-v21-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  render-attack-sword-directional-v21:
+    if: github.event_name == 'pull_request' && github.head_ref == 'tools/human-warrior-attack-sword-down-keyposes-v17'
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install headless render dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xvfb libgl1 libxi6 libxrender1 libxkbcommon-x11-0
+
+      - name: Download and verify Blender 5.2.0 LTS
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/blender-5.2.0-linux-x64.tar.xz"
+          extract="$RUNNER_TEMP/blender-5.2.0"
+          curl -L --fail --retry 3 --output "$archive" \
+            "https://download.blender.org/release/Blender5.2/blender-5.2.0-linux-x64.tar.xz"
+          actual="$(sha256sum "$archive" | cut -d' ' -f1)"
+          expected="96f6c181a30f4950607839dc84d42a354b250d8a0231b098b59b7bc69c351c48"
+          test "$actual" = "$expected"
+          mkdir -p "$extract"
+          tar -xJf "$archive" -C "$extract"
+          blender="$(find "$extract" -type f -name blender -perm -111 | head -n 1)"
+          test -n "$blender"
+          echo "BLENDER_EXE=$blender" >> "$GITHUB_ENV"
+
+      # Historical entrypoints retained for contract tests and reproducibility.
+      # full directional cycle: blender_sprite_factory_attack_sword_directional_cycle_v21_pass28.py
+      # blender_sprite_factory_attack_sword_directional_cycle_v21_pass09.py
+      # blender_sprite_factory_attack_sword_directional_cycle_v21_pass13.py
+      # blender_sprite_factory_attack_sword_directional_cycle_v21_pass15.py
+      # blender_sprite_factory_attack_sword_directional_cycle_v21_pass19.py
+      # blender_sprite_factory_attack_sword_directional_cycle_v21_pass26.py
+      # blender_sprite_factory_attack_sword_directional_cycle_v21_pass27.py
+      # blender_sprite_factory_attack_sword_twohand_up_f01_diagnostic_v21_pass28.py
+      # twohand up f01 arm diagnostic: blender_sprite_factory_attack_sword_twohand_up_f01_arm_diagnostic_v21_pass29.py
+      # twohand up f01 review: blender_sprite_factory_attack_sword_twohand_up_f01_review_v21_pass30.py
+      # twohand up f01 central review: blender_sprite_factory_attack_sword_twohand_up_f01_central_review_v21_pass31.py
+      # twohand up f01 full blend review: blender_sprite_factory_attack_sword_twohand_up_f01_full_blend_review_v21_pass32.py
+      # twohand up cycle diagnostic: blender_sprite_factory_attack_sword_twohand_up_cycle_diagnostic_v21_pass33.py
+      # twohand up f02 continuity review: blender_sprite_factory_attack_sword_twohand_up_f02_review_v21_pass34.py
+      # twohand up f02 rear-view review: blender_sprite_factory_attack_sword_twohand_up_f02_review_v21_pass35.py
+      # twohand up f02 balanced continuity review: blender_sprite_factory_attack_sword_twohand_up_f02_review_v21_pass36.py
+      # twohand up selected full cycle: blender_sprite_factory_attack_sword_twohand_up_cycle_diagnostic_v21_pass37.py
+      # twohand up f03 continuity review: blender_sprite_factory_attack_sword_twohand_up_f03_review_v21_pass38.py
+      # complete f03 review: blender_sprite_factory_attack_sword_twohand_up_f03_review_v21_pass39.py
+      # targeted f03 projection review: blender_sprite_factory_attack_sword_twohand_up_f03_review_v21_pass40.py
+      # fine f03 offset review: blender_sprite_factory_attack_sword_twohand_up_f03_review_v21_pass41.py
+      # extended f03 offset review: blender_sprite_factory_attack_sword_twohand_up_f03_review_v21_pass42.py
+      # twohand up f03 depth contraction review: blender_sprite_factory_attack_sword_twohand_up_f03_review_v21_pass43.py
+      # twohand up f03 compact projection review: blender_sprite_factory_attack_sword_twohand_up_f03_review_v21_pass44.py
+      # twohand up f03 camera overscan review: blender_sprite_factory_attack_sword_twohand_up_f03_review_v21_pass45.py
+      # f01 f02 f03 selected full cycle: blender_sprite_factory_attack_sword_twohand_up_cycle_diagnostic_v21_pass46.py
+      # f04 horizontal overscan full cycle: blender_sprite_factory_attack_sword_twohand_up_cycle_diagnostic_v21_pass47.py
+      # f04 targeted extended overscan: blender_sprite_factory_attack_sword_twohand_up_cycle_diagnostic_v21_pass48.py
+      # f06 local overscan: blender_sprite_factory_attack_sword_twohand_up_cycle_diagnostic_v21_pass49.py
+      # f07 continuity review: blender_sprite_factory_attack_sword_twohand_up_f07_review_v21_pass50.py
+      # selected f07 full cycle: blender_sprite_factory_attack_sword_twohand_up_cycle_diagnostic_v21_pass51.py
+      # f08 settle review: blender_sprite_factory_attack_sword_twohand_up_f08_review_v21_pass52.py
+      # strict selected full cycle: blender_sprite_factory_attack_sword_twohand_up_cycle_diagnostic_v21_pass53.py
+      # integrated 64 frame cycle: blender_sprite_factory_attack_sword_directional_cycle_v21_pass54.py
+      # front-depth 64 frame cycle: blender_sprite_factory_attack_sword_directional_cycle_v21_pass55.py
+      # blender_sprite_factory_attack_sword_twohand_left_tail_diagnostic_v21.py
+      # blender_sprite_factory_attack_sword_twohand_right_batch_diagnostic_v21.py
+      # blender_sprite_factory_attack_sword_twohand_right_anticipation_diagnostic_v21.py
+      # blender_sprite_factory_attack_sword_twohand_right_tail_diagnostic_v21.py
+      # blender_sprite_factory_attack_sword_onehand_up_tail_diagnostic_v21.py
+      # blender_sprite_factory_attack_sword_onehand_up_visible_blade_diagnostic_v21.py
+      # blender_sprite_factory_attack_sword_onehand_up_depth_aware_diagnostic_v21.py
+      # blender_sprite_factory_attack_sword_onehand_up_depth_search_diagnostic_v21.py
+      # blender_sprite_factory_attack_sword_onehand_up_front_depth_diagnostic_v21.py
+      # blender_sprite_factory_attack_sword_onehand_up_f05_arm_diagnostic_v21.py
+      - name: Render Blender 5.2 short-key front-depth 64 frame cycle pass56
+        id: blender-attack-directional
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          run_id="${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}"
+          xvfb-run -a "$BLENDER_EXE" \
+            --background \
+            --factory-startup \
+            --python-exit-code 1 \
+            --python tools/blender_sprite_factory/blender_sprite_factory_attack_sword_directional_cycle_v21_pass56.py \
+            -- \
+            --repo-root "$GITHUB_WORKSPACE" \
+            --config tools/blender_sprite_factory/configs/human_warrior_m01.json \
+            --run-id "$run_id" \
+            --mode all 2>&1 | tee blender_attack_directional_v21.log
+
+      - name: Upload short-key front-depth 64 frame cycle and source blend
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: human_warrior_m01_proxy_v25_attack_sword_01_directional_pass56_front_depth_64_frames_${{ github.run_id }}_${{ github.run_attempt }}
+          path: |
+            art/blender_pipeline_runs/human_warrior_m01/**
+            blender_attack_directional_v21.log
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Require successful short-key front-depth 64 frame cycle
+        if: steps.blender-attack-directional.outcome != 'success'
+        run: |
+          echo "Directional attack v21 pass56 front-depth 64 frame cycle failed; inspect the uploaded artifact."
+          exit 1
