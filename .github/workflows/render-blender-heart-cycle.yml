@@ -1,0 +1,151 @@
+name: Build Blender heart cycle
+
+on:
+  pull_request:
+    paths:
+      - "tools/blender_heart_cycle/**"
+      - ".github/workflows/render-blender-heart-cycle.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: blender-heart-cycle-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-heart-data:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Compile heart-cycle sources
+        run: python -m compileall -q tools/blender_heart_cycle
+
+      - name: Install test runner
+        run: python -m pip install --disable-pip-version-check "pytest>=8.3,<9"
+
+      - name: Validate timeline, anatomy, rig, layout, presentation and export contracts
+        env:
+          PYTHONPATH: tools/blender_heart_cycle
+        run: python -m pytest -q tools/blender_heart_cycle
+
+  build-animation-ready-heart:
+    needs: validate-heart-data
+    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'tools/blender-heart-cycle'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install headless render and Cyrillic font dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            xvfb libgl1 libxi6 libxrender1 libxkbcommon-x11-0 fonts-dejavu-core
+
+      - name: Download and verify Blender 5.2.0 LTS
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/blender-5.2.0-linux-x64.tar.xz"
+          extract="$RUNNER_TEMP/blender-5.2.0"
+          curl -L --fail --retry 3 --output "$archive" \
+            "https://download.blender.org/release/Blender5.2/blender-5.2.0-linux-x64.tar.xz"
+          actual="$(sha256sum "$archive" | cut -d' ' -f1)"
+          expected="96f6c181a30f4950607839dc84d42a354b250d8a0231b098b59b7bc69c351c48"
+          test "$actual" = "$expected"
+          mkdir -p "$extract"
+          tar -xJf "$archive" -C "$extract"
+          blender="$(find "$extract" -type f -name blender -perm -111 | head -n 1)"
+          test -n "$blender"
+          echo "BLENDER_EXE=$blender" >> "$GITHUB_ENV"
+
+      - name: Build animation-ready v07 scene without frame render
+        id: heart-build
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          output="$GITHUB_WORKSPACE/artifacts/blender_heart_cycle"
+          xvfb-run -a "$BLENDER_EXE" \
+            --background \
+            --factory-startup \
+            --python-exit-code 1 \
+            --python tools/blender_heart_cycle/heart_cycle_animation_export_v07.py \
+            -- \
+            --output-root "$output" \
+            --resolution 360 \
+            --animation-resolution 360 \
+            --sample-step 2 2>&1 | tee heart_cycle_blender.log
+
+      - name: Verify animation-ready artifact contract
+        if: steps.heart-build.outcome == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          output="artifacts/blender_heart_cycle"
+          test -d "$output/review_frames"
+          test -z "$(find "$output/review_frames" -maxdepth 1 -type f -name '*.png' -print -quit)"
+          test -f "$output/heart_cutaway_reference_layout_v05_phase_rig_v03_infographic_v04_presentation_v06_animation_v07.blend"
+          test -f "$output/heart_cycle_manifest.json"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          payload = json.loads(
+              Path("artifacts/blender_heart_cycle/heart_cycle_manifest.json").read_text(
+                  encoding="utf-8"
+              )
+          )
+          assert payload["layout_revision"] == "heart_cycle_layout_fix_v05"
+          assert payload["layout_validation"]["status"] == "passed"
+          assert payload["presentation_revision"] == "heart_cycle_presentation_polish_v06"
+          assert payload["flow_visibility_validation"]["status"] == "passed"
+          assert payload["animation_export_revision"] == "heart_cycle_animation_export_v07"
+          export = payload["animation_export"]
+          assert export["source_timeline"] == {
+              "frame_start": 1,
+              "frame_end": 450,
+              "fps": 30,
+              "frame_count": 450,
+              "duration_seconds": 15.0,
+          }
+          assert export["review_profile"]["sample_step"] == 2
+          assert export["review_profile"]["output_fps"] == 15
+          assert export["review_profile"]["output_frame_count"] == 225
+          assert export["review_profile"]["resolution"] == [640, 360]
+          assert export["review_profile"]["duration_seconds"] == 15.0
+          assert export["intermediate"]["format"] == "PNG sequence"
+          assert export["intermediate"]["resumable"] is True
+          assert export["frames_rendered"] is False
+          assert export["video_rendered"] is False
+          assert export["rendered"] is False
+          PY
+
+      - name: Upload Blender heart-cycle artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: heart_animation_ready_v07_${{ github.run_id }}_${{ github.run_attempt }}
+          path: |
+            artifacts/blender_heart_cycle/**
+            heart_cycle_blender.log
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Require successful Blender build
+        if: steps.heart-build.outcome != 'success'
+        run: |
+          echo "Animation-ready Blender heart-cycle build failed; inspect heart_cycle_blender.log in the uploaded artifact."
+          exit 1

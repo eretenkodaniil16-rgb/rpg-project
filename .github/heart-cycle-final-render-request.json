@@ -1,0 +1,27 @@
+{
+  "revision": "heart_cycle_final_export_v08",
+  "requested_at": "2026-08-05T16:14:00+03:00",
+  "source": "native Blender 5.2 scene render",
+  "upscale": false,
+  "render": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "frame_start": 1,
+    "frame_end": 450,
+    "frame_count": 450,
+    "duration_seconds": 15,
+    "render_samples": 128,
+    "intermediate": "lossless PNG RGB sequence",
+    "shards": 15
+  },
+  "delivery": [
+    "1080p30 master MP4 CRF 12",
+    "1080p30 compatible MP4 CRF 17",
+    "960x540 15 FPS HQ GIF",
+    "720x405 12 FPS compact GIF",
+    "1080p poster",
+    "Blender source file",
+    "verification manifest"
+  ]
+}

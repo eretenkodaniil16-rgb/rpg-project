@@ -1,0 +1,172 @@
+name: Render Blender heart quick GIF
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - tools/blender-heart-cycle
+    paths:
+      - ".github/heart-cycle-gif-request.json"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: blender-heart-quick-gif-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  render-quick-gif:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install render, font and video dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            xvfb libgl1 libxi6 libxrender1 libxkbcommon-x11-0 \
+            fonts-dejavu-core ffmpeg
+
+      - name: Download and verify Blender 5.2.0 LTS
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/blender-5.2.0-linux-x64.tar.xz"
+          extract="$RUNNER_TEMP/blender-5.2.0"
+          curl -L --fail --retry 3 --output "$archive" \
+            "https://download.blender.org/release/Blender5.2/blender-5.2.0-linux-x64.tar.xz"
+          actual="$(sha256sum "$archive" | cut -d' ' -f1)"
+          expected="96f6c181a30f4950607839dc84d42a354b250d8a0231b098b59b7bc69c351c48"
+          test "$actual" = "$expected"
+          mkdir -p "$extract"
+          tar -xJf "$archive" -C "$extract"
+          blender="$(find "$extract" -type f -name blender -perm -111 | head -n 1)"
+          test -n "$blender"
+          echo "BLENDER_EXE=$blender" >> "$GITHUB_ENV"
+
+      - name: Render 45-frame quick PNG sequence
+        id: render
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          output="$GITHUB_WORKSPACE/artifacts/blender_heart_cycle_quick_gif"
+          xvfb-run -a "$BLENDER_EXE" \
+            --background \
+            --factory-startup \
+            --python-exit-code 1 \
+            --python tools/blender_heart_cycle/heart_cycle_animation_export_v07.py \
+            -- \
+            --output-root "$output" \
+            --render-animation \
+            --resolution 240 \
+            --animation-resolution 240 \
+            --sample-step 10 \
+            --video-bitrate 1800 2>&1 | tee heart_cycle_quick_gif_blender.log
+
+      - name: Encode quick MP4 and GIF
+        if: steps.render.outcome == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          output="artifacts/blender_heart_cycle_quick_gif"
+          frames="$output/review_frames"
+          mp4="$output/heart_cycle_quick_v07.mp4"
+          palette="$output/heart_cycle_quick_v07_palette.png"
+          gif="$output/heart_cycle_quick_v07.gif"
+          poster="$output/heart_cycle_quick_v07_poster.png"
+
+          count="$(find "$frames" -maxdepth 1 -type f -name 'heart_cycle_review_*.png' | wc -l)"
+          test "$count" -eq 45
+
+          ffmpeg -y -framerate 3 -pattern_type glob \
+            -i "$frames/heart_cycle_review_*.png" \
+            -c:v libx264 -pix_fmt yuv420p -movflags +faststart "$mp4"
+          ffmpeg -y -framerate 3 -pattern_type glob \
+            -i "$frames/heart_cycle_review_*.png" \
+            -vf "scale=426:-1:flags=lanczos,palettegen=max_colors=128:stats_mode=diff" \
+            "$palette"
+          ffmpeg -y -framerate 3 -pattern_type glob \
+            -i "$frames/heart_cycle_review_*.png" -i "$palette" \
+            -lavfi "scale=426:-1:flags=lanczos[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=3" \
+            -loop 0 "$gif"
+          ffmpeg -y -ss 00:00:07.500 -i "$mp4" -frames:v 1 "$poster"
+          rm -f "$palette"
+
+      - name: Verify quick GIF contract
+        if: steps.render.outcome == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import subprocess
+          from pathlib import Path
+
+          root = Path("artifacts/blender_heart_cycle_quick_gif")
+          gif = root / "heart_cycle_quick_v07.gif"
+          mp4 = root / "heart_cycle_quick_v07.mp4"
+          poster = root / "heart_cycle_quick_v07_poster.png"
+          manifest = root / "heart_cycle_manifest.json"
+          blend = root / (
+              "heart_cutaway_reference_layout_v05_phase_rig_v03_"
+              "infographic_v04_presentation_v06_animation_v07.blend"
+          )
+          for path in (gif, mp4, poster, manifest, blend):
+              assert path.is_file() and path.stat().st_size > 0, path
+
+          probe = json.loads(subprocess.check_output([
+              "ffprobe", "-v", "error", "-count_frames",
+              "-select_streams", "v:0",
+              "-show_entries", "stream=width,height,nb_read_frames,r_frame_rate",
+              "-show_entries", "format=duration", "-of", "json", str(mp4)
+          ], text=True))
+          stream = probe["streams"][0]
+          duration = float(probe["format"]["duration"])
+          assert stream["width"] == 426
+          assert stream["height"] == 240
+          assert stream["r_frame_rate"] == "3/1"
+          assert int(stream["nb_read_frames"]) == 45
+          assert 14.9 <= duration <= 15.1
+
+          payload = json.loads(manifest.read_text(encoding="utf-8"))
+          export = payload["animation_export"]
+          assert export["review_profile"]["sample_step"] == 10
+          assert export["review_profile"]["output_fps"] == 3
+          assert export["review_profile"]["output_frame_count"] == 45
+          export["quick_gif_verification"] = {
+              "status": "passed",
+              "width": 426,
+              "height": 240,
+              "fps": 3,
+              "frame_count": 45,
+              "duration_seconds": duration,
+              "gif": gif.name,
+              "gif_size_bytes": gif.stat().st_size,
+              "mp4": mp4.name,
+          }
+          manifest.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+          PY
+          rm -rf artifacts/blender_heart_cycle_quick_gif/review_frames
+
+      - name: Upload quick GIF artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: heart_quick_gif_v07_${{ github.run_id }}_${{ github.run_attempt }}
+          path: |
+            artifacts/blender_heart_cycle_quick_gif/**
+            heart_cycle_quick_gif_blender.log
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+      - name: Require successful quick GIF render
+        if: steps.render.outcome != 'success'
+        run: |
+          echo "Quick heart GIF render failed; inspect the uploaded Blender log."
+          exit 1

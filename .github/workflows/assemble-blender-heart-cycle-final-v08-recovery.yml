@@ -1,0 +1,294 @@
+name: Assemble Blender heart final v08 recovery
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - tools/blender-heart-cycle
+    paths:
+      - ".github/heart-cycle-final-assembly-request.json"
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: blender-heart-final-v08-assembly-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  assemble-existing-shards:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Read assembly request
+        id: request
+        shell: bash
+        run: |
+          set -euo pipefail
+          run_id="$(python - <<'PY'
+          import json
+          from pathlib import Path
+          payload = json.loads(Path('.github/heart-cycle-final-assembly-request.json').read_text(encoding='utf-8'))
+          print(int(payload['source_run_id']))
+          PY
+          )"
+          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+
+      - name: Install FFmpeg and archive tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg zip
+
+      - name: Download all successful native 1080p shards
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.request.outputs.run_id }}
+          pattern: heart-final-v08-shard-*
+          path: artifacts/recovery
+          merge-multiple: true
+
+      - name: Locate and normalize downloaded shard layout
+        shell: bash
+        run: |
+          set -euo pipefail
+          download_root="artifacts/recovery"
+          frames="$(find "$download_root" -type d -name final_frames -print -quit)"
+          test -n "$frames"
+          root="$(dirname "$frames")"
+          blend="$(find "$download_root" -type f -name '*final_v08.blend' -print -quit)"
+          test -n "$blend"
+          expected_blend="$root/heart_cutaway_reference_layout_v05_phase_rig_v03_infographic_v04_presentation_v06_animation_v07_final_v08.blend"
+          if [[ "$blend" != "$expected_blend" ]]; then
+            cp "$blend" "$expected_blend"
+          fi
+          echo "FRAME_ROOT=$frames" >> "$GITHUB_ENV"
+          echo "DELIVERY_ROOT=$root" >> "$GITHUB_ENV"
+          echo "Resolved frame directory: $frames"
+          echo "Resolved delivery root: $root"
+
+      - name: Verify complete native 1080p PNG sequence
+        shell: bash
+        run: |
+          set -euo pipefail
+          count="$(find "$FRAME_ROOT" -maxdepth 1 -type f -name 'heart_cycle_final_*.png' | wc -l)"
+          test "$count" -eq 450
+          for frame in $(seq 1 450); do
+            test -s "$FRAME_ROOT/heart_cycle_final_$(printf '%04d' "$frame").png"
+          done
+          first="$FRAME_ROOT/heart_cycle_final_0001.png"
+          last="$FRAME_ROOT/heart_cycle_final_0450.png"
+          test "$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of csv=p=0 "$first")" = "1920"
+          test "$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of csv=p=0 "$first")" = "1080"
+          test "$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of csv=p=0 "$last")" = "1920"
+          test "$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of csv=p=0 "$last")" = "1080"
+
+      - name: Encode master and compatible 1080p MP4
+        shell: bash
+        run: |
+          set -euo pipefail
+          frames="$FRAME_ROOT/heart_cycle_final_%04d.png"
+          master="$DELIVERY_ROOT/heart_cycle_final_v08_1080p30_master.mp4"
+          compatible="$DELIVERY_ROOT/heart_cycle_final_v08_1080p30_compatible.mp4"
+
+          ffmpeg -y \
+            -framerate 30 -start_number 1 -i "$frames" \
+            -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=48000 \
+            -t 15 \
+            -vf "setsar=1,format=yuv420p" \
+            -c:v libx264 -preset veryslow -crf 12 -profile:v high -level:v 4.2 \
+            -color_primaries bt709 -color_trc bt709 -colorspace bt709 \
+            -c:a aac -b:a 128k -shortest -movflags +faststart \
+            "$master"
+
+          ffmpeg -y \
+            -framerate 30 -start_number 1 -i "$frames" \
+            -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=48000 \
+            -t 15 \
+            -vf "setsar=1,format=yuv420p" \
+            -c:v libx264 -preset slow -crf 17 -profile:v main -level:v 4.0 \
+            -color_primaries bt709 -color_trc bt709 -colorspace bt709 \
+            -c:a aac -b:a 128k -shortest -movflags +faststart \
+            "$compatible"
+
+      - name: Create HQ GIF, compact GIF and 1080p poster
+        shell: bash
+        run: |
+          set -euo pipefail
+          frames="$FRAME_ROOT/heart_cycle_final_%04d.png"
+          palette_hq="$DELIVERY_ROOT/palette_hq.png"
+          palette_compact="$DELIVERY_ROOT/palette_compact.png"
+          gif_hq="$DELIVERY_ROOT/heart_cycle_final_v08_hq_960x540_15fps.gif"
+          gif_compact="$DELIVERY_ROOT/heart_cycle_final_v08_compact_720x405_12fps.gif"
+
+          ffmpeg -y -framerate 30 -start_number 1 -i "$frames" \
+            -vf "fps=15,scale=960:540:flags=lanczos,palettegen=max_colors=256:stats_mode=full" \
+            "$palette_hq"
+          ffmpeg -y -framerate 30 -start_number 1 -i "$frames" -i "$palette_hq" \
+            -lavfi "fps=15,scale=960:540:flags=lanczos[x];[x][1:v]paletteuse=dither=sierra2_4a:diff_mode=rectangle" \
+            -loop 0 "$gif_hq"
+
+          ffmpeg -y -framerate 30 -start_number 1 -i "$frames" \
+            -vf "fps=12,scale=720:405:flags=lanczos,palettegen=max_colors=256:stats_mode=diff" \
+            "$palette_compact"
+          ffmpeg -y -framerate 30 -start_number 1 -i "$frames" -i "$palette_compact" \
+            -lavfi "fps=12,scale=720:405:flags=lanczos[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=2:diff_mode=rectangle" \
+            -loop 0 "$gif_compact"
+
+          cp "$FRAME_ROOT/heart_cycle_final_0135.png" \
+            "$DELIVERY_ROOT/heart_cycle_final_v08_poster_1080p.png"
+          rm -f "$palette_hq" "$palette_compact"
+
+      - name: Verify final media and write delivery manifest
+        shell: bash
+        env:
+          SOURCE_RUN_ID: ${{ steps.request.outputs.run_id }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          import subprocess
+          from pathlib import Path
+
+          root = Path(os.environ["DELIVERY_ROOT"])
+          files = {
+              "master_mp4": root / "heart_cycle_final_v08_1080p30_master.mp4",
+              "compatible_mp4": root / "heart_cycle_final_v08_1080p30_compatible.mp4",
+              "hq_gif": root / "heart_cycle_final_v08_hq_960x540_15fps.gif",
+              "compact_gif": root / "heart_cycle_final_v08_compact_720x405_12fps.gif",
+              "poster": root / "heart_cycle_final_v08_poster_1080p.png",
+              "blend": root / (
+                  "heart_cutaway_reference_layout_v05_phase_rig_v03_infographic_v04_"
+                  "presentation_v06_animation_v07_final_v08.blend"
+              ),
+          }
+          for path in files.values():
+              assert path.is_file() and path.stat().st_size > 0, path
+
+          def probe(path: Path) -> dict:
+              return json.loads(
+                  subprocess.check_output(
+                      [
+                          "ffprobe", "-v", "error", "-count_frames",
+                          "-select_streams", "v:0",
+                          "-show_entries",
+                          "stream=width,height,pix_fmt,profile,r_frame_rate,avg_frame_rate,nb_read_frames,sample_aspect_ratio",
+                          "-show_entries", "format=duration",
+                          "-of", "json", str(path),
+                      ],
+                      text=True,
+                  )
+              )
+
+          verification = {}
+          for key in ("master_mp4", "compatible_mp4"):
+              path = files[key]
+              data = probe(path)
+              stream = data["streams"][0]
+              duration = float(data["format"]["duration"])
+              assert stream["width"] == 1920
+              assert stream["height"] == 1080
+              assert stream["r_frame_rate"] == "30/1"
+              assert stream["sample_aspect_ratio"] == "1:1"
+              assert stream["pix_fmt"] == "yuv420p"
+              assert int(stream["nb_read_frames"]) == 450
+              assert 14.95 <= duration <= 15.05
+              verification[key] = {
+                  "width": stream["width"],
+                  "height": stream["height"],
+                  "fps": 30,
+                  "frame_count": int(stream["nb_read_frames"]),
+                  "duration_seconds": duration,
+                  "pixel_format": stream["pix_fmt"],
+                  "profile": stream["profile"],
+                  "sample_aspect_ratio": stream["sample_aspect_ratio"],
+                  "size_bytes": path.stat().st_size,
+              }
+
+          for key, width, height, fps, frames in (
+              ("hq_gif", 960, 540, 15, 225),
+              ("compact_gif", 720, 405, 12, 180),
+          ):
+              path = files[key]
+              data = probe(path)
+              stream = data["streams"][0]
+              duration = float(data["format"]["duration"])
+              assert stream["width"] == width
+              assert stream["height"] == height
+              assert stream["r_frame_rate"] == f"{fps}/1"
+              assert int(stream["nb_read_frames"]) == frames
+              assert 14.9 <= duration <= 15.1
+              verification[key] = {
+                  "width": width,
+                  "height": height,
+                  "fps": fps,
+                  "frame_count": frames,
+                  "duration_seconds": duration,
+                  "size_bytes": path.stat().st_size,
+              }
+
+          payload = {
+              "final_export_revision": "heart_cycle_final_export_v08_recovery_assembly",
+              "status": "passed",
+              "source_run_id": int(os.environ["SOURCE_RUN_ID"]),
+              "native_render": {
+                  "width": 1920,
+                  "height": 1080,
+                  "fps": 30,
+                  "frame_count": 450,
+                  "duration_seconds": 15.0,
+                  "source_is_native_blender_render": True,
+                  "upscaled_from_preview": False,
+                  "intermediate": "450 lossless PNG frames",
+              },
+              "verification": verification,
+              "files": {key: path.name for key, path in files.items()},
+          }
+          manifest = root / "heart_cycle_final_v08_delivery_manifest.json"
+          manifest.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+          PY
+
+      - name: Create compact delivery archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$DELIVERY_ROOT"
+          zip -9 heart_cycle_final_v08_delivery.zip \
+            heart_cycle_final_v08_1080p30_master.mp4 \
+            heart_cycle_final_v08_1080p30_compatible.mp4 \
+            heart_cycle_final_v08_hq_960x540_15fps.gif \
+            heart_cycle_final_v08_compact_720x405_12fps.gif \
+            heart_cycle_final_v08_poster_1080p.png \
+            heart_cycle_final_v08_delivery_manifest.json \
+            heart_cutaway_reference_layout_v05_phase_rig_v03_infographic_v04_presentation_v06_animation_v07_final_v08.blend
+
+      - name: Stage compact delivery
+        shell: bash
+        run: |
+          set -euo pipefail
+          stage="artifacts/final_delivery"
+          mkdir -p "$stage"
+          cp "$DELIVERY_ROOT/heart_cycle_final_v08_1080p30_master.mp4" "$stage/"
+          cp "$DELIVERY_ROOT/heart_cycle_final_v08_1080p30_compatible.mp4" "$stage/"
+          cp "$DELIVERY_ROOT/heart_cycle_final_v08_hq_960x540_15fps.gif" "$stage/"
+          cp "$DELIVERY_ROOT/heart_cycle_final_v08_compact_720x405_12fps.gif" "$stage/"
+          cp "$DELIVERY_ROOT/heart_cycle_final_v08_poster_1080p.png" "$stage/"
+          cp "$DELIVERY_ROOT/heart_cycle_final_v08_delivery_manifest.json" "$stage/"
+          cp "$DELIVERY_ROOT/heart_cycle_final_v08_delivery.zip" "$stage/"
+          cp "$DELIVERY_ROOT/heart_cutaway_reference_layout_v05_phase_rig_v03_infographic_v04_presentation_v06_animation_v07_final_v08.blend" "$stage/"
+
+      - name: Upload recovered final delivery
+        uses: actions/upload-artifact@v4
+        with:
+          name: heart-cycle-final-v08-delivery-recovery-${{ github.run_id }}
+          path: artifacts/final_delivery/*
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0

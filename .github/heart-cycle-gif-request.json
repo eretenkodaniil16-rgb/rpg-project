@@ -1,0 +1,9 @@
+{
+  "revision": "heart_cycle_animation_export_v07",
+  "profile": "quick_gif",
+  "resolution": [426, 240],
+  "sample_step": 10,
+  "output_fps": 3,
+  "frame_count": 45,
+  "duration_seconds": 15
+}
