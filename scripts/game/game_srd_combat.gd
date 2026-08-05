@@ -398,18 +398,68 @@ func _perform_srd_weapon_attack(target: Node, weapon: Dictionary, ammo_id: Strin
 		GameState.remove_item(ammo_id, 1, false)
 	if result.hit:
 		_apply_mitigation_to_result(result, _state_for(target))
+	var contact_applied: bool = false
 	if DistanceSystem.is_ranged_weapon(weapon):
 		await _play_weapon_projectile(weapon, target_position, result.hit)
+		contact_applied = _apply_player_attack_contact(target, result)
 	else:
-		player.play_attack_animation(target_position)
-	if _target_is_valid(target):
-		target.call("receive_player_attack", result, true)
-		if int(target.call("get_current_health")) <= 0:
-			_release_grapples_for(target)
+		contact_applied = await _play_player_melee_attack_to_completion(target, weapon, result)
+	if (
+		contact_applied
+		and is_instance_valid(target)
+		and target.has_method("get_current_health")
+		and int(target.call("get_current_health")) <= 0
+	):
+		_release_grapples_for(target)
 	GameState.save_game()
 	_update_status()
 	_set_combat_busy(false)
 	_sync_exploration_hud_visibility()
+
+
+func _play_player_melee_attack_to_completion(
+	target: Node,
+	weapon: Dictionary,
+	result: AttackResult
+) -> bool:
+	if not is_instance_valid(target):
+		return false
+	if not player.has_method("start_melee_attack_animation") or not player.has_signal("melee_attack_finished"):
+		player.play_attack_animation((target as Node2D).global_position)
+		await get_tree().create_timer(0.07).timeout
+		return _apply_player_attack_contact(target, result)
+
+	var applied_state: Dictionary = {"applied": false}
+	var contact_callback: Callable = Callable(
+		self,
+		"_apply_player_attack_contact_and_mark"
+	).bind(target, result, applied_state)
+	var finished_signal := Signal(player, &"melee_attack_finished")
+	var sequence_id: int = int(player.call(
+		"start_melee_attack_animation",
+		(target as Node2D).global_position,
+		weapon,
+		contact_callback
+	))
+	if sequence_id < 0:
+		return false
+	await finished_signal
+	return bool(applied_state.get("applied", false))
+
+
+func _apply_player_attack_contact_and_mark(
+	target: Node,
+	result: AttackResult,
+	applied_state: Dictionary
+) -> void:
+	applied_state["applied"] = _apply_player_attack_contact(target, result)
+
+
+func _apply_player_attack_contact(target: Node, result: AttackResult) -> bool:
+	if not is_instance_valid(target) or not target.has_method("receive_player_attack"):
+		return false
+	target.call("receive_player_attack", result, true)
+	return true
 
 
 func _build_srd_attack_context(target: Node, distance: int) -> Dictionary:
