@@ -1,5 +1,6 @@
 extends SceneTree
 
+const CORRECT_TITLE: String = "Хроники странника"
 const CORRECT_SUBTITLE: String = "Башня, уходящая вниз"
 
 
@@ -18,12 +19,17 @@ func _run() -> void:
 	root.add_child(root_node)
 	await process_frame
 
-	var background: TextureRect = root_node.get_node_or_null("Background") as TextureRect
+	var background: ColorRect = root_node.get_node_or_null("Background") as ColorRect
+	var title: Label = root_node.get_node_or_null("TitlePanel/Title") as Label
 	var loading_label: Label = root_node.get_node_or_null("LoadingLabel") as Label
 	var subtitle: Label = root_node.get_node_or_null("SubtitleCorrection/Subtitle") as Label
 	var progress_bar: Node = root_node.get_node_or_null("LoadingProgressBar")
-	if background == null or background.texture == null:
-		push_error("Composite preview is missing background texture")
+	if background == null or background.color.a < 0.99:
+		push_error("Composite preview is missing opaque procedural fallback")
+		quit(1)
+		return
+	if title == null or title.text != CORRECT_TITLE:
+		push_error("Composite preview title mismatch")
 		quit(1)
 		return
 	if loading_label == null or loading_label.text != "Загрузка...":
