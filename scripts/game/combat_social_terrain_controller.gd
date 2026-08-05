@@ -11,6 +11,7 @@ var _social_system: CombatSocialActionSystem = SOCIAL_SYSTEM_SCRIPT.new() as Com
 var _class_data: ClassDataSystem = ClassDataSystem.new()
 var _free_category_button: Button
 var _initialized: bool = false
+var _external_catalog_dispatch: bool = false
 var _social_action_used_this_turn: bool = false
 var _turn_signature: String = ""
 
@@ -41,13 +42,36 @@ func _try_initialize() -> void:
 		return
 	_game.set("_movement_planner", TERRAIN_MOVEMENT_SCRIPT.new() as TerrainAwareMovementSystem)
 	_install_free_category_button()
-	if not _action_ui.action_requested.is_connected(_on_action_requested):
+	if not _external_catalog_dispatch and not _action_ui.action_requested.is_connected(_on_action_requested):
 		_action_ui.action_requested.connect(_on_action_requested)
 	_connect_dialogue_signals()
 	_initialized = true
 	_sync_player_terrain_trait()
 	if _game.has_method("_invalidate_reachable_area"):
 		_game.call("_invalidate_reachable_area")
+
+
+func use_external_catalog_dispatch() -> void:
+	_external_catalog_dispatch = true
+	if _action_ui == null:
+		return
+	var callback := Callable(self, "_on_action_requested")
+	if _action_ui.action_requested.is_connected(callback):
+		_action_ui.action_requested.disconnect(callback)
+
+
+func handle_catalog_action(action_id: String) -> bool:
+	if not _initialized:
+		_try_initialize()
+	if not _initialized:
+		return false
+	if action_id == "combat_dialogue":
+		_open_combat_dialogue()
+		return true
+	if action_id.begins_with("social:"):
+		_perform_social_action(action_id.trim_prefix("social:"), _game.get("_selected_target") as Node)
+		return true
+	return false
 
 
 func _connect_dialogue_signals() -> void:
@@ -117,11 +141,7 @@ func _inject_free_action_entries() -> void:
 
 
 func _on_action_requested(action_id: String) -> void:
-	if action_id == "combat_dialogue":
-		_open_combat_dialogue()
-		return
-	if action_id.begins_with("social:"):
-		_perform_social_action(action_id.trim_prefix("social:"), _game.get("_selected_target") as Node)
+	handle_catalog_action(action_id)
 
 
 func _open_combat_dialogue() -> void:
