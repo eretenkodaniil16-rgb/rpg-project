@@ -195,6 +195,33 @@ func _stop_turn_based_combat(message: String) -> void:
 	_refresh_party_menu()
 
 
+func place_controllable_ally_adjacent_for_testing(target: Node) -> bool:
+	if not is_instance_valid(target) or not target is Node2D or not _controllable_ally is Node2D:
+		return false
+	var grid: BattleGrid = _get_battle_grid()
+	if grid == null:
+		return false
+	var target_position: Vector2 = (target as Node2D).global_position
+	var target_cell: Vector2i = grid.world_to_cell(target_position)
+	var occupied: Dictionary = _occupied_cells(_controllable_ally)
+	for offset: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+		var candidate: Vector2i = target_cell + offset
+		if not grid.is_cell_valid(candidate) or occupied.has(candidate):
+			continue
+		if _combat_environment != null:
+			if _combat_environment.is_cell_blocked(grid, candidate):
+				continue
+			if _combat_environment.is_transition_blocked(grid, candidate, target_cell):
+				continue
+			var candidate_position: Vector2 = grid.cell_to_world_center(candidate)
+			var cover: Dictionary = _combat_environment.get_cover(candidate_position, target_position)
+			if bool(cover.get("total_cover", false)):
+				continue
+		(_controllable_ally as Node2D).global_position = grid.cell_to_world_center(candidate)
+		return true
+	return false
+
+
 func get_exploration_controlled_actor_for_testing() -> Node:
 	return _exploration_controlled_actor
 
