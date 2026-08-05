@@ -36,7 +36,7 @@ class AttackSwordOnehandDirectionalV22Pass01Tests(unittest.TestCase):
         )
         self.assertEqual(len(set(TARGET_ACTION_ID_BY_DIRECTION.values())), 3)
 
-    def test_corrections_are_local_and_small(self) -> None:
+    def test_corrections_are_local_and_extremely_small(self) -> None:
         self.assertEqual(TARGET_FRAMES, (4, 5, 6))
         self.assertEqual(tuple(FRAME_WEIGHTS), TARGET_FRAMES)
         for direction in TARGET_DIRECTIONS:
@@ -46,7 +46,7 @@ class AttackSwordOnehandDirectionalV22Pass01Tests(unittest.TestCase):
             )
             for values in BONE_DELTAS_DEGREES_BY_DIRECTION[direction].values():
                 self.assertEqual(len(values), 3)
-                self.assertLessEqual(max(abs(value) for value in values), 3.0)
+                self.assertLessEqual(max(abs(value) for value in values), 2.0)
 
     def test_preservation_contract_is_explicit(self) -> None:
         self.assertTrue(PRESERVE_SOURCE_FCURVE_TIMING)
