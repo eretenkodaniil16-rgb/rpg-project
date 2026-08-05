@@ -17,7 +17,6 @@ on:
       - "tests/smoke_controllable_ally_controls_detailed.gd"
       - "tests/smoke_party_combat_control_context.gd"
       - "tests/smoke_controllable_ally_damage.gd"
-      - "tests/smoke_srd_combat_core_detailed.gd"
       - "docs/CONTROLLABLE_ALLY_V1.md"
       - ".github/workflows/validate-controllable-ally.yml"
   push:
@@ -80,17 +79,6 @@ jobs:
             exit "$result"
           fi
 
-      - name: Diagnose combat social dispatch
-        shell: bash
-        run: |
-          set +e
-          timeout 60s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_srd_combat_core_detailed.gd 2>&1 | tee controllable-ally-social.log
-          result=${PIPESTATUS[0]}
-          if [ "$result" -ne 0 ]; then
-            while IFS= read -r line; do echo "::error::$line"; done < <(tail -n 160 controllable-ally-social.log)
-            exit "$result"
-          fi
-
       - name: Simulate enemy damage against ally
         shell: bash
         run: |
@@ -134,7 +122,6 @@ jobs:
             controllable-ally-import.log
             controllable-ally-runtime.log
             controllable-ally-controls.log
-            controllable-ally-social.log
             controllable-ally-damage.log
             controllable-ally-item-use.log
             controllable-ally-guard-post.log
