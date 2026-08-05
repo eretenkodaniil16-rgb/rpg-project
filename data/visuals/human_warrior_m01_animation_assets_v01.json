@@ -1,0 +1,110 @@
+{
+  "character_id": "human_warrior_m01",
+  "revision": "animation_assets_v01",
+  "art_status": "approved",
+  "approval_date": "2026-08-05",
+  "runtime_connected": false,
+  "cell_size": 96,
+  "baseline_y": 91,
+  "direction_order": [
+    "down",
+    "left",
+    "right",
+    "up"
+  ],
+  "source": {
+    "idle_walk": {
+      "branch": "feature/human-warrior-runtime-animation-test",
+      "commit": "d40b78ac49d6d4c85bf6722d0d8eef8357e15a00",
+      "workflow_run": 30704702485,
+      "artifact_id": 8820190573,
+      "artifact_sha256": "b2c30af6199ca66449987f5737764649066cabc66589c9c4983107bcc3a09000"
+    },
+    "attack_sword_01_onehand": {
+      "branch": "tools/human-warrior-onehand-directional-v22",
+      "commit": "7d8ae315b9d2de82c637273331796468e78a0698",
+      "workflow_run": 31009208458,
+      "artifact_id": 8932504901,
+      "artifact_sha256": "da09d827e77a61e554b257f42fd4d78ea1c590ca20ae81018d567f578595007b",
+      "source_action": "attack_sword_01_onehand_down_v20",
+      "directional_revision": "onehand_directional_minimal_readability_v22_pass01"
+    },
+    "attack_sword_01_twohand": {
+      "branch": "tools/human-warrior-attack-sword-down-keyposes-v17",
+      "commit": "3131225654ed018a0b4e632ba663d7ad60480fb6",
+      "workflow_run": 30962732089,
+      "artifact_id": 8913799114,
+      "artifact_sha256": "5c3f5ede5f50c72952b7f52d67b1e7d2e51d52aba83d6cd074a55c07e5262f38",
+      "source_action": "attack_sword_01_twohand_down_overhead_v21",
+      "directional_revision": "twohand_overhead_directional_v21_pass05"
+    }
+  },
+  "sets": {
+    "idle": {
+      "sheet_path": "res://assets/characters/human/warrior_m01/gameplay/approved/atlases/human_warrior_m01_idle_v01.png",
+      "animation_prefix": "idle",
+      "frame_count": 1,
+      "fps": 1.0,
+      "loop": true,
+      "edge_alpha_required": false
+    },
+    "walk": {
+      "sheet_path": "res://assets/characters/human/warrior_m01/gameplay/approved/atlases/human_warrior_m01_walk_v01.png",
+      "animation_prefix": "walk",
+      "frame_count": 6,
+      "fps": 8.0,
+      "loop": true,
+      "edge_alpha_required": false
+    },
+    "combat_idle_onehand": {
+      "sheet_path": "res://assets/characters/human/warrior_m01/gameplay/approved/atlases/human_warrior_m01_combat_idle_onehand_v01.png",
+      "animation_prefix": "combat_idle_onehand",
+      "frame_count": 4,
+      "fps": 4.0,
+      "loop": true,
+      "edge_alpha_required": false
+    },
+    "combat_idle_twohand": {
+      "sheet_path": "res://assets/characters/human/warrior_m01/gameplay/approved/atlases/human_warrior_m01_combat_idle_twohand_v01.png",
+      "animation_prefix": "combat_idle_twohand",
+      "frame_count": 4,
+      "fps": 4.0,
+      "loop": true,
+      "edge_alpha_required": false
+    },
+    "walk_onehand": {
+      "sheet_path": "res://assets/characters/human/warrior_m01/gameplay/approved/atlases/human_warrior_m01_walk_onehand_v01.png",
+      "animation_prefix": "walk_onehand",
+      "frame_count": 6,
+      "fps": 8.0,
+      "loop": true,
+      "edge_alpha_required": false
+    },
+    "walk_twohand": {
+      "sheet_path": "res://assets/characters/human/warrior_m01/gameplay/approved/atlases/human_warrior_m01_walk_twohand_v01.png",
+      "animation_prefix": "walk_twohand",
+      "frame_count": 6,
+      "fps": 8.0,
+      "loop": true,
+      "edge_alpha_required": false
+    },
+    "attack_sword_01_onehand": {
+      "sheet_path": "res://assets/characters/human/warrior_m01/gameplay/approved/atlases/human_warrior_m01_attack_sword_01_onehand_v01.png",
+      "animation_prefix": "attack_sword_01_onehand",
+      "frame_count": 8,
+      "fps": 12.0,
+      "loop": false,
+      "edge_alpha_required": true,
+      "first_last_identical": true
+    },
+    "attack_sword_01_twohand": {
+      "sheet_path": "res://assets/characters/human/warrior_m01/gameplay/approved/atlases/human_warrior_m01_attack_sword_01_twohand_v01.png",
+      "animation_prefix": "attack_sword_01_twohand",
+      "frame_count": 8,
+      "fps": 12.0,
+      "loop": false,
+      "edge_alpha_required": true,
+      "first_last_identical": true
+    }
+  }
+}

@@ -1,0 +1,87 @@
+name: Materialize approved human warrior assets
+
+on:
+  push:
+    branches:
+      - integration/human-warrior-animation-assets-v01
+    paths:
+      - ".github/workflows/materialize-human-warrior-approved-assets.yml"
+      - "tools/runtime_animation/materialize_human_warrior_approved_assets_v01.py"
+      - "data/visuals/human_warrior_m01_animation_assets_v01.json"
+      - "assets/characters/human/warrior_m01/gameplay/approved/atlases/**"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: materialize-human-warrior-approved-assets-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout integration branch
+        uses: actions/checkout@v4
+        with:
+          ref: integration/human-warrior-animation-assets-v01
+
+      - name: Install materializer dependencies
+        run: python -m pip install --disable-pip-version-check Pillow==11.3.0
+
+      - name: Download and verify approved Blender artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/onehand" "$RUNNER_TEMP/twohand"
+
+          curl -L --fail --retry 3 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            -o "$RUNNER_TEMP/onehand.zip" \
+            "https://api.github.com/repos/$REPOSITORY/actions/artifacts/8932504901/zip"
+          echo "da09d827e77a61e554b257f42fd4d78ea1c590ca20ae81018d567f578595007b  $RUNNER_TEMP/onehand.zip" | sha256sum -c -
+          unzip -q "$RUNNER_TEMP/onehand.zip" -d "$RUNNER_TEMP/onehand"
+
+          curl -L --fail --retry 3 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            -o "$RUNNER_TEMP/twohand.zip" \
+            "https://api.github.com/repos/$REPOSITORY/actions/artifacts/8913799114/zip"
+          echo "5c3f5ede5f50c72952b7f52d67b1e7d2e51d52aba83d6cd074a55c07e5262f38  $RUNNER_TEMP/twohand.zip" | sha256sum -c -
+          unzip -q "$RUNNER_TEMP/twohand.zip" -d "$RUNNER_TEMP/twohand"
+
+      - name: Build approved attack atlases and lock file
+        run: |
+          python tools/runtime_animation/materialize_human_warrior_approved_assets_v01.py \
+            --onehand-root "$RUNNER_TEMP/onehand" \
+            --twohand-root "$RUNNER_TEMP/twohand" \
+            --output-dir assets/characters/human/warrior_m01/gameplay/approved/atlases \
+            --lock-path data/visuals/human_warrior_m01_animation_assets_v01.lock.json
+
+      - name: Validate all eight approved atlases
+        run: python -m unittest tests.test_human_warrior_animation_assets_v01
+
+      - name: Commit generated approved resources
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add \
+            assets/characters/human/warrior_m01/gameplay/approved/atlases/human_warrior_m01_attack_sword_01_onehand_v01.png \
+            assets/characters/human/warrior_m01/gameplay/approved/atlases/human_warrior_m01_attack_sword_01_twohand_v01.png \
+            data/visuals/human_warrior_m01_animation_assets_v01.lock.json
+          if git diff --cached --quiet; then
+            echo "Approved attack atlases are already current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "art: materialize approved human warrior attack atlases"
+          git push origin HEAD:integration/human-warrior-animation-assets-v01
