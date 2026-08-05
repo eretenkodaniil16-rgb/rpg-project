@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "composition_id": "combat_standard_v01",
+  "title_ru": "Сталь и пепел",
+  "arrangement_revision": 1,
+  "tempo_bpm": 84,
+  "time_signature": [6, 8],
+  "bars": 36,
+  "tonal_center": "D",
+  "mode_profile": "D minor with Phrygian pressure",
+  "leitmotif": ["D", "A", "C", "Eb", "D"],
+  "external_samples_used": false,
+  "design_goal": "Базовая тема пошагового боя: собранная, опасная и ритмически читаемая, но не превращающая каждый бой в финальную кульминацию.",
+  "sections": [
+    {"bars": "1-4", "id": "engage", "purpose": "мгновенный вход без длинного вступления"},
+    {"bars": "5-12", "id": "formation", "purpose": "устойчивый боевой пульс"},
+    {"bars": "13-18", "id": "pressure", "purpose": "рост плотности и контрдвижения"},
+    {"bars": "19-26", "id": "clash", "purpose": "центральный пик обычного боя"},
+    {"bars": "27-32", "id": "second_wind", "purpose": "возврат контроля без спада энергии"},
+    {"bars": "33-36", "id": "loop_return", "purpose": "возврат к началу без победной каденции"}
+  ],
+  "instrumentation": [
+    "low bowed strings",
+    "short dark strings",
+    "restrained synthetic brass",
+    "war drum",
+    "frame drum",
+    "rare metallic impacts",
+    "air texture"
+  ],
+  "harmony": [
+    ["D2", "A2", "Eb2"], ["D2", "A2", "C2"], ["Bb1", "F2", "E2"], ["A1", "E2", "Eb2"],
+    ["D2", "A2", "Eb2"], ["F1", "C2", "Gb2"], ["G1", "D2", "Db2"], ["A1", "E2", "Eb2"],
+    ["D2", "A2", "C2"], ["Bb1", "F2", "E2"], ["Eb2", "Bb2", "A2"], ["A1", "E2", "Eb2"],
+    ["D2", "A2", "Eb2"], ["F1", "C2", "Gb2"], ["Bb1", "F2", "E2"], ["A1", "E2", "Eb2"],
+    ["D2", "A2", "C2"], ["G1", "D2", "Db2"],
+    ["D2", "A2", "Eb2"], ["Eb2", "Bb2", "A2"], ["F1", "C2", "Gb2"], ["G1", "D2", "Db2"],
+    ["Bb1", "F2", "E2"], ["A1", "E2", "Eb2"], ["D2", "A2", "C2"], ["A1", "E2", "Eb2"],
+    ["D2", "A2", "Eb2"], ["F1", "C2", "Gb2"], ["G1", "D2", "Db2"], ["A1", "E2", "Eb2"],
+    ["Bb1", "F2", "E2"], ["A1", "E2", "Eb2"],
+    ["D2", "A2", "C2"], ["Bb1", "F2", "E2"], ["A1", "E2", "Eb2"], ["D2", "A2", "Eb2"]
+  ]
+}
