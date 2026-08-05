@@ -28,6 +28,9 @@ jobs:
           set -euo pipefail
           cat tools/audio/bootstrap/exploration_tension_bundle_*.txt | base64 --decode > /tmp/exploration-tension-bundle.tar.gz
           tar --extract --gzip --file /tmp/exploration-tension-bundle.tar.gz --directory "$GITHUB_WORKSPACE"
+          # GitHub App tokens cannot create or replace workflow files. The final
+          # read-only validation workflow is published separately by the owner.
+          rm -f .github/workflows/validate-exploration-tension-v01.yml
 
       - name: Install audio toolchain
         run: |
@@ -51,12 +54,11 @@ jobs:
           python tests/test_exploration_tension_v01.py
           python tests/test_music_system_foundation.py
 
-      - name: Replace bootstrap with final implementation
+      - name: Publish final implementation files
         shell: bash
         run: |
           set -euo pipefail
           git rm -r tools/audio/bootstrap
-          git rm .github/workflows/bootstrap-exploration-tension-v01.yml
           git add -A
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
