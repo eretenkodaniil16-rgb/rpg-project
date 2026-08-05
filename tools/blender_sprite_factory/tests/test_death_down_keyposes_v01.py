@@ -114,6 +114,8 @@ class DeathDownKeyposesV01Tests(unittest.TestCase):
         self.assertIn("weapon_adapter._set_v12_weapon(None, None)", source)
         self.assertNotIn("profile.weapon_cycle_id", source)
         self.assertIn("_apply_gore_state", source)
+        self.assertIn("_opaque_component_sizes", source)
+        self.assertIn("detached limb is not visually separated", source)
         self.assertIn("left_forearm_detachment", source)
         self.assertIn('"variant_count": len(profiles)', source)
         self.assertIn('"weapon_agnostic": True', source)

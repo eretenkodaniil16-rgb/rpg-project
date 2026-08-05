@@ -82,6 +82,40 @@ def _edge_alpha_counts(path: Path) -> dict[str, int]:
         factory.bpy.data.images.remove(image)
 
 
+def _opaque_component_sizes(path: Path) -> tuple[int, ...]:
+    image = factory.bpy.data.images.load(str(path), check_existing=False)
+    try:
+        width, height = (int(value) for value in image.size)
+        pixels = tuple(image.pixels[:])
+        opaque = {
+            (x, y)
+            for y in range(height)
+            for x in range(width)
+            if pixels[(y * width + x) * 4 + 3] >= 0.5
+        }
+        sizes: list[int] = []
+        while opaque:
+            seed = opaque.pop()
+            stack = [seed]
+            size = 0
+            while stack:
+                x, y = stack.pop()
+                size += 1
+                for neighbor in (
+                    (x + 1, y),
+                    (x - 1, y),
+                    (x, y + 1),
+                    (x, y - 1),
+                ):
+                    if neighbor in opaque:
+                        opaque.remove(neighbor)
+                        stack.append(neighbor)
+            sizes.append(size)
+        return tuple(sorted(sizes, reverse=True))
+    finally:
+        factory.bpy.data.images.remove(image)
+
+
 def _assert_frame_contract(
     frames: tuple[factory.FrameArtifact, ...],
     *,
@@ -163,10 +197,10 @@ def _apply_gore_state(profile: object, frame_number: int) -> None:
     detached_cap.matrix_world = stump.matrix_world.copy()
 
     if frame_number == profile.detachment_frame:
-        offset = (0.34, -0.15, -0.12)
+        offset = (0.82, -0.05, -0.10)
         rotation = (12.0, -8.0, 24.0)
     else:
-        offset = (0.50, -0.22, -0.19)
+        offset = (0.95, -0.10, -0.14)
         rotation = (20.0, -12.0, 38.0)
 
     for obj in (detached_forearm, detached_hand, detached_cap):
@@ -231,6 +265,19 @@ def render_death_down_keyposes_v01(
 
             frames = _find_frames(artifacts, animation_id=profile.animation_id)
             _assert_frame_contract(frames, death_variant_id=profile.death_variant_id)
+            if profile.gore_mode == "left_forearm_detachment":
+                for item in frames:
+                    if item.frame_number < int(profile.detachment_frame):
+                        continue
+                    component_sizes = _opaque_component_sizes(item.output_path)
+                    visible_components = [
+                        size for size in component_sizes if size >= 8
+                    ]
+                    if len(visible_components) < 2:
+                        raise RuntimeError(
+                            "death_03 detached limb is not visually separated: "
+                            f"f{item.frame_number:02d}={component_sizes}"
+                        )
     finally:
         _reset_gore_state()
         weapon_adapter._set_v12_weapon(None, None)
