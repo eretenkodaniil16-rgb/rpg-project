@@ -34,8 +34,11 @@ def test_manifest_contract() -> None:
     assert (manifest["size"]["width"], manifest["size"]["height"]) == EXPECTED_SIZE
 
     logo_manifest = json.loads(LOGO_MANIFEST.read_text(encoding="utf-8"))
+    assert logo_manifest["status"] == "reference_approved"
+    assert logo_manifest["standalone_graphic_layer_available"] is False
+    assert logo_manifest["title"] == CORRECT_TITLE
     assert logo_manifest["subtitle"] == CORRECT_SUBTITLE
-    assert logo_manifest["subtitle_render_mode"] == "live_text_overlay"
+    assert logo_manifest["subtitle_render_mode"] == "live_text"
     assert logo_manifest["baked_subtitle_authoritative"] is False
 
 
