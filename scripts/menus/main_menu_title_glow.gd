@@ -57,6 +57,17 @@ func _process(delta: float) -> void:
 				_schedule_next_pulse()
 
 
+func set_reduced_motion(enabled: bool) -> void:
+	_reduced_motion = enabled
+	_schedule_next_pulse()
+	_apply_intensity(0.0)
+	set_process(_shader_material != null and not _reduced_motion)
+
+
+func is_reduced_motion_enabled() -> bool:
+	return _reduced_motion
+
+
 func has_glow_material() -> bool:
 	return _shader_material != null
 
