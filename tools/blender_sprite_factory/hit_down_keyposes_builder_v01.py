@@ -14,6 +14,9 @@ from hit_down_keyposes_profile_v01 import (
     HitDownPoseDeltaV01,
     load_hit_down_keyposes_profile_v01,
 )
+from hit_down_twohand_cycle_profile_v01 import (
+    load_hit_down_twohand_cycle_profile_v01,
+)
 
 
 _REQUIRED_BONES = frozenset(
@@ -274,17 +277,13 @@ def _hit_channels(
 def _create_hit_action(
     context: factory.BuildContext,
     profile: object,
+    stance_by_id: dict[str, object],
     *,
     animation_revision: str,
     manual_keypose_review_required: bool,
     manual_cycle_review_required: bool,
-) -> None:
-    create_combat_idle_directional_cycles_v14(context)
-    _assert_rig_contract(context)
-    stance_profile = load_weapon_stance_profile_v09(context.config.character_id)
-    stance_by_id = {item.variant_id: item for item in stance_profile.variants}
+) -> factory.Action:
     stance = stance_by_id[profile.stance_variant_id]
-
     action_name = f"{context.config.character_id}_{profile.animation_id}"
     if factory.bpy.data.actions.get(action_name) is not None:
         raise RuntimeError(f"hit down v01 action already exists: {action_name}")
@@ -295,17 +294,21 @@ def _create_hit_action(
         animation_id=profile.animation_id,
         fps=profile.fps,
     )
+    is_onehand = stance.grip_mode == "one_handed"
     action["profile_revision"] = profile.revision
     action["animation_revision"] = animation_revision
     action["animation_family"] = "hit_01"
     action["direction"] = profile.direction
+    action["grip_mode"] = stance.grip_mode
     action["stance_variant_id"] = profile.stance_variant_id
     action["stance_source_revision"] = profile.stance_source_revision
     action["weapon_cycle_id"] = profile.weapon_cycle_id
     action["incoming_direction"] = profile.incoming_direction
     action["frame_count"] = len(profile.poses)
     action["phase_order"] = ",".join(profile.phase_order)
-    action["approved_keyposes_preserved_exactly"] = True
+    action["approved_keyposes_preserved_exactly"] = is_onehand
+    action["approved_body_motion_preserved_exactly"] = True
+    action["twohand_grip_preservation_adjustment"] = not is_onehand
     action["shared_reaction_motion"] = True
     action["manual_keypose_review_required"] = manual_keypose_review_required
     action["manual_cycle_review_required"] = manual_cycle_review_required
@@ -321,13 +324,27 @@ def _create_hit_action(
     action["geometry_changed"] = False
     action["material_changed"] = False
     action.use_fake_user = True
+    return action
 
+
+def _prepare_hit_actions(context: factory.BuildContext) -> dict[str, object]:
+    create_combat_idle_directional_cycles_v14(context)
+    _assert_rig_contract(context)
+    stance_profile = load_weapon_stance_profile_v09(context.config.character_id)
+    return {item.variant_id: item for item in stance_profile.variants}
+
+
+def _write_scene_contract(
+    actions: tuple[factory.Action, ...],
+    *,
+    manual_keypose_review_required: bool,
+    manual_cycle_review_required: bool,
+) -> None:
     scene = factory.bpy.context.scene
-    scene["hit_down_profile_revision"] = profile.revision
-    scene["hit_down_action"] = action.name
-    scene["hit_down_frame_count"] = len(profile.poses)
-    scene["hit_down_direction"] = profile.direction
-    scene["hit_down_incoming_direction"] = profile.incoming_direction
+    scene["hit_down_action_ids"] = ",".join(action.name for action in actions)
+    scene["hit_down_action_count"] = len(actions)
+    scene["hit_down_direction"] = "down"
+    scene["hit_down_incoming_direction"] = "front"
     scene["hit_down_manual_keypose_review_required"] = manual_keypose_review_required
     scene["hit_down_manual_cycle_review_required"] = manual_cycle_review_required
     scene["hit_down_full_cycle_not_yet_approved"] = True
@@ -340,22 +357,42 @@ def _create_hit_action(
 
 
 def create_hit_down_keypose_actions_v01(context: factory.BuildContext) -> None:
+    stance_by_id = _prepare_hit_actions(context)
     profile = load_hit_down_keyposes_profile_v01(context.config.character_id)
-    _create_hit_action(
+    action = _create_hit_action(
         context,
         profile,
+        stance_by_id,
         animation_revision="keyposes_v01_pass02",
+        manual_keypose_review_required=True,
+        manual_cycle_review_required=False,
+    )
+    _write_scene_contract(
+        (action,),
         manual_keypose_review_required=True,
         manual_cycle_review_required=False,
     )
 
 
 def create_hit_down_cycle_actions_v01(context: factory.BuildContext) -> None:
-    profile = load_hit_down_cycle_profile_v01(context.config.character_id)
-    _create_hit_action(
-        context,
-        profile,
-        animation_revision="cycle_v01",
+    stance_by_id = _prepare_hit_actions(context)
+    profiles = (
+        load_hit_down_cycle_profile_v01(context.config.character_id),
+        load_hit_down_twohand_cycle_profile_v01(context.config.character_id),
+    )
+    actions = tuple(
+        _create_hit_action(
+            context,
+            profile,
+            stance_by_id,
+            animation_revision="cycle_v01",
+            manual_keypose_review_required=False,
+            manual_cycle_review_required=True,
+        )
+        for profile in profiles
+    )
+    _write_scene_contract(
+        actions,
         manual_keypose_review_required=False,
         manual_cycle_review_required=True,
     )
