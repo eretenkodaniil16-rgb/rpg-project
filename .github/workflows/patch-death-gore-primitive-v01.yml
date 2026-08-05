@@ -1,0 +1,51 @@
+name: Patch death gore primitive v01
+
+on:
+  push:
+    branches:
+      - tools/human-warrior-death-down-keyposes-v01
+    paths:
+      - ".github/workflows/patch-death-gore-primitive-v01.yml"
+      - "tools/blender_sprite_factory/patch_death_gore_primitive_v01.py"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: patch-death-gore-primitive-v01-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  patch:
+    runs-on: ubuntu-slim
+    timeout-minutes: 10
+    steps:
+      - name: Checkout art branch
+        uses: actions/checkout@v4
+        with:
+          ref: tools/human-warrior-death-down-keyposes-v01
+
+      - name: Apply primitive patch
+        run: python tools/blender_sprite_factory/patch_death_gore_primitive_v01.py
+
+      - name: Validate syntax
+        run: |
+          python -m py_compile \
+            tools/blender_sprite_factory/death_down_keyposes_builder_v01.py \
+            tools/blender_sprite_factory/blender_sprite_factory_death_down_keyposes_v01.py
+
+      - name: Commit permanent changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add \
+            tools/blender_sprite_factory/death_down_keyposes_builder_v01.py \
+            tools/blender_sprite_factory/blender_sprite_factory_death_down_keyposes_v01.py
+          if git diff --cached --quiet; then
+            echo "Primitive patch is already applied."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "fix: заменить bone-copy на стабильный detached-limb prop"
+          git push origin HEAD:tools/human-warrior-death-down-keyposes-v01
