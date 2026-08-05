@@ -167,6 +167,7 @@ func _run() -> void:
 		_fail("Attack lock was released before the recovery frames finished.")
 		return
 	await onehand_finished_signal
+	await get_tree().process_frame
 	if bool(player.call("is_action_animation_locked")):
 		_fail("One-handed attack lock was not released after f08.")
 		return
@@ -201,6 +202,7 @@ func _run() -> void:
 		_fail("Two-handed contact callback was not fired by f04.")
 		return
 	await twohand_finished_signal
+	await get_tree().process_frame
 	if bool(player.call("is_action_animation_locked")):
 		_fail("Two-handed attack lock was not released after f08.")
 		return
@@ -229,6 +231,7 @@ func _run() -> void:
 		_fail("Fallback melee contact event was not fired.")
 		return
 	await fallback_finished_signal
+	await get_tree().process_frame
 	if bool(player.call("is_action_animation_locked")):
 		_fail("Fallback melee action left the player locked.")
 		return
