@@ -59,14 +59,14 @@ jobs:
           expected = json.loads(Path("assets/audio/music/source/combat_standard_v01_master_manifest.json").read_text())
           rendered = json.loads(Path("build/audio/combat_standard_v01/combat_standard_v01_master_manifest.json").read_text())
           assert rendered["numpy_version"] == expected["numpy_version"] == "2.3.5"
-          assert rendered["renderer"] == expected["renderer"] == "procedural_combat_renderer_v01"
-          assert rendered["arrangement_revision"] == expected["arrangement_revision"] == 1
+          assert rendered["renderer"] == expected["renderer"] == "procedural_combat_renderer_v02"
+          assert rendered["arrangement_revision"] == expected["arrangement_revision"] == 2
           assert rendered["pcm_signature_shift_bits"] == expected["pcm_signature_shift_bits"] == 8
           assert rendered["pcm_signature_sha256"] == expected["pcm_signature_sha256"]
-          assert rendered["duration_seconds"] == expected["duration_seconds"] == 77.142854
+          assert rendered["duration_seconds"] == expected["duration_seconds"] == 75.0
           assert rendered["midi_sha256"] == expected["midi_sha256"]
-          assert rendered["peak_dbfs"] == expected["peak_dbfs"] == -1.4
-          assert rendered["rms_dbfs"] == expected["rms_dbfs"] == -15.412
+          assert rendered["peak_dbfs"] == expected["peak_dbfs"] == -1.2
+          assert rendered["rms_dbfs"] == expected["rms_dbfs"] == -16.53
           assert rendered["boundary_value_delta"] == expected["boundary_value_delta"] == 0.0
           assert rendered["boundary_slope_delta"] == expected["boundary_slope_delta"] == 0.0
           PY
@@ -105,7 +105,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: combat-standard-v01-preview
+          name: combat-standard-v01-revision-02-preview
           path: |
             build/audio/combat_standard_v01/
             combat-standard-import.log
