@@ -174,9 +174,10 @@ func _run() -> void:
 	target.global_position = Vector2(950.0, 360.0)
 	game.add_child(target)
 	await process_frame
+	var opponents: Array[Node] = [target]
 	game.call(
 		"start_party_combat_for_testing",
-		[target] as Array[Node],
+		opponents,
 		{
 			ally.get_instance_id(): 20,
 			player.get_instance_id(): 10,
@@ -199,14 +200,13 @@ func _run() -> void:
 		return
 
 	_stage = "full_targeting"
+	if not bool(game.call("place_controllable_ally_adjacent_for_testing", target)):
+		_fail("Could not place Irina beside the test target.")
+		return
 	target_button.emit_signal("pressed")
 	await process_frame
 	if int(game.call("get_party_target_instance_id_for_testing", ally)) != target.get_instance_id():
 		_fail("The standard target button did not assign Irina's own target.")
-		return
-	game.call("set_party_target_for_testing", ally, target)
-	if not bool(game.call("place_controllable_ally_adjacent_for_testing", target)):
-		_fail("Could not place Irina beside the test target.")
 		return
 	mobile_controls.call("simulate_actions_touch_for_testing")
 	for _frame: int in range(3):
