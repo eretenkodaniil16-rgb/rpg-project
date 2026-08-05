@@ -1,7 +1,5 @@
 extends "res://tests/smoke_party_combat_control_context.gd"
 
-const EXPECTED_MOBILE_SCRIPT: String = "res://scripts/ui/mobile_controls_party_routing.gd"
-
 
 class StableCombatTarget:
 	extends Node2D
