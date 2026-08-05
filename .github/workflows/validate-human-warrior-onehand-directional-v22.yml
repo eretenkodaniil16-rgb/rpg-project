@@ -1,0 +1,88 @@
+name: Validate human warrior onehand directional v22
+
+on:
+  pull_request:
+    paths:
+      - "tools/blender_sprite_factory/**"
+      - "docs/HUMAN_WARRIOR_ATTACK_SWORD_01_ONEHAND_DIRECTIONAL_V22.md"
+      - ".github/workflows/validate-human-warrior-onehand-directional-v22.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: human-warrior-onehand-directional-v22-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  render-onehand-directional-v22:
+    if: github.event_name == 'pull_request' && github.head_ref == 'tools/human-warrior-onehand-directional-v22'
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run focused static tests
+        run: |
+          python -m unittest \
+            tools.blender_sprite_factory.tests.test_attack_sword_onehand_directional_v22_pass01
+
+      - name: Install headless render dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            xvfb libgl1 libxi6 libxrender1 libxkbcommon-x11-0
+
+      - name: Download and verify Blender 5.2.0 LTS
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/blender-5.2.0-linux-x64.tar.xz"
+          extract="$RUNNER_TEMP/blender-5.2.0"
+          curl -L --fail --retry 3 --output "$archive" \
+            "https://download.blender.org/release/Blender5.2/blender-5.2.0-linux-x64.tar.xz"
+          actual="$(sha256sum "$archive" | cut -d' ' -f1)"
+          expected="96f6c181a30f4950607839dc84d42a354b250d8a0231b098b59b7bc69c351c48"
+          test "$actual" = "$expected"
+          mkdir -p "$extract"
+          tar -xJf "$archive" -C "$extract"
+          blender="$(find "$extract" -type f -name blender -perm -111 | head -n 1)"
+          test -n "$blender"
+          echo "BLENDER_EXE=$blender" >> "$GITHUB_ENV"
+
+      - name: Render onehand left right up from approved down motion
+        id: blender-onehand-directional
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          run_id="${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}"
+          xvfb-run -a "$BLENDER_EXE" \
+            --background \
+            --factory-startup \
+            --python-exit-code 1 \
+            --python tools/blender_sprite_factory/blender_sprite_factory_attack_sword_onehand_directional_v22_pass01.py \
+            -- \
+            --repo-root "$GITHUB_WORKSPACE" \
+            --config tools/blender_sprite_factory/configs/human_warrior_m01.json \
+            --run-id "$run_id" \
+            --mode all 2>&1 | tee blender_onehand_directional_v22.log
+
+      - name: Upload onehand directional review and source blend
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: human_warrior_m01_onehand_directional_v22_pass01_24_target_frames_${{ github.run_id }}_${{ github.run_attempt }}
+          path: |
+            art/blender_pipeline_runs/human_warrior_m01/**
+            blender_onehand_directional_v22.log
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Require successful onehand directional render
+        if: steps.blender-onehand-directional.outcome != 'success'
+        run: |
+          echo "Onehand directional v22 pass01 failed; inspect the uploaded artifact."
+          exit 1
