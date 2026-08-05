@@ -5,10 +5,12 @@ on:
     paths:
       - "scenes/game/game.tscn"
       - "scripts/game/game_party_control_runtime.gd"
+      - "scripts/game/game_party_control_entry_runtime.gd"
       - "scripts/game/game_controllable_ally_mobile_runtime.gd"
       - "scripts/ui/mobile_controls_party_routing.gd"
       - "scripts/systems/party_combat_control_context.gd"
       - "tests/smoke_controllable_ally_controls.gd"
+      - "tests/smoke_controllable_ally_controls_detailed.gd"
       - "tests/smoke_party_combat_control_context.gd"
       - ".github/workflows/validate-controllable-ally-windows.yml"
   push:
@@ -49,7 +51,7 @@ jobs:
       - name: Simulate independent party controls
         shell: pwsh
         run: |
-          & ".\Godot_v4.7.1-stable_win64.exe" --headless --path "$env:GITHUB_WORKSPACE" --script res://tests/smoke_controllable_ally_controls.gd 2>&1 | Tee-Object -FilePath "controllable-ally-windows-controls.log"
+          & ".\Godot_v4.7.1-stable_win64.exe" --headless --path "$env:GITHUB_WORKSPACE" --script res://tests/smoke_controllable_ally_controls_detailed.gd 2>&1 | Tee-Object -FilePath "controllable-ally-windows-controls.log"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Upload diagnostics
