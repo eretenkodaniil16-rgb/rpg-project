@@ -1,15 +1,17 @@
 {
   "schema_version": 1,
   "composition_id": "main_theme_v01",
-  "status": "prototype",
-  "generation_method": "deterministic_score_and_synthesis_script",
+  "status": "approved_composition_master_candidate",
+  "generation_method": "deterministic_score_and_procedural_master_renderer",
   "external_audio_samples_embedded": false,
   "external_midi_or_score_imported": false,
   "lyrics_or_voice_recordings_used": false,
   "source_files": [
     "res://assets/audio/music/source/main_theme_v01_score.json",
-    "res://tools/audio/generate_main_theme_v01.py"
+    "res://tools/audio/generate_main_theme_v01.py",
+    "res://tools/audio/render_main_theme_v01_master.py"
   ],
-  "approval_required_before_runtime_enable": true,
-  "notes": "The prototype is generated entirely from the explicit project score. A similarity review and user approval remain required before final release."
+  "approval_required_before_runtime_enable": false,
+  "release_requires_in_game_verification": true,
+  "notes": "The composition was approved by the user on 2026-08-05. The integrated master candidate is generated from the explicit score without external recordings or samples and still requires Windows and Android listening tests before release approval."
 }
