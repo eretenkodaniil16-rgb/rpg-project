@@ -1,0 +1,109 @@
+name: Validate exploration tension v01
+
+on:
+  pull_request:
+    paths:
+      - "assets/audio/music/source/exploration_tension_v01_score.json"
+      - "assets/audio/music/source/exploration_tension_v01_provenance.json"
+      - "assets/audio/music/source/exploration_tension_v01_master_manifest.json"
+      - "assets/audio/music/exports/exploration_tension_v01_master.ogg"
+      - "data/audio/music_catalog.json"
+      - "scripts/audio/music_threat_state_resolver.gd"
+      - "tools/audio/generate_exploration_tension_v01.py"
+      - "tests/test_exploration_tension_v01.py"
+      - "tests/test_music_threat_state_resolver.gd"
+      - "docs/EXPLORATION_TENSION_V01.md"
+      - "project.godot"
+      - ".github/workflows/validate-exploration-tension-v01.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: exploration-tension-v01-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install audio toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes ffmpeg
+          python -m pip install --disable-pip-version-check numpy
+
+      - name: Compile renderer
+        run: python -m py_compile tools/audio/generate_exploration_tension_v01.py
+
+      - name: Render independent listening candidate
+        run: |
+          python tools/audio/generate_exploration_tension_v01.py \
+            --score assets/audio/music/source/exploration_tension_v01_score.json \
+            --output build/audio/exploration_tension_v01
+
+      - name: Validate committed composition and resource
+        run: python tests/test_exploration_tension_v01.py
+
+      - name: Validate shared music contracts
+        run: python tests/test_music_system_foundation.py
+
+      - name: Compare deterministic PCM render
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          expected = json.loads(Path("assets/audio/music/source/exploration_tension_v01_master_manifest.json").read_text())
+          rendered = json.loads(Path("build/audio/exploration_tension_v01/exploration_tension_v01_master_manifest.json").read_text())
+          assert rendered["wav_sha256"] == expected["wav_sha256"], "deterministic WAV render changed"
+          assert rendered["duration_seconds"] == expected["duration_seconds"]
+          assert rendered["boundary_value_delta"] <= 0.002
+          assert rendered["boundary_slope_delta"] <= 0.002
+          PY
+
+      - name: Download Godot 4.7.1 Standard
+        shell: bash
+        run: |
+          curl --location --fail --retry 4 --retry-all-errors --retry-delay 3 \
+            --connect-timeout 20 --max-time 180 --output godot.zip \
+            "https://downloads.godotengine.org/?flavor=stable&platform=linux.64&slug=linux.x86_64.zip&version=4.7.1"
+          unzip -q godot.zip
+          chmod +x Godot_v4.7.1-stable_linux.x86_64
+
+      - name: Import project and reject parser errors
+        shell: bash
+        run: |
+          rm -rf .godot
+          set -o pipefail
+          timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 \
+            --headless --editor --path "$GITHUB_WORKSPACE" --quit \
+            2>&1 | tee exploration-tension-import.log
+          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script" exploration-tension-import.log; then
+            exit 1
+          fi
+
+      - name: Test threat resolver runtime contracts
+        shell: bash
+        run: |
+          timeout 90s ./Godot_v4.7.1-stable_linux.x86_64 \
+            --headless --path "$GITHUB_WORKSPACE" \
+            --script res://tests/test_music_threat_state_resolver.gd \
+            2>&1 | tee exploration-tension-test.log
+          grep -F "Music threat resolver tests passed." exploration-tension-test.log
+
+      - name: Upload listening and diagnostics artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exploration-tension-v01-preview
+          path: |
+            build/audio/exploration_tension_v01/
+            exploration-tension-import.log
+            exploration-tension-test.log
+          if-no-files-found: ignore
+          retention-days: 14
