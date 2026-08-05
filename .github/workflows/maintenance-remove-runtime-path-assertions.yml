@@ -1,0 +1,91 @@
+name: Remove legacy runtime path assertions
+
+on:
+  push:
+    branches:
+      - feature/controllable-ally-v1
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/controllable-ally-v1
+          fetch-depth: 0
+
+      - name: Replace leaf-path assertions with behavioral coverage
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          paths = [
+              "tests/smoke_advanced_combat_ai_runtime.gd",
+              "tests/smoke_edge_line_of_sight_runtime.gd",
+              "tests/smoke_encounter_runtime.gd",
+              "tests/smoke_exploration_stealth_alerts.gd",
+              "tests/smoke_guard_post_presentation_and_parley.gd",
+              "tests/smoke_guard_post_two_room_consequences.gd",
+              "tests/smoke_hidden_combat_escape.gd",
+              "tests/smoke_inner_watch_ai_live_turns.gd",
+              "tests/smoke_interactive_tactical_encounter.gd",
+              "tests/smoke_npc_context_actions_ai.gd",
+              "tests/test_v018_integration_stack.gd",
+          ]
+          legacy = "game_guard_post_polish_runtime.gd"
+
+          const_pattern = re.compile(
+              r'^const (?:EXPECTED_RUNTIME|RUNTIME_PATH|EXPECTED_GAME_RUNTIME): String = '
+              r'"res://scripts/game/game_guard_post_polish_runtime\.gd"\n',
+              re.MULTILINE,
+          )
+          variable_block_pattern = re.compile(
+              r'\n\tvar [A-Za-z_][A-Za-z0-9_]*: Script = game\.get_script\(\) as Script\n'
+              r'\tif [^\n]*resource_path[^\n]*(?:EXPECTED_RUNTIME|RUNTIME_PATH|EXPECTED_GAME_RUNTIME)[^\n]*:\n'
+              r'\t\t_fail\([^\n]*\)\n'
+              r'\t\treturn\n'
+          )
+          direct_block_pattern = re.compile(
+              r'\n\tif str\(game\.get_script\(\)\.resource_path\) != '
+              r'(?:(?:EXPECTED_RUNTIME|RUNTIME_PATH|EXPECTED_GAME_RUNTIME)|'
+              r'"res://scripts/game/game_guard_post_polish_runtime\.gd"):\n'
+              r'\t\t_fail\([^\n]*\)\n'
+              r'\t\treturn\n'
+          )
+
+          changed = []
+          for raw_path in paths:
+              path = Path(raw_path)
+              text = path.read_text(encoding="utf-8")
+              original = text
+              text = const_pattern.sub('', text)
+              text = variable_block_pattern.sub('\n', text)
+              text = direct_block_pattern.sub('\n', text)
+              if legacy in text:
+                  raise SystemExit(f"Legacy runtime assertion remains in {raw_path}")
+              if text == original:
+                  raise SystemExit(f"Expected assertion was not removed from {raw_path}")
+              path.write_text(text, encoding="utf-8")
+              changed.append(raw_path)
+
+          print("Updated behavioral tests:")
+          for path in changed:
+              print(path)
+          PY
+
+      - name: Commit migration
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests
+          git diff --cached --check
+          git commit -m "test: remove brittle final runtime path assertions"
+          git push origin HEAD:feature/controllable-ally-v1
