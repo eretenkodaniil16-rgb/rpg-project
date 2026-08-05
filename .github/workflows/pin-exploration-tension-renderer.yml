@@ -1,0 +1,121 @@
+name: Pin exploration tension renderer
+
+on:
+  push:
+    branches:
+      - feature/exploration-tension-v01
+    paths:
+      - ".github/workflows/pin-exploration-tension-renderer.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  pin-renderer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/exploration-tension-v01
+
+      - name: Pin renderer metadata and contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import json
+
+          generator = Path("tools/audio/generate_exploration_tension_v01.py")
+          text = generator.read_text(encoding="utf-8")
+          if 'REQUIRED_NUMPY_VERSION = "2.3.5"' not in text:
+              text = text.replace(
+                  "import numpy as np\n",
+                  'import numpy as np\n\nREQUIRED_NUMPY_VERSION = "2.3.5"\n',
+              )
+              text = text.replace(
+                  "def render(score_path: Path, output_dir: Path) -> dict:\n",
+                  'def render(score_path: Path, output_dir: Path) -> dict:\n'
+                  '    if np.__version__ != REQUIRED_NUMPY_VERSION:\n'
+                  '        raise RuntimeError(\n'
+                  '            f"exploration tension renderer requires NumPy {REQUIRED_NUMPY_VERSION}, "\n'
+                  '            f"got {np.__version__}"\n'
+                  '        )\n',
+              )
+              text = text.replace(
+                  '        "renderer": "procedural_tension_renderer_v01",\n',
+                  '        "renderer": "procedural_tension_renderer_v01",\n'
+                  '        "numpy_version": REQUIRED_NUMPY_VERSION,\n',
+              )
+          generator.write_text(text, encoding="utf-8")
+
+          test_path = Path("tests/test_exploration_tension_v01.py")
+          text = test_path.read_text(encoding="utf-8")
+          if 'renderer NumPy version must be pinned' not in text:
+              text = text.replace(
+                  '    require(manifest["duration_seconds"] == 81.6, "manifest duration must be 81.6 seconds")\n',
+                  '    require(manifest["duration_seconds"] == 81.6, "manifest duration must be 81.6 seconds")\n'
+                  '    require(manifest["numpy_version"] == "2.3.5", "renderer NumPy version must be pinned")\n',
+              )
+          test_path.write_text(text, encoding="utf-8")
+
+          manifest_path = Path("assets/audio/music/source/exploration_tension_v01_master_manifest.json")
+          manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+          ordered = {}
+          for key, value in manifest.items():
+              ordered[key] = value
+              if key == "renderer":
+                  ordered["numpy_version"] = "2.3.5"
+          manifest_path.write_text(json.dumps(ordered, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+          provenance_path = Path("assets/audio/music/source/exploration_tension_v01_provenance.json")
+          provenance = json.loads(provenance_path.read_text(encoding="utf-8"))
+          provenance["renderer_dependencies"] = {
+              "numpy": "2.3.5",
+              "ffmpeg": "system libvorbis encoder",
+          }
+          provenance_path.write_text(json.dumps(provenance, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+          doc_path = Path("docs/EXPLORATION_TENSION_V01.md")
+          text = doc_path.read_text(encoding="utf-8")
+          old = "Исходник, provenance и renderer хранятся отдельно от игрового Ogg. Внешние записи, sample pack и импортированный MIDI не используются."
+          new = "Исходник, provenance и renderer хранятся отдельно от игрового Ogg. Для воспроизводимого PCM-рендера закреплён NumPy 2.3.5; смена версии требует отдельной проверки и нового manifest. Внешние записи, sample pack и импортированный MIDI не используются."
+          if old in text:
+              text = text.replace(old, new)
+          doc_path.write_text(text, encoding="utf-8")
+          PY
+
+      - name: Verify pinned deterministic render
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes ffmpeg
+          python -m pip install --disable-pip-version-check --upgrade "numpy==2.3.5"
+          python tools/audio/generate_exploration_tension_v01.py \
+            --score assets/audio/music/source/exploration_tension_v01_score.json \
+            --output build/audio/exploration_tension_v01
+          python tests/test_exploration_tension_v01.py
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          expected = json.loads(Path("assets/audio/music/source/exploration_tension_v01_master_manifest.json").read_text())
+          rendered = json.loads(Path("build/audio/exploration_tension_v01/exploration_tension_v01_master_manifest.json").read_text())
+          assert expected["numpy_version"] == rendered["numpy_version"] == "2.3.5"
+          assert expected["wav_sha256"] == rendered["wav_sha256"]
+          PY
+
+      - name: Commit pinned renderer contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add \
+            tools/audio/generate_exploration_tension_v01.py \
+            tests/test_exploration_tension_v01.py \
+            assets/audio/music/source/exploration_tension_v01_master_manifest.json \
+            assets/audio/music/source/exploration_tension_v01_provenance.json \
+            docs/EXPLORATION_TENSION_V01.md
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "fix(audio): закрепить воспроизводимый tension renderer"
+          git push origin HEAD:feature/exploration-tension-v01
