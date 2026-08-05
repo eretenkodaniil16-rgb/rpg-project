@@ -33,7 +33,17 @@ jobs:
 
       - name: Expand approved revision sources
         run: |
-          base64 --decode --ignore-garbage tools/audio/tension_rev02_bundle.b64 > /tmp/tension-rev02.tar.gz
+          python - <<'PY'
+          import base64
+          import re
+          from pathlib import Path
+
+          source = Path("tools/audio/tension_rev02_bundle.b64").read_text(encoding="utf-8")
+          normalized = re.sub(r"[^A-Za-z0-9+/=]", "", source).rstrip("=")
+          normalized += "=" * (-len(normalized) % 4)
+          Path("/tmp/tension-rev02.tar.gz").write_bytes(base64.b64decode(normalized))
+          PY
+          tar -tzf /tmp/tension-rev02.tar.gz
           tar -xzf /tmp/tension-rev02.tar.gz
 
       - name: Render exact Linux game master
