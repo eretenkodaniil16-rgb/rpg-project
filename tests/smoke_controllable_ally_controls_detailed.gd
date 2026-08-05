@@ -6,8 +6,9 @@ func _create_route_with_mobile_joystick(
 	mobile_controls: Node,
 	expected_owner: Node
 ) -> bool:
-	var popup: AttackResultPopup = game.get("_attack_popup") as AttackResultPopup
-	if popup != null and popup.visible:
+	var popup_value: Variant = game.get("_attack_popup")
+	var popup: Node = popup_value as Node if popup_value is Node else null
+	if popup != null and bool(popup.get("visible")):
 		# Reproduce the player's required Continue transaction. The result popup
 		# deliberately locks all spatial input until it is acknowledged.
 		popup.call("_on_continue_pressed")
