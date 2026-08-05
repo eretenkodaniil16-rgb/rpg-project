@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "composition_id": "exploration_tension_v01",
+  "title_ru": "Тени рядом",
+  "status": "review_candidate",
+  "tempo_bpm": 75,
+  "time_signature": [6, 8],
+  "bars": 34,
+  "sample_rate": 48000,
+  "tonal_center": "D",
+  "mode": "D minor with Phrygian and Dorian colour",
+  "source_leitmotif": ["D4", "A3", "C4", "Eb4", "D4"],
+  "tension_fragments": [
+    ["D4", "A3", "C4"],
+    ["Eb4", "D4"],
+    ["D4", "C4", "A3"],
+    ["E4", "Eb4", "D4"]
+  ],
+  "form": [
+    {"section_id": "unease_a", "bars": [1, 8], "description": "Sparse pulse and incomplete motif"},
+    {"section_id": "search_b", "bars": [9, 17], "description": "Investigation ostinato and low-string pressure"},
+    {"section_id": "near_contact_c", "bars": [18, 26], "description": "Controlled rise without battle climax"},
+    {"section_id": "unresolved_return", "bars": [27, 34], "description": "Energy recedes but harmonic question remains"}
+  ],
+  "harmony": [
+    "Dm(add9)", "Dm(add9)", "Eb5", "Dm", "Bbmaj7", "A5(b9)", "Dm(add9)", "C/D",
+    "Dm", "Gm/D", "Eb", "A5(b9)", "Dm", "Bb", "Csus2", "A5(b9)", "Dm",
+    "Eb", "Dm/F", "Gm", "A5(b9)", "Dm", "Bbmaj7", "Eb", "A5(b9)", "Dm",
+    "Gm/D", "Eb5", "Dm(add9)", "C/D", "Bbmaj7", "A5(b9)", "Dm(add9)", "Dm(add9)"
+  ],
+  "instrumentation": [
+    "low bowed strings",
+    "muted dark plucked strings",
+    "breathy wooden flute fragments",
+    "sparse frame drum",
+    "distant metallic resonances",
+    "periodic air and room tone"
+  ],
+  "excluded_elements": [
+    "choir",
+    "continuous heavy percussion",
+    "full heroic melody",
+    "resolved battle climax"
+  ],
+  "loop_strategy": "three-cycle render with middle-cycle export and boundary crossfade",
+  "external_samples_used": false
+}

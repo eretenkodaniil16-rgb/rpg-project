@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "composition_id": "exploration_tension_v01",
+  "title_ru": "Тени рядом",
+  "authoring_method": "deterministic procedural composition and synthesis",
+  "original_for_project": true,
+  "external_recordings_used": false,
+  "external_sample_packs_used": false,
+  "imported_midi_used": false,
+  "derived_from_project_leitmotif": "main_theme_v01",
+  "approved_source_motif": ["D4", "A3", "C4", "Eb4", "D4"],
+  "renderer": "tools/audio/generate_exploration_tension_v01.py",
+  "license_status": "original project asset",
+  "review_status": "master_candidate"
+}

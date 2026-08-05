@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "catalog_id": "chronicles_of_the_wanderer_music_v01",
-  "asset_status": "main_theme_and_exploration_calm_integrated",
+  "asset_status": "main_theme_calm_and_tension_integrated",
   "contexts": {
     "main_menu": {
       "track_id": "main_theme",
@@ -17,7 +17,7 @@
     },
     "world_tension": {
       "track_id": "exploration_tension",
-      "fade_seconds": 1.0
+      "fade_seconds": 1.25
     },
     "combat_standard": {
       "track_id": "combat_standard",
@@ -52,11 +52,13 @@
       "composition_id": "exploration_calm_v01"
     },
     "exploration_tension": {
-      "path": "",
-      "enabled": false,
+      "path": "res://assets/audio/music/exports/exploration_tension_v01_master.ogg",
+      "enabled": true,
       "bus": "Music",
       "volume_db": -6.0,
-      "loop": true
+      "loop": true,
+      "render_status": "master_candidate",
+      "composition_id": "exploration_tension_v01"
     },
     "combat_standard": {
       "path": "",
