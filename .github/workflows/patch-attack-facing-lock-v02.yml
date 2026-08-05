@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   patch:
-    runs-on: ubuntu-24.04-arm
+    runs-on: windows-latest
     timeout-minutes: 10
     steps:
       - name: Checkout runtime branch
@@ -26,20 +26,18 @@ jobs:
           ref: feature/human-warrior-runtime-animation-v02
 
       - name: Apply attack facing lock patch
-        run: python3 tools/runtime_animation/patch_attack_facing_lock_v02.py
+        shell: pwsh
+        run: python tools/runtime_animation/patch_attack_facing_lock_v02.py
 
       - name: Commit production fix and test
-        shell: bash
+        shell: pwsh
         run: |
-          set -euo pipefail
-          git add \
-            scripts/game/player.gd \
-            scripts/game/player_combat.gd \
-            tests/test_human_warrior_runtime_animation_v02.gd
-          if git diff --cached --quiet; then
-            echo "Attack facing lock patch is already applied."
+          git add scripts/game/player.gd scripts/game/player_combat.gd tests/test_human_warrior_runtime_animation_v02.gd
+          git diff --cached --quiet
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "Attack facing lock patch is already applied."
             exit 0
-          fi
+          }
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "fix: фиксировать направление на время sword attack"
