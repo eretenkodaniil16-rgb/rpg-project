@@ -34,13 +34,12 @@ func _refresh_active_party_catalog() -> void:
 		_game_world.call("_refresh_action_catalog")
 
 
-func _apply_player_control_vector(direction: Vector2, combat_active: bool) -> void:
-	if combat_active:
-		_resolve_game_world()
-		if is_instance_valid(_game_world) and _game_world.has_method("set_mobile_control_vector"):
-			_game_world.call("set_mobile_control_vector", direction.limit_length(1.0))
-			return
-	super._apply_player_control_vector(direction, combat_active)
+func _apply_player_control_vector(direction: Vector2, _combat_active: bool) -> void:
+	_resolve_game_world()
+	if is_instance_valid(_game_world) and _game_world.has_method("set_mobile_control_vector"):
+		_game_world.call("set_mobile_control_vector", direction.limit_length(1.0))
+		return
+	super._apply_player_control_vector(direction, _combat_active)
 
 
 func _reset_player_input() -> void:
