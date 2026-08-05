@@ -12,6 +12,12 @@ func _ready() -> void:
 	super._ready()
 	_exploration_controlled_actor = player
 	_apply_exploration_control_owner(player)
+	_replace_bound_handler(
+		_target_button,
+		&"pressed",
+		&"_on_feedback_target_requested",
+		Callable(self, "_on_party_target_requested")
+	)
 	call_deferred("_bind_party_menu")
 
 
@@ -30,6 +36,17 @@ func _bind_party_menu() -> void:
 	if not _party_menu_ui.member_control_requested.is_connected(callback):
 		_party_menu_ui.member_control_requested.connect(callback)
 	_refresh_party_menu()
+
+
+func _on_party_target_requested() -> void:
+	_close_action_catalog_immediately()
+	if _is_controllable_ally_turn():
+		if GameState.input_locked or _attack_in_progress or _any_overlay_visible():
+			return
+		_cycle_ally_target()
+		_refresh_party_menu()
+		return
+	super._on_feedback_target_requested()
 
 
 func _on_party_member_control_requested(character_id: String) -> void:
