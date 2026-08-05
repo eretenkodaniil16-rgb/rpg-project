@@ -74,6 +74,10 @@ func has_complete_textures() -> bool:
 	)
 
 
+func uses_mirrored_right_cap() -> bool:
+	return _right_cap.texture == _left_cap.texture and _right_cap.scale.x < 0.0
+
+
 func _apply_layout() -> void:
 	if not is_node_ready():
 		return
@@ -86,8 +90,13 @@ func _apply_layout() -> void:
 
 	_left_cap.position = Vector2.ZERO
 	_left_cap.size = Vector2(cap_width, bar_height)
+	_left_cap.pivot_offset = Vector2(cap_width * 0.5, bar_height * 0.5)
+	_left_cap.scale = Vector2.ONE
+
 	_right_cap.position = Vector2(size.x - cap_width, 0.0)
 	_right_cap.size = Vector2(cap_width, bar_height)
+	_right_cap.pivot_offset = Vector2(cap_width * 0.5, bar_height * 0.5)
+	_right_cap.scale = Vector2(-1.0, 1.0)
 
 	_track.position = Vector2(track_x, track_y)
 	_track.size = Vector2(track_width, track_height)

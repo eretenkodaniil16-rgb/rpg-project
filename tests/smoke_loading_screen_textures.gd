@@ -19,6 +19,7 @@ func _run() -> void:
 	await process_frame
 
 	assert(bar.has_complete_textures(), "Loading bar texture set is incomplete")
+	assert(bar.uses_mirrored_right_cap(), "Right cap must mirror the verified left cap")
 	assert(is_equal_approx(bar.normalized_value(), 0.72), "Unexpected default progress")
 	var full_width: float = bar.full_fill_width()
 	assert(full_width > 0.0, "Loading bar full fill width must be positive")

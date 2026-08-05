@@ -18,7 +18,6 @@ EXPECTED = {
     "loading_bar_track_v03.png": (128, 128),
     "loading_bar_fill_v03.png": (128, 44),
     "loading_bar_glint_v03.png": (64, 44),
-    "loading_bar_right_cap_v03.png": (176, 128),
     "loading_bar_center_rune_v03.png": (144, 144),
 }
 
@@ -31,6 +30,7 @@ def require(path: Path, fragment: str) -> None:
 
 def validate_png(path: Path, expected_size: tuple[int, int]) -> None:
     with Image.open(path) as image:
+        image.load()
         if image.size != expected_size:
             raise AssertionError(f"Unexpected size for {path.name}: {image.size}")
         rgba = image.convert("RGBA")
@@ -55,6 +55,10 @@ def main() -> None:
         raise AssertionError("Loading bar must remain runtime_candidate")
     if manifest.get("approved_variant") != 3:
         raise AssertionError("Loading bar variant 3 must be fixed in the manifest")
+    if manifest.get("components", {}).get("right_cap") != "mirrored:left_cap":
+        raise AssertionError("Right cap must reuse the verified left-cap texture")
+    if not manifest.get("stretch_contract", {}).get("right_cap_mirrors_left"):
+        raise AssertionError("Mirrored right-cap contract is missing")
     if manifest.get("integration", {}).get("connected_to_game_transitions"):
         raise AssertionError("Texture-only stage must not connect game transitions")
     if manifest.get("approval", {}).get("final"):
@@ -68,6 +72,7 @@ def main() -> None:
         'node name="FillClip" type="Control"',
         'clip_contents = true',
         'node name="CenterRune" type="TextureRect"',
+        'texture = ExtResource("5_cap")',
     ):
         require(BAR_SCENE, fragment)
 
@@ -76,6 +81,8 @@ def main() -> None:
         '@export_range(0.0, 100.0, 0.1) var value: float',
         'func set_progress(next_value: float)',
         'func has_complete_textures() -> bool',
+        'func uses_mirrored_right_cap() -> bool',
+        '_right_cap.scale = Vector2(-1.0, 1.0)',
         'accessibility/reduced_motion',
         'TEXTURE_FILTER_LINEAR',
     ):

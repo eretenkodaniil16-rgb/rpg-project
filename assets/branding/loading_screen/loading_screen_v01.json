@@ -11,7 +11,7 @@
     "track": "res://assets/branding/loading_screen/approved/loading_bar_v03/loading_bar_track_v03.png",
     "fill": "res://assets/branding/loading_screen/approved/loading_bar_v03/loading_bar_fill_v03.png",
     "glint": "res://assets/branding/loading_screen/approved/loading_bar_v03/loading_bar_glint_v03.png",
-    "right_cap": "res://assets/branding/loading_screen/approved/loading_bar_v03/loading_bar_right_cap_v03.png",
+    "right_cap": "mirrored:left_cap",
     "center_rune": "res://assets/branding/loading_screen/approved/loading_bar_v03/loading_bar_center_rune_v03.png"
   },
   "stretch_contract": {
@@ -20,6 +20,7 @@
     "filter": "linear",
     "fill_is_clipped_by_progress": true,
     "center_rune_is_fixed": true,
+    "right_cap_mirrors_left": true,
     "end_caps_keep_aspect": true
   },
   "resources": {
