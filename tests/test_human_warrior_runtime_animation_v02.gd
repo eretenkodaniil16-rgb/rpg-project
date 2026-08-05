@@ -121,6 +121,8 @@ func _run() -> void:
 
 	player.call("set_visual_preview_mode", &"auto")
 	player.call("set_turn_based_mode", true)
+	hero.equipped_weapon_id = "longsword"
+	player.call("_process", 0.0)
 	player.call("set_facing_direction", Vector2.LEFT)
 	var onehand_contact: Dictionary = {"called": false, "frame": -1}
 	var onehand_callback := func() -> void:
@@ -172,6 +174,8 @@ func _run() -> void:
 		_fail("One-handed attack did not return to the matching combat idle.")
 		return
 
+	hero.equipped_weapon_id = "greatsword"
+	player.call("_process", 0.0)
 	player.call("set_facing_direction", Vector2.UP)
 	var twohand_contact: Dictionary = {"called": false, "frame": -1}
 	var twohand_callback := func() -> void:
@@ -204,6 +208,8 @@ func _run() -> void:
 		_fail("Two-handed attack did not return to the matching combat idle.")
 		return
 
+	hero.equipped_weapon_id = "mace"
+	player.call("_process", 0.0)
 	var fallback_contact: Dictionary = {"called": false}
 	var fallback_callback := func() -> void:
 		fallback_contact["called"] = true
