@@ -21,7 +21,7 @@ class DeathDownKeyposesV01Tests(unittest.TestCase):
     def test_profile_identity_is_locked(self) -> None:
         profile = load_death_down_keyposes_profile_v01("human_warrior_m01")
         self.assertEqual(profile, HUMAN_WARRIOR_M01_DEATH_DOWN_KEYPOSES_V01)
-        self.assertEqual(profile.revision, "death_down_keyposes_v01_pass01")
+        self.assertEqual(profile.revision, "death_down_keyposes_v01_pass02")
         self.assertEqual(profile.animation_id, "death_01_onehand_down_keyposes_v01")
         self.assertEqual(profile.direction, "down")
         self.assertEqual(profile.frame_order, DEATH_DOWN_KEYPOSE_FRAME_ORDER)
@@ -51,10 +51,12 @@ class DeathDownKeyposesV01Tests(unittest.TestCase):
 
         pelvis_z = [pose.pelvis_z for pose in poses]
         self.assertEqual(pelvis_z, sorted(pelvis_z, reverse=True))
-        self.assertLess(poses[-1].pelvis_z, -0.5)
-        self.assertLess(poses[-1].spine_pitch_x_degrees, -60.0)
-        self.assertLess(poses[-1].pelvis_roll_z_degrees, -45.0)
-        self.assertGreater(poses[-1].shin_left_x_degrees, 65.0)
+        self.assertLess(poses[-1].pelvis_z, -0.55)
+        self.assertLess(poses[-1].spine_pitch_x_degrees, -70.0)
+        self.assertLess(poses[-1].pelvis_roll_z_degrees, -60.0)
+        self.assertGreater(poses[-1].shin_left_x_degrees, 80.0)
+        self.assertGreater(poses[-1].upper_arm_left_z_degrees, 60.0)
+        self.assertLess(poses[-1].upper_arm_right_z_degrees, -50.0)
         self.assertNotEqual(
             poses[-1].upper_arm_left_z_degrees,
             -poses[-1].upper_arm_right_z_degrees,
