@@ -1,5 +1,7 @@
 extends "res://scripts/ui/mobile_controls_explicit_action_catalog.gd"
 
+const PARTY_CATALOG_REFRESH_METHOD: StringName = &"refresh_active_party_action_catalog"
+
 
 func _process(delta: float) -> void:
 	super._process(delta)
@@ -11,23 +13,24 @@ func _process(delta: float) -> void:
 		catalog != null
 		and catalog.has_method("is_catalog_open")
 		and bool(catalog.call("is_catalog_open"))
-		and _game_world.has_method("_refresh_action_catalog")
 	):
-		# The root game runtime can contain older parent `_process` methods that
-		# rebuild the catalogue through their own script-level implementation.
-		# MobileControls is processed after the root node, so this final refresh
-		# guarantees that the open menu reflects the active party actor's target,
-		# action budget and movement state.
-		_game_world.call("_refresh_action_catalog")
+		_refresh_active_party_catalog()
 
 
 func _on_interact_pressed() -> void:
 	super._on_interact_pressed()
 	_resolve_game_world()
-	if is_instance_valid(_game_world) and _game_world.has_method("_refresh_action_catalog"):
-		# Recalculate once more after the atomic toggle transaction. This avoids a
-		# one-frame stale menu when the active actor or target changed immediately
-		# before the player pressed the Actions button.
+	_refresh_active_party_catalog()
+
+
+func _refresh_active_party_catalog() -> void:
+	if not is_instance_valid(_game_world):
+		return
+	if _game_world.has_method(PARTY_CATALOG_REFRESH_METHOD):
+		_game_world.call(PARTY_CATALOG_REFRESH_METHOD)
+	elif _game_world.has_method("_refresh_action_catalog"):
+		# Compatibility fallback for older scenes. The active game scene uses the
+		# unique party entry point above.
 		_game_world.call("_refresh_action_catalog")
 
 
