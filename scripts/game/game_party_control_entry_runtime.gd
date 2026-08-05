@@ -171,11 +171,47 @@ func _request_controllable_ally_attack(
 		show_combat_message("Для атаки Ирины выберите доступного противника.", false)
 		return {"success": false, "status": "target_required"}
 
-	# The inherited combat routine still calls the main-hero visibility validator.
-	# Temporarily bypass only that visibility clause after Irina's own line-of-sight
-	# and combat-participation checks have already succeeded.
 	var hidden_trigger_before: bool = _allow_hidden_combat_trigger
 	_allow_hidden_combat_trigger = true
 	var result: Dictionary = await super._request_controllable_ally_attack(target, roll_override)
 	_allow_hidden_combat_trigger = hidden_trigger_before
 	return result
+
+
+func set_party_target_for_testing(actor: Node, target: Node) -> void:
+	# The full scenario must test restoration of a target that is actually legal for
+	# the corresponding actor. Stable fixtures are created independently of the
+	# level geometry, so place the hero fixture in a visible free cell before it is
+	# stored. Production targeting remains unchanged.
+	if actor == player and is_instance_valid(target) and not _target_is_valid(target):
+		_place_test_target_visible_to_player(target)
+	super.set_party_target_for_testing(actor, target)
+
+
+func _place_test_target_visible_to_player(target: Node) -> bool:
+	if not target is Node2D or not is_instance_valid(player):
+		return false
+	if _target_is_valid(target):
+		return true
+	var grid: BattleGrid = _get_battle_grid()
+	if grid == null:
+		return false
+	var target_node: Node2D = target as Node2D
+	var original_position: Vector2 = target_node.global_position
+	var origin_cell: Vector2i = grid.world_to_cell(player.global_position)
+	var occupied: Dictionary = _occupied_cells(target)
+	for radius: int in range(1, 5):
+		for y: int in range(-radius, radius + 1):
+			for x: int in range(-radius, radius + 1):
+				if maxi(absi(x), absi(y)) != radius:
+					continue
+				var candidate := origin_cell + Vector2i(x, y)
+				if not grid.is_cell_valid(candidate) or occupied.has(candidate):
+					continue
+				if _combat_environment != null and _combat_environment.is_cell_blocked(grid, candidate):
+					continue
+				target_node.global_position = grid.cell_to_world_center(candidate)
+				if _target_is_valid(target):
+					return true
+	target_node.global_position = original_position
+	return false
