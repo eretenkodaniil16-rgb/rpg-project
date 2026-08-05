@@ -81,6 +81,48 @@ func _refresh_action_catalog() -> void:
 	super._refresh_action_catalog()
 
 
+func _build_catalog_entries() -> Dictionary:
+	var entries: Dictionary = super._build_catalog_entries()
+	if not _is_controllable_ally_turn():
+		return entries
+	var context_target: Node = _party_control_context.target_for(_controllable_ally)
+	var state: CombatantState = _active_party_state()
+	var can_act: bool = (
+		state != null
+		and _turn_system.action_available
+		and _srd_rules.can_take_action(state)
+	)
+	var target_melee: bool = (
+		_target_is_valid(context_target)
+		and _controllable_ally is Node2D
+		and DistanceSystem.distance_feet(
+			(_controllable_ally as Node2D).global_position,
+			(context_target as Node2D).global_position
+		) <= DistanceSystem.MELEE_REACH_FEET
+	)
+	var action_values: Variant = entries.get("action", [])
+	var action_entries: Array = action_values as Array if action_values is Array else []
+	for index: int in range(action_entries.size()):
+		var entry_value: Variant = action_entries[index]
+		if not entry_value is Dictionary:
+			continue
+		var entry: Dictionary = (entry_value as Dictionary).duplicate(true)
+		match str(entry.get("id", "")):
+			"attack":
+				entry["enabled"] = can_act and target_melee
+			"select_ally_target":
+				entry["label"] = (
+					"СМЕНИТЬ ЦЕЛЬ ИРИНЫ"
+					if _target_is_valid(context_target)
+					else "ВЫБРАТЬ ЦЕЛЬ ИРИНЫ"
+				)
+			_:
+				pass
+		action_entries[index] = entry
+	entries["action"] = action_entries
+	return entries
+
+
 func _on_party_catalog_action_requested(action_id: String) -> void:
 	if not _is_controllable_ally_turn():
 		return
