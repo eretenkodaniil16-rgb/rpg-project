@@ -7,10 +7,14 @@ on:
       - "scripts/game/controllable_ally.gd"
       - "scripts/game/game_controllable_ally_runtime.gd"
       - "scripts/game/game_controllable_ally_control_runtime.gd"
+      - "scripts/game/game_controllable_ally_mobile_runtime.gd"
       - "scripts/game/game_guard_post_polish_runtime.gd"
+      - "scripts/ui/mobile_controls_party_routing.gd"
+      - "scripts/systems/party_combat_control_context.gd"
       - "scripts/systems/turn_based_combat_system.gd"
       - "tests/smoke_controllable_ally_runtime.gd"
       - "tests/smoke_controllable_ally_controls.gd"
+      - "tests/smoke_party_combat_control_context.gd"
       - "tests/smoke_controllable_ally_damage.gd"
       - "docs/CONTROLLABLE_ALLY_V1.md"
       - ".github/workflows/validate-controllable-ally.yml"
@@ -63,7 +67,7 @@ jobs:
             exit "$result"
           fi
 
-      - name: Simulate ally controls and attack
+      - name: Simulate independent party controls
         shell: bash
         run: |
           set +e
