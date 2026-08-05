@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-"""Render combat_standard_v01 ("Steel and Ash").
+"""Render combat_standard_v01 revision 2 ("Steel and Ash: first strike").
 
 Original deterministic procedural synthesis for the project. No recordings,
-sample packs, or imported MIDI are used. NumPy is pinned to keep the PCM
-fingerprint reproducible across the validation environment.
+sample packs, imported MIDI, or third-party melodic material are used.
 """
 from __future__ import annotations
 
@@ -21,9 +20,9 @@ import numpy as np
 
 REQUIRED_NUMPY_VERSION = "2.3.5"
 SR = 48_000
-BPM = 84
-BARS = 36
-BEATS_PER_BAR = 3.0  # dotted-quarter pulse in 6/8
+BPM = 96
+BARS = 40
+BEATS_PER_BAR = 3.0
 BAR_SECONDS = 60.0 / BPM * BEATS_PER_BAR
 DURATION = BARS * BAR_SECONDS
 PPQ = 480
@@ -84,21 +83,20 @@ def low_string(note: str, duration: float, seed: int, tremolo: float = 0.0) -> n
     length = max(1, round(duration * SR))
     t = np.arange(length, dtype=np.float32) / SR
     f = hz(note)
-    vibrato = 0.0024 * np.sin(2.0 * math.pi * 4.7 * t + 0.2)
-    phase = 2.0 * math.pi * f * t + vibrato
+    phase = 2.0 * math.pi * f * t + 0.0026 * np.sin(2.0 * math.pi * 4.9 * t)
     signal = (
         np.sin(phase)
-        + 0.42 * np.sin(2.0 * phase + 0.13)
-        + 0.17 * np.sin(3.0 * phase + 0.41)
-        + 0.07 * np.sin(5.0 * phase + 0.23)
+        + 0.46 * np.sin(2.0 * phase + 0.11)
+        + 0.20 * np.sin(3.0 * phase + 0.31)
+        + 0.08 * np.sin(5.0 * phase + 0.17)
     )
     if tremolo > 0.0:
-        signal *= 0.78 + 0.22 * np.sin(2.0 * math.pi * tremolo * t + 0.5)
+        signal *= 0.74 + 0.26 * np.sin(2.0 * math.pi * tremolo * t + 0.5)
     rng = np.random.default_rng(seed)
     grit = rng.standard_normal(length).astype(np.float32)
-    grit = np.convolve(grit, np.ones(20, dtype=np.float32) / 20.0, mode="same")
-    signal += 0.024 * grit
-    signal *= envelope(length, 0.12, 0.32, 0.9)
+    grit = np.convolve(grit, np.ones(16, dtype=np.float32) / 16.0, mode="same")
+    signal += 0.030 * grit
+    signal *= envelope(length, 0.07, 0.25, 0.92)
     return (signal / (np.max(np.abs(signal)) + 1e-9)).astype(np.float32)
 
 
@@ -109,54 +107,87 @@ def short_string(note: str, duration: float, seed: int, bite: float = 1.0) -> np
     phase = 2.0 * math.pi * f * t
     signal = (
         np.sin(phase)
-        + 0.52 * bite * np.sin(2.0 * phase + 0.08)
-        + 0.24 * bite * np.sin(3.0 * phase + 0.19)
-        + 0.10 * bite * np.sin(4.0 * phase + 0.37)
+        + 0.62 * bite * np.sin(2.0 * phase + 0.08)
+        + 0.31 * bite * np.sin(3.0 * phase + 0.21)
+        + 0.14 * bite * np.sin(4.0 * phase + 0.39)
     )
     rng = np.random.default_rng(seed)
-    attack_noise = rng.standard_normal(length).astype(np.float32) * np.exp(-t * 28.0)
-    signal += 0.035 * attack_noise
-    signal *= np.exp(-t * 4.1).astype(np.float32)
-    signal *= envelope(length, 0.004, min(0.13, duration * 0.4), 1.0)
+    signal += 0.050 * rng.standard_normal(length).astype(np.float32) * np.exp(-t * 34.0)
+    signal = np.tanh(signal * 1.08)
+    signal *= np.exp(-t * 5.8).astype(np.float32)
+    signal *= envelope(length, 0.002, min(0.095, duration * 0.35), 1.0)
     return (signal / (np.max(np.abs(signal)) + 1e-9)).astype(np.float32)
 
 
-def brass(note: str, duration: float, seed: int, force: float = 1.0) -> np.ndarray:
+def brass_stab(note: str, duration: float, seed: int, force: float = 1.0) -> np.ndarray:
     length = max(1, round(duration * SR))
     t = np.arange(length, dtype=np.float32) / SR
     f = hz(note)
     rng = np.random.default_rng(seed)
     drift = np.cumsum(rng.standard_normal(length).astype(np.float32))
-    drift = drift / (np.max(np.abs(drift)) + 1e-9) * 0.003
+    drift = drift / (np.max(np.abs(drift)) + 1e-9) * 0.002
     phase = 2.0 * math.pi * f * t + drift
     signal = np.zeros(length, dtype=np.float32)
-    for harmonic, gain in ((1, 1.0), (2, 0.58), (3, 0.33), (4, 0.18), (5, 0.09)):
-        signal += gain * np.sin(harmonic * phase + harmonic * 0.07)
-    signal = np.tanh(signal * (0.85 + 0.35 * force))
-    signal *= envelope(length, 0.055, 0.28, 0.82)
+    for harmonic, gain in ((1, 1.0), (2, 0.72), (3, 0.46), (4, 0.27), (5, 0.14), (6, 0.07)):
+        signal += gain * np.sin(harmonic * phase + harmonic * 0.05)
+    signal = np.tanh(signal * (1.05 + 0.55 * force))
+    signal *= np.exp(-t * 1.65).astype(np.float32)
+    signal *= envelope(length, 0.018, 0.18, 0.88)
     return (signal / (np.max(np.abs(signal)) + 1e-9)).astype(np.float32)
 
 
-def war_drum(duration: float, seed: int, pitch: float = 47.0) -> np.ndarray:
+def low_choir(note: str, duration: float, seed: int) -> np.ndarray:
     length = max(1, round(duration * SR))
     t = np.arange(length, dtype=np.float32) / SR
-    frequency = pitch + 78.0 * np.exp(-t * 10.0)
+    f = hz(note)
+    rng = np.random.default_rng(seed)
+    wobble = 0.004 * np.sin(2.0 * math.pi * 5.2 * t) + 0.0015 * rng.standard_normal(length).astype(np.float32)
+    phase = 2.0 * math.pi * f * t + wobble
+    signal = (
+        np.sin(phase)
+        + 0.30 * np.sin(2.0 * phase + 0.2)
+        + 0.13 * np.sin(3.0 * phase + 0.4)
+    )
+    formant = 0.55 + 0.45 * np.sin(2.0 * math.pi * 2.2 * f * t + 0.3) ** 2
+    signal *= formant
+    signal *= envelope(length, 0.24, 0.42, 0.82)
+    return (signal / (np.max(np.abs(signal)) + 1e-9)).astype(np.float32)
+
+
+def war_drum(duration: float, seed: int, pitch: float = 43.0, snap: float = 1.0) -> np.ndarray:
+    length = max(1, round(duration * SR))
+    t = np.arange(length, dtype=np.float32) / SR
+    frequency = pitch + 98.0 * np.exp(-t * 13.0)
     phase = 2.0 * math.pi * np.cumsum(frequency) / SR
     rng = np.random.default_rng(seed)
     skin = rng.standard_normal(length).astype(np.float32)
-    skin = np.convolve(skin, np.ones(8, dtype=np.float32) / 8.0, mode="same")
-    signal = np.sin(phase) * np.exp(-t * 5.3) + 0.18 * skin * np.exp(-t * 24.0)
+    skin = np.convolve(skin, np.ones(6, dtype=np.float32) / 6.0, mode="same")
+    signal = np.sin(phase) * np.exp(-t * 6.0) + 0.24 * snap * skin * np.exp(-t * 28.0)
+    signal = np.tanh(signal * 1.12)
     return (signal / (np.max(np.abs(signal)) + 1e-9)).astype(np.float32)
 
 
-def frame_hit(duration: float, seed: int) -> np.ndarray:
+def frame_snare(duration: float, seed: int) -> np.ndarray:
     length = max(1, round(duration * SR))
     t = np.arange(length, dtype=np.float32) / SR
     rng = np.random.default_rng(seed)
     noise = rng.standard_normal(length).astype(np.float32)
-    bright = noise - np.convolve(noise, np.ones(52, dtype=np.float32) / 52.0, mode="same")
-    tone = np.sin(2.0 * math.pi * 188.0 * t + 0.2) * np.exp(-t * 18.0)
-    signal = 0.78 * bright * np.exp(-t * 21.0) + 0.22 * tone
+    high = noise - np.convolve(noise, np.ones(42, dtype=np.float32) / 42.0, mode="same")
+    tone = np.sin(2.0 * math.pi * 210.0 * t) * np.exp(-t * 22.0)
+    signal = 0.88 * high * np.exp(-t * 25.0) + 0.12 * tone
+    return (signal / (np.max(np.abs(signal)) + 1e-9)).astype(np.float32)
+
+
+def impact(duration: float, seed: int, pitch: float = 35.0) -> np.ndarray:
+    length = max(1, round(duration * SR))
+    t = np.arange(length, dtype=np.float32) / SR
+    rng = np.random.default_rng(seed)
+    frequency = pitch + 130.0 * np.exp(-t * 9.0)
+    phase = 2.0 * math.pi * np.cumsum(frequency) / SR
+    noise = rng.standard_normal(length).astype(np.float32)
+    noise = np.convolve(noise, np.ones(5, dtype=np.float32) / 5.0, mode="same")
+    signal = 1.1 * np.sin(phase) * np.exp(-t * 3.8) + 0.38 * noise * np.exp(-t * 17.0)
+    signal = np.tanh(signal * 1.35)
     return (signal / (np.max(np.abs(signal)) + 1e-9)).astype(np.float32)
 
 
@@ -164,27 +195,25 @@ def metal_hit(frequency: float, duration: float) -> np.ndarray:
     length = max(1, round(duration * SR))
     t = np.arange(length, dtype=np.float32) / SR
     signal = np.zeros(length, dtype=np.float32)
-    partials = ((1.0, 1.0, 1.3), (1.41, 0.55, 1.7), (2.13, 0.36, 2.0), (3.77, 0.19, 2.6), (5.23, 0.10, 3.1))
-    for ratio, gain, decay in partials:
-        signal += gain * np.sin(2.0 * math.pi * frequency * ratio * t + ratio * 0.23) * np.exp(-t * decay)
-    signal *= envelope(length, 0.003, min(0.55, duration * 0.35), 1.0)
+    for ratio, gain, decay in ((1.0, 1.0, 1.1), (1.43, 0.61, 1.5), (2.17, 0.39, 1.9), (3.83, 0.21, 2.5), (5.37, 0.11, 3.1)):
+        signal += gain * np.sin(2.0 * math.pi * frequency * ratio * t + ratio * 0.21) * np.exp(-t * decay)
+    signal *= envelope(length, 0.002, min(0.48, duration * 0.3), 1.0)
     return (signal / (np.max(np.abs(signal)) + 1e-9)).astype(np.float32)
 
 
 def periodic_air(cycle_length: int, seed: int) -> np.ndarray:
     rng = np.random.default_rng(seed)
     noise = rng.standard_normal(cycle_length).astype(np.float32)
-    smooth = np.convolve(noise, np.ones(300, dtype=np.float32) / 300.0, mode="same")
+    smooth = np.convolve(noise, np.ones(260, dtype=np.float32) / 260.0, mode="same")
     phase = np.arange(cycle_length, dtype=np.float32) / cycle_length
-    smooth *= 0.55 + 0.45 * np.sin(2.0 * math.pi * phase * 4.0 + 0.4) ** 2
-    smooth /= np.max(np.abs(smooth)) + 1e-9
-    return smooth.astype(np.float32)
+    smooth *= 0.48 + 0.52 * np.sin(2.0 * math.pi * phase * 5.0 + 0.6) ** 2
+    return (smooth / (np.max(np.abs(smooth)) + 1e-9)).astype(np.float32)
 
 
 def delay_reverb(stereo: np.ndarray) -> np.ndarray:
     dry = stereo.copy()
     result = stereo.copy()
-    for delay, gain, cross in ((0.061, 0.105, False), (0.097, 0.082, True), (0.149, 0.058, False), (0.233, 0.041, True), (0.367, 0.025, False)):
+    for delay, gain, cross in ((0.047, 0.085, False), (0.081, 0.070, True), (0.127, 0.050, False), (0.191, 0.033, True), (0.307, 0.019, False)):
         offset = round(delay * SR)
         if cross:
             result[offset:, 0] += dry[:-offset, 1] * gain
@@ -227,7 +256,7 @@ def write_midi(path: Path, events_source: list[MidiEvent]) -> None:
         events.append((start, bytes([0x90 | event.channel, event.note, event.velocity])))
         events.append((end, bytes([0x80 | event.channel, event.note, 0])))
     events.sort(key=lambda item: (item[0], 0 if item[1][0] & 0xF0 == 0x80 else 1))
-    name = b"Combat standard v01"
+    name = b"Combat standard v01 rev02"
     payload = bytearray(b"\x00\xff\x03" + bytes([len(name)]) + name + b"\x00\xc0\x30")
     previous = 0
     for tick, message in events:
@@ -245,120 +274,125 @@ def render(score_path: Path, output: Path) -> dict[str, object]:
     output.mkdir(parents=True, exist_ok=True)
 
     cycle_length = round(DURATION * SR)
-    total_length = cycle_length * 3
-    mix = np.zeros((total_length, 2), dtype=np.float32)
+    mix = np.zeros((cycle_length * 3, 2), dtype=np.float32)
     midi_events: list[MidiEvent] = []
-
     harmony: list[list[str]] = score["harmony"]
-    pulse_pattern = ["D3", "A2", "D3", "Eb3", "C3", "A2"]
-    counter_pattern = ["D4", "F4", "Eb4", "A3", "C4", "D4"]
-    brass_phrases: dict[int, list[str]] = {
-        2: ["D4", "F4", "Eb4"],
-        6: ["A3", "C4", "D4"],
-        10: ["D4", "Eb4", "A4"],
-        14: ["F4", "E4", "Eb4", "D4"],
-        18: ["D4", "F4", "A4", "Eb4"],
-        22: ["A4", "Bb4", "Eb4", "D4"],
-        26: ["D4", "C4", "Eb4", "A3"],
-        30: ["F4", "Eb4", "D4"],
-        34: ["Eb4", "D4"],
+
+    ostinato = ["D3", "A2", "D3", "Eb3", "C3", "A2"]
+    counter = ["D4", "Eb4", "F4", "E4", "C4", "A3"]
+    brass_calls: dict[int, list[str]] = {
+        0: ["D4", "Eb4"], 4: ["D4", "F4", "Eb4"], 8: ["A3", "C4", "D4"],
+        12: ["D4", "Eb4", "A4"], 16: ["F4", "E4", "Eb4", "D4"],
+        20: ["D4", "F4", "A4", "Eb4"], 24: ["A4", "Bb4", "Eb4", "D4"],
+        28: ["D4", "C4", "Eb4", "A3"], 32: ["F4", "Gb4", "Eb4", "D4"],
+        36: ["D4", "Eb4", "C4"], 39: ["Eb4", "D4"],
     }
+    impact_bars = {0, 4, 8, 12, 16, 20, 24, 28, 32, 36}
+    breath_bars = {7, 15, 31, 39}
 
     for cycle in range(3):
         cycle_offset = cycle * DURATION
-        for bar, chord in enumerate(harmony):
-            root, fifth, pressure = chord
+        for bar, (root, fifth, pressure) in enumerate(harmony):
             start = cycle_offset + bar * BAR_SECONDS
             if bar < 4:
-                intensity = 0.82
+                intensity = 1.03
             elif bar < 12:
-                intensity = 1.0
-            elif bar < 18:
-                intensity = 1.1
-            elif bar < 26:
-                intensity = 1.24
-            elif bar < 32:
-                intensity = 1.08
+                intensity = 1.12
+            elif bar < 20:
+                intensity = 1.20
+            elif bar < 30:
+                intensity = 1.33
+            elif bar < 36:
+                intensity = 1.18
             else:
-                intensity = 0.9
+                intensity = 1.08
 
-            add(mix, start, low_string(root, BAR_SECONDS + 0.38, 1000 + bar, 2.0), 0.105 * intensity, -0.24)
-            add(mix, start, low_string(fifth, BAR_SECONDS + 0.38, 1100 + bar, 2.45), 0.072 * intensity, 0.20)
-            add(mix, start, low_string(pressure, BAR_SECONDS + 0.30, 1200 + bar, 3.0), 0.045 * intensity, 0.02)
+            # Sustained harmonic bed remains dark but no longer dominates the attack.
+            add(mix, start, low_string(root, BAR_SECONDS + 0.22, 1000 + bar, 2.8), 0.080 * intensity, -0.23)
+            add(mix, start, low_string(fifth, BAR_SECONDS + 0.22, 1100 + bar, 3.2), 0.050 * intensity, 0.21)
+            add(mix, start, low_string(pressure, BAR_SECONDS + 0.18, 1200 + bar, 3.6), 0.035 * intensity, 0.02)
+
+            if 16 <= bar < 36:
+                add(mix, start, low_choir(root, BAR_SECONDS + 0.15, 1300 + bar), 0.035 * intensity, 0.0)
 
             if cycle == 1:
                 midi_events.extend([
-                    MidiEvent(midi_note(root), bar * 3.0, 2.9, 52, 0),
-                    MidiEvent(midi_note(fifth), bar * 3.0, 2.9, 44, 0),
-                    MidiEvent(midi_note(pressure), bar * 3.0, 2.9, 34, 0),
+                    MidiEvent(midi_note(root), bar * 3.0, 2.9, 54, 0),
+                    MidiEvent(midi_note(fifth), bar * 3.0, 2.9, 46, 0),
+                    MidiEvent(midi_note(pressure), bar * 3.0, 2.9, 38, 0),
                 ])
 
-            density = [0, 3] if bar < 2 else [0, 2, 3, 5] if bar < 12 else [0, 1, 2, 3, 4, 5]
-            if 32 <= bar:
-                density = [0, 2, 3, 5]
-            for index, eighth in enumerate(density):
-                note = pulse_pattern[(bar + index) % len(pulse_pattern)]
+            # Brief gaps before section-ending impacts make the returns feel sharper.
+            density = [0, 1, 2, 3, 4, 5]
+            if bar in breath_bars:
+                density = [0, 1, 3]
+            for eighth in density:
+                note = ostinato[(bar * 2 + eighth) % len(ostinato)]
                 event_time = start + eighth * BAR_SECONDS / 6.0
-                gain = 0.052 if bar < 4 else 0.068 if bar < 18 else 0.082 if bar < 26 else 0.066
-                add(mix, event_time, short_string(note, 0.46, 2000 + bar * 10 + eighth, 1.1), gain, -0.34 if eighth % 2 == 0 else 0.31)
+                gain = 0.075 if bar < 12 else 0.087 if bar < 20 else 0.102 if bar < 30 else 0.086
+                accent = 1.22 if eighth in (0, 3) else 0.88
+                add(mix, event_time, short_string(note, 0.34, 2000 + bar * 10 + eighth, 1.28), gain * intensity * accent, -0.38 if eighth % 2 == 0 else 0.34)
                 if cycle == 1:
-                    midi_events.append(MidiEvent(midi_note(note), bar * 3.0 + eighth * 0.5, 0.38, 58, 1))
+                    midi_events.append(MidiEvent(midi_note(note), bar * 3.0 + eighth * 0.5, 0.26, 66 if eighth in (0, 3) else 56, 1))
 
-            if 12 <= bar < 30:
+            if 10 <= bar < 34 and bar not in breath_bars:
                 for index, eighth in enumerate((1, 4)):
-                    note = counter_pattern[(bar + index) % len(counter_pattern)]
+                    note = counter[(bar + index) % len(counter)]
                     event_time = start + eighth * BAR_SECONDS / 6.0
-                    add(mix, event_time, short_string(note, 0.38, 3000 + bar * 10 + eighth, 0.82), 0.036 * intensity, 0.40 if index == 0 else -0.42)
+                    add(mix, event_time, short_string(note, 0.27, 3000 + bar * 10 + eighth, 1.0), 0.043 * intensity, 0.43 if index == 0 else -0.43)
                     if cycle == 1:
-                        midi_events.append(MidiEvent(midi_note(note), bar * 3.0 + eighth * 0.5, 0.3, 42, 2))
+                        midi_events.append(MidiEvent(midi_note(note), bar * 3.0 + eighth * 0.5, 0.21, 47, 2))
 
-            # War drums preserve the 6/8 pulse without becoming continuous action percussion.
-            drum_positions = [0, 3]
-            if 8 <= bar < 28:
-                drum_positions = [0, 2, 3, 5]
-            if 18 <= bar < 26:
-                drum_positions = [0, 1, 3, 4, 5]
+            drum_positions = [0, 2, 3, 5]
+            if 12 <= bar < 32:
+                drum_positions = [0, 1, 2, 3, 4, 5]
+            if bar in breath_bars:
+                drum_positions = [0, 3]
             for hit_index, eighth in enumerate(drum_positions):
                 event_time = start + eighth * BAR_SECONDS / 6.0
-                accent = 1.0 if eighth in (0, 3) else 0.58
-                add(mix, event_time, war_drum(0.72, 4000 + bar * 10 + hit_index, 43.0 if eighth == 0 else 50.0), 0.15 * intensity * accent, -0.05)
+                accent = 1.35 if eighth == 0 else 1.15 if eighth == 3 else 0.62
+                add(mix, event_time, war_drum(0.58, 4000 + bar * 10 + hit_index, 39.0 if eighth == 0 else 48.0, 1.15), 0.155 * intensity * accent, -0.06)
                 if eighth not in (0, 3):
-                    add(mix, event_time + 0.018, frame_hit(0.31, 5000 + bar * 10 + hit_index), 0.035 * intensity, 0.12)
+                    add(mix, event_time + 0.012, frame_snare(0.23, 5000 + bar * 10 + hit_index), 0.050 * intensity, 0.16)
 
-            if bar in brass_phrases:
-                notes = brass_phrases[bar]
-                for phrase_index, note in enumerate(notes):
-                    eighth = phrase_index * (6.0 / max(1, len(notes)))
+            # A double hit immediately after strong downbeats adds a weapon-clash character.
+            if bar >= 4 and bar not in breath_bars:
+                double_time = start + 0.34 * BAR_SECONDS / 6.0
+                add(mix, double_time, war_drum(0.42, 5400 + bar, 54.0, 0.9), 0.075 * intensity, 0.09)
+
+            if bar in brass_calls:
+                notes = brass_calls[bar]
+                for index, note in enumerate(notes):
+                    eighth = index * (3.0 / max(1, len(notes) - 0.5))
                     event_time = start + eighth * BAR_SECONDS / 6.0
-                    duration = BAR_SECONDS / max(2.0, len(notes) * 0.85)
-                    add(mix, event_time, brass(note, duration, 6000 + bar * 10 + phrase_index, intensity), 0.085 * intensity, 0.08)
+                    duration = 0.48 if index == 0 else 0.38
+                    add(mix, event_time, brass_stab(note, duration, 6000 + bar * 10 + index, intensity), 0.125 * intensity, 0.10)
                     if cycle == 1:
-                        midi_events.append(MidiEvent(midi_note(note), bar * 3.0 + eighth * 0.5, duration * BPM / 60.0, 66, 3))
+                        midi_events.append(MidiEvent(midi_note(note), bar * 3.0 + eighth * 0.5, duration * BPM / 60.0, 79, 3))
 
-            if bar in (7, 15, 19, 23, 27, 31):
-                add(mix, start + 2.5 * BAR_SECONDS / 6.0, metal_hit(126.0 + bar, 1.8), 0.045 * intensity, 0.52 if bar % 2 else -0.52)
+            if bar in impact_bars:
+                add(mix, start, impact(1.20, 7000 + bar, 32.0 if bar in (0, 20) else 37.0), 0.23 * intensity, 0.0)
+                add(mix, start + 0.025, metal_hit(108.0 + bar * 1.5, 1.45), 0.060 * intensity, 0.50 if bar % 8 else -0.50)
+
+            if bar in (11, 19, 27, 35):
+                add(mix, start + 5.0 * BAR_SECONDS / 6.0, metal_hit(142.0 + bar, 1.20), 0.050 * intensity, 0.55 if bar % 2 else -0.55)
 
     air_cycle = periodic_air(cycle_length, 777)
     air = np.tile(air_cycle, 3)
-    mix[:, 0] += air * 0.012
-    mix[:, 1] += np.roll(air, 173) * 0.012
+    mix[:, 0] += air * 0.009
+    mix[:, 1] += np.roll(air, 197) * 0.009
 
     mix = delay_reverb(mix)
-    middle = mix[cycle_length : 2 * cycle_length].copy()
-    middle = np.tanh(middle * 1.25).astype(np.float32)
+    middle = mix[cycle_length:2 * cycle_length].copy()
+    middle = np.tanh(middle * 1.85).astype(np.float32)
 
-    target_peak = 10.0 ** (-1.4 / 20.0)
-    current_peak = float(np.max(np.abs(middle)))
-    middle *= target_peak / max(current_peak, 1e-9)
+    target_peak = 10.0 ** (-1.2 / 20.0)
+    middle *= target_peak / max(float(np.max(np.abs(middle))), 1e-9)
 
-    # Correct only the final 0.75 seconds with a bounded smoothstep ramp.
-    # This removes the residual value offset from finite synthetic tails; the
-    # final two PCM frames below then lock the exact periodic slope.
-    seam_samples = round(0.75 * SR)
+    seam_samples = round(0.62 * SR)
     t = np.linspace(0.0, 1.0, seam_samples, dtype=np.float32)[:, None]
     smoothstep = t * t * (3.0 - 2.0 * t)
-    correction_value = middle[0].copy() - middle[-1].copy()
-    middle[-seam_samples:] += correction_value * smoothstep
+    middle[-seam_samples:] += (middle[0].copy() - middle[-1].copy()) * smoothstep
     middle *= target_peak / max(float(np.max(np.abs(middle))), 1e-9)
 
     wav_path = output / "combat_standard_v01_master.wav"
@@ -396,10 +430,11 @@ def render(score_path: Path, output: Path) -> dict[str, object]:
         "schema_version": 1,
         "composition_id": "combat_standard_v01",
         "title_ru": "Сталь и пепел",
-        "render_id": "combat_standard_v01_master_candidate_01",
+        "render_id": "combat_standard_v01_master_candidate_02",
         "status": "integrated_master_candidate",
-        "renderer": "procedural_combat_renderer_v01",
-        "arrangement_revision": 1,
+        "renderer": "procedural_combat_renderer_v02",
+        "arrangement_revision": 2,
+        "sharpness_pass": "approved_candidate_2026-08-06",
         "numpy_version": REQUIRED_NUMPY_VERSION,
         "external_samples_used": False,
         "sample_rate": SR,
@@ -421,10 +456,12 @@ def render(score_path: Path, output: Path) -> dict[str, object]:
         "pcm_signature_shift_bits": 8,
         "pcm_signature_sha256": hashlib.sha256(pcm_signature).hexdigest(),
         "combat_profile": [
-            "immediate readable entry",
-            "turn-based 6/8 pulse",
-            "controlled martial percussion",
-            "mid-cycle pressure crest",
+            "first-second impact",
+            "aggressive eighth-note ostinato",
+            "hard brass stabs",
+            "double-hit martial drums",
+            "breath gaps before returns",
+            "dense central clash",
             "loop return without victory cadence",
         ],
     }

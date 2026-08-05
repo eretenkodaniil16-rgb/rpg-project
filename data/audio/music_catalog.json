@@ -71,9 +71,11 @@
       "loop": true,
       "render_status": "master_candidate",
       "composition_id": "combat_standard_v01",
-      "render_id": "combat_standard_v01_master_candidate_01",
-      "arrangement_revision": 1,
-      "combat_profile": "standard_turn_based"
+      "render_id": "combat_standard_v01_master_candidate_02",
+      "arrangement_revision": 2,
+      "combat_profile": "sharp_standard_turn_based",
+      "tempo_bpm": 96,
+      "sharpness_pass": "approved_2026-08-06"
     },
     "combat_climax": {
       "path": "",
