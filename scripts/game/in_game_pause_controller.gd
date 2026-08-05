@@ -78,11 +78,16 @@ func _install_pause_menu() -> void:
 func _can_open_pause_menu() -> bool:
 	if not is_instance_valid(_pause_menu) or _pause_menu.is_open():
 		return false
-	if get_tree().paused or GameState.input_locked:
+	if get_tree().paused or _is_game_input_locked():
 		return false
 	if is_instance_valid(_game_world) and _game_world.has_method("_any_overlay_visible"):
 		return not bool(_game_world.call("_any_overlay_visible"))
 	return true
+
+
+func _is_game_input_locked() -> bool:
+	var game_state: Node = get_node_or_null("/root/GameState")
+	return game_state != null and bool(game_state.get("input_locked"))
 
 
 func _release_mobile_input() -> void:
