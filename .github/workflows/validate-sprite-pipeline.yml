@@ -1,0 +1,77 @@
+name: Validate sprite pipeline
+
+on:
+  pull_request:
+    paths:
+      - "tools/sprite_pipeline/**"
+      - "art/reference_packs/**"
+      - ".github/workflows/validate-sprite-pipeline.yml"
+      - ".github/workflows/generate-sprite-candidates.yml"
+      - ".gitignore"
+  push:
+    branches:
+      - main
+    paths:
+      - "tools/sprite_pipeline/**"
+      - "art/reference_packs/**"
+      - ".github/workflows/validate-sprite-pipeline.yml"
+      - ".github/workflows/generate-sprite-candidates.yml"
+      - ".gitignore"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: tools/sprite_pipeline/requirements.txt
+
+      - name: Install dependencies
+        run: python -m pip install --disable-pip-version-check -r tools/sprite_pipeline/requirements.txt
+
+      - name: Compile Python sources
+        run: python -m compileall -q tools/sprite_pipeline
+
+      - name: Run unit tests
+        env:
+          PYTHONPATH: tools/sprite_pipeline
+        run: python -m unittest discover -s tools/sprite_pipeline/tests -p "test_*.py" -v
+
+      - name: Validate manifest and ready references
+        env:
+          PYTHONPATH: tools/sprite_pipeline
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from sprite_pipeline.config import load_config
+
+          config = load_config(
+              Path("tools/sprite_pipeline/configs/human_warrior_m01.json"),
+              Path.cwd(),
+          )
+          assert config.character_id == "human_warrior_m01"
+          assert len(config.frames) == 6
+          assert config.generation.max_rounds <= 2
+          assert config.generation.initial_candidates <= 10
+
+          if config.ready:
+              missing = []
+              for frame_id in config.frames:
+                  missing.extend(str(path) for path in config.reference_paths(frame_id) if not path.is_file())
+              if missing:
+                  raise AssertionError("ready=true but reference pack is incomplete:\n- " + "\n- ".join(sorted(set(missing))))
+              print("Sprite pipeline manifest is ready and all required references exist.")
+          else:
+              print("Sprite pipeline manifest is valid; paid generation remains locked until approved references are added.")
+          PY

@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "character_id": "human_warrior_m01",
+  "ready": true,
+  "master_prompt_file": "prompts/human_warrior_m01_master.txt",
+  "technical": {
+    "canvas_width": 96,
+    "canvas_height": 96,
+    "sprite_height_min": 76,
+    "sprite_height_max": 80,
+    "max_sprite_width": 88,
+    "baseline_y": 91,
+    "alpha_threshold": 16,
+    "face_box": [31, 7, 65, 39]
+  },
+  "generation": {
+    "image_model": "gpt-image-2",
+    "grader_model": "gpt-5.6",
+    "size": "1024x1024",
+    "quality": "high",
+    "input_fidelity": "high",
+    "initial_candidates": 8,
+    "top_k": 2,
+    "minimum_score": 85,
+    "max_rounds": 2
+  },
+  "weights": {
+    "identity_face": 0.30,
+    "equipment_sides": 0.20,
+    "perspective": 0.15,
+    "proportions": 0.15,
+    "pose": 0.10,
+    "palette_style": 0.10
+  },
+  "hard_reject_labels": [
+    "new_character_or_full_regeneration",
+    "face_identity_changed",
+    "large_or_visible_anime_eyes",
+    "physical_equipment_sides_swapped",
+    "camera_angle_changed",
+    "head_or_body_proportions_changed",
+    "opaque_or_checkerboard_background",
+    "blur_or_unwanted_antialiasing",
+    "wrong_frame_pose"
+  ],
+  "frames": {
+    "walk_down_f01": {
+      "direction": "down",
+      "source_reference": "assets/characters/human/warrior_m01/gameplay/frames/human_warrior_m01_idle_down.png",
+      "prompt_file": "prompts/walk_down_f01.txt",
+      "additional_references": [
+        "art/reference_packs/human_warrior_m01/approved/human_warrior_m01_master.png"
+      ]
+    },
+    "walk_down_f02": {
+      "direction": "down",
+      "source_reference": "assets/characters/human/warrior_m01/gameplay/frames/human_warrior_m01_idle_down.png",
+      "prompt_file": "prompts/walk_down_f02.txt",
+      "additional_references": [
+        "art/reference_packs/human_warrior_m01/approved/human_warrior_m01_master.png"
+      ]
+    },
+    "walk_down_f03": {
+      "direction": "down",
+      "source_reference": "assets/characters/human/warrior_m01/gameplay/frames/human_warrior_m01_idle_down.png",
+      "prompt_file": "prompts/walk_down_f03.txt",
+      "additional_references": [
+        "art/reference_packs/human_warrior_m01/approved/human_warrior_m01_master.png"
+      ]
+    },
+    "walk_down_f04": {
+      "direction": "down",
+      "source_reference": "assets/characters/human/warrior_m01/gameplay/frames/human_warrior_m01_idle_down.png",
+      "prompt_file": "prompts/walk_down_f04.txt",
+      "additional_references": [
+        "art/reference_packs/human_warrior_m01/approved/human_warrior_m01_master.png"
+      ]
+    },
+    "walk_down_f05": {
+      "direction": "down",
+      "source_reference": "assets/characters/human/warrior_m01/gameplay/frames/human_warrior_m01_idle_down.png",
+      "prompt_file": "prompts/walk_down_f05.txt",
+      "additional_references": [
+        "art/reference_packs/human_warrior_m01/approved/human_warrior_m01_master.png"
+      ]
+    },
+    "walk_down_f06": {
+      "direction": "down",
+      "source_reference": "assets/characters/human/warrior_m01/gameplay/frames/human_warrior_m01_idle_down.png",
+      "prompt_file": "prompts/walk_down_f06.txt",
+      "additional_references": [
+        "art/reference_packs/human_warrior_m01/approved/human_warrior_m01_master.png"
+      ]
+    }
+  }
+}

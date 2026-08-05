@@ -1,0 +1,177 @@
+name: Generate sprite candidates
+
+on:
+  workflow_dispatch:
+    inputs:
+      frame_id:
+        description: "Animation frame to generate"
+        required: true
+        type: choice
+        default: walk_down_f01
+        options:
+          - walk_down_f01
+          - walk_down_f02
+          - walk_down_f03
+          - walk_down_f04
+          - walk_down_f05
+          - walk_down_f06
+      candidates:
+        description: "First-round candidates (1-10)"
+        required: true
+        type: choice
+        default: "8"
+        options:
+          - "4"
+          - "6"
+          - "8"
+          - "10"
+      top_k:
+        description: "Candidates shown for human approval"
+        required: true
+        type: choice
+        default: "2"
+        options:
+          - "1"
+          - "2"
+          - "3"
+      max_rounds:
+        description: "Maximum edit rounds"
+        required: true
+        type: choice
+        default: "2"
+        options:
+          - "1"
+          - "2"
+      extra_reference:
+        description: "Optional repo-relative path to an approved previous frame"
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sprite-${{ github.ref }}-${{ inputs.frame_id }}
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      PYTHONPATH: tools/sprite_pipeline
+      SPRITE_FRAME_ID: ${{ inputs.frame_id }}
+      SPRITE_CANDIDATES: ${{ inputs.candidates }}
+      SPRITE_TOP_K: ${{ inputs.top_k }}
+      SPRITE_MAX_ROUNDS: ${{ inputs.max_rounds }}
+      SPRITE_EXTRA_REFERENCE: ${{ inputs.extra_reference }}
+
+    steps:
+      - name: Checkout selected branch
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: tools/sprite_pipeline/requirements.txt
+
+      - name: Install dependencies
+        run: python -m pip install --disable-pip-version-check -r tools/sprite_pipeline/requirements.txt
+
+      - name: Verify approved reference pack
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          from sprite_pipeline.config import load_config
+
+          config = load_config(
+              Path("tools/sprite_pipeline/configs/human_warrior_m01.json"),
+              Path.cwd(),
+          )
+          if not config.ready:
+              raise SystemExit(
+                  "Paid generation is locked: manifest ready=false. "
+                  "Add and approve the master/idle PNG files before running this workflow."
+              )
+          frame_id = os.environ["SPRITE_FRAME_ID"]
+          extra = os.environ.get("SPRITE_EXTRA_REFERENCE", "").strip() or None
+          references = config.reference_paths(frame_id, extra)
+          missing = [str(path) for path in references if not path.is_file()]
+          if missing:
+              raise SystemExit("Reference pack is incomplete:\n- " + "\n- ".join(missing))
+          print("Approved reference pack is complete.")
+          PY
+
+      - name: Verify secret without exposing it
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        shell: bash
+        run: |
+          if [[ -z "${OPENAI_API_KEY}" ]]; then
+            echo "Repository secret OPENAI_API_KEY is missing." >&2
+            exit 1
+          fi
+
+      - name: Generate, filter and rank candidates
+        id: pipeline
+        continue-on-error: true
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        shell: bash
+        run: |
+          mkdir -p build/sprite-pipeline
+          extra_args=()
+          if [[ -n "$SPRITE_EXTRA_REFERENCE" ]]; then
+            extra_args+=(--extra-reference "$SPRITE_EXTRA_REFERENCE")
+          fi
+          set +e
+          python tools/sprite_pipeline/run_pipeline.py run \
+            --frame-id "$SPRITE_FRAME_ID" \
+            --candidates "$SPRITE_CANDIDATES" \
+            --top-k "$SPRITE_TOP_K" \
+            --max-rounds "$SPRITE_MAX_ROUNDS" \
+            "${extra_args[@]}" 2>&1 | tee build/sprite-pipeline/pipeline.log
+          pipeline_status=${PIPESTATUS[0]}
+          echo "$pipeline_status" > build/sprite-pipeline/status.txt
+          exit "$pipeline_status"
+
+      - name: Publish approval summary
+        if: steps.pipeline.outcome == 'success'
+        shell: bash
+        run: |
+          report_file="$(find art_pipeline_runs -type f -name report.md -print -quit)"
+          if [[ -n "$report_file" ]]; then
+            cat "$report_file" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload only candidates for human approval
+        if: steps.pipeline.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: sprite-review-${{ inputs.frame_id }}-${{ github.run_number }}
+          path: |
+            art_pipeline_runs/**/selected/**
+            art_pipeline_runs/**/report.md
+            art_pipeline_runs/**/report.json
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload developer diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sprite-diagnostics-${{ inputs.frame_id }}-${{ github.run_number }}
+          path: |
+            art_pipeline_runs/
+            build/sprite-pipeline/
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Fail when pipeline failed
+        if: steps.pipeline.outcome != 'success'
+        run: exit 1
