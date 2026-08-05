@@ -229,6 +229,15 @@ func _controllable_ally_is_dodging() -> bool:
 	return false
 
 
+func _ally_turn_input_available() -> bool:
+	return (
+		_is_controllable_ally_turn()
+		and not GameState.input_locked
+		and not _attack_in_progress
+		and not _enemy_turn_running
+	)
+
+
 func enemy_should_attack_ally_for_testing(attacker: Node) -> bool:
 	return _enemy_should_attack_controllable_ally(attacker)
 
