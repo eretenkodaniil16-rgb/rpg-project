@@ -7,6 +7,7 @@ const PARTY_CATALOG_METHOD: StringName = &"_on_party_catalog_action_requested"
 var _last_party_action_id: String = ""
 var _last_party_action_result: Dictionary = {}
 var _last_test_placement: Dictionary = {}
+var _last_catalog_context_diagnostics: Dictionary = {}
 
 
 func _ready() -> void:
@@ -82,10 +83,38 @@ func _refresh_action_catalog() -> void:
 
 
 func _build_catalog_entries() -> Dictionary:
+	# Capture the actor-specific target before the inherited catalogue builder runs.
+	# Several older layers still use the shared `_selected_target` presentation
+	# pointer and may clear it while rebuilding categories. That transient UI state
+	# must not disable Irna's action or erase her authoritative target context.
+	var ally_turn_before_super: bool = _is_controllable_ally_turn()
+	var context_target_before_super: Node = (
+		_party_control_context.target_for(_controllable_ally)
+		if ally_turn_before_super
+		else null
+	)
+	var context_target_valid_before_super: bool = _target_is_valid(context_target_before_super)
+	var selected_before_super: Node = _selected_target
+	var distance_before_super: int = -1
+	if (
+		context_target_valid_before_super
+		and _controllable_ally is Node2D
+		and context_target_before_super is Node2D
+	):
+		distance_before_super = DistanceSystem.distance_feet(
+			(_controllable_ally as Node2D).global_position,
+			(context_target_before_super as Node2D).global_position
+		)
+
 	var entries: Dictionary = super._build_catalog_entries()
-	if not _is_controllable_ally_turn():
+	if not ally_turn_before_super:
 		return entries
-	var context_target: Node = _party_control_context.target_for(_controllable_ally)
+
+	if context_target_valid_before_super:
+		_party_control_context.set_target(_controllable_ally, context_target_before_super)
+		if _selected_target != context_target_before_super:
+			_set_selected_target(context_target_before_super)
+
 	var state: CombatantState = _active_party_state()
 	var can_act: bool = (
 		state != null
@@ -93,13 +122,38 @@ func _build_catalog_entries() -> Dictionary:
 		and _srd_rules.can_take_action(state)
 	)
 	var target_melee: bool = (
-		_target_is_valid(context_target)
-		and _controllable_ally is Node2D
-		and DistanceSystem.distance_feet(
-			(_controllable_ally as Node2D).global_position,
-			(context_target as Node2D).global_position
-		) <= DistanceSystem.MELEE_REACH_FEET
+		context_target_valid_before_super
+		and distance_before_super >= 0
+		and distance_before_super <= DistanceSystem.MELEE_REACH_FEET
 	)
+	_last_catalog_context_diagnostics = {
+		"active_actor_id": (
+			_party_control_context.active_actor().get_instance_id()
+			if is_instance_valid(_party_control_context.active_actor())
+			else 0
+		),
+		"ally_id": _controllable_ally.get_instance_id() if is_instance_valid(_controllable_ally) else 0,
+		"context_target_id_before_super": (
+			context_target_before_super.get_instance_id()
+			if is_instance_valid(context_target_before_super)
+			else 0
+		),
+		"context_target_valid_before_super": context_target_valid_before_super,
+		"selected_target_id_before_super": (
+			selected_before_super.get_instance_id()
+			if is_instance_valid(selected_before_super)
+			else 0
+		),
+		"selected_target_id_after_super": (
+			_selected_target.get_instance_id()
+			if is_instance_valid(_selected_target)
+			else 0
+		),
+		"distance_feet": distance_before_super,
+		"can_act": can_act,
+		"target_melee": target_melee
+	}
+
 	var action_values: Variant = entries.get("action", [])
 	var action_entries: Array = action_values as Array if action_values is Array else []
 	for index: int in range(action_entries.size()):
@@ -113,7 +167,7 @@ func _build_catalog_entries() -> Dictionary:
 			"select_ally_target":
 				entry["label"] = (
 					"СМЕНИТЬ ЦЕЛЬ ИРИНЫ"
-					if _target_is_valid(context_target)
+					if context_target_valid_before_super
 					else "ВЫБРАТЬ ЦЕЛЬ ИРИНЫ"
 				)
 			_:
@@ -269,3 +323,7 @@ func get_last_party_action_for_testing() -> Dictionary:
 		"action_id": _last_party_action_id,
 		"result": _last_party_action_result.duplicate(true)
 	}
+
+
+func get_catalog_context_diagnostics_for_testing() -> Dictionary:
+	return _last_catalog_context_diagnostics.duplicate(true)
