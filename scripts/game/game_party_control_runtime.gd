@@ -5,6 +5,9 @@ const LEGACY_CATALOG_METHODS: Array[StringName] = [
 	&"_on_feedback_catalog_action_requested"
 ]
 
+var _last_party_action_id: String = ""
+var _last_party_action_result: Dictionary = {}
+
 
 func _ready() -> void:
 	super._ready()
@@ -30,10 +33,56 @@ func _bind_party_action_catalog() -> void:
 
 
 func _on_party_catalog_action_requested(action_id: String) -> void:
-	# Invoke the most-derived party handler explicitly. The inherited feedback
-	# runtime connected its own method name while the lower-level game script was
-	# active, which could bypass the later ally-specific override.
-	_on_feedback_catalog_action_requested(action_id)
+	_last_party_action_id = action_id
+	_last_party_action_result = {}
+	if not _is_controllable_ally_turn():
+		_on_feedback_catalog_action_requested(action_id)
+		return
+	if action_id.begins_with(ALLY_WORLD_INTERACTION_PREFIX):
+		_last_party_action_result = {"success": false, "status": "world_interaction_primary_only"}
+		show_combat_message("Взаимодействия с миром выполняет основной герой на своём ходу.", false)
+		return
+	match action_id:
+		"select_ally_target":
+			_cycle_ally_target()
+			_last_party_action_result = {"success": _target_is_valid(_selected_target), "status": "target_selected"}
+		"confirm_move":
+			_confirm_planned_movement()
+			_last_party_action_result = {"success": true, "status": "movement_requested"}
+		"cancel_move":
+			_cancel_planned_movement()
+			_last_party_action_result = {"success": true, "status": "movement_cancelled"}
+		"attack":
+			_last_party_action_result = _request_controllable_ally_attack()
+		"dash":
+			var action_before: bool = _turn_system.action_available
+			_on_dash_requested()
+			_last_party_action_result = {
+				"success": action_before and not _turn_system.action_available,
+				"status": "dash_resolved" if action_before and not _turn_system.action_available else "dash_rejected"
+			}
+		"disengage":
+			var action_before: bool = _turn_system.action_available
+			_on_disengage_requested()
+			_last_party_action_result = {
+				"success": action_before and not _turn_system.action_available,
+				"status": "disengage_resolved" if action_before and not _turn_system.action_available else "disengage_rejected"
+			}
+		"dodge":
+			var action_before: bool = _turn_system.action_available
+			_on_dodge_requested()
+			_last_party_action_result = {
+				"success": action_before and not _turn_system.action_available,
+				"status": "dodge_resolved" if action_before and not _turn_system.action_available else "dodge_rejected"
+			}
+		"end_turn":
+			_on_end_turn_requested()
+			_last_party_action_result = {"success": true, "status": "turn_advanced"}
+		_:
+			_last_party_action_result = {"success": false, "status": "unsupported_action"}
+			show_combat_message("Это действие недоступно Ирине.", false)
+	_invalidate_reachable_area()
+	_refresh_action_catalog()
 
 
 func get_catalog_action_handler_methods_for_testing() -> Array[String]:
@@ -49,3 +98,10 @@ func get_catalog_action_handler_methods_for_testing() -> Array[String]:
 			if callable.get_object() == self:
 				result.append(str(callable.get_method()))
 	return result
+
+
+func get_last_party_action_for_testing() -> Dictionary:
+	return {
+		"action_id": _last_party_action_id,
+		"result": _last_party_action_result.duplicate(true)
+	}
