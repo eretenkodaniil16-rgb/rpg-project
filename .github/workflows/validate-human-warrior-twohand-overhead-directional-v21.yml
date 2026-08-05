@@ -50,7 +50,8 @@ jobs:
       # blender_sprite_factory_attack_sword_twohand_overhead_directional_v21.py
       # blender_sprite_factory_attack_sword_twohand_overhead_directional_v21_pass02.py
       # blender_sprite_factory_attack_sword_twohand_overhead_directional_v21_pass03.py
-      - name: Render Blender 5.2 stable all-direction framing overhead pass04
+      # blender_sprite_factory_attack_sword_twohand_overhead_directional_v21_pass04.py
+      - name: Render Blender 5.2 measured all-direction overhead pass05
         id: blender-twohand-overhead-directional
         continue-on-error: true
         shell: bash
@@ -61,26 +62,26 @@ jobs:
             --background \
             --factory-startup \
             --python-exit-code 1 \
-            --python tools/blender_sprite_factory/blender_sprite_factory_attack_sword_twohand_overhead_directional_v21_pass04.py \
+            --python tools/blender_sprite_factory/blender_sprite_factory_attack_sword_twohand_overhead_directional_v21_pass05.py \
             -- \
             --repo-root "$GITHUB_WORKSPACE" \
             --config tools/blender_sprite_factory/configs/human_warrior_m01.json \
             --run-id "$run_id" \
-            --mode all 2>&1 | tee blender_twohand_overhead_directional_v21_pass04.log
+            --mode all 2>&1 | tee blender_twohand_overhead_directional_v21_pass05.log
 
-      - name: Upload stable all-direction overhead review and source blend
+      - name: Upload measured all-direction overhead review and source blend
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: human_warrior_m01_proxy_v25_twohand_overhead_directional_v21_pass04_32_frames_${{ github.run_id }}_${{ github.run_attempt }}
+          name: human_warrior_m01_proxy_v25_twohand_overhead_directional_v21_pass05_32_frames_${{ github.run_id }}_${{ github.run_attempt }}
           path: |
             art/blender_pipeline_runs/human_warrior_m01/**
-            blender_twohand_overhead_directional_v21_pass04.log
+            blender_twohand_overhead_directional_v21_pass05.log
           if-no-files-found: error
           retention-days: 14
 
-      - name: Require successful stable all-direction overhead render
+      - name: Require successful measured all-direction overhead render
         if: steps.blender-twohand-overhead-directional.outcome != 'success'
         run: |
-          echo "Twohand overhead directional v21 pass04 render failed; inspect the uploaded artifact."
+          echo "Twohand overhead directional v21 pass05 render failed; inspect the uploaded artifact."
           exit 1
