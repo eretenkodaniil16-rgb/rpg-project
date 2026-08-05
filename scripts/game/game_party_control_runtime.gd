@@ -92,6 +92,29 @@ func _on_party_catalog_action_requested(action_id: String) -> void:
 	_refresh_action_catalog()
 
 
+func start_party_combat_for_testing(
+	opponents: Array[Node],
+	initiative_overrides: Dictionary
+) -> void:
+	# Reproduce the production combat-entry contract while retaining deterministic
+	# initiative for the end-to-end party-control test. Starting TurnBasedCombatSystem
+	# directly leaves exploration movement enabled on the ally and produces a false
+	# out-of-range failure while the Actions catalogue is open.
+	if _turn_system.active or not is_instance_valid(player) or not is_instance_valid(_controllable_ally):
+		return
+	_turn_system.set_pending_player_controlled_actors([_controllable_ally])
+	_snap_combatants_to_cells()
+	_turn_system.start_combat(player, opponents, 0, initiative_overrides)
+	_turn_system.clear_pending_player_controlled_actors()
+	if player.has_method("set_turn_based_mode"):
+		player.call("set_turn_based_mode", true)
+	_call_ally("set_turn_based_mode", [true])
+	for opponent: Node in opponents:
+		if is_instance_valid(opponent) and opponent.has_method("set_turn_based_mode"):
+			opponent.call("set_turn_based_mode", true)
+	_begin_current_turn()
+
+
 func get_catalog_action_handler_methods_for_testing() -> Array[String]:
 	var result: Array[String] = []
 	if _action_catalog_ui == null:
