@@ -115,7 +115,12 @@
           "bottom": 0
         }
       },
-      "first_last_identical": true
+      "first_last_identical_by_direction": {
+        "down": true,
+        "left": false,
+        "right": true,
+        "up": false
+      }
     },
     "attack_sword_01_twohand": {
       "sheet_path": "res://assets/characters/human/warrior_m01/gameplay/approved/atlases/human_warrior_m01_attack_sword_01_twohand_v01.png",
@@ -125,7 +130,12 @@
       "loop": false,
       "edge_alpha_required": true,
       "edge_alpha_exceptions": {},
-      "first_last_identical": true
+      "first_last_identical_by_direction": {
+        "down": true,
+        "left": true,
+        "right": true,
+        "up": true
+      }
     }
   }
 }
