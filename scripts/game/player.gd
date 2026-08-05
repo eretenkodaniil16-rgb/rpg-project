@@ -2,6 +2,8 @@ extends CharacterBody2D
 
 signal melee_attack_contact(sequence_id: int)
 signal melee_attack_finished(sequence_id: int)
+signal hit_reaction_started(sequence_id: int, damage_amount: int)
+signal hit_reaction_finished(sequence_id: int)
 
 const HUMAN_WARRIOR_LIBRARY_SCRIPT: Script = preload("res://scripts/game/human_warrior_animation_library.gd")
 const AUTHORED_SPRITE_OFFSET: Vector2 = Vector2(0.0, -43.0)
@@ -30,6 +32,7 @@ var _mobile_left: bool = false
 var _mobile_right: bool = false
 var _mobile_vector: Vector2 = Vector2.ZERO
 var _attack_tween: Tween = null
+var _hit_tween: Tween = null
 
 var _animation_library: HumanWarriorAnimationLibrary = null
 var _character_sprite: AnimatedSprite2D = null
@@ -53,6 +56,12 @@ var _active_attack_animation: StringName = &""
 var _active_attack_contact_frame: int = 3
 var _attack_contact_fired: bool = false
 var _pending_attack_contact: Callable = Callable()
+
+var _hit_sequence_counter: int = 0
+var _active_hit_sequence_id: int = 0
+var _active_hit_animation: StringName = &""
+var _queued_hit_damage: int = 0
+var _queued_hit_source_global_position: Vector2 = Vector2.INF
 
 
 func _ready() -> void:
@@ -256,6 +265,96 @@ func is_action_animation_locked() -> bool:
 	return _action_animation_locked
 
 
+func is_hit_reaction_active() -> bool:
+	return _active_hit_sequence_id > 0
+
+
+func play_hit_reaction(
+	damage_amount: int,
+	source_global_position: Vector2 = Vector2.INF
+) -> int:
+	if damage_amount <= 0 or GameState.player_character.current_health <= 0:
+		return -1
+	if _action_animation_locked:
+		_queue_hit_reaction(damage_amount, source_global_position)
+		return _active_hit_sequence_id if _active_hit_sequence_id > 0 else 0
+	return _start_hit_reaction(damage_amount, source_global_position)
+
+
+func cancel_hit_reaction_for_death() -> void:
+	_queued_hit_damage = 0
+	_queued_hit_source_global_position = Vector2.INF
+	if _active_hit_sequence_id <= 0:
+		return
+	if _hit_tween != null:
+		_hit_tween.kill()
+		_hit_tween = null
+	if is_instance_valid(_character_sprite) and _character_sprite.animation == _active_hit_animation:
+		_character_sprite.stop()
+	get_active_visual().position = _active_visual_base_position
+	_active_hit_animation = &""
+	_active_hit_sequence_id = 0
+	_action_animation_locked = false
+
+
+func _start_hit_reaction(damage_amount: int, source_global_position: Vector2) -> int:
+	_hit_sequence_counter += 1
+	_active_hit_sequence_id = _hit_sequence_counter
+	_action_animation_locked = true
+	_visual_motion_state = VISUAL_STATE_IDLE
+	_visual_stop_grace_remaining = 0.0
+	velocity = Vector2.ZERO
+	if _attack_tween != null:
+		_attack_tween.kill()
+		_attack_tween = null
+	get_active_visual().position = _active_visual_base_position
+
+	var grip_mode: StringName = _effective_grip_mode()
+	var hit_set_id: StringName = &""
+	if grip_mode == VISUAL_MODE_ONEHAND:
+		hit_set_id = &"hit_01_onehand"
+	elif grip_mode == VISUAL_MODE_TWOHAND:
+		hit_set_id = &"hit_01_twohand"
+	var direction_id: StringName = _direction_id(_visual_facing_direction)
+	var animation_name := StringName("%s_%s" % [str(hit_set_id), str(direction_id)])
+	if (
+		not str(hit_set_id).is_empty()
+		and is_instance_valid(_character_sprite)
+		and _character_sprite.visible
+		and _character_sprite.sprite_frames.has_animation(animation_name)
+	):
+		_active_hit_animation = animation_name
+		_character_sprite.stop()
+		_character_sprite.play(animation_name)
+		hit_reaction_started.emit(_active_hit_sequence_id, damage_amount)
+		return _active_hit_sequence_id
+
+	_active_hit_animation = &""
+	hit_reaction_started.emit(_active_hit_sequence_id, damage_amount)
+	_start_fallback_hit_reaction(_active_hit_sequence_id, source_global_position)
+	return _active_hit_sequence_id
+
+
+func _queue_hit_reaction(damage_amount: int, source_global_position: Vector2) -> void:
+	_queued_hit_damage = maxi(_queued_hit_damage, damage_amount)
+	if source_global_position != Vector2.INF:
+		_queued_hit_source_global_position = source_global_position
+
+
+func _start_queued_hit_reaction() -> void:
+	if _queued_hit_damage <= 0 or _action_animation_locked:
+		return
+	if GameState.player_character.current_health <= 0:
+		_queued_hit_damage = 0
+		_queued_hit_source_global_position = Vector2.INF
+		return
+	var damage_amount: int = _queued_hit_damage
+	var source_position: Vector2 = _queued_hit_source_global_position
+	_queued_hit_damage = 0
+	_queued_hit_source_global_position = Vector2.INF
+	_start_hit_reaction(damage_amount, source_position)
+
+
 func apply_character_appearance() -> void:
 	var character: PlayerCharacter = GameState.player_character
 	var display_name: String = character.character_name.strip_edges()
@@ -348,6 +447,8 @@ func get_visual_debug_state() -> Dictionary:
 		"grip": str(_effective_grip_mode()),
 		"animation": str(_character_sprite.animation) if is_instance_valid(_character_sprite) else "fallback",
 		"action_locked": _action_animation_locked,
+		"hit_active": _active_hit_sequence_id > 0,
+		"queued_hit_damage": _queued_hit_damage,
 		"library_error": _animation_library_error
 	}
 
@@ -486,6 +587,27 @@ func _start_fallback_melee_attack(sequence_id: int, direction: Vector2) -> void:
 	_attack_tween.tween_callback(Callable(self, "_finish_melee_attack").bind(sequence_id))
 
 
+func _start_fallback_hit_reaction(sequence_id: int, source_global_position: Vector2) -> void:
+	var recoil_direction: Vector2 = -_visual_facing_direction
+	if source_global_position != Vector2.INF:
+		var away_from_source: Vector2 = global_position - source_global_position
+		if away_from_source.length_squared() > 0.0001:
+			recoil_direction = away_from_source.normalized()
+	if recoil_direction.length_squared() <= 0.0001:
+		recoil_direction = Vector2.DOWN
+	var visual: Node2D = get_active_visual()
+	visual.position = _active_visual_base_position
+	_hit_tween = create_tween()
+	_hit_tween.tween_property(
+		visual,
+		"position",
+		_active_visual_base_position + recoil_direction.normalized() * 7.0,
+		0.08
+	)
+	_hit_tween.tween_property(visual, "position", _active_visual_base_position, 0.18)
+	_hit_tween.tween_callback(Callable(self, "_finish_hit_reaction").bind(sequence_id))
+
+
 func _on_character_sprite_frame_changed() -> void:
 	if not _action_animation_locked or not is_instance_valid(_character_sprite):
 		return
@@ -498,12 +620,14 @@ func _on_character_sprite_frame_changed() -> void:
 func _on_character_sprite_animation_finished() -> void:
 	if not _action_animation_locked or not is_instance_valid(_character_sprite):
 		return
+	if not str(_active_hit_animation).is_empty() and _character_sprite.animation == _active_hit_animation:
+		call_deferred("_finish_hit_reaction", _active_hit_sequence_id)
+		return
 	if _character_sprite.animation != _active_attack_animation:
 		return
 	# AnimatedSprite2D completes its internal non-loop transition after emitting
-	# animation_finished. Finalizing synchronously can restore the finished attack
-	# over the combat idle selected by _refresh_visual_animation(). Keep the local
-	# action lock until the deferred call establishes the post-attack state.
+	# animation_finished. Finalizing synchronously can restore the finished action
+	# over the combat idle selected by _refresh_visual_animation().
 	call_deferred("_finish_melee_attack", _active_attack_sequence_id)
 
 
@@ -532,6 +656,24 @@ func _finish_melee_attack(sequence_id: int) -> void:
 	_last_visual_sample_position = global_position
 	_refresh_visual_animation()
 	melee_attack_finished.emit(sequence_id)
+	call_deferred("_start_queued_hit_reaction")
+
+
+func _finish_hit_reaction(sequence_id: int) -> void:
+	if sequence_id != _active_hit_sequence_id:
+		return
+	get_active_visual().position = _active_visual_base_position
+	_hit_tween = null
+	_active_hit_animation = &""
+	_active_hit_sequence_id = 0
+	_action_animation_locked = false
+	_visual_motion_state = VISUAL_STATE_IDLE
+	_visual_stop_grace_remaining = 0.0
+	_last_visual_sample_position = global_position
+	if GameState.player_character.current_health > 0:
+		_refresh_visual_animation()
+	hit_reaction_finished.emit(sequence_id)
+	call_deferred("_start_queued_hit_reaction")
 
 
 func _supports_authored_human_warrior(character: PlayerCharacter) -> bool:

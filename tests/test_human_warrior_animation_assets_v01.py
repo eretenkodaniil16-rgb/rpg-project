@@ -41,7 +41,7 @@ class HumanWarriorAnimationAssetsV01Tests(unittest.TestCase):
         self.assertEqual(self.manifest["cell_size"], CELL_SIZE)
         self.assertEqual(self.manifest["baseline_y"], 91)
         self.assertEqual(self.manifest["direction_order"], list(DIRECTION_ORDER))
-        self.assertEqual(len(self.manifest["sets"]), 8)
+        self.assertEqual(len(self.manifest["sets"]), 10)
 
         runtime = dict(self.manifest["runtime"])
         self.assertEqual(
@@ -55,6 +55,10 @@ class HumanWarriorAnimationAssetsV01Tests(unittest.TestCase):
         self.assertEqual(runtime["contact_frame_number"], 4)
         self.assertTrue(runtime["movement_locked_during_attack"])
         self.assertTrue(runtime["repeat_attack_locked"])
+        self.assertEqual(runtime["hit_reaction_damage_threshold"], 1)
+        self.assertTrue(runtime["hit_reaction_movement_locked"])
+        self.assertTrue(runtime["hit_reaction_facing_locked"])
+        self.assertTrue(runtime["death_priority_over_hit"])
 
     def test_all_atlases(self) -> None:
         for set_id, spec in self.manifest["sets"].items():
@@ -119,7 +123,9 @@ class HumanWarriorAnimationAssetsV01Tests(unittest.TestCase):
         hashes = dict(self.lock["existing_atlas_sha256"])
         for attack in self.lock["attack_atlases"].values():
             hashes[Path(str(attack["path"])).name] = str(attack["sha256"])
-        self.assertEqual(len(hashes), 8)
+        for hit in self.lock["hit_atlases"].values():
+            hashes[Path(str(hit["path"])).name] = str(hit["sha256"])
+        self.assertEqual(len(hashes), 10)
         for name, expected in hashes.items():
             self.assertEqual(
                 hashlib.sha256((ATLAS_DIR / name).read_bytes()).hexdigest(),

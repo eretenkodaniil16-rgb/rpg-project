@@ -7,6 +7,28 @@ var _hellish_rebuke_save_overrides: Array[int] = []
 var _hellish_rebuke_damage_overrides: Array[int] = []
 
 
+func apply_damage_to_player(
+	amount: int,
+	damage_type: String,
+	critical_hit: bool = false,
+	source: Node = null
+) -> Dictionary:
+	var result: Dictionary = super.apply_damage_to_player(amount, damage_type, critical_hit, source)
+	var applied: int = int(result.get("applied", 0))
+	if applied <= 0:
+		return result
+	if GameState.player_character.current_health <= 0 or bool(result.get("dead", false)):
+		if player.has_method("cancel_hit_reaction_for_death"):
+			player.call("cancel_hit_reaction_for_death")
+		return result
+	if player.has_method("play_hit_reaction"):
+		var source_position: Vector2 = Vector2.INF
+		if is_instance_valid(source) and source is Node2D:
+			source_position = (source as Node2D).global_position
+		player.call("play_hit_reaction", applied, source_position)
+	return result
+
+
 func resolve_npc_attack(
 	attacker: Node,
 	attack_bonus: int,
