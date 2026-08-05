@@ -51,8 +51,7 @@ def _point(curve: object, frame_number: int) -> object:
         if abs(float(point.co[0]) - float(frame_number)) <= 1.0e-4:
             return point
     raise RuntimeError(
-        "onehand directional v22 missing keyframe: "
-        f"{curve.data_path}[{curve.array_index}]@{frame_number}"
+        "onehand directional v22 missing keyframe: "n        f"{curve.data_path}[{curve.array_index}]@{frame_number}"
     )
 
 
@@ -79,6 +78,7 @@ def _apply_direction_correction(
         )
 
     applied: dict[str, dict[str, float]] = {}
+    changed_frames: list[int] = []
     direction_deltas = BONE_DELTAS_DEGREES_BY_DIRECTION[direction]
     for frame_number in TARGET_FRAMES:
         weight = float(FRAME_WEIGHTS[frame_number])
@@ -93,6 +93,8 @@ def _apply_direction_correction(
                 point = _point(curve, frame_number)
                 point.co[1] = float(point.co[1]) + math.radians(delta_degrees)
                 frame_payload[f"{bone_name}[{axis_index}]"] = delta_degrees
+        if frame_payload:
+            changed_frames.append(frame_number)
         applied[f"f{frame_number:02d}"] = frame_payload
 
     action["onehand_directional_revision"] = ONEHAND_DIRECTIONAL_REVISION
@@ -102,8 +104,9 @@ def _apply_direction_correction(
         PRESERVE_SOURCE_FCURVE_TIMING
     )
     action["onehand_directional_corrected_frames"] = ",".join(
-        str(frame) for frame in TARGET_FRAMES
+        str(frame) for frame in changed_frames
     )
+    action["onehand_directional_action_data_changed"] = bool(changed_frames)
     action["onehand_directional_action_only"] = True
     action["onehand_directional_root_translation_used"] = False
     action["onehand_directional_mirroring_used"] = False
@@ -136,13 +139,13 @@ def create_attack_sword_onehand_directional_actions_v22_pass01(
     scene["attack_sword_onehand_directional_target_directions"] = ",".join(
         TARGET_DIRECTIONS
     )
-    scene["attack_sword_onehand_directional_corrected_frames"] = ",".join(
-        str(frame) for frame in TARGET_FRAMES
-    )
     scene["attack_sword_onehand_directional_applied_deltas"] = str(
         applied_by_direction
     )
     scene["attack_sword_onehand_directional_source_timing_preserved"] = True
+    scene["attack_sword_onehand_directional_up_source_preserved"] = not any(
+        applied_by_direction["up"].values()
+    )
     scene["attack_sword_onehand_directional_twohand_changed"] = False
     scene["attack_sword_onehand_directional_down_changed"] = False
     scene["attack_sword_onehand_directional_root_translation_used"] = False
