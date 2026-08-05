@@ -122,7 +122,20 @@ func _member_state_label(member_id: String, following: bool) -> String:
 
 
 func request_member_for_testing(character_id: String) -> void:
+	var button: Button = _button_for_member(character_id)
+	if button == null or button.disabled:
+		return
 	member_control_requested.emit(character_id)
+
+
+func _button_for_member(character_id: String) -> Button:
+	match character_id:
+		PLAYER_MEMBER_ID:
+			return _player_button
+		IRINA_MEMBER_ID:
+			return _irina_button
+		_:
+			return null
 
 
 func get_snapshot_for_testing() -> Dictionary:
