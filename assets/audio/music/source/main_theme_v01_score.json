@@ -3,34 +3,101 @@
   "composition_id": "main_theme_v01",
   "title_ru": "Тема странника",
   "title_en": "Theme of the Wanderer",
-  "status": "prototype",
+  "status": "approved_composition",
   "original_composition": true,
   "tempo_bpm": 76,
-  "time_signature": [6, 8],
+  "time_signature": [
+    6,
+    8
+  ],
   "key_center": "D",
   "mode": "minor_with_dorian_and_phrygian_colour",
   "bars": 32,
   "sample_rate": 48000,
   "form": [
-    {"id": "intro_a", "bars": [1, 8], "description": "Холодное вступление и первое появление пятинотного мотива"},
-    {"id": "variation_a", "bars": [9, 16], "description": "Расширение темы с хором и ответом струнных"},
-    {"id": "middle_b", "bars": [17, 24], "description": "Более тревожная средняя часть с фригийской окраской"},
-    {"id": "reprise", "bars": [25, 32], "description": "Возвращение мотива и разреженное разрешение для циклического воспроизведения"}
+    {
+      "id": "intro_a",
+      "bars": [
+        1,
+        8
+      ],
+      "description": "Холодное вступление и первое появление пятинотного мотива"
+    },
+    {
+      "id": "variation_a",
+      "bars": [
+        9,
+        16
+      ],
+      "description": "Расширение темы с хором и ответом струнных"
+    },
+    {
+      "id": "middle_b",
+      "bars": [
+        17,
+        24
+      ],
+      "description": "Более тревожная средняя часть с фригийской окраской"
+    },
+    {
+      "id": "reprise",
+      "bars": [
+        25,
+        32
+      ],
+      "description": "Возвращение мотива и разреженное разрешение для циклического воспроизведения"
+    }
   ],
   "motif": {
     "description": "Пятинотный лейтмотив странника",
-    "notes": ["D4", "A3", "C4", "Eb4", "D4"],
-    "durations_eighths": [2, 1, 1, 1, 1]
+    "notes": [
+      "D4",
+      "A3",
+      "C4",
+      "Eb4",
+      "D4"
+    ],
+    "durations_eighths": [
+      2,
+      1,
+      1,
+      1,
+      1
+    ]
   },
   "harmony": [
-    "Dm(add9)", "Bbmaj7", "Csus2", "Dm",
-    "Gm", "Bb", "A5(b9)", "Dm",
-    "Dm", "C", "Bb", "A",
-    "Gm", "Dm/F", "Eb", "Asus4",
-    "F", "C/E", "Dm", "Bb",
-    "Gm", "Dm", "Eb", "A",
-    "Dm", "Bb", "C", "Dm",
-    "Gm", "Eb", "A5(b9)", "Dm"
+    "Dm(add9)",
+    "Bbmaj7",
+    "Csus2",
+    "Dm",
+    "Gm",
+    "Bb",
+    "A5(b9)",
+    "Dm",
+    "Dm",
+    "C",
+    "Bb",
+    "A",
+    "Gm",
+    "Dm/F",
+    "Eb",
+    "Asus4",
+    "F",
+    "C/E",
+    "Dm",
+    "Bb",
+    "Gm",
+    "Dm",
+    "Eb",
+    "A",
+    "Dm",
+    "Bb",
+    "C",
+    "Dm",
+    "Gm",
+    "Eb",
+    "A5(b9)",
+    "Dm"
   ],
   "instrumentation": [
     "low_bowed_strings",
@@ -45,6 +112,7 @@
     "target": "Godot 4.7.1 main menu loop",
     "target_format": "Ogg Vorbis stereo 48 kHz",
     "dynamic_goal": "restrained dark fantasy, no constant epic climax",
-    "loop_strategy": "resolved final bar, short zero-crossing edge fades, circular ambience delays"
+    "loop_strategy": "periodic pre-roll/post-roll render with continuous tails and native Ogg loop",
+    "render_status": "master_candidate_integrated_for_windows_android_test"
   }
 }
