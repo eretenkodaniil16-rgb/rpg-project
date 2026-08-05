@@ -3,6 +3,8 @@ extends SceneTree
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
 const PLAYER_MEMBER_ID: String = "player_character"
 const IRINA_MEMBER_ID: String = "companion_irna_guard_01"
+const MODE_PARTY: String = "party"
+const MODE_SOLO: String = "solo"
 
 var _completed: bool = false
 var _stage: String = "init"
@@ -78,7 +80,7 @@ func _init() -> void:
 
 
 func _watchdog() -> void:
-	await create_timer(30.0).timeout
+	await create_timer(35.0).timeout
 	if not _completed:
 		_fail("Party menu smoke timed out at stage: %s" % _stage)
 
@@ -112,16 +114,38 @@ func _run() -> void:
 		return
 	mobile_controls.call("enable_for_testing")
 
-	_stage = "default_follow"
+	_stage = "default_party_mode"
 	var default_snapshot: Dictionary = game.call("get_party_menu_snapshot_for_testing") as Dictionary
 	if str(default_snapshot.get("active_member_id", "")) != PLAYER_MEMBER_ID:
 		_fail("The hero is not selected by default in the party menu.")
 		return
+	if str(default_snapshot.get("exploration_mode_id", "")) != MODE_PARTY:
+		_fail("The exploration mode does not default to party follow mode.")
+		return
+	if not bool(default_snapshot.get("party_mode_pressed", false)) or not bool(default_snapshot.get("irina_disabled", false)):
+		_fail("Party mode does not lock individual Irina selection in the UI.")
+		return
 	if not bool(player.call("is_party_input_enabled")):
-		_fail("The hero input is disabled before manual ally takeover.")
+		_fail("The hero input is disabled in default party mode.")
 		return
 	if bool(ally.call("is_manual_control_enabled")) or not bool(ally.call("is_following_player")):
 		_fail("Irina does not begin in automatic follow mode.")
+		return
+	party_menu.call("request_member_for_testing", IRINA_MEMBER_ID)
+	await process_frame
+	if game.call("get_exploration_controlled_actor_for_testing") != player:
+		_fail("Party mode allowed individual Irina takeover.")
+		return
+
+	_stage = "enable_solo_mode"
+	party_menu.call("request_mode_for_testing", MODE_SOLO)
+	await process_frame
+	var solo_snapshot: Dictionary = game.call("get_party_menu_snapshot_for_testing") as Dictionary
+	if str(solo_snapshot.get("exploration_mode_id", "")) != MODE_SOLO:
+		_fail("The solo exploration mode was not enabled.")
+		return
+	if not bool(solo_snapshot.get("solo_mode_pressed", false)) or bool(solo_snapshot.get("irina_disabled", true)):
+		_fail("Solo mode did not unlock individual Irina selection.")
 		return
 
 	_stage = "manual_irina_control"
@@ -130,7 +154,7 @@ func _run() -> void:
 	party_menu.call("request_member_for_testing", IRINA_MEMBER_ID)
 	await process_frame
 	if game.call("get_exploration_controlled_actor_for_testing") != ally:
-		_fail("Selecting Irina did not make her the exploration input owner.")
+		_fail("Selecting Irina in solo mode did not make her the exploration input owner.")
 		return
 	if bool(player.call("is_party_input_enabled")):
 		_fail("The hero kept exploration input after Irina was selected.")
@@ -150,14 +174,21 @@ func _run() -> void:
 		_fail("Moving Irina also moved the hero.")
 		return
 
-	_stage = "resume_follow"
-	party_menu.call("request_member_for_testing", PLAYER_MEMBER_ID)
+	_stage = "return_to_party_mode"
+	party_menu.call("request_mode_for_testing", MODE_PARTY)
 	await process_frame
+	var returned_snapshot: Dictionary = game.call("get_party_menu_snapshot_for_testing") as Dictionary
+	if str(returned_snapshot.get("exploration_mode_id", "")) != MODE_PARTY:
+		_fail("The party exploration mode was not restored.")
+		return
 	if game.call("get_exploration_controlled_actor_for_testing") != player:
-		_fail("The party menu did not return exploration control to the hero.")
+		_fail("Returning to party mode did not return exploration control to the hero.")
 		return
 	if not bool(player.call("is_party_input_enabled")) or bool(ally.call("is_manual_control_enabled")):
-		_fail("Returning to the hero did not release Irina from manual control.")
+		_fail("Party mode did not release Irina from manual control.")
+		return
+	if not bool(returned_snapshot.get("irina_disabled", false)):
+		_fail("Party mode did not lock Irina's individual selection again.")
 		return
 	(player as Node2D).global_position = Vector2(760.0, 360.0)
 	(ally as Node2D).global_position = Vector2(500.0, 360.0)
@@ -165,7 +196,7 @@ func _run() -> void:
 	for _frame: int in range(20):
 		await physics_frame
 	if (ally as Node2D).global_position.x <= follow_position_before.x:
-		_fail("Irina did not resume automatic following after the hero was reselected.")
+		_fail("Irina did not resume automatic following in party mode.")
 		return
 
 	_stage = "initiative_lock"
@@ -193,10 +224,17 @@ func _run() -> void:
 	if str(combat_snapshot.get("active_member_id", "")) != IRINA_MEMBER_ID:
 		_fail("The party menu does not track Irina's initiative turn.")
 		return
+	if not bool(combat_snapshot.get("party_mode_disabled", false)) or not bool(combat_snapshot.get("solo_mode_disabled", false)):
+		_fail("Exploration mode switching remains enabled during combat.")
+		return
+	party_menu.call("request_mode_for_testing", MODE_SOLO)
 	party_menu.call("request_member_for_testing", PLAYER_MEMBER_ID)
 	await process_frame
 	if not turn_system.is_actor_turn(ally):
 		_fail("The party menu allowed the player to bypass initiative order.")
+		return
+	if str(game.call("get_exploration_mode_for_testing")) != MODE_PARTY:
+		_fail("Combat changed the locked exploration mode.")
 		return
 
 	_stage = "full_targeting"
@@ -209,8 +247,6 @@ func _run() -> void:
 	if selected_target_id == 0:
 		_fail("The standard target button did not assign Irina an actor-specific target.")
 		return
-	# The production target button cycles every valid enemy in scene order. For the
-	# deterministic catalogue check below, keep the dedicated fixture selected.
 	game.call("set_party_target_for_testing", ally, target)
 	mobile_controls.call("simulate_actions_touch_for_testing")
 	for _frame: int in range(3):
@@ -226,10 +262,14 @@ func _run() -> void:
 
 	if turn_system.active:
 		game.call("_stop_turn_based_combat", "Party menu smoke complete.")
+	await process_frame
+	if game.call("get_exploration_controlled_actor_for_testing") != player or not bool(ally.call("is_following_player")):
+		_fail("Party mode was not restored after combat.")
+		return
 	game.queue_free()
 	await process_frame
 	_completed = true
-	print("Party menu selection, manual Irina exploration, follow resume, initiative lock and full target button passed.")
+	print("Party/solo mode switching, manual Irina exploration, follow resume, initiative lock and full target button passed.")
 	quit(0)
 
 
