@@ -21,6 +21,8 @@ from typing import Iterable
 
 import numpy as np
 
+REQUIRED_NUMPY_VERSION = "2.3.5"
+
 PPQ = 480
 NOTE_TO_SEMITONE = {
     "C": 0, "C#": 1, "Db": 1, "D": 2, "D#": 3, "Eb": 3,
@@ -325,6 +327,7 @@ def render(score_path: Path, output: Path) -> dict:
         "render_id": "exploration_tension_v01_master_candidate_01",
         "status": "integrated_master_candidate",
         "renderer": "procedural_tension_renderer_v01",
+        "numpy_version": REQUIRED_NUMPY_VERSION,
         "external_samples_used": False,
         "sample_rate": sr,
         "channels": 2,

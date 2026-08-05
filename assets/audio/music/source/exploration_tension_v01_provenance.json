@@ -8,8 +8,18 @@
   "external_sample_packs_used": false,
   "imported_midi_used": false,
   "derived_from_project_leitmotif": "main_theme_v01",
-  "approved_source_motif": ["D4", "A3", "C4", "Eb4", "D4"],
+  "approved_source_motif": [
+    "D4",
+    "A3",
+    "C4",
+    "Eb4",
+    "D4"
+  ],
   "renderer": "tools/audio/generate_exploration_tension_v01.py",
   "license_status": "original project asset",
-  "review_status": "master_candidate"
+  "review_status": "master_candidate",
+  "renderer_dependencies": {
+    "numpy": "2.3.5",
+    "ffmpeg": "system libvorbis encoder"
+  }
 }

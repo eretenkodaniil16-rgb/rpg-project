@@ -4,6 +4,7 @@
   "render_id": "exploration_tension_v01_master_candidate_01",
   "status": "integrated_master_candidate",
   "renderer": "procedural_tension_renderer_v01",
+  "numpy_version": "2.3.5",
   "external_samples_used": false,
   "sample_rate": 48000,
   "channels": 2,
