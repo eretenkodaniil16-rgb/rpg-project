@@ -300,6 +300,8 @@ func place_controllable_ally_adjacent_for_testing(target: Node) -> bool:
 		"target_position": [target_position.x, target_position.y],
 		"distance_feet": DistanceSystem.distance_feet(ally_position, target_position) if placed else -1
 	}
+	if placed:
+		_refresh_action_catalog()
 	return placed
 
 
