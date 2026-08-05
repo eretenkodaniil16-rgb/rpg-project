@@ -1,25 +1,20 @@
 {
   "visual_id": "loading_screen_logo_blue_v01",
-  "type": "loading_screen_logo",
-  "status": "runtime_candidate",
+  "type": "loading_screen_logo_reference",
+  "status": "reference_approved",
   "approved_by_owner": true,
-  "source_size": [896, 430],
+  "standalone_graphic_layer_available": false,
+  "runtime_render_mode": "live_text_fallback",
+  "title": "Хроники странника",
   "subtitle": "Башня, уходящая вниз",
-  "subtitle_render_mode": "live_text_overlay",
+  "subtitle_render_mode": "live_text",
   "baked_subtitle_authoritative": false,
-  "subtitle_scene_path": "res://scenes/menus/loading_screen_composite_preview_v01.tscn",
   "spelling_revision": 2,
-  "strip_count": 22,
-  "strip_widths": [112,112,112,112,112,112,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14],
-  "strip_directory": "res://assets/branding/loading_screen/approved/loading_screen_logo_blue_v01/strips/",
-  "scene_path": "res://scenes/ui/loading_screen_logo_layer_v01.tscn",
-  "preview_scene_path": "res://scenes/menus/loading_screen_logo_preview_v01.tscn",
-  "glow": {
-    "wait_seconds_min": 5.0,
-    "wait_seconds_max": 10.0,
-    "fade_in_seconds": 0.7,
-    "hold_seconds": 0.45,
-    "fade_out_seconds": 1.0,
-    "disabled_by_reduced_motion": true
-  }
+  "preview_scene_path": "res://scenes/menus/loading_screen_composite_preview_v01.tscn",
+  "notes": [
+    "The corrected blue logo artwork is approved as a visual reference.",
+    "No standalone transparent logo texture is committed in this PR.",
+    "Runtime preview uses exact live Godot text so generated spelling errors cannot reappear.",
+    "Glow animation for the standalone artwork remains pending until a reliable transparent binary asset is published."
+  ]
 }
