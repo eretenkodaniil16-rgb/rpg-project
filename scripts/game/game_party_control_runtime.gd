@@ -1,8 +1,9 @@
 extends "res://scripts/game/game_guard_post_polish_runtime.gd"
 
-const LEGACY_CATALOG_METHODS: Array[StringName] = [
+const REPLACED_CATALOG_METHODS: Array[StringName] = [
 	&"_on_catalog_action_requested",
-	&"_on_feedback_catalog_action_requested"
+	&"_on_feedback_catalog_action_requested",
+	&"_on_party_catalog_action_requested"
 ]
 
 var _last_party_action_id: String = ""
@@ -18,6 +19,7 @@ func _bind_party_action_catalog() -> void:
 	if _action_catalog_ui == null:
 		return
 	var signal_name: StringName = &"action_requested"
+	var owned_connections: Array[Callable] = []
 	for connection_value: Variant in _action_catalog_ui.get_signal_connection_list(signal_name):
 		if not connection_value is Dictionary:
 			continue
@@ -25,18 +27,23 @@ func _bind_party_action_catalog() -> void:
 		if not callable_value is Callable:
 			continue
 		var existing: Callable = callable_value as Callable
-		if existing.get_object() == self and existing.get_method() in LEGACY_CATALOG_METHODS:
+		if existing.get_object() == self and existing.get_method() in REPLACED_CATALOG_METHODS:
+			owned_connections.append(existing)
+	for existing: Callable in owned_connections:
+		if _action_catalog_ui.is_connected(signal_name, existing):
 			_action_catalog_ui.disconnect(signal_name, existing)
 	var party_handler := Callable(self, "_on_party_catalog_action_requested")
-	if not _action_catalog_ui.is_connected(signal_name, party_handler):
-		_action_catalog_ui.connect(signal_name, party_handler)
+	_action_catalog_ui.connect(signal_name, party_handler)
 
 
 func _on_party_catalog_action_requested(action_id: String) -> void:
 	_last_party_action_id = action_id
 	_last_party_action_result = {}
 	if not _is_controllable_ally_turn():
-		_on_feedback_catalog_action_requested(action_id)
+		# Forward exactly once through the inherited feedback chain. Calling the
+		# virtual method on self from this leaf can re-enter the party dispatcher
+		# when signal bindings are rebuilt and can execute hero actions twice.
+		super._on_feedback_catalog_action_requested(action_id)
 		return
 	if action_id.begins_with(ALLY_WORLD_INTERACTION_PREFIX):
 		_last_party_action_result = {"success": false, "status": "world_interaction_primary_only"}
