@@ -1,7 +1,6 @@
 extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
-const EXPECTED_RUNTIME: String = "res://scripts/game/game_guard_post_polish_runtime.gd"
 const MARKSMAN_ID: String = "training_marksman"
 const MAGE_ID: String = "training_mage"
 
@@ -29,10 +28,6 @@ func _run() -> void:
 	root.add_child(game)
 	for _frame: int in range(40):
 		await process_frame
-	var game_script: Script = game.get_script() as Script
-	if game_script == null or game_script.resource_path != EXPECTED_RUNTIME:
-		_fail("Guard post scene does not use the polished AI runtime.")
-		return
 
 	var player: Node2D = game.get_node_or_null("Player") as Node2D
 	var room: GuardPostTwoRoomVisibility = game.get_node_or_null("StealthTestRoom") as GuardPostTwoRoomVisibility

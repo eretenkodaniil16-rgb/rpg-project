@@ -1,7 +1,6 @@
 extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
-const EXPECTED_RUNTIME: String = "res://scripts/game/game_guard_post_polish_runtime.gd"
 const FIRST_ROOM_ID: String = "vault_guard_post_01"
 const SECOND_ROOM_ID: String = "vault_inner_watch_01"
 const INNER_GATE_BLOCKER_ID: String = "inner_watch_gate_blocker"

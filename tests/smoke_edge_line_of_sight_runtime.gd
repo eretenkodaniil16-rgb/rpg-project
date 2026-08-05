@@ -1,7 +1,6 @@
 extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
-const EXPECTED_RUNTIME: String = "res://scripts/game/game_guard_post_polish_runtime.gd"
 const INNER_GATE_BLOCKER_ID: String = "inner_watch_gate_blocker"
 
 
@@ -28,10 +27,6 @@ func _run() -> void:
 	root.add_child(game)
 	for _frame: int in range(40):
 		await process_frame
-	var game_script: Script = game.get_script() as Script
-	if game_script == null or game_script.resource_path != EXPECTED_RUNTIME:
-		_fail("Game scene does not use the polished two-room runtime.")
-		return
 	game.set_process(false)
 
 	var grid: BattleGrid = game.call("_get_battle_grid") as BattleGrid

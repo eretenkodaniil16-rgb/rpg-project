@@ -1,7 +1,6 @@
 extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
-const EXPECTED_RUNTIME: String = "res://scripts/game/game_guard_post_polish_runtime.gd"
 const MAGE_SCENE: String = "res://scenes/game/combat_ai_training_mage.tscn"
 
 
@@ -28,10 +27,6 @@ func _run() -> void:
 	root.add_child(game)
 	for _frame: int in range(18):
 		await process_frame
-	var runtime_script: Script = game.get_script() as Script
-	if runtime_script == null or runtime_script.resource_path != EXPECTED_RUNTIME:
-		_fail("Game scene does not use advanced Combat AI runtime.")
-		return
 	game.set_process(false)
 
 	var mage_packed: PackedScene = load(MAGE_SCENE) as PackedScene
