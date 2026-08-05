@@ -150,27 +150,27 @@ func _run() -> void:
 	game.call("force_controllable_ally_turn_for_testing")
 	await process_frame
 	if int(game.call("get_active_controlled_actor_instance_id_for_testing")) != ally.get_instance_id():
-		_fail("Irna is not the active input owner on her initiative turn.")
+		_fail("Irina is not the active input owner on her initiative turn.")
 		return
 	if int(game.call("get_party_target_instance_id_for_testing", ally)) != 0:
-		_fail("Irna inherited the hero target instead of receiving a separate target context.")
+		_fail("Irina inherited the hero target instead of receiving a separate target context.")
 		return
 	if int(game.call("get_party_target_instance_id_for_testing", player)) != first_target.get_instance_id():
-		_fail("Switching to Irna erased the hero target context.")
+		_fail("Switching to Irina erased the hero target context.")
 		return
 
 	_stage = "real_target_button"
 	target_button.emit_signal("pressed")
 	await process_frame
 	if int(game.call("get_party_target_instance_id_for_testing", ally)) == 0:
-		_fail("The real target button did not select a target for Irna.")
+		_fail("The real target button did not select a target for Irina.")
 		return
 	game.call("set_party_target_for_testing", ally, second_target)
 	if int(game.call("get_party_target_instance_id_for_testing", ally)) != second_target.get_instance_id():
-		_fail("Irna could not retain her own selected target.")
+		_fail("Irina could not retain her own selected target.")
 		return
 	if int(game.call("get_party_target_instance_id_for_testing", player)) != first_target.get_instance_id():
-		_fail("Irna target selection overwrote the hero target.")
+		_fail("Irina target selection overwrote the hero target.")
 		return
 
 	_stage = "ally_planned_movement"
@@ -178,16 +178,16 @@ func _run() -> void:
 	var ally_position_before: Vector2 = (ally as Node2D).global_position
 	var ally_movement_before: int = turn_system.movement_remaining_feet
 	if not await _create_route_with_mobile_joystick(game, mobile_controls, ally):
-		_fail("The mobile joystick could not create an independent route for Irna.")
+		_fail("The mobile joystick could not create an independent route for Irina.")
 		return
 	if int(game.call("get_planned_movement_owner_instance_id_for_testing")) != ally.get_instance_id():
-		_fail("The planned route is not owned by Irna.")
+		_fail("The planned route is not owned by Irina.")
 		return
 	if not (ally as Node2D).global_position.is_equal_approx(ally_position_before):
-		_fail("Irna moved before her route was confirmed.")
+		_fail("Irina moved before her route was confirmed.")
 		return
 	if not (player as Node2D).global_position.is_equal_approx(hero_position_before):
-		_fail("Planning Irna movement changed the hero position.")
+		_fail("Planning Irina movement changed the hero position.")
 		return
 
 	_stage = "ally_confirm_movement"
@@ -195,20 +195,20 @@ func _run() -> void:
 	for _frame: int in range(20):
 		await process_frame
 	if (ally as Node2D).global_position.is_equal_approx(ally_position_before):
-		_fail("Confirming Irna movement did not move Irna.")
+		_fail("Confirming Irina movement did not move Irina.")
 		return
 	if not (player as Node2D).global_position.is_equal_approx(hero_position_before):
-		_fail("Confirming Irna movement moved the hero.")
+		_fail("Confirming Irina movement moved the hero.")
 		return
 	if turn_system.movement_remaining_feet >= ally_movement_before:
-		_fail("Irna movement did not consume Irna's movement budget.")
+		_fail("Irina movement did not consume Irina's movement budget.")
 		return
 
 	_stage = "ally_action_catalog"
 	game.call("force_controllable_ally_turn_for_testing")
 	game.call("set_party_target_for_testing", ally, second_target)
 	if not bool(game.call("place_controllable_ally_adjacent_for_testing", second_target)):
-		_fail("Could not place Irna beside her selected target for the attack test.")
+		_fail("Could not place Irina beside her selected target for the attack test.")
 		return
 	if not second_target.is_combat_active():
 		_fail("The stable attack fixture became inactive before opening the catalogue.")
@@ -217,26 +217,29 @@ func _run() -> void:
 	for _frame: int in range(3):
 		await process_frame
 	if not bool(action_catalog.call("is_catalog_open")):
-		_fail("The real Actions button could not open Irna's own action catalogue.")
+		_fail("The real Actions button could not open Irina's own action catalogue.")
 		return
 	var entries: Dictionary = action_catalog.call("get_entries_for_testing") as Dictionary
-	for required_action: String in ["select_ally_target", "attack", "dash", "disengage", "dodge", "end_turn"]:
+	if _catalog_has_action(entries, "select_ally_target"):
+		_fail("Irina still exposes NPC-style target switching inside the action catalogue.")
+		return
+	for required_action: String in ["attack", "dash", "disengage", "dodge", "end_turn"]:
 		if not _catalog_has_action(entries, required_action):
-			_fail("Irna's catalogue is missing action '%s': %s" % [required_action, JSON.stringify(entries)])
+			_fail("Irina's catalogue is missing action '%s': %s" % [required_action, JSON.stringify(entries)])
 			return
 	if not _catalog_action_enabled(entries, "attack"):
-		_fail("Irna's attack entry is present but disabled beside a valid target: %s" % JSON.stringify(entries))
+		_fail("Irina's attack entry is present but disabled beside a valid target: %s" % JSON.stringify(entries))
 		return
 	action_catalog.call("_emit_action", "attack", "", true)
 	for _frame: int in range(4):
 		await process_frame
 	if turn_system.action_available:
-		_fail("Irna attack did not consume Irna's primary action.")
+		_fail("Irina attack did not consume Irina's primary action.")
 		return
 	var party_action: Dictionary = game.call("get_last_party_action_for_testing") as Dictionary
 	var attack_result: Dictionary = party_action.get("result", {}) as Dictionary
 	if str(party_action.get("action_id", "")) != "attack" or not bool(attack_result.get("success", false)):
-		_fail("Irna's catalogue attack was not resolved successfully: %s" % JSON.stringify(party_action))
+		_fail("Irina's catalogue attack was not resolved successfully: %s" % JSON.stringify(party_action))
 		return
 
 	_stage = "hero_context_restored"
@@ -246,13 +249,13 @@ func _run() -> void:
 		_fail("Control did not return to the hero on the hero initiative turn.")
 		return
 	if int(game.call("get_party_target_instance_id_for_testing", player)) != first_target.get_instance_id():
-		_fail("The hero target was not restored after Irna's turn.")
+		_fail("The hero target was not restored after Irina's turn.")
 		return
 	if int(game.call("get_party_target_instance_id_for_testing", ally)) != second_target.get_instance_id():
-		_fail("Irna target was lost after control returned to the hero.")
+		_fail("Irina target was lost after control returned to the hero.")
 		return
 	if not turn_system.action_available:
-		_fail("Irna spending her action also spent the hero action.")
+		_fail("Irina spending her action also spent the hero action.")
 		return
 	if turn_system.movement_remaining_feet != hero_movement_before:
 		_fail("The hero did not receive a fresh movement budget on the hero turn.")
@@ -267,7 +270,7 @@ func _run() -> void:
 		_fail("The hero route is not owned by the hero.")
 		return
 	if not (ally as Node2D).global_position.is_equal_approx(ally_position_after_turn):
-		_fail("Planning the hero route changed Irna's position.")
+		_fail("Planning the hero route changed Irina's position.")
 		return
 
 	if turn_system.active:
@@ -275,7 +278,7 @@ func _run() -> void:
 	game.queue_free()
 	await process_frame
 	_completed = true
-	print("Independent hero and Irna initiative, movement, action and target contexts passed.")
+	print("Independent hero and Irina initiative, movement, action and target contexts passed.")
 	quit(0)
 
 
