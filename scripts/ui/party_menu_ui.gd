@@ -79,7 +79,7 @@ func _build_mode_switch() -> void:
 	_mode_panel = PanelContainer.new()
 	_mode_panel.name = "ModePanel"
 	_mode_panel.position = Vector2(232.0, 0.0)
-	_mode_panel.size = Vector2(154.0, 128.0)
+	_mode_panel.size = Vector2(154.0, 146.0)
 	_mode_panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(_mode_panel)
 
@@ -124,12 +124,12 @@ func _create_member_button(member_name: String, member_id: String) -> Button:
 
 func _create_mode_button(label_text: String, mode_id: String) -> Button:
 	var button := Button.new()
-	button.custom_minimum_size = Vector2(136.0, 34.0)
+	button.custom_minimum_size = Vector2(136.0, 42.0)
 	button.toggle_mode = true
 	button.button_group = _mode_button_group
 	button.focus_mode = Control.FOCUS_NONE
 	button.action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
-	button.add_theme_font_size_override("font_size", 12)
+	button.add_theme_font_size_override("font_size", 13)
 	button.text = label_text
 	button.pressed.connect(func() -> void:
 		exploration_mode_requested.emit(mode_id)
