@@ -4,6 +4,7 @@ const PARTY_FOLLOW_AGENT_NAME: String = "PartyFollowNavigationAgent"
 const PARTY_FOLLOW_REPATH_SECONDS: float = 0.25
 const PARTY_FOLLOW_TARGET_DELTA_PIXELS: float = 24.0
 const PARTY_FOLLOW_PATH_DISTANCE_PIXELS: float = 10.0
+const PARTY_FOLLOW_TARGET_DISTANCE_PIXELS: float = 32.0
 const PARTY_FOLLOW_AGENT_RADIUS_PIXELS: float = 20.0
 
 var _party_follow_agent: NavigationAgent2D
@@ -30,11 +31,6 @@ func _process_party_follow_navigation(delta: float) -> void:
 
 	_claim_external_follow_control()
 	var ally: CharacterBody2D = _controllable_ally as CharacterBody2D
-	var distance_to_leader: float = ally.global_position.distance_to(player.global_position)
-	if distance_to_leader <= FOLLOW_STOP_DISTANCE_PIXELS:
-		_stop_external_follow_motion(ally)
-		return
-
 	var agent: NavigationAgent2D = _ensure_party_follow_agent(ally)
 	if agent == null:
 		_stop_external_follow_motion(ally)
@@ -48,6 +44,11 @@ func _process_party_follow_navigation(delta: float) -> void:
 		agent.target_position = player.global_position
 		_party_follow_last_target = player.global_position
 		_party_follow_repath_remaining = PARTY_FOLLOW_REPATH_SECONDS
+
+	var distance_to_leader: float = ally.global_position.distance_to(player.global_position)
+	if distance_to_leader <= FOLLOW_STOP_DISTANCE_PIXELS and _follow_line_is_clear(ally, player):
+		_stop_external_follow_motion(ally)
+		return
 
 	var next_position: Vector2 = agent.get_next_path_position()
 	var offset: Vector2 = next_position - ally.global_position
@@ -78,7 +79,9 @@ func _release_external_follow_control() -> void:
 	_party_follow_last_target = Vector2.INF
 	_party_follow_repath_remaining = 0.0
 	if is_instance_valid(_party_follow_agent):
-		_party_follow_agent.target_position = _party_follow_agent.global_position
+		var parent_actor: Node2D = _party_follow_agent.get_parent() as Node2D
+		if parent_actor != null:
+			_party_follow_agent.target_position = parent_actor.global_position
 
 
 func _ensure_party_follow_agent(ally: CharacterBody2D) -> NavigationAgent2D:
@@ -90,10 +93,19 @@ func _ensure_party_follow_agent(ally: CharacterBody2D) -> NavigationAgent2D:
 		_party_follow_agent.name = PARTY_FOLLOW_AGENT_NAME
 		ally.add_child(_party_follow_agent)
 	_party_follow_agent.path_desired_distance = PARTY_FOLLOW_PATH_DISTANCE_PIXELS
-	_party_follow_agent.target_desired_distance = FOLLOW_STOP_DISTANCE_PIXELS
+	_party_follow_agent.target_desired_distance = PARTY_FOLLOW_TARGET_DISTANCE_PIXELS
 	_party_follow_agent.radius = PARTY_FOLLOW_AGENT_RADIUS_PIXELS
 	_party_follow_agent.avoidance_enabled = false
 	return _party_follow_agent
+
+
+func _follow_line_is_clear(ally: CharacterBody2D, leader: Node2D) -> bool:
+	var query := PhysicsRayQueryParameters2D.create(ally.global_position, leader.global_position)
+	query.collision_mask = ally.collision_mask
+	query.collide_with_areas = false
+	query.collide_with_bodies = true
+	query.exclude = [ally.get_rid(), leader.get_rid()]
+	return ally.get_world_2d().direct_space_state.intersect_ray(query).is_empty()
 
 
 func get_field_follow_path_for_testing() -> Array[Vector2i]:
