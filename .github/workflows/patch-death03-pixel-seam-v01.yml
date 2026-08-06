@@ -1,0 +1,53 @@
+name: Patch death03 pixel seam v01
+
+on:
+  push:
+    branches:
+      - tools/human-warrior-death-down-keyposes-v01
+    paths:
+      - ".github/workflows/patch-death03-pixel-seam-v01.yml"
+      - "tools/blender_sprite_factory/patch_death03_pixel_seam_v01.py"
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-slim
+    timeout-minutes: 10
+    steps:
+      - name: Checkout art branch
+        uses: actions/checkout@v4
+        with:
+          ref: tools/human-warrior-death-down-keyposes-v01
+
+      - name: Apply deterministic pixel seam
+        run: python tools/blender_sprite_factory/patch_death03_pixel_seam_v01.py
+
+      - name: Compile and test
+        env:
+          PYTHONPATH: .:tools/blender_sprite_factory
+        run: |
+          python -m py_compile \
+            tools/blender_sprite_factory/blender_sprite_factory_death_down_keyposes_v01.py \
+            tools/blender_sprite_factory/tests/test_death_down_keyposes_v01.py
+          python -m unittest \
+            tools.blender_sprite_factory.tests.test_death_down_keyposes_v01 \
+            tools.blender_sprite_factory.tests.test_hit_down_keyposes_v01
+
+      - name: Commit permanent implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add \
+            tools/blender_sprite_factory/blender_sprite_factory_death_down_keyposes_v01.py \
+            tools/blender_sprite_factory/tests/test_death_down_keyposes_v01.py \
+            docs/HUMAN_WARRIOR_DEATH_DOWN_KEYPOSES_V01.md
+          if git diff --cached --quiet; then
+            echo "Pixel seam already applied."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "fix: собрать раздельные torso и legs death_03 pixel-seam"
+          git push origin HEAD:tools/human-warrior-death-down-keyposes-v01
