@@ -175,9 +175,9 @@ def _apply_gore_state(profile: object, frame_number: int) -> None:
 
 def _upper_body_offset(frame_number: int) -> tuple[float, float, float]:
     if frame_number == 4:
-        return (0.58, -0.12, 0.10)
+        return (0.78, -0.38, 0.18)
     if frame_number == 5:
-        return (0.86, -0.18, 0.04)
+        return (1.05, -0.52, 0.10)
     return (0.0, 0.0, 0.0)
 
 
@@ -282,7 +282,11 @@ def render_death_down_keyposes_v01(
                             f"f{frame_number:02d}_proxy_{revision}.png"
                         ),
                         fixed_scale=down_calibration.scale,
-                        fixed_center_x=down_calibration.source_center_x,
+                        fixed_center_x=(
+                            None
+                            if split_states
+                            else down_calibration.source_center_x
+                        ),
                     )
                     artifacts.append(artifact)
                 finally:
