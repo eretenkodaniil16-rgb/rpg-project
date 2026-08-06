@@ -1,0 +1,303 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/main_menu_settings_panel.gd" id="1_settings"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_panel"]
+bg_color = Color(0.009, 0.019, 0.031, 0.97)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.11, 0.49, 0.7, 0.9)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+shadow_color = Color(0, 0, 0, 0.72)
+shadow_size = 22
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_control_normal"]
+bg_color = Color(0.024, 0.043, 0.061, 0.96)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.2, 0.34, 0.43, 0.9)
+corner_radius_top_left = 7
+corner_radius_top_right = 7
+corner_radius_bottom_right = 7
+corner_radius_bottom_left = 7
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_control_hover"]
+bg_color = Color(0.027, 0.102, 0.145, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.16, 0.68, 0.91, 1)
+corner_radius_top_left = 7
+corner_radius_top_right = 7
+corner_radius_bottom_right = 7
+corner_radius_bottom_left = 7
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_slider_track"]
+bg_color = Color(0.018, 0.031, 0.043, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.15, 0.31, 0.42, 0.92)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+content_margin_top = 8.0
+content_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_slider_fill"]
+bg_color = Color(0.08, 0.5, 0.78, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+content_margin_top = 8.0
+content_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_focus"]
+bg_color = Color(0.02, 0.12, 0.18, 0.58)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.27, 0.78, 1, 0.95)
+corner_radius_top_left = 7
+corner_radius_top_right = 7
+corner_radius_bottom_right = 7
+corner_radius_bottom_left = 7
+
+[node name="MainMenuSettingsPanel" type="Control"]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+script = ExtResource("1_settings")
+
+[node name="Dimmer" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0, 0.006, 0.012, 0.76)
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_top = 24.0
+offset_right = -24.0
+offset_bottom = -24.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+
+[node name="Panel" type="PanelContainer" parent="CenterContainer"]
+custom_minimum_size = Vector2(650, 0)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBox_panel")
+
+[node name="Margin" type="MarginContainer" parent="CenterContainer/Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 38
+theme_override_constants/margin_top = 28
+theme_override_constants/margin_right = 38
+theme_override_constants/margin_bottom = 28
+
+[node name="Content" type="VBoxContainer" parent="CenterContainer/Panel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Title" type="Label" parent="CenterContainer/Panel/Margin/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.72, 0.9, 1, 1)
+theme_override_colors/font_shadow_color = Color(0, 0.08, 0.14, 1)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 30
+text = "НАСТРОЙКИ"
+horizontal_alignment = 1
+
+[node name="Description" type="Label" parent="CenterContainer/Panel/Margin/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.57, 0.68, 0.74, 1)
+theme_override_font_sizes/font_size = 15
+text = "Изменения применяются сразу и сохраняются на устройстве."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="Divider" type="HSeparator" parent="CenterContainer/Panel/Margin/Content"]
+layout_mode = 2
+modulate = Color(0.2, 0.63, 0.84, 0.72)
+
+[node name="MasterRow" type="HBoxContainer" parent="CenterContainer/Panel/Margin/Content"]
+custom_minimum_size = Vector2(0, 62)
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Label" type="Label" parent="CenterContainer/Panel/Margin/Content/MasterRow"]
+custom_minimum_size = Vector2(190, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.86, 0.92, 0.95, 1)
+theme_override_font_sizes/font_size = 18
+text = "Общая громкость"
+vertical_alignment = 1
+
+[node name="MasterVolumeSlider" type="HSlider" parent="CenterContainer/Panel/Margin/Content/MasterRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(260, 54)
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_default_cursor_shape = 2
+theme_override_styles/slider = SubResource("StyleBox_slider_track")
+theme_override_styles/grabber_area = SubResource("StyleBox_slider_fill")
+theme_override_styles/grabber_area_highlight = SubResource("StyleBox_slider_fill")
+theme_override_styles/focus = SubResource("StyleBox_focus")
+max_value = 100.0
+step = 1.0
+value = 100.0
+
+[node name="MasterVolumeValue" type="Label" parent="CenterContainer/Panel/Margin/Content/MasterRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(66, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.42, 0.82, 1, 1)
+theme_override_font_sizes/font_size = 18
+text = "100%"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="MusicRow" type="HBoxContainer" parent="CenterContainer/Panel/Margin/Content"]
+custom_minimum_size = Vector2(0, 62)
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Label" type="Label" parent="CenterContainer/Panel/Margin/Content/MusicRow"]
+custom_minimum_size = Vector2(190, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.86, 0.92, 0.95, 1)
+theme_override_font_sizes/font_size = 18
+text = "Музыка"
+vertical_alignment = 1
+
+[node name="MusicVolumeSlider" type="HSlider" parent="CenterContainer/Panel/Margin/Content/MusicRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(260, 54)
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_default_cursor_shape = 2
+theme_override_styles/slider = SubResource("StyleBox_slider_track")
+theme_override_styles/grabber_area = SubResource("StyleBox_slider_fill")
+theme_override_styles/grabber_area_highlight = SubResource("StyleBox_slider_fill")
+theme_override_styles/focus = SubResource("StyleBox_focus")
+max_value = 100.0
+step = 1.0
+value = 80.0
+
+[node name="MusicVolumeValue" type="Label" parent="CenterContainer/Panel/Margin/Content/MusicRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(66, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.42, 0.82, 1, 1)
+theme_override_font_sizes/font_size = 18
+text = "80%"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="ReducedMotionRow" type="HBoxContainer" parent="CenterContainer/Panel/Margin/Content"]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Text" type="VBoxContainer" parent="CenterContainer/Panel/Margin/Content/ReducedMotionRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Label" type="Label" parent="CenterContainer/Panel/Margin/Content/ReducedMotionRow/Text"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.86, 0.92, 0.95, 1)
+theme_override_font_sizes/font_size = 18
+text = "Уменьшение движения"
+
+[node name="Hint" type="Label" parent="CenterContainer/Panel/Margin/Content/ReducedMotionRow/Text"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.49, 0.59, 0.65, 1)
+theme_override_font_sizes/font_size = 13
+text = "Отключает декоративные пульсации и частицы."
+autowrap_mode = 2
+
+[node name="ReducedMotionToggle" type="CheckButton" parent="CenterContainer/Panel/Margin/Content/ReducedMotionRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(170, 54)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+theme_override_colors/font_color = Color(0.75, 0.86, 0.91, 1)
+theme_override_colors/font_hover_color = Color(0.92, 0.98, 1, 1)
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("StyleBox_control_normal")
+theme_override_styles/hover = SubResource("StyleBox_control_hover")
+theme_override_styles/pressed = SubResource("StyleBox_control_hover")
+theme_override_styles/focus = SubResource("StyleBox_focus")
+text = "ВЫКЛЮЧЕНО"
+
+[node name="BottomDivider" type="HSeparator" parent="CenterContainer/Panel/Margin/Content"]
+layout_mode = 2
+modulate = Color(0.17, 0.4, 0.52, 0.65)
+
+[node name="Buttons" type="HBoxContainer" parent="CenterContainer/Panel/Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 14
+alignment = 1
+
+[node name="ResetButton" type="Button" parent="CenterContainer/Panel/Margin/Content/Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(245, 56)
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_default_cursor_shape = 2
+theme_override_colors/font_color = Color(0.72, 0.79, 0.83, 1)
+theme_override_colors/font_hover_color = Color(0.95, 0.97, 1, 1)
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleBox_control_normal")
+theme_override_styles/hover = SubResource("StyleBox_control_hover")
+theme_override_styles/pressed = SubResource("StyleBox_control_hover")
+theme_override_styles/focus = SubResource("StyleBox_focus")
+text = "ПО УМОЛЧАНИЮ"
+
+[node name="BackButton" type="Button" parent="CenterContainer/Panel/Margin/Content/Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(245, 56)
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_default_cursor_shape = 2
+theme_override_colors/font_color = Color(0.88, 0.94, 0.97, 1)
+theme_override_colors/font_hover_color = Color(0.97, 1, 1, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("StyleBox_control_normal")
+theme_override_styles/hover = SubResource("StyleBox_control_hover")
+theme_override_styles/pressed = SubResource("StyleBox_control_hover")
+theme_override_styles/focus = SubResource("StyleBox_focus")
+text = "НАЗАД"
+
+[connection signal="value_changed" from="CenterContainer/Panel/Margin/Content/MasterRow/MasterVolumeSlider" to="." method="_on_master_volume_changed"]
+[connection signal="value_changed" from="CenterContainer/Panel/Margin/Content/MusicRow/MusicVolumeSlider" to="." method="_on_music_volume_changed"]
+[connection signal="toggled" from="CenterContainer/Panel/Margin/Content/ReducedMotionRow/ReducedMotionToggle" to="." method="_on_reduced_motion_toggled"]
+[connection signal="pressed" from="CenterContainer/Panel/Margin/Content/Buttons/ResetButton" to="." method="_on_reset_pressed"]
+[connection signal="pressed" from="CenterContainer/Panel/Margin/Content/Buttons/BackButton" to="." method="_on_back_pressed"]

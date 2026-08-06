@@ -1,0 +1,66 @@
+name: Validate exploration calm v01
+
+on:
+  pull_request:
+    paths:
+      - "assets/audio/music/source/exploration_calm_v01_score.json"
+      - "assets/audio/music/source/exploration_calm_v01_provenance.json"
+      - "assets/audio/music/source/exploration_calm_v01_master_manifest.json"
+      - "assets/audio/music/exports/exploration_calm_v01_master.ogg"
+      - "data/audio/music_catalog.json"
+      - "tools/audio/generate_main_theme_v01.py"
+      - "tools/audio/generate_exploration_calm_v01.py"
+      - "tests/test_exploration_calm_v01.py"
+      - "tests/test_music_manager.gd"
+      - "docs/EXPLORATION_CALM_V01.md"
+      - ".github/workflows/validate-exploration-calm-v01.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: exploration-calm-v01-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install audio toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes ffmpeg
+          python -m pip install --disable-pip-version-check numpy
+
+      - name: Compile renderer
+        run: python -m py_compile tools/audio/generate_exploration_calm_v01.py
+
+      - name: Verify committed game export exists
+        run: |
+          test -s assets/audio/music/exports/exploration_calm_v01_master.ogg
+          test -s assets/audio/music/source/exploration_calm_v01_master_manifest.json
+
+      - name: Validate composition, resource and catalog
+        run: python tests/test_exploration_calm_v01.py
+
+      - name: Validate shared music contracts
+        run: python tests/test_music_system_foundation.py
+
+      - name: Render independent listening preview
+        run: |
+          python tools/audio/generate_exploration_calm_v01.py \
+            --score assets/audio/music/source/exploration_calm_v01_score.json \
+            --output build/audio/exploration_calm_v01
+
+      - name: Upload listening and source artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: exploration-calm-v01-preview
+          path: build/audio/exploration_calm_v01/
+          if-no-files-found: error
+          retention-days: 14

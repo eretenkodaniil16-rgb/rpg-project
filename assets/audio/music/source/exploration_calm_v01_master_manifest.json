@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "composition_id": "exploration_calm_v01",
+  "render_id": "exploration_calm_v01_master_candidate_01",
+  "status": "integrated_master_candidate",
+  "renderer": "procedural_exploration_renderer_v01",
+  "external_samples_used": false,
+  "sample_rate": 48000,
+  "channels": 2,
+  "tempo_bpm": 72,
+  "time_signature": [
+    6,
+    8
+  ],
+  "bars": 36,
+  "duration_seconds": 90.0,
+  "midi_note_count": 274,
+  "peak_dbfs": -3.154,
+  "rms_dbfs": -16.59,
+  "boundary_value_delta": 0.00482898,
+  "boundary_slope_delta": 0.00168206,
+  "ogg_bytes": 1582971,
+  "ogg_sha256": "1657138c35bad3a04ac643bb6c430f0219815e7a0d8c2f91d8afd3171673adfe",
+  "wav_sha256": "b09d927d13aff9c68cf2b1dc12d4a958acd5adf2ce41f7a92fd8138658e8752c",
+  "source_score_sha256": "bf1a2c18106f2e5c0cf68064bda66a6be7da6a8f26ce3fa4245aa5692181e9b4"
+}

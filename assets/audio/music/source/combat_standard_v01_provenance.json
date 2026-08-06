@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "composition_id": "combat_standard_v01",
+  "title_ru": "Сталь и пепел",
+  "original_for_project": true,
+  "created_for": "Хроники странника",
+  "arrangement_revision": 2,
+  "renderer": "procedural_combat_renderer_v02",
+  "external_recordings_used": false,
+  "external_samples_used": false,
+  "imported_midi_used": false,
+  "third_party_melodies_used": false,
+  "reference_policy": "Использованы только общие признаки резкой тёмной боевой музыки; мелодия, гармония, ритмический рисунок и структура стороннего произведения не копировались.",
+  "license_note": "Оригинальная процедурная композиция проекта; внешние записи, сэмплы, импортированный MIDI и защищённые мелодии не использованы.",
+  "approved_scope": "Утверждённая revision 02 базовой темы пошагового боя с более резким первым ударом; не является темой босса или финальной кульминации."
+}

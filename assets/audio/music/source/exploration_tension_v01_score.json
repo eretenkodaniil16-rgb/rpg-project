@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "composition_id": "exploration_tension_v01",
+  "title_ru": "Тени рядом",
+  "status": "approved_master_candidate",
+  "arrangement_revision": 2,
+  "revision_title_ru": "Опасность ближе",
+  "tempo_bpm": 75,
+  "time_signature": [6, 8],
+  "bars": 34,
+  "sample_rate": 48000,
+  "tonal_center": "D",
+  "mode": "D minor with stronger Phrygian pressure and controlled tritone colour",
+  "source_leitmotif": ["D4", "A3", "C4", "Eb4", "D4"],
+  "tension_fragments": [
+    ["D4", "Eb4", "D4"],
+    ["A3", "C4", "Eb4"],
+    ["D4", "Eb4", "A4"],
+    ["A4", "Bb4", "Eb4"]
+  ],
+  "form": [
+    {"section_id": "unease_a", "bars": [1, 8], "description": "Low pulse enters earlier; minor-second pressure establishes nearby danger"},
+    {"section_id": "search_b", "bars": [9, 17], "description": "Denser six-eighth ostinato and restrained heartbeat accents"},
+    {"section_id": "near_contact_c", "bars": [18, 26], "description": "Double heartbeat, tritone pressure and high alarm line without full combat rhythm"},
+    {"section_id": "unresolved_return", "bars": [27, 34], "description": "Energy recedes only partially and retains harmonic threat"}
+  ],
+  "harmony": [
+    "D pedal/A", "D pedal/Eb", "D pedal/A", "Eb/A", "D/Bb", "A/Eb", "D/A", "D/Eb",
+    "D/A", "G/D", "Eb/Bb", "A/Eb", "D/A", "Bb/E", "C/Gb", "A/Eb", "D/A",
+    "Eb/A", "F/B", "G/Db", "A/Eb", "D/A", "Bb/E", "Eb/A", "A/Eb", "D/A",
+    "G/Db", "Eb/A", "D/Eb", "D/C", "Bb/E", "A/Eb", "D/A", "D/Eb"
+  ],
+  "instrumentation": [
+    "low bowed strings with earlier rhythmic pulse",
+    "muted dark plucked six-eighth ostinato",
+    "breathy wooden flute danger fragments",
+    "controlled single and double frame-drum heartbeat accents",
+    "minor-second and tritone string clusters",
+    "distant metallic resonances",
+    "periodic sub pressure and air bed"
+  ],
+  "danger_density_changes": [
+    "stronger low-string pulse",
+    "minor-second D-Eb pressure",
+    "controlled tritone colour",
+    "double heartbeat accents in near-contact section",
+    "denser peak section without continuous combat percussion"
+  ],
+  "excluded_elements": [
+    "choir",
+    "continuous heavy percussion",
+    "full heroic melody",
+    "resolved battle climax"
+  ],
+  "loop_strategy": "single deterministic cycle with short symmetric zero-boundary taper and room-delay continuity",
+  "external_samples_used": false
+}

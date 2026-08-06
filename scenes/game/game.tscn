@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/game/game_base.tscn" id="1_base"]
 [ext_resource type="Script" path="res://scripts/game/game_party_medicine_recovery_runtime.gd" id="2_feature"]
@@ -9,7 +9,8 @@
 [ext_resource type="Script" path="res://scripts/game/world_snapshot_readiness_guard.gd" id="7_snapshot_guard"]
 [ext_resource type="Script" path="res://scripts/game/world_alert_snapshot_synchronizer.gd" id="8_alert_sync"]
 [ext_resource type="Script" path="res://scripts/game/player_control_modes.gd" id="9_player_control"]
-[ext_resource type="Script" path="res://scripts/ui/party_menu_ui.gd" id="10_party_menu"]
+[ext_resource type="Script" path="res://scripts/ui/in_game_pause_menu.gd" id="10_pause_menu"]
+[ext_resource type="Script" path="res://scripts/ui/party_menu_ui.gd" id="11_party_menu"]
 
 [node name="Game" instance=ExtResource("1_base")]
 script = ExtResource("2_feature")
@@ -36,7 +37,17 @@ script = ExtResource("7_snapshot_guard")
 [node name="MobileControls" parent="Interface" index="3"]
 script = ExtResource("5_mobile_context")
 
+[node name="InGamePauseMenu" type="Control" parent="Interface"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("10_pause_menu")
+
 [node name="PartyMenuUI" type="Control" parent="Interface"]
 layout_mode = 3
 anchors_preset = 0
-script = ExtResource("10_party_menu")
+script = ExtResource("11_party_menu")

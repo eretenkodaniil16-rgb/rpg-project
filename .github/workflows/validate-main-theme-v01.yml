@@ -1,0 +1,62 @@
+name: Validate main theme v01
+
+on:
+  pull_request:
+    paths:
+      - "assets/audio/music/source/main_theme_v01_score.json"
+      - "assets/audio/music/source/main_theme_v01_provenance.json"
+      - "assets/audio/music/source/main_theme_v01_master_manifest.json"
+      - "assets/audio/music/exports/main_theme_v01_master.ogg"
+      - "data/audio/music_catalog.json"
+      - "scripts/audio/music_manager.gd"
+      - "tools/audio/generate_main_theme_v01.py"
+      - "tools/audio/render_main_theme_v01_master.py"
+      - "tests/test_main_theme_v01.py"
+      - "tests/test_main_theme_v01_master.py"
+      - "tests/test_music_manager.gd"
+      - "docs/MAIN_THEME_V01.md"
+      - ".github/workflows/validate-main-theme-v01.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: main-theme-v01-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install audio toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes ffmpeg
+          python -m pip install --disable-pip-version-check numpy scipy
+
+      - name: Validate approved composition
+        run: python tests/test_main_theme_v01.py
+
+      - name: Validate committed master and menu integration
+        run: python tests/test_main_theme_v01_master.py
+
+      - name: Render independent listening preview
+        run: |
+          python tools/audio/render_main_theme_v01_master.py \
+            --score assets/audio/music/source/main_theme_v01_score.json \
+            --output build/audio/main_theme_v01_master
+
+      - name: Upload rendered previews
+        uses: actions/upload-artifact@v4
+        with:
+          name: main-theme-v01-rendered-previews
+          path: |
+            build/audio/main_theme_v01/
+            build/audio/main_theme_v01_master/
+          if-no-files-found: error
+          retention-days: 14

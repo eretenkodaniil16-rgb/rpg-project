@@ -1,0 +1,33 @@
+name: Validate human warrior animation assets
+
+on:
+  pull_request:
+    paths:
+      - "assets/characters/human/warrior_m01/gameplay/approved/atlases/**"
+      - "data/visuals/human_warrior_m01_animation_assets_v01*.json"
+      - "tools/runtime_animation/materialize_human_warrior_approved_assets_v01.py"
+      - "tests/test_human_warrior_animation_assets_v01.py"
+      - ".github/workflows/validate-human-warrior-animation-assets.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "assets/characters/human/warrior_m01/gameplay/approved/atlases/**"
+      - "data/visuals/human_warrior_m01_animation_assets_v01*.json"
+      - "tools/runtime_animation/materialize_human_warrior_approved_assets_v01.py"
+      - "tests/test_human_warrior_animation_assets_v01.py"
+      - ".github/workflows/validate-human-warrior-animation-assets.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install validation dependencies
+        run: python -m pip install --disable-pip-version-check Pillow==11.3.0
+      - name: Validate manifest, dimensions, alpha, baseline and hashes
+        run: python -m unittest tests.test_human_warrior_animation_assets_v01

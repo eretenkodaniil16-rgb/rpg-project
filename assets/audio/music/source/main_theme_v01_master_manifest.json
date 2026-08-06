@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "composition_id": "main_theme_v01",
+  "render_id": "main_theme_v01_master_candidate_02",
+  "status": "integrated_master_candidate",
+  "renderer": "procedural_master_v02",
+  "external_samples_used": false,
+  "sample_rate": 48000,
+  "channels": 2,
+  "tempo_bpm": 76,
+  "time_signature": [
+    6,
+    8
+  ],
+  "bars": 32,
+  "duration_seconds": 75.789479,
+  "peak_dbfs": -4.706,
+  "rms_dbfs": -15.453,
+  "boundary_value_delta": 0.00581486,
+  "boundary_slope_delta": 0.00011974,
+  "ogg_bytes": 1403329,
+  "ogg_sha256": "43d9417f84f6178e12a20e45627522ffe2f94be97b246bb42374730dbc182b6b",
+  "wav_sha256": "c980b9a23da760219f844a349630691883d351b479dda2e279762538a17b07e4",
+  "source_score_sha256": "60e39eb02abed70a314b450ae943b175fe477624a737615aee1d9e614e644606"
+}
