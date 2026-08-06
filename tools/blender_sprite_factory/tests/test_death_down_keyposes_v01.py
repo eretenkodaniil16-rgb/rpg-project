@@ -120,6 +120,8 @@ class DeathDownKeyposesV01Tests(unittest.TestCase):
         self.assertNotIn("profile.weapon_cycle_id", source)
         self.assertIn("_apply_gore_state", source)
         self.assertIn("_detach_upper_body", source)
+        self.assertIn("return (0.35, 0.30, 0.45)", source)
+        self.assertIn("return (0.42, 0.40, 0.55)", source)
         self.assertIn("_restore_upper_body", source)
         self.assertIn("_opaque_component_sizes", source)
         self.assertIn("torso and legs are not visually separated", source)
