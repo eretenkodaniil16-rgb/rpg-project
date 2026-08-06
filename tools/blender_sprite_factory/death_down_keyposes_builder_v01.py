@@ -16,12 +16,22 @@ from hit_down_keyposes_builder_v01 import (
 )
 
 
-_GORE_ORIGINAL_FOREARM = "arm_forearm_L"
-_GORE_ORIGINAL_HAND = "arm_hand_L"
-_GORE_DETACHED_FOREARM = "death03_detached_forearm_L"
-_GORE_DETACHED_HAND = "death03_detached_hand_L"
-_GORE_STUMP_CAP = "death03_left_elbow_stump"
-_GORE_DETACHED_CAP = "death03_detached_elbow_cap"
+_GORE_UPPER_CUT_CAP = "death03_upper_waist_cut_cap"
+_GORE_LOWER_CUT_CAP = "death03_lower_waist_cut_cap"
+_GORE_UPPER_BODY_BONES = frozenset(
+    {
+        "spine",
+        "chest",
+        "neck",
+        "head",
+        "upper_arm.L",
+        "upper_arm.R",
+        "forearm.L",
+        "forearm.R",
+        "hand.L",
+        "hand.R",
+    }
+)
 
 
 def _set_hidden(obj: factory.bpy.types.Object, hidden: bool) -> None:
@@ -29,80 +39,39 @@ def _set_hidden(obj: factory.bpy.types.Object, hidden: bool) -> None:
     obj.hide_viewport = hidden
 
 
-def _unparent_preserving_world(obj: factory.bpy.types.Object) -> None:
-    world_matrix = obj.matrix_world.copy()
-    obj.parent = None
-    obj.parent_type = "OBJECT"
-    obj.matrix_world = world_matrix
-
-
 def _create_gore_modules_v01(context: factory.BuildContext) -> None:
-    required_names = (
-        _GORE_DETACHED_FOREARM,
-        _GORE_DETACHED_HAND,
-        _GORE_STUMP_CAP,
-        _GORE_DETACHED_CAP,
-    )
+    required_names = (_GORE_UPPER_CUT_CAP, _GORE_LOWER_CUT_CAP)
     if any(factory.bpy.data.objects.get(name) is not None for name in required_names):
-        raise RuntimeError("death_03 gore modules already exist")
+        raise RuntimeError("death_03 waist gore modules already exist")
 
-    _, elbow, _, _, _ = context.silhouette.arm_points("L")
-    stump = factory._ellipsoid(
-        _GORE_STUMP_CAP,
-        elbow,
-        (0.115, 0.095, 0.115),
+    upper_cap = factory._ellipsoid(
+        _GORE_UPPER_CUT_CAP,
+        (0.0, -0.01, 2.38),
+        (0.30, 0.22, 0.095),
         context.materials["scarf"],
-        segments=8,
+        segments=10,
         rings=5,
     )
-    factory._register(context, stump, "arms", "upper_arm.L", "left")
-    stump["death_gore_module"] = True
-    stump["gore_role"] = "body_stump"
-    _set_hidden(stump, True)
+    factory._register(context, upper_cap, "torso_armor", "spine")
+    upper_cap["death_gore_module"] = True
+    upper_cap["gore_role"] = "upper_torso_cut_surface"
+    upper_cap["detached_part_id"] = "upper_torso_and_lower_body"
+    _set_hidden(upper_cap, True)
 
-    detached_start = (0.92, -0.42, 0.24)
-    detached_end = (1.38, -0.56, 0.20)
-    detached_forearm = factory._cylinder_between(
-        _GORE_DETACHED_FOREARM,
-        detached_start,
-        detached_end,
-        context.silhouette.forearm_radius,
-        8,
-        context.materials["silver"],
-    )
-    factory._register(context, detached_forearm, "arms", "forearm.L", "left")
-    _unparent_preserving_world(detached_forearm)
-    detached_forearm["death_gore_module"] = True
-    detached_forearm["detached_part_id"] = "left_forearm_and_hand"
-    _set_hidden(detached_forearm, True)
-
-    detached_hand = factory._ellipsoid(
-        _GORE_DETACHED_HAND,
-        (1.50, -0.60, 0.20),
-        (0.15, 0.115, 0.15),
-        context.materials["leather_dark"],
-        segments=8,
-        rings=5,
-    )
-    factory._register(context, detached_hand, "arms", "hand.L", "left")
-    _unparent_preserving_world(detached_hand)
-    detached_hand["death_gore_module"] = True
-    detached_hand["detached_part_id"] = "left_forearm_and_hand"
-    _set_hidden(detached_hand, True)
-
-    detached_cap = factory._ellipsoid(
-        _GORE_DETACHED_CAP,
-        detached_start,
-        (0.105, 0.085, 0.105),
+    lower_cap = factory._ellipsoid(
+        _GORE_LOWER_CUT_CAP,
+        (0.0, -0.01, 2.31),
+        (0.32, 0.23, 0.10),
         context.materials["scarf"],
-        segments=8,
+        segments=10,
         rings=5,
     )
-    factory._register(context, detached_cap, "arms", "forearm.L", "left")
-    _unparent_preserving_world(detached_cap)
-    detached_cap["death_gore_module"] = True
-    detached_cap["gore_role"] = "detached_cut_cap"
-    _set_hidden(detached_cap, True)
+    factory._register(context, lower_cap, "torso_armor", "pelvis")
+    lower_cap["death_gore_module"] = True
+    lower_cap["gore_role"] = "lower_body_cut_surface"
+    lower_cap["detached_part_id"] = "upper_torso_and_lower_body"
+    _set_hidden(lower_cap, True)
+
 
 
 def create_death_down_keypose_actions_v01(context: factory.BuildContext) -> None:

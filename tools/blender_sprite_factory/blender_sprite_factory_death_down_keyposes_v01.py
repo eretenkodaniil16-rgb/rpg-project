@@ -17,12 +17,9 @@ import blender_sprite_factory_combat_idle_directional_v11 as directional_adapter
 import blender_sprite_factory_combat_idle_directional_weapon_v12 as weapon_adapter
 import blender_sprite_factory_combat_idle_down_v01 as base_adapter
 from death_down_keyposes_builder_v01 import (
-    _GORE_DETACHED_CAP,
-    _GORE_DETACHED_FOREARM,
-    _GORE_DETACHED_HAND,
-    _GORE_ORIGINAL_FOREARM,
-    _GORE_ORIGINAL_HAND,
-    _GORE_STUMP_CAP,
+    _GORE_LOWER_CUT_CAP,
+    _GORE_UPPER_BODY_BONES,
+    _GORE_UPPER_CUT_CAP,
     create_death_down_keypose_actions_v01,
 )
 from death_down_keyposes_profile_v01 import (
@@ -162,36 +159,71 @@ def _required_object(name: str) -> factory.bpy.types.Object:
 
 
 def _reset_gore_state() -> None:
-    for name in (_GORE_ORIGINAL_FOREARM, _GORE_ORIGINAL_HAND):
-        _set_hidden(_required_object(name), False)
-    for name in (
-        _GORE_DETACHED_FOREARM,
-        _GORE_DETACHED_HAND,
-        _GORE_STUMP_CAP,
-        _GORE_DETACHED_CAP,
-    ):
+    for name in (_GORE_UPPER_CUT_CAP, _GORE_LOWER_CUT_CAP):
         _set_hidden(_required_object(name), True)
 
 
 def _apply_gore_state(profile: object, frame_number: int) -> None:
     _reset_gore_state()
-    if profile.gore_mode != "left_forearm_detachment":
+    if profile.gore_mode != "waist_torso_legs_separation":
         return
     if profile.detachment_frame is None or frame_number < profile.detachment_frame:
         return
+    _set_hidden(_required_object(_GORE_UPPER_CUT_CAP), False)
+    _set_hidden(_required_object(_GORE_LOWER_CUT_CAP), False)
 
-    original_forearm = _required_object(_GORE_ORIGINAL_FOREARM)
-    original_hand = _required_object(_GORE_ORIGINAL_HAND)
-    detached_forearm = _required_object(_GORE_DETACHED_FOREARM)
-    detached_hand = _required_object(_GORE_DETACHED_HAND)
-    stump = _required_object(_GORE_STUMP_CAP)
-    detached_cap = _required_object(_GORE_DETACHED_CAP)
 
-    _set_hidden(original_forearm, True)
-    _set_hidden(original_hand, True)
-    for obj in (detached_forearm, detached_hand, stump, detached_cap):
-        _set_hidden(obj, False)
+def _upper_body_offset(frame_number: int) -> tuple[float, float, float]:
+    if frame_number == 4:
+        return (0.58, -0.12, 0.10)
+    if frame_number == 5:
+        return (0.86, -0.18, 0.04)
+    return (0.0, 0.0, 0.0)
 
+
+def _detach_upper_body(
+    context: factory.BuildContext,
+    frame_number: int,
+) -> tuple[tuple[object, object, str, str, object], ...]:
+    offset = factory.Vector(_upper_body_offset(frame_number))
+    if offset.length == 0.0:
+        return ()
+
+    states: list[tuple[object, object, str, str, object]] = []
+    for obj in tuple(factory.bpy.data.objects):
+        if obj.parent != context.rig or obj.parent_type != "BONE":
+            continue
+        if obj.parent_bone not in _GORE_UPPER_BODY_BONES:
+            continue
+        if obj.hide_render:
+            continue
+        parent = obj.parent
+        parent_type = obj.parent_type
+        parent_bone = obj.parent_bone
+        world_matrix = obj.matrix_world.copy()
+        states.append((obj, parent, parent_type, parent_bone, world_matrix))
+        moved_matrix = world_matrix.copy()
+        moved_matrix.translation += offset
+        obj.parent = None
+        obj.parent_type = "OBJECT"
+        obj.parent_bone = ""
+        obj.matrix_world = moved_matrix
+    if not states:
+        raise RuntimeError("death_03 upper-body object set is empty")
+    factory.bpy.context.view_layer.update()
+    return tuple(states)
+
+
+def _restore_upper_body(
+    states: tuple[tuple[object, object, str, str, object], ...],
+) -> None:
+    for obj, parent, parent_type, parent_bone, world_matrix in states:
+        obj.parent = parent
+        obj.parent_type = parent_type
+        obj.parent_bone = parent_bone
+        obj.matrix_world = world_matrix
+    if states:
+        factory.bpy.context.view_layer.update()
 
 
 
@@ -230,35 +262,48 @@ def render_death_down_keyposes_v01(
                 factory.bpy.context.scene.frame_set(frame_number)
                 factory.bpy.context.view_layer.update()
                 _apply_gore_state(profile, frame_number)
-                artifact, _ = factory._render_frame(
-                    context,
-                    animation_id=profile.animation_id,
-                    direction="down",
-                    frame_number=frame_number,
-                    raw_dir=raw_dir,
-                    frame_dir=frame_dir,
-                    output_name=(
-                        f"{config.character_id}_{profile.animation_id}_"
-                        f"f{frame_number:02d}_proxy_{revision}.png"
-                    ),
-                    fixed_scale=down_calibration.scale,
-                    fixed_center_x=down_calibration.source_center_x,
-                )
-                artifacts.append(artifact)
+                split_states: tuple[tuple[object, object, str, str, object], ...] = ()
+                if (
+                    profile.gore_mode == "waist_torso_legs_separation"
+                    and profile.detachment_frame is not None
+                    and frame_number >= profile.detachment_frame
+                ):
+                    split_states = _detach_upper_body(context, frame_number)
+                try:
+                    artifact, _ = factory._render_frame(
+                        context,
+                        animation_id=profile.animation_id,
+                        direction="down",
+                        frame_number=frame_number,
+                        raw_dir=raw_dir,
+                        frame_dir=frame_dir,
+                        output_name=(
+                            f"{config.character_id}_{profile.animation_id}_"
+                            f"f{frame_number:02d}_proxy_{revision}.png"
+                        ),
+                        fixed_scale=down_calibration.scale,
+                        fixed_center_x=down_calibration.source_center_x,
+                    )
+                    artifacts.append(artifact)
+                finally:
+                    _restore_upper_body(split_states)
 
             frames = _find_frames(artifacts, animation_id=profile.animation_id)
             _assert_frame_contract(frames, death_variant_id=profile.death_variant_id)
-            if profile.gore_mode == "left_forearm_detachment":
+            if profile.gore_mode == "waist_torso_legs_separation":
                 for item in frames:
                     if item.frame_number < int(profile.detachment_frame):
                         continue
                     component_sizes = _opaque_component_sizes(item.output_path)
-                    visible_components = [
-                        size for size in component_sizes if size >= 8
+                    major_components = [
+                        size for size in component_sizes if size >= 120
                     ]
-                    if len(visible_components) < 2:
+                    if (
+                        len(major_components) < 2
+                        or major_components[1] < major_components[0] * 0.20
+                    ):
                         raise RuntimeError(
-                            "death_03 detached limb is not visually separated: "
+                            "death_03 torso and legs are not visually separated: "
                             f"f{item.frame_number:02d}={component_sizes}"
                         )
     finally:
