@@ -2,7 +2,7 @@ extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
 const ALLY_ID: String = "companion_irna_guard_01"
-const STABILIZE_LABEL: String = "МЕДИЦИНА: СТАБИЛИЗИРОВАТЬ"
+const STABILIZE_LABEL: String = "МЕДИЦИНА: СТАБИЛИЗИРОВАТЬ ИРИНУ"
 
 var _stage: String = "init"
 var _completed: bool = false
@@ -109,18 +109,21 @@ func _run() -> void:
 		_fail("The real action catalog does not expose the Medicine action for Irina.")
 		return
 	_stage = "execute_stabilization"
-	var stabilization: Dictionary = game.call("_stabilize_controllable_ally") as Dictionary
-	if not bool(stabilization.get("success", false)):
-		_fail("Healer-kit stabilization failed: %s" % stabilization)
+	var stabilization: Dictionary = game.call(
+		"attempt_controllable_ally_medicine_for_testing",
+		20
+	) as Dictionary
+	if not bool(stabilization.get("success", false)) or not bool(stabilization.get("medicine_success", false)):
+		_fail("Medicine stabilization failed: %s" % stabilization)
 		return
 	if not ally.get_combatant_state().stable or ally.current_health != 0:
-		_fail("Healer kit restored HP or failed to mark the ally stable.")
+		_fail("Medicine restored HP or failed to mark the ally stable.")
 		return
 	if int(state.call("get_item_count", "healers_kit")) != 1:
 		_fail("Healer kit was not consumed exactly once.")
 		return
 	if turn_system.action_available:
-		_fail("Stabilization in combat did not consume the primary action.")
+		_fail("Medicine in combat did not consume the primary action.")
 		return
 
 	_stage = "stop_combat"
@@ -146,7 +149,7 @@ func _run() -> void:
 	game.queue_free()
 	await process_frame
 	_completed = true
-	print("Controllable ally initiative, death save, healer-kit and save smoke test passed.")
+	print("Controllable ally initiative, death save, Medicine and save smoke test passed.")
 	quit(0)
 
 
