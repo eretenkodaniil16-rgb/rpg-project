@@ -29,25 +29,11 @@ def _set_hidden(obj: factory.bpy.types.Object, hidden: bool) -> None:
     obj.hide_viewport = hidden
 
 
-def _duplicate_detached_object(
-    context: factory.BuildContext,
-    source_name: str,
-    duplicate_name: str,
-) -> factory.bpy.types.Object:
-    source = factory.bpy.data.objects.get(source_name)
-    if source is None:
-        raise RuntimeError(f"death_03 gore source object is missing: {source_name}")
-    duplicate = source.copy()
-    duplicate.name = duplicate_name
-    context.module_collections["arms"].objects.link(duplicate)
-    world_matrix = source.matrix_world.copy()
-    duplicate.parent = None
-    duplicate.parent_type = "OBJECT"
-    duplicate.matrix_world = world_matrix
-    duplicate["death_gore_module"] = True
-    duplicate["detached_part_id"] = "left_forearm_and_hand"
-    _set_hidden(duplicate, True)
-    return duplicate
+def _unparent_preserving_world(obj: factory.bpy.types.Object) -> None:
+    world_matrix = obj.matrix_world.copy()
+    obj.parent = None
+    obj.parent_type = "OBJECT"
+    obj.matrix_world = world_matrix
 
 
 def _create_gore_modules_v01(context: factory.BuildContext) -> None:
@@ -59,17 +45,6 @@ def _create_gore_modules_v01(context: factory.BuildContext) -> None:
     )
     if any(factory.bpy.data.objects.get(name) is not None for name in required_names):
         raise RuntimeError("death_03 gore modules already exist")
-
-    _duplicate_detached_object(
-        context,
-        _GORE_ORIGINAL_FOREARM,
-        _GORE_DETACHED_FOREARM,
-    )
-    _duplicate_detached_object(
-        context,
-        _GORE_ORIGINAL_HAND,
-        _GORE_DETACHED_HAND,
-    )
 
     _, elbow, _, _, _ = context.silhouette.arm_points("L")
     stump = factory._ellipsoid(
@@ -85,19 +60,46 @@ def _create_gore_modules_v01(context: factory.BuildContext) -> None:
     stump["gore_role"] = "body_stump"
     _set_hidden(stump, True)
 
+    detached_start = (0.92, -0.42, 0.24)
+    detached_end = (1.38, -0.56, 0.20)
+    detached_forearm = factory._cylinder_between(
+        _GORE_DETACHED_FOREARM,
+        detached_start,
+        detached_end,
+        context.silhouette.forearm_radius,
+        8,
+        context.materials["silver"],
+    )
+    factory._register(context, detached_forearm, "arms", "forearm.L", "left")
+    _unparent_preserving_world(detached_forearm)
+    detached_forearm["death_gore_module"] = True
+    detached_forearm["detached_part_id"] = "left_forearm_and_hand"
+    _set_hidden(detached_forearm, True)
+
+    detached_hand = factory._ellipsoid(
+        _GORE_DETACHED_HAND,
+        (1.50, -0.60, 0.20),
+        (0.15, 0.115, 0.15),
+        context.materials["leather_dark"],
+        segments=8,
+        rings=5,
+    )
+    factory._register(context, detached_hand, "arms", "hand.L", "left")
+    _unparent_preserving_world(detached_hand)
+    detached_hand["death_gore_module"] = True
+    detached_hand["detached_part_id"] = "left_forearm_and_hand"
+    _set_hidden(detached_hand, True)
+
     detached_cap = factory._ellipsoid(
         _GORE_DETACHED_CAP,
-        elbow,
+        detached_start,
         (0.105, 0.085, 0.105),
         context.materials["scarf"],
         segments=8,
         rings=5,
     )
     factory._register(context, detached_cap, "arms", "forearm.L", "left")
-    world_matrix = detached_cap.matrix_world.copy()
-    detached_cap.parent = None
-    detached_cap.parent_type = "OBJECT"
-    detached_cap.matrix_world = world_matrix
+    _unparent_preserving_world(detached_cap)
     detached_cap["death_gore_module"] = True
     detached_cap["gore_role"] = "detached_cut_cap"
     _set_hidden(detached_cap, True)

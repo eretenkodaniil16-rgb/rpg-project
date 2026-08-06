@@ -192,24 +192,7 @@ def _apply_gore_state(profile: object, frame_number: int) -> None:
     for obj in (detached_forearm, detached_hand, stump, detached_cap):
         _set_hidden(obj, False)
 
-    detached_forearm.matrix_world = original_forearm.matrix_world.copy()
-    detached_hand.matrix_world = original_hand.matrix_world.copy()
-    detached_cap.matrix_world = stump.matrix_world.copy()
 
-    if frame_number == profile.detachment_frame:
-        offset = (0.82, -0.05, -0.10)
-        rotation = (12.0, -8.0, 24.0)
-    else:
-        offset = (0.95, -0.10, -0.14)
-        rotation = (20.0, -12.0, 38.0)
-
-    for obj in (detached_forearm, detached_hand, detached_cap):
-        obj.location.x += offset[0]
-        obj.location.y += offset[1]
-        obj.location.z += offset[2]
-        obj.rotation_euler[0] += math.radians(rotation[0])
-        obj.rotation_euler[1] += math.radians(rotation[1])
-        obj.rotation_euler[2] += math.radians(rotation[2])
 
 
 def render_death_down_keyposes_v01(
