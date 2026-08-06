@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "encounters": {
+    "vault_inner_watch_01": {
+      "phases": [
+        {
+          "phase_id": "rune_overload",
+          "event_id": "enemy_spell_committed",
+          "source_actor_id": "training_mage",
+          "minimum_round": 2,
+          "minimum_spell_level": 1,
+          "profile_id": "climax",
+          "trigger_id": "dangerous_ability",
+          "source_id": "training_mage",
+          "message": "Рунный тактик размыкает защитные печати. Руны вспыхивают, и бой переходит в кульминационную фазу."
+        }
+      ]
+    }
+  },
+  "notes": [
+    "Music phases are driven by committed gameplay events, never by health percentage.",
+    "A countered or resource-starved spell does not emit enemy_spell_committed.",
+    "The existing combat music profile registry provides idempotency and save restoration."
+  ]
+}
