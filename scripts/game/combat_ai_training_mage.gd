@@ -1,6 +1,8 @@
 class_name CombatAiTrainingMage
 extends "res://scripts/game/stealth_patrol_observer.gd"
 
+signal combat_spell_committed(actor_id: String, spell_id: String, spell_level: int)
+
 @export var spell_save_dc: int = 13
 @export var spell_attack_bonus: int = 5
 @export var level_one_spell_slots: int = 3
@@ -66,6 +68,7 @@ func consume_combat_spell_slot(spell_level: int = 1) -> bool:
 	if spell_level != 1 or _remaining_level_one_slots <= 0:
 		return false
 	_remaining_level_one_slots -= 1
+	combat_spell_committed.emit(get_actor_id(), _selected_combat_spell_id, spell_level)
 	return true
 
 
