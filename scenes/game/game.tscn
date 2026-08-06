@@ -9,7 +9,7 @@
 [ext_resource type="Script" path="res://scripts/game/world_snapshot_readiness_guard.gd" id="7_snapshot_guard"]
 [ext_resource type="Script" path="res://scripts/game/world_alert_snapshot_synchronizer.gd" id="8_alert_sync"]
 [ext_resource type="Script" path="res://scripts/game/player_control_modes.gd" id="9_player_control"]
-[ext_resource type="Script" path="res://scripts/ui/in_game_pause_menu.gd" id="10_pause_menu"]
+[ext_resource type="Script" path="res://scripts/game/in_game_pause_controller.gd" id="10_pause"]
 [ext_resource type="Script" path="res://scripts/ui/party_menu_ui.gd" id="11_party_menu"]
 
 [node name="Game" instance=ExtResource("1_base")]
@@ -34,18 +34,12 @@ script = ExtResource("6_world_controller")
 [node name="WorldSnapshotReadinessGuard" type="Node" parent="."]
 script = ExtResource("7_snapshot_guard")
 
+[node name="InGamePauseController" type="Node" parent="." groups=["pause_menu_controller"]]
+process_mode = 3
+script = ExtResource("10_pause")
+
 [node name="MobileControls" parent="Interface" index="3"]
 script = ExtResource("5_mobile_context")
-
-[node name="InGamePauseMenu" type="Control" parent="Interface"]
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-script = ExtResource("10_pause_menu")
 
 [node name="PartyMenuUI" type="Control" parent="Interface"]
 layout_mode = 3
