@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "composition_id": "aftermath_v01",
+  "title_ru": "После клинков",
+  "origin": "original_procedural_composition",
+  "external_samples_used": false,
+  "imported_midi_used": false,
+  "third_party_melodies_used": false,
+  "renderer": "procedural_aftermath_renderer_v01",
+  "numpy_version": "2.3.5",
+  "intended_use": "one-shot victory aftermath before returning to exploration context",
+  "copyright_note": "Оригинальная композиция проекта «Хроники странника»."
+}

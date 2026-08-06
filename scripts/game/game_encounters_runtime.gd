@@ -45,8 +45,12 @@ func handle_player_defeat(source: Node = null) -> void:
 	await super.handle_player_defeat(source)
 
 
-func get_active_combat_encounter_id_for_testing() -> String:
+func get_active_combat_encounter_id() -> String:
 	return _active_combat_encounter_id
+
+
+func get_active_combat_encounter_id_for_testing() -> String:
+	return get_active_combat_encounter_id()
 
 
 func _resolve_active_combat_encounter_if_complete() -> void:

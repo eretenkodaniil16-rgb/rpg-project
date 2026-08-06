@@ -114,6 +114,14 @@ func set_registry_polling_enabled(enabled: bool) -> void:
 	_refresh_state()
 
 
+func release_for_external_override() -> void:
+	_cancel_release_timer()
+	if not _tension_applied:
+		return
+	_tension_applied = false
+	tension_changed.emit(false)
+
+
 func refresh_now() -> void:
 	_refresh_state()
 
@@ -192,6 +200,10 @@ func _combined_sources() -> Dictionary:
 func _runtime_allows_tension() -> bool:
 	if not _automatic_runtime_gate_enabled:
 		return true
+	var aftermath_resolver: Node = get_tree().root.get_node_or_null("MusicAftermathResolver")
+	if aftermath_resolver != null and aftermath_resolver.has_method("is_aftermath_active"):
+		if bool(aftermath_resolver.call("is_aftermath_active")):
+			return false
 	var current_scene: Node = get_tree().current_scene
 	if current_scene == null or not current_scene.scene_file_path.begins_with(GAME_SCENE_PREFIX):
 		return false
