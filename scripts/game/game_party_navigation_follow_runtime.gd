@@ -39,11 +39,8 @@ func _process_party_follow_navigation(delta: float) -> void:
 	if (
 		_party_follow_last_target == Vector2.INF
 		or _party_follow_last_target.distance_to(player.global_position) >= PARTY_FOLLOW_TARGET_DELTA_PIXELS
-		or _party_follow_repath_remaining <= 0.0
 	):
-		agent.target_position = player.global_position
-		_party_follow_last_target = player.global_position
-		_party_follow_repath_remaining = PARTY_FOLLOW_REPATH_SECONDS
+		_set_party_follow_target(agent, player.global_position)
 
 	var distance_to_leader: float = ally.global_position.distance_to(player.global_position)
 	if distance_to_leader <= FOLLOW_STOP_DISTANCE_PIXELS and _follow_line_is_clear(ally, player):
@@ -60,9 +57,12 @@ func _process_party_follow_navigation(delta: float) -> void:
 	ally.velocity = direction * FOLLOW_SPEED_PIXELS
 	ally.move_and_slide()
 	_update_follow_stuck_state(ally, delta)
-	if _field_follow_stuck_elapsed >= FOLLOW_STUCK_SECONDS * 0.8:
-		agent.target_position = player.global_position
-		_party_follow_repath_remaining = PARTY_FOLLOW_REPATH_SECONDS
+	if (
+		ally.velocity.length_squared() > 0.001
+		and ally.get_real_velocity().length() <= 1.0
+		and _party_follow_repath_remaining <= 0.0
+	):
+		_set_party_follow_target(agent, player.global_position)
 
 
 func _claim_external_follow_control() -> void:
@@ -97,6 +97,12 @@ func _ensure_party_follow_agent(ally: CharacterBody2D) -> NavigationAgent2D:
 	_party_follow_agent.radius = PARTY_FOLLOW_AGENT_RADIUS_PIXELS
 	_party_follow_agent.avoidance_enabled = false
 	return _party_follow_agent
+
+
+func _set_party_follow_target(agent: NavigationAgent2D, target: Vector2) -> void:
+	agent.target_position = target
+	_party_follow_last_target = target
+	_party_follow_repath_remaining = PARTY_FOLLOW_REPATH_SECONDS
 
 
 func _follow_line_is_clear(ally: CharacterBody2D, leader: Node2D) -> bool:
