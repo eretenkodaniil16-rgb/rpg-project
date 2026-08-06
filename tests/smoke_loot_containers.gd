@@ -102,8 +102,13 @@ func _run() -> void:
 		_fail("Opening the bag did not show the loot panel.")
 		return
 	game.call("take_all_active_loot_for_testing")
-	if int(state.call("get_item_count", "healers_kit")) != 1 or int(state.call("get_item_count", "parchment")) != 3:
-		_fail("Take All did not transfer items that fit the inventory.")
+	if (
+		int(state.call("get_item_count", "potion_of_healing")) != 1
+		or int(state.call("get_item_count", "healers_kit")) != 1
+		or int(state.call("get_item_count", "caretaker_field_note")) != 1
+		or int(state.call("get_item_count", "parchment")) != 2
+	):
+		_fail("Take All did not transfer the new usable items and parchment exactly once.")
 		return
 	if int(state.call("get_item_count", "thieves_tools")) != 1:
 		_fail("Take All changed the already-full non-stackable item count.")
@@ -115,7 +120,7 @@ func _run() -> void:
 
 	game.queue_free()
 	await process_frame
-	print("Persistent loot containers, Russian pickup labels and capacity-safe transfers passed.")
+	print("Persistent loot containers, usable item loot, Russian pickup labels and capacity-safe transfers passed.")
 	quit(0)
 
 

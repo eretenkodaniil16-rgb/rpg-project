@@ -1,0 +1,21 @@
+extends "res://scripts/game/game_party_control_entry_runtime.gd"
+
+
+func _begin_current_turn() -> void:
+	var selected_before_turn: Node = _selected_target
+	var context_actor: Node = _party_control_context.active_actor()
+	var stored_player_target: Node = (
+		_party_control_context.target_for(player)
+		if is_instance_valid(player)
+		else null
+	)
+	var should_seed_initial_target: bool = (
+		_turn_system.active
+		and is_instance_valid(player)
+		and not is_instance_valid(context_actor)
+		and not _target_is_valid(stored_player_target)
+		and _target_is_valid(selected_before_turn)
+	)
+	if should_seed_initial_target:
+		_party_control_context.set_target(player, selected_before_turn)
+	super._begin_current_turn()

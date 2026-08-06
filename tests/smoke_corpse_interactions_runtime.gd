@@ -1,7 +1,6 @@
 extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
-const EXPECTED_RUNTIME: String = "res://scripts/game/game_guard_post_polish_runtime.gd"
 
 
 func _init() -> void:
@@ -27,10 +26,16 @@ func _run() -> void:
 	root.add_child(game)
 	for _frame: int in range(16):
 		await process_frame
-	var script: Script = game.get_script() as Script
-	if script == null or script.resource_path != EXPECTED_RUNTIME:
-		_fail("Game scene does not use nonlethal restraint runtime.")
-		return
+	for method_name: StringName in [
+		&"get_loot_container_panel_for_testing",
+		&"_build_catalog_entries",
+		&"_prepare_nonlethal_knockout",
+		&"get_dragged_body_for_testing",
+		&"is_nonlethal_mode_enabled_for_testing"
+	]:
+		if not game.has_method(method_name):
+			_fail("Final game runtime is missing corpse-interaction capability: %s" % method_name)
+			return
 	game.set_process(false)
 
 	var player: Node2D = game.get_node_or_null("Player") as Node2D

@@ -1,7 +1,6 @@
 extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
-const EXPECTED_RUNTIME: String = "res://scripts/game/game_guard_post_polish_runtime.gd"
 const MARKSMAN_SCENE: String = "res://scenes/game/combat_ai_training_marksman.tscn"
 const MAGE_SCENE: String = "res://scenes/game/combat_ai_training_mage.tscn"
 
@@ -29,10 +28,19 @@ func _run() -> void:
 	root.add_child(game)
 	for _frame: int in range(18):
 		await process_frame
-	var game_script: Script = game.get_script() as Script
-	if game_script == null or game_script.resource_path != EXPECTED_RUNTIME:
-		_fail("Game scene does not use squad tactical plan runtime.")
-		return
+	for method_name: StringName in [
+		&"get_environment_event_system_for_testing",
+		&"_clear_squad_plan_runtime",
+		&"_enrich_advanced_context",
+		&"get_squad_plan_for_testing",
+		&"get_squad_assignment_for_testing",
+		&"get_squad_plan_decision_for_testing",
+		&"_plan_combat_ai_movement",
+		&"record_squad_plan_outcome_for_testing"
+	]:
+		if not game.has_method(method_name):
+			_fail("Final game runtime is missing squad-plan capability: %s" % method_name)
+			return
 	game.set_process(false)
 
 	var player: Node2D = game.get_node_or_null("Player") as Node2D

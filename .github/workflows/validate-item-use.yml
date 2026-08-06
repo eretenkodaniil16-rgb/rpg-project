@@ -1,0 +1,104 @@
+name: Validate item use system
+
+on:
+  pull_request:
+    paths:
+      - "data/items/item_use_definitions.json"
+      - "data/world/loot_containers.json"
+      - "project.godot"
+      - "scenes/game/game.tscn"
+      - "scripts/core/game_state_world_snapshot.gd"
+      - "scripts/core/game_state_world_snapshot_base.gd"
+      - "scripts/core/game_state_item_use.gd"
+      - "scripts/systems/item_use_system.gd"
+      - "scripts/systems/inventory_transaction_system.gd"
+      - "scripts/game/game_guard_post_polish_runtime.gd"
+      - "scripts/game/game_guard_post_polish_runtime_base.gd"
+      - "scripts/game/game_item_use_runtime.gd"
+      - "scripts/ui/character_hub_inventory.gd"
+      - "tests/test_item_use_system.gd"
+      - "tests/smoke_item_use_runtime.gd"
+      - "tests/smoke_loot_containers.gd"
+      - "docs/ITEM_USE_SYSTEM.md"
+      - ".github/workflows/validate-item-use.yml"
+  push:
+    branches:
+      - feature/item-use-system
+
+concurrency:
+  group: item-use-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Godot 4.7.1 Standard
+        shell: bash
+        run: |
+          curl --location --fail --retry 3 \
+            --output godot.zip \
+            "https://github.com/godotengine/godot/releases/download/4.7.1-stable/Godot_v4.7.1-stable_linux.x86_64.zip"
+          unzip -q godot.zip
+          chmod +x Godot_v4.7.1-stable_linux.x86_64
+
+      - name: Validate item-use JSON
+        shell: bash
+        run: python -m json.tool data/items/item_use_definitions.json > /dev/null
+
+      - name: Import project and reject parser errors
+        shell: bash
+        run: |
+          rm -rf .godot
+          set -o pipefail
+          timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --editor --path "$GITHUB_WORKSPACE" --quit 2>&1 | tee item-use-import.log
+          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script" item-use-import.log; then
+            exit 1
+          fi
+
+      - name: Test domain item-use transactions
+        shell: bash
+        run: timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_item_use_system.gd 2>&1 | tee item-use-domain.log
+
+      - name: Simulate Character Hub and combat item use
+        shell: bash
+        run: timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_item_use_runtime.gd 2>&1 | tee item-use-runtime.log
+
+      - name: Regression test persistent loot containers
+        shell: bash
+        run: timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_loot_containers.gd 2>&1 | tee item-use-loot.log
+
+      - name: Regression test inventory transactions
+        shell: bash
+        run: timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_inventory_transaction_system.gd 2>&1 | tee item-use-inventory-transactions.log
+
+      - name: Regression test Actions button
+        shell: bash
+        run: timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_action_panel_no_flash.gd 2>&1 | tee item-use-actions.log
+
+      - name: Regression test guard post runtime
+        shell: bash
+        run: timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_guard_post_runtime_regressions_v2.gd 2>&1 | tee item-use-guard-post.log
+
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: item-use-diagnostics
+          path: |
+            item-use-import.log
+            item-use-domain.log
+            item-use-runtime.log
+            item-use-loot.log
+            item-use-inventory-transactions.log
+            item-use-actions.log
+            item-use-guard-post.log
+          if-no-files-found: warn
+          retention-days: 7

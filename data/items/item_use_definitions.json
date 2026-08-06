@@ -1,0 +1,63 @@
+{
+  "potion_of_healing": {
+    "id": "potion_of_healing",
+    "name": "Зелье лечения",
+    "type": "consumable",
+    "description": "Красное зелье, восстанавливающее 2к4 + 2 здоровья.",
+    "stackable": true,
+    "max_stack": 10,
+    "use_action": {
+      "inventory_label": "ВЫПИТЬ",
+      "action_label": "ВЫПИТЬ: {item_name}",
+      "target_mode": "self",
+      "combat_cost": "action",
+      "allowed_in_combat": true,
+      "consumption_mode": "consume_one",
+      "effect_id": "restore_hit_points",
+      "effect_parameters": {
+        "dice_count": 2,
+        "dice_size": 4,
+        "flat_bonus": 2
+      }
+    }
+  },
+  "healers_kit": {
+    "id": "healers_kit",
+    "name": "Набор лекаря",
+    "type": "consumable",
+    "description": "Одно применение перевязочных материалов стабилизирует умирающее существо без восстановления HP.",
+    "stackable": true,
+    "max_stack": 10,
+    "use_action": {
+      "inventory_label": "СТАБИЛИЗИРОВАТЬ",
+      "action_label": "СТАБИЛИЗИРОВАТЬ: {target_name}",
+      "target_mode": "selected_dying_creature",
+      "combat_cost": "action",
+      "allowed_in_combat": true,
+      "consumption_mode": "consume_one",
+      "effect_id": "stabilize_creature",
+      "effect_parameters": {}
+    }
+  },
+  "caretaker_field_note": {
+    "id": "caretaker_field_note",
+    "name": "Записка Смотрителя",
+    "type": "quest",
+    "description": "Короткая служебная запись о внутреннем дозоре и нестабильной печати на нижнем уровне.",
+    "stackable": false,
+    "max_stack": 1,
+    "use_action": {
+      "inventory_label": "ПРОЧИТАТЬ",
+      "action_label": "ПРОЧИТАТЬ: {item_name}",
+      "target_mode": "self",
+      "combat_cost": "none",
+      "allowed_in_combat": false,
+      "consumption_mode": "none",
+      "effect_id": "set_story_flag",
+      "effect_parameters": {
+        "flag_id": "caretaker_field_note_read",
+        "message": "В записке сказано: внутренний дозор не покидает пост, а печать нижнего уровня реагирует на ключи караула."
+      }
+    }
+  }
+}

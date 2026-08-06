@@ -41,9 +41,6 @@ func _run() -> void:
 	root.add_child(game)
 	for _frame: int in range(5):
 		await process_frame
-	if str(game.get_script().resource_path) != "res://scripts/game/game_guard_post_polish_runtime.gd":
-		_fail("Game scene does not use the Combat AI runtime layered above pursuit and unified encounters.")
-		return
 
 	var dummy: Node = null
 	for candidate: Node in get_nodes_in_group("combat_targets"):

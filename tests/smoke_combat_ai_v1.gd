@@ -1,7 +1,6 @@
 extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
-const EXPECTED_RUNTIME: String = "res://scripts/game/game_guard_post_polish_runtime.gd"
 
 
 func _init() -> void:
@@ -32,10 +31,16 @@ func _run() -> void:
 	root.add_child(game)
 	for _frame: int in range(12):
 		await process_frame
-	var script: Script = game.get_script() as Script
-	if script == null or script.resource_path != EXPECTED_RUNTIME:
-		_fail("Game scene does not use the corpse-aware Combat AI runtime.")
-		return
+	for method_name: StringName in [
+		&"get_combat_ai_role_profile_for_testing",
+		&"get_combat_ai_profile_for_testing",
+		&"get_ai_intent_for_testing",
+		&"_ensure_combat_ai_guard_anchor",
+		&"get_combat_ai_anchor_for_testing"
+	]:
+		if not game.has_method(method_name):
+			_fail("Final game runtime is missing Combat AI capability: %s" % method_name)
+			return
 	game.set_process(false)
 
 	for role_id: String in [NpcCombatAiSystem.ROLE_MELEE, NpcCombatAiSystem.ROLE_RANGED, NpcCombatAiSystem.ROLE_DEFENDER]:
@@ -114,7 +119,7 @@ func _run() -> void:
 	await process_frame
 	if FileAccess.file_exists(save_path):
 		DirAccess.remove_absolute(save_path)
-	print("Combat AI v1 through corpse runtime, role profiles, guard anchors and deterministic decisions passed.")
+	print("Combat AI v1 through final runtime, role profiles, guard anchors and deterministic decisions passed.")
 	quit(0)
 
 

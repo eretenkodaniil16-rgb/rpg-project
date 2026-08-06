@@ -1,0 +1,180 @@
+name: Validate controllable ally v1
+
+on:
+  pull_request:
+    paths:
+      - "scenes/game/game.tscn"
+      - "scenes/game/controllable_ally.tscn"
+      - "scripts/game/controllable_ally.gd"
+      - "scripts/game/player_control_modes.gd"
+      - "scripts/game/game_controllable_ally_runtime.gd"
+      - "scripts/game/game_controllable_ally_control_runtime.gd"
+      - "scripts/game/game_controllable_ally_mobile_runtime.gd"
+      - "scripts/game/game_party_control_runtime.gd"
+      - "scripts/game/game_party_control_entry_runtime.gd"
+      - "scripts/game/game_party_control_social_entry_runtime.gd"
+      - "scripts/game/game_party_exploration_runtime.gd"
+      - "scripts/game/game_party_target_runtime.gd"
+      - "scripts/game/game_party_combat_polish_runtime.gd"
+      - "scripts/game/game_party_medicine_recovery_runtime.gd"
+      - "scripts/game/game_guard_post_polish_runtime.gd"
+      - "scripts/ui/mobile_controls_party_routing.gd"
+      - "scripts/ui/party_menu_ui.gd"
+      - "scripts/systems/party_combat_control_context.gd"
+      - "scripts/systems/turn_based_combat_system.gd"
+      - "tests/smoke_controllable_ally_runtime.gd"
+      - "tests/smoke_controllable_ally_controls.gd"
+      - "tests/smoke_controllable_ally_controls_detailed.gd"
+      - "tests/smoke_controllable_ally_medicine_recovery.gd"
+      - "tests/smoke_party_menu_exploration_control.gd"
+      - "tests/smoke_party_combat_control_context.gd"
+      - "tests/smoke_party_combat_targeting_polish.gd"
+      - "tests/smoke_controllable_ally_damage.gd"
+      - "docs/CONTROLLABLE_ALLY_V1.md"
+      - ".github/workflows/validate-controllable-ally.yml"
+  push:
+    branches:
+      - feature/controllable-ally-v1
+
+concurrency:
+  group: controllable-ally-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 42
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Godot 4.7.1 Standard
+        shell: bash
+        run: |
+          curl --location --fail --retry 3 \
+            --output godot.zip \
+            "https://github.com/godotengine/godot/releases/download/4.7.1-stable/Godot_v4.7.1-stable_linux.x86_64.zip"
+          unzip -q godot.zip
+          chmod +x Godot_v4.7.1-stable_linux.x86_64
+
+      - name: Import project and reject parser errors
+        shell: bash
+        run: |
+          rm -rf .godot
+          set -o pipefail
+          timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --editor --path "$GITHUB_WORKSPACE" --quit 2>&1 | tee controllable-ally-import.log
+          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script" controllable-ally-import.log; then
+            exit 1
+          fi
+
+      - name: Simulate ally death saves and stabilization
+        shell: bash
+        run: |
+          set +e
+          timeout 45s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_controllable_ally_runtime.gd 2>&1 | tee controllable-ally-runtime.log
+          result=${PIPESTATUS[0]}
+          if [ "$result" -ne 0 ]; then
+            while IFS= read -r line; do echo "::error::$line"; done < <(tail -n 160 controllable-ally-runtime.log)
+            exit "$result"
+          fi
+
+      - name: Simulate independent party controls
+        shell: bash
+        run: |
+          set +e
+          timeout 45s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_controllable_ally_controls_detailed.gd 2>&1 | tee controllable-ally-controls.log
+          result=${PIPESTATUS[0]}
+          if [ "$result" -ne 0 ]; then
+            while IFS= read -r line; do echo "::error::$line"; done < <(tail -n 160 controllable-ally-controls.log)
+            exit "$result"
+          fi
+
+      - name: Simulate party menu exploration control
+        shell: bash
+        run: |
+          set +e
+          timeout 60s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_party_menu_exploration_control.gd 2>&1 | tee party-menu-exploration.log
+          result=${PIPESTATUS[0]}
+          if [ "$result" -ne 0 ]; then
+            while IFS= read -r line; do echo "::error::$line"; done < <(tail -n 200 party-menu-exploration.log)
+            exit "$result"
+          fi
+
+      - name: Simulate party combat targeting polish
+        shell: bash
+        run: |
+          set +e
+          timeout 60s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_party_combat_targeting_polish.gd 2>&1 | tee party-combat-targeting-polish.log
+          result=${PIPESTATUS[0]}
+          if [ "$result" -ne 0 ]; then
+            while IFS= read -r line; do echo "::error::$line"; done < <(tail -n 220 party-combat-targeting-polish.log)
+            exit "$result"
+          fi
+
+      - name: Simulate Medicine and long-rest recovery
+        shell: bash
+        run: |
+          set +e
+          timeout 60s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_controllable_ally_medicine_recovery.gd 2>&1 | tee controllable-ally-medicine.log
+          result=${PIPESTATUS[0]}
+          if [ "$result" -ne 0 ]; then
+            while IFS= read -r line; do echo "::error::$line"; done < <(tail -n 220 controllable-ally-medicine.log)
+            exit "$result"
+          fi
+
+      - name: Simulate enemy damage against ally
+        shell: bash
+        run: |
+          set +e
+          timeout 45s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_controllable_ally_damage.gd 2>&1 | tee controllable-ally-damage.log
+          result=${PIPESTATUS[0]}
+          if [ "$result" -ne 0 ]; then
+            while IFS= read -r line; do echo "::error::$line"; done < <(tail -n 160 controllable-ally-damage.log)
+            exit "$result"
+          fi
+
+      - name: Regression test item use
+        shell: bash
+        run: timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_item_use_runtime.gd 2>&1 | tee controllable-ally-item-use.log
+
+      - name: Regression test guard post
+        shell: bash
+        run: timeout 240s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_guard_post_runtime_regressions_v2.gd 2>&1 | tee controllable-ally-guard-post.log
+
+      - name: Regression test world state
+        shell: bash
+        run: timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_world_snapshot_npc_navigation.gd 2>&1 | tee controllable-ally-world-state.log
+
+      - name: Regression test wall integrity
+        shell: bash
+        run: |
+          set +e
+          timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_movement_wall_integrity.gd 2>&1 | tee controllable-ally-wall-integrity.log
+          result=${PIPESTATUS[0]}
+          if [ "$result" -ne 0 ]; then
+            while IFS= read -r line; do echo "::error::$line"; done < <(tail -n 160 controllable-ally-wall-integrity.log)
+            exit "$result"
+          fi
+
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: controllable-ally-diagnostics
+          path: |
+            controllable-ally-import.log
+            controllable-ally-runtime.log
+            controllable-ally-controls.log
+            party-menu-exploration.log
+            party-combat-targeting-polish.log
+            controllable-ally-medicine.log
+            controllable-ally-damage.log
+            controllable-ally-item-use.log
+            controllable-ally-guard-post.log
+            controllable-ally-world-state.log
+            controllable-ally-wall-integrity.log
+          if-no-files-found: warn
+          retention-days: 7

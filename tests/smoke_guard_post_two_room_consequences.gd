@@ -1,7 +1,6 @@
 extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
-const EXPECTED_RUNTIME: String = "res://scripts/game/game_guard_post_polish_runtime.gd"
 const FIRST_ROOM_ID: String = "vault_guard_post_01"
 const SECOND_ROOM_ID: String = "vault_inner_watch_01"
 const INNER_GATE_BLOCKER_ID: String = "inner_watch_gate_blocker"
@@ -154,11 +153,16 @@ func _spawn_game() -> Node:
 	root.add_child(game)
 	for _frame: int in range(40):
 		await process_frame
-	var game_script: Script = game.get_script() as Script
-	if game_script == null or game_script.resource_path != EXPECTED_RUNTIME:
-		_fail("Game scene does not use the polished guard post runtime.")
-		game.queue_free()
-		return null
+	for method_name: StringName in [
+		&"_evaluate_guard_post_state",
+		&"get_first_room_outcome_for_testing",
+		&"get_active_combat_encounter_id_for_testing",
+		&"resolve_first_room_for_testing"
+	]:
+		if not game.has_method(method_name):
+			_fail("Final game runtime is missing two-room guard-post capability: %s" % method_name)
+			game.queue_free()
+			return null
 	return game
 
 

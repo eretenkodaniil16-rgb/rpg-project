@@ -22,8 +22,10 @@
     "lock_id": "",
     "discovered": true,
     "items": [
+      {"item_id": "potion_of_healing", "quantity": 1},
       {"item_id": "healers_kit", "quantity": 1},
-      {"item_id": "parchment", "quantity": 3},
+      {"item_id": "caretaker_field_note", "quantity": 1},
+      {"item_id": "parchment", "quantity": 2},
       {"item_id": "thieves_tools", "quantity": 1}
     ]
   }
