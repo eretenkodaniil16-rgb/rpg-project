@@ -12,3 +12,8 @@ func _install_room_fog() -> void:
 	_room_fog.name = "RoomFogOverlay"
 	add_child(_room_fog)
 	_room_fog.configure(player, ROOM_RECTS, ROOM_ORDER)
+
+
+func is_inner_gate_open() -> bool:
+	var gate: StealthDoor = get_inner_gate()
+	return gate != null and gate.get_door_state() in ["open", "broken"]
