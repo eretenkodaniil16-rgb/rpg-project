@@ -106,6 +106,9 @@ class DeathDownKeyposesV01Tests(unittest.TestCase):
         self.assertIn("death03_upper_waist_cut_cap", source)
         self.assertIn("death03_lower_waist_cut_cap", source)
         self.assertIn("_GORE_UPPER_BODY_BONES", source)
+        self.assertIn('"cloth.L"', source)
+        self.assertIn('"cloth.C"', source)
+        self.assertIn('"cloth.R"', source)
         self.assertIn('scene["death_down_action_count"] = len(actions)', source)
         self.assertIn('scene["death_down_runtime_connected"] = False', source)
 

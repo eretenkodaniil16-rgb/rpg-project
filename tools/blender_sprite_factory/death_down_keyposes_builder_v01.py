@@ -30,6 +30,9 @@ _GORE_UPPER_BODY_BONES = frozenset(
         "forearm.R",
         "hand.L",
         "hand.R",
+        "cloth.L",
+        "cloth.C",
+        "cloth.R",
     }
 )
 
