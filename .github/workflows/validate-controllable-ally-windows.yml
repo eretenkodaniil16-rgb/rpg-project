@@ -12,12 +12,14 @@ on:
       - "scripts/game/game_party_exploration_runtime.gd"
       - "scripts/game/game_party_target_runtime.gd"
       - "scripts/game/game_party_combat_polish_runtime.gd"
+      - "scripts/game/game_party_medicine_recovery_runtime.gd"
       - "scripts/game/game_controllable_ally_mobile_runtime.gd"
       - "scripts/ui/mobile_controls_party_routing.gd"
       - "scripts/ui/party_menu_ui.gd"
       - "scripts/systems/party_combat_control_context.gd"
       - "tests/smoke_controllable_ally_controls.gd"
       - "tests/smoke_controllable_ally_controls_detailed.gd"
+      - "tests/smoke_controllable_ally_medicine_recovery.gd"
       - "tests/smoke_party_menu_exploration_control.gd"
       - "tests/smoke_party_combat_control_context.gd"
       - "tests/smoke_party_combat_targeting_polish.gd"
@@ -36,7 +38,7 @@ permissions:
 jobs:
   validate:
     runs-on: windows-latest
-    timeout-minutes: 20
+    timeout-minutes: 24
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -75,6 +77,12 @@ jobs:
           & ".\Godot_v4.7.1-stable_win64.exe" --headless --path "$env:GITHUB_WORKSPACE" --script res://tests/smoke_party_combat_targeting_polish.gd 2>&1 | Tee-Object -FilePath "party-combat-targeting-windows.log"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: Simulate Medicine and long-rest recovery
+        shell: pwsh
+        run: |
+          & ".\Godot_v4.7.1-stable_win64.exe" --headless --path "$env:GITHUB_WORKSPACE" --script res://tests/smoke_controllable_ally_medicine_recovery.gd 2>&1 | Tee-Object -FilePath "controllable-ally-medicine-windows.log"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Upload diagnostics
         if: always()
         uses: actions/upload-artifact@v4
@@ -85,5 +93,6 @@ jobs:
             controllable-ally-windows-controls.log
             party-menu-windows.log
             party-combat-targeting-windows.log
+            controllable-ally-medicine-windows.log
           if-no-files-found: warn
           retention-days: 7
