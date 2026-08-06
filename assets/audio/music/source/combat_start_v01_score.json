@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "composition_id": "combat_start_v01",
+  "title_ru": "Первый удар",
+  "arrangement_revision": 1,
+  "tempo_bpm": 96,
+  "time_signature": [6, 8],
+  "duration_beats": 5.0,
+  "duration_seconds": 3.125,
+  "tonal_center": "D",
+  "mode_profile": "D minor with Phrygian D-Eb pressure",
+  "leitmotif_fragment": ["D", "Eb", "A", "D"],
+  "external_samples_used": false,
+  "design_goal": "Короткий резкий cue начала обычного боя: немедленный удар, рубленая медь, второй импульс и затухающий хвост поверх combat_standard_v01.",
+  "sections": [
+    {"seconds": "0.000-0.450", "id": "impact", "purpose": "немедленно обозначить начало столкновения"},
+    {"seconds": "0.450-1.250", "id": "counter_hit", "purpose": "подтвердить боевой ритм вторым ударом"},
+    {"seconds": "1.250-2.150", "id": "breath_and_return", "purpose": "короткий провал и финальное возвращение"},
+    {"seconds": "2.150-3.125", "id": "handoff_tail", "purpose": "освободить спектр для основного боевого loop"}
+  ],
+  "instrumentation": [
+    "low synthetic war impact",
+    "hard brass stabs",
+    "short dark strings",
+    "frame drum roll",
+    "metallic strike",
+    "sub pressure",
+    "air tail"
+  ]
+}

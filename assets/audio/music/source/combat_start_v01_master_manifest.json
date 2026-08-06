@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "composition_id": "combat_start_v01",
+  "title_ru": "Первый удар",
+  "render_id": "combat_start_v01_master_candidate_01",
+  "status": "integrated_master_candidate",
+  "renderer": "procedural_combat_start_renderer_v01",
+  "arrangement_revision": 1,
+  "numpy_version": "2.3.5",
+  "external_samples_used": false,
+  "sample_rate": 48000,
+  "channels": 2,
+  "tempo_bpm": 96,
+  "time_signature": [
+    6,
+    8
+  ],
+  "duration_beats": 5.0,
+  "duration_seconds": 3.125,
+  "midi_note_count": 19,
+  "peak_dbfs": -1.5,
+  "rms_dbfs": -16.549,
+  "final_100ms_peak_dbfs": -54.746,
+  "handoff_tail_seconds": 1.175,
+  "ogg_bytes": 53196,
+  "ogg_sha256": "01a5d1e7bf0ac7b2f6f253e9c346dcdf307533adb077fb5bca6a581c3e685541",
+  "wav_sha256": "e4dbfd69994db04ac025ca4372a30f0e12fb9a69aa95a70e8458ab3a7f456506",
+  "midi_sha256": "6683cb11ce6f8e99d789493420d2fea88697699a6c77b92a30ec9d74e262c945",
+  "source_score_sha256": "3bb9ee92f7f9cf26768beb098153647f3aeb491f2c6f476a3c138324baacabf7",
+  "pcm_signature_shift_bits": 8,
+  "pcm_signature_sha256": "bed2e4d509fb0ba591ceb0f8d44312ebf9989e6fa94c075b384f7340a0195cf7",
+  "trigger_profile": [
+    "false-to-true combat transition only",
+    "skip baseline combat on scene load",
+    "no turn or round retrigger",
+    "overlay combat_standard_v01 crossfade",
+    "spectral handoff tail"
+  ]
+}

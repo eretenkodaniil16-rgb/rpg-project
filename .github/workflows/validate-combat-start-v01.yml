@@ -1,0 +1,122 @@
+name: Validate combat start v01
+
+on:
+  pull_request:
+    paths:
+      - "assets/audio/music/source/combat_start_v01_score.json"
+      - "assets/audio/music/source/combat_start_v01_provenance.json"
+      - "assets/audio/music/source/combat_start_v01_master_manifest.json"
+      - "assets/audio/music/exports/combat_start_v01_master.ogg"
+      - "data/audio/music_catalog.json"
+      - "project.godot"
+      - "scripts/audio/music_combat_transition_tracker.gd"
+      - "scripts/audio/music_combat_start_resolver.gd"
+      - "tools/audio/generate_combat_start_v01.py"
+      - "tests/test_combat_start_v01.py"
+      - "tests/test_music_combat_transition_tracker.gd"
+      - "tests/test_combat_start_music.gd"
+      - "docs/COMBAT_START_V01.md"
+      - ".github/workflows/validate-combat-start-v01.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: combat-start-v01-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install pinned audio toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes ffmpeg
+          python -m pip install --disable-pip-version-check --upgrade "numpy==2.3.5"
+
+      - name: Compile renderer
+        run: python -m py_compile tools/audio/generate_combat_start_v01.py
+
+      - name: Render independent candidate
+        run: |
+          python tools/audio/generate_combat_start_v01.py \
+            --score assets/audio/music/source/combat_start_v01_score.json \
+            --output build/audio/combat_start_v01
+
+      - name: Validate committed cue and static contracts
+        run: |
+          python tests/test_combat_start_v01.py
+          python tests/test_music_system_foundation.py
+
+      - name: Compare cross-platform PCM fingerprint
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          expected = json.loads(Path("assets/audio/music/source/combat_start_v01_master_manifest.json").read_text())
+          rendered = json.loads(Path("build/audio/combat_start_v01/combat_start_v01_master_manifest.json").read_text())
+          assert rendered["numpy_version"] == expected["numpy_version"] == "2.3.5"
+          assert rendered["renderer"] == expected["renderer"] == "procedural_combat_start_renderer_v01"
+          assert rendered["arrangement_revision"] == expected["arrangement_revision"] == 1
+          assert rendered["pcm_signature_shift_bits"] == expected["pcm_signature_shift_bits"] == 8
+          assert rendered["pcm_signature_sha256"] == expected["pcm_signature_sha256"]
+          assert rendered["duration_seconds"] == expected["duration_seconds"] == 3.125
+          assert rendered["midi_sha256"] == expected["midi_sha256"]
+          assert rendered["peak_dbfs"] == expected["peak_dbfs"] == -1.5
+          assert rendered["rms_dbfs"] == expected["rms_dbfs"] == -16.549
+          assert rendered["final_100ms_peak_dbfs"] == expected["final_100ms_peak_dbfs"] == -54.746
+          PY
+
+      - name: Download Godot 4.7.1 Standard
+        run: |
+          curl --location --fail --retry 4 --retry-all-errors --retry-delay 3 \
+            --connect-timeout 20 --max-time 180 --output godot.zip \
+            "https://downloads.godotengine.org/?flavor=stable&platform=linux.64&slug=linux.x86_64.zip&version=4.7.1"
+          unzip -q godot.zip
+          chmod +x Godot_v4.7.1-stable_linux.x86_64
+
+      - name: Import project and reject parser errors
+        run: |
+          rm -rf .godot
+          set -o pipefail
+          timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 \
+            --headless --editor --path "$GITHUB_WORKSPACE" --quit \
+            2>&1 | tee combat-start-import.log
+          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script" combat-start-import.log; then
+            exit 1
+          fi
+
+      - name: Test transition tracker
+        run: |
+          timeout 90s ./Godot_v4.7.1-stable_linux.x86_64 \
+            --headless --path "$GITHUB_WORKSPACE" \
+            --script res://tests/test_music_combat_transition_tracker.gd \
+            2>&1 | tee combat-start-tracker-test.log
+          grep -F "Music combat transition tracker tests passed." combat-start-tracker-test.log
+
+      - name: Test stinger runtime
+        run: |
+          timeout 90s ./Godot_v4.7.1-stable_linux.x86_64 \
+            --headless --path "$GITHUB_WORKSPACE" \
+            --script res://tests/test_combat_start_music.gd \
+            2>&1 | tee combat-start-runtime-test.log
+          grep -F "Combat start music tests passed." combat-start-runtime-test.log
+
+      - name: Upload listening and diagnostics artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: combat-start-v01-preview
+          path: |
+            build/audio/combat_start_v01/
+            combat-start-import.log
+            combat-start-tracker-test.log
+            combat-start-runtime-test.log
+          if-no-files-found: ignore
+          retention-days: 14
