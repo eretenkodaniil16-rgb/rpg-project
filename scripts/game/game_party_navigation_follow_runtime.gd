@@ -96,6 +96,18 @@ func _ensure_party_follow_agent(ally: CharacterBody2D) -> NavigationAgent2D:
 	return _party_follow_agent
 
 
+func get_field_follow_path_for_testing() -> Array[Vector2i]:
+	var result: Array[Vector2i] = []
+	if not is_instance_valid(_party_follow_agent):
+		return result
+	var grid: BattleGrid = _get_battle_grid()
+	if grid == null:
+		return result
+	for point: Vector2 in _party_follow_agent.get_current_navigation_path():
+		result.append(grid.world_to_cell(point))
+	return result
+
+
 func get_navigation_follow_path_for_testing() -> PackedVector2Array:
 	if not is_instance_valid(_party_follow_agent):
 		return PackedVector2Array()
