@@ -3,6 +3,7 @@ extends SceneTree
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
 const STABILIZE_LABEL: String = "МЕДИЦИНА: СТАБИЛИЗИРОВАТЬ ИРИНУ"
 const RECOVER_LABEL: String = "МЕДИЦИНА: ПРИВЕСТИ ИРИНУ В СОЗНАНИЕ"
+const FOLLOW_AGENT_NAME: String = "PartyFollowNavigationAgent"
 
 var _completed: bool = false
 var _stage: String = "init"
@@ -129,10 +130,10 @@ func _run() -> void:
 			break
 	var final_distance: float = ally.global_position.distance_to(player.global_position)
 	if final_distance >= initial_distance - 40.0:
-		_fail("Irina did not make meaningful progress along the follow route.")
+		_fail("Irina did not make meaningful progress along the follow route. %s" % _follow_debug(ally, player, room, partition_x))
 		return
 	if ally.global_position.x <= partition_x:
-		_fail("Irina remained stuck against the partition instead of using the open gate.")
+		_fail("Irina remained stuck against the partition instead of using the open gate. %s" % _follow_debug(ally, player, room, partition_x))
 		return
 
 	game.queue_free()
@@ -140,6 +141,47 @@ func _run() -> void:
 	_completed = true
 	print("Irina field support, solo visibility and obstacle-aware follow passed.")
 	quit(0)
+
+
+func _follow_debug(
+	ally: ControllableAlly,
+	player: Node2D,
+	room: GuardPostPartyVisibility,
+	partition_x: float
+) -> String:
+	var agent: NavigationAgent2D = ally.get_node_or_null(FOLLOW_AGENT_NAME) as NavigationAgent2D
+	var agent_data: String = "agent=missing"
+	if agent != null:
+		agent_data = (
+			"index=%d finished=%s reachable=%s next=%s target=%s path=%s"
+			% [
+				agent.get_current_navigation_path_index(),
+				agent.is_navigation_finished(),
+				agent.is_target_reachable(),
+				agent.get_next_path_position(),
+				agent.target_position,
+				agent.get_current_navigation_path()
+			]
+		)
+	var collisions: Array[String] = []
+	for collision_index: int in range(ally.get_slide_collision_count()):
+		var collision: KinematicCollision2D = ally.get_slide_collision(collision_index)
+		var collider: Object = collision.get_collider()
+		collisions.append("%s normal=%s point=%s" % [collider, collision.get_normal(), collision.get_position()])
+	return (
+		"ally=%s player=%s partition_x=%.2f distance=%.2f velocity=%s real_velocity=%s door_open=%s %s collisions=%s"
+		% [
+			ally.global_position,
+			player.global_position,
+			partition_x,
+			ally.global_position.distance_to(player.global_position),
+			ally.velocity,
+			ally.get_real_velocity(),
+			room.is_inner_gate_open(),
+			agent_data,
+			collisions
+		]
+	)
 
 
 func _make_hero() -> PlayerCharacter:
