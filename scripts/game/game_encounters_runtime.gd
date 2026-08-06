@@ -19,11 +19,13 @@ func _start_turn_based_combat(trigger_target: Node) -> void:
 		) as Dictionary
 		if bool(begin_result.get("success", false)) or bool(begin_result.get("duplicate", false)):
 			_active_combat_encounter_id = encounter_id
+	_begin_combat_music_profile(encounter_id)
 	super._start_turn_based_combat(trigger_target)
 
 
 func _stop_turn_based_combat(message: String) -> void:
 	_resolve_active_combat_encounter_if_complete()
+	_end_combat_music_profile()
 	_active_combat_encounter_id = ""
 	super._stop_turn_based_combat(message)
 
@@ -41,6 +43,7 @@ func handle_player_defeat(source: Node = null) -> void:
 			true,
 			true
 		)
+	_end_combat_music_profile()
 	_active_combat_encounter_id = ""
 	await super.handle_player_defeat(source)
 
@@ -51,6 +54,61 @@ func get_active_combat_encounter_id() -> String:
 
 func get_active_combat_encounter_id_for_testing() -> String:
 	return get_active_combat_encounter_id()
+
+
+func request_combat_music_climax(
+	trigger_id: StringName,
+	source_id: String = ""
+) -> bool:
+	var registry: Node = get_tree().root.get_node_or_null("CombatMusicProfileRegistry")
+	if registry == null or not registry.has_method("request_climax"):
+		return false
+	return bool(registry.call(
+		"request_climax",
+		get_instance_id(),
+		trigger_id,
+		source_id
+	))
+
+
+func set_combat_music_profile(
+	profile_id: StringName,
+	trigger_id: StringName = &"",
+	source_id: String = ""
+) -> bool:
+	var registry: Node = get_tree().root.get_node_or_null("CombatMusicProfileRegistry")
+	if registry == null or not registry.has_method("set_profile"):
+		return false
+	return bool(registry.call(
+		"set_profile",
+		get_instance_id(),
+		profile_id,
+		trigger_id,
+		source_id
+	))
+
+
+func get_active_combat_music_profile() -> StringName:
+	var registry: Node = get_tree().root.get_node_or_null("CombatMusicProfileRegistry")
+	if registry == null or not registry.has_method("get_profile"):
+		return &"standard"
+	return StringName(str(registry.call(
+		"get_profile",
+		get_instance_id(),
+		_active_combat_encounter_id
+	)))
+
+
+func _begin_combat_music_profile(encounter_id: String) -> void:
+	var registry: Node = get_tree().root.get_node_or_null("CombatMusicProfileRegistry")
+	if registry != null and registry.has_method("begin_combat"):
+		registry.call("begin_combat", get_instance_id(), encounter_id)
+
+
+func _end_combat_music_profile() -> void:
+	var registry: Node = get_tree().root.get_node_or_null("CombatMusicProfileRegistry")
+	if registry != null and registry.has_method("end_combat"):
+		registry.call("end_combat", get_instance_id(), true)
 
 
 func _resolve_active_combat_encounter_if_complete() -> void:

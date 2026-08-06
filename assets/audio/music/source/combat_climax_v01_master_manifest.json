@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "composition_id": "combat_climax_v01",
+  "title_ru": "Сталь в огне",
+  "render_id": "combat_climax_v01_master_candidate_01",
+  "status": "integrated_master_candidate",
+  "renderer": "procedural_combat_climax_renderer_v01",
+  "arrangement_revision": 1,
+  "numpy_version": "2.3.5",
+  "external_samples_used": false,
+  "sample_rate": 48000,
+  "channels": 2,
+  "tempo_bpm": 96,
+  "time_signature": [
+    6,
+    8
+  ],
+  "bars": 40,
+  "duration_seconds": 75.0,
+  "midi_note_count": 515,
+  "peak_dbfs": -1.0,
+  "rms_dbfs": -13.773,
+  "boundary_value_delta": 0.0,
+  "boundary_slope_delta": 0.0,
+  "ogg_bytes": 1288383,
+  "ogg_sha256": "74f55076709e5525ad226e8454350f69fd09cac3278669ca9b282ae37df6b2ea",
+  "wav_sha256": "dc2b7b06e3a1502c4464ee74ffe36f15f21a425d0fe36909df1d2c25d5f3b98a",
+  "midi_sha256": "d902be6a2f19932e9a3bef107dce85487d8c50ff532775679027fdb14e12e1ad",
+  "source_score_sha256": "348b78f604ee99b0dec56312bdaa10457c133d2e50c4555bd4bee59d949937fc",
+  "pcm_signature_shift_bits": 8,
+  "pcm_signature_sha256": "607ecee3b38e8b2eaad8ac4a499c53037b6ac2398bfa8c5c8db42c7f25946c49",
+  "combat_profile": [
+    "event-driven climax only",
+    "tempo-compatible with combat_standard_v01",
+    "continuous six-eighth martial drive",
+    "double-layer short-string ostinato",
+    "dense war drums and frame-snare",
+    "expanded brass calls",
+    "low synthetic choir pressure",
+    "loop return without victory cadence"
+  ]
+}

@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "catalog_id": "chronicles_of_the_wanderer_music_v01",
-  "asset_status": "main_theme_exploration_combat_start_and_aftermath_integrated",
+  "asset_status": "main_theme_exploration_standard_climax_start_and_aftermath_integrated",
   "contexts": {
     "main_menu": {
       "track_id": "main_theme",
@@ -78,11 +78,18 @@
       "sharpness_pass": "approved_2026-08-06"
     },
     "combat_climax": {
-      "path": "",
-      "enabled": false,
+      "path": "res://assets/audio/music/exports/combat_climax_v01_master.ogg",
+      "enabled": true,
       "bus": "Music",
-      "volume_db": -3.0,
-      "loop": true
+      "volume_db": -5.5,
+      "loop": true,
+      "render_status": "master_candidate",
+      "composition_id": "combat_climax_v01",
+      "render_id": "combat_climax_v01_master_candidate_01",
+      "arrangement_revision": 1,
+      "combat_profile": "event_driven_climax",
+      "tempo_bpm": 96,
+      "trigger_contract": "explicit_phase_event_only"
     },
     "aftermath": {
       "path": "res://assets/audio/music/exports/aftermath_v01_master.ogg",
