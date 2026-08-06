@@ -1,7 +1,7 @@
 [gd_scene load_steps=11 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/game/game_base.tscn" id="1_base"]
-[ext_resource type="Script" path="res://scripts/game/game_party_combat_polish_runtime.gd" id="2_feature"]
+[ext_resource type="Script" path="res://scripts/game/game_party_medicine_recovery_runtime.gd" id="2_feature"]
 [ext_resource type="Script" path="res://scripts/game/guard_post_two_room_visibility.gd" id="3_two_room"]
 [ext_resource type="Script" path="res://scripts/game/npc_stealth_context_dialogue.gd" id="4_context_npc"]
 [ext_resource type="Script" path="res://scripts/ui/mobile_controls_party_routing.gd" id="5_mobile_context"]
