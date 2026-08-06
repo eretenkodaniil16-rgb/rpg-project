@@ -16,6 +16,7 @@ on:
       - "scripts/game/game_party_exploration_runtime.gd"
       - "scripts/game/game_party_target_runtime.gd"
       - "scripts/game/game_party_combat_polish_runtime.gd"
+      - "scripts/game/game_party_medicine_recovery_runtime.gd"
       - "scripts/game/game_guard_post_polish_runtime.gd"
       - "scripts/ui/mobile_controls_party_routing.gd"
       - "scripts/ui/party_menu_ui.gd"
@@ -24,6 +25,7 @@ on:
       - "tests/smoke_controllable_ally_runtime.gd"
       - "tests/smoke_controllable_ally_controls.gd"
       - "tests/smoke_controllable_ally_controls_detailed.gd"
+      - "tests/smoke_controllable_ally_medicine_recovery.gd"
       - "tests/smoke_party_menu_exploration_control.gd"
       - "tests/smoke_party_combat_control_context.gd"
       - "tests/smoke_party_combat_targeting_polish.gd"
@@ -44,7 +46,7 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 38
+    timeout-minutes: 42
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -112,6 +114,17 @@ jobs:
             exit "$result"
           fi
 
+      - name: Simulate Medicine and long-rest recovery
+        shell: bash
+        run: |
+          set +e
+          timeout 60s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_controllable_ally_medicine_recovery.gd 2>&1 | tee controllable-ally-medicine.log
+          result=${PIPESTATUS[0]}
+          if [ "$result" -ne 0 ]; then
+            while IFS= read -r line; do echo "::error::$line"; done < <(tail -n 220 controllable-ally-medicine.log)
+            exit "$result"
+          fi
+
       - name: Simulate enemy damage against ally
         shell: bash
         run: |
@@ -157,6 +170,7 @@ jobs:
             controllable-ally-controls.log
             party-menu-exploration.log
             party-combat-targeting-polish.log
+            controllable-ally-medicine.log
             controllable-ally-damage.log
             controllable-ally-item-use.log
             controllable-ally-guard-post.log
