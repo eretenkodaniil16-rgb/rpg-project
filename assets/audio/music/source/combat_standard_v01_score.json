@@ -1,0 +1,275 @@
+{
+  "schema_version": 1,
+  "composition_id": "combat_standard_v01",
+  "title_ru": "Сталь и пепел",
+  "arrangement_revision": 2,
+  "tempo_bpm": 96,
+  "time_signature": [
+    6,
+    8
+  ],
+  "bars": 40,
+  "tonal_center": "D",
+  "mode_profile": "D minor with Phrygian pressure and martial pedal",
+  "leitmotif": [
+    "D",
+    "A",
+    "C",
+    "Eb",
+    "D"
+  ],
+  "external_samples_used": false,
+  "design_goal": "Резкая базовая тема пошагового боя: мгновенный удар, жёсткий маршевый пульс, рубленая медь и короткие провалы перед повторными атаками.",
+  "sections": [
+    {
+      "bars": "1-4",
+      "id": "impact",
+      "purpose": "мгновенный вход и первый удар"
+    },
+    {
+      "bars": "5-12",
+      "id": "advance",
+      "purpose": "жёсткий боевой марш"
+    },
+    {
+      "bars": "13-20",
+      "id": "counterattack",
+      "purpose": "рубленая медь и встречный ритм"
+    },
+    {
+      "bars": "21-30",
+      "id": "clash",
+      "purpose": "главная плотность обычного боя"
+    },
+    {
+      "bars": "31-36",
+      "id": "breach",
+      "purpose": "паузы перед тяжёлыми возвратами"
+    },
+    {
+      "bars": "37-40",
+      "id": "loop_return",
+      "purpose": "возврат к первому удару без победной каденции"
+    }
+  ],
+  "instrumentation": [
+    "low bowed strings",
+    "aggressive short strings",
+    "martial synthetic brass",
+    "war drums",
+    "frame-snare hits",
+    "low synthetic choir",
+    "metal impacts",
+    "air texture"
+  ],
+  "sharpness_pass": [
+    "first-bar impact",
+    "continuous eighth-note combat ostinato",
+    "hard brass stabs",
+    "double-hit war drums",
+    "breath gaps before impacts",
+    "denser central clash"
+  ],
+  "harmony": [
+    [
+      "D2",
+      "A2",
+      "Eb2"
+    ],
+    [
+      "D2",
+      "A2",
+      "C2"
+    ],
+    [
+      "Bb1",
+      "F2",
+      "E2"
+    ],
+    [
+      "A1",
+      "E2",
+      "Eb2"
+    ],
+    [
+      "D2",
+      "A2",
+      "Eb2"
+    ],
+    [
+      "F1",
+      "C2",
+      "Gb2"
+    ],
+    [
+      "G1",
+      "D2",
+      "Db2"
+    ],
+    [
+      "A1",
+      "E2",
+      "Eb2"
+    ],
+    [
+      "D2",
+      "A2",
+      "C2"
+    ],
+    [
+      "Bb1",
+      "F2",
+      "E2"
+    ],
+    [
+      "Eb2",
+      "Bb2",
+      "A2"
+    ],
+    [
+      "A1",
+      "E2",
+      "Eb2"
+    ],
+    [
+      "D2",
+      "A2",
+      "Eb2"
+    ],
+    [
+      "F1",
+      "C2",
+      "Gb2"
+    ],
+    [
+      "Bb1",
+      "F2",
+      "E2"
+    ],
+    [
+      "A1",
+      "E2",
+      "Eb2"
+    ],
+    [
+      "D2",
+      "A2",
+      "C2"
+    ],
+    [
+      "G1",
+      "D2",
+      "Db2"
+    ],
+    [
+      "D2",
+      "A2",
+      "Eb2"
+    ],
+    [
+      "Eb2",
+      "Bb2",
+      "A2"
+    ],
+    [
+      "F1",
+      "C2",
+      "Gb2"
+    ],
+    [
+      "G1",
+      "D2",
+      "Db2"
+    ],
+    [
+      "Bb1",
+      "F2",
+      "E2"
+    ],
+    [
+      "A1",
+      "E2",
+      "Eb2"
+    ],
+    [
+      "D2",
+      "A2",
+      "C2"
+    ],
+    [
+      "A1",
+      "E2",
+      "Eb2"
+    ],
+    [
+      "D2",
+      "A2",
+      "Eb2"
+    ],
+    [
+      "F1",
+      "C2",
+      "Gb2"
+    ],
+    [
+      "G1",
+      "D2",
+      "Db2"
+    ],
+    [
+      "A1",
+      "E2",
+      "Eb2"
+    ],
+    [
+      "Bb1",
+      "F2",
+      "E2"
+    ],
+    [
+      "A1",
+      "E2",
+      "Eb2"
+    ],
+    [
+      "D2",
+      "A2",
+      "C2"
+    ],
+    [
+      "Eb2",
+      "Bb2",
+      "A2"
+    ],
+    [
+      "F1",
+      "C2",
+      "Gb2"
+    ],
+    [
+      "A1",
+      "E2",
+      "Eb2"
+    ],
+    [
+      "D2",
+      "A2",
+      "C2"
+    ],
+    [
+      "Bb1",
+      "F2",
+      "E2"
+    ],
+    [
+      "A1",
+      "E2",
+      "Eb2"
+    ],
+    [
+      "D2",
+      "A2",
+      "Eb2"
+    ]
+  ]
+}
