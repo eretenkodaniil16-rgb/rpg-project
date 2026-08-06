@@ -9,6 +9,7 @@ const FOLLOW_PATH_REFRESH_SECONDS: float = 0.30
 const FOLLOW_WAYPOINT_REACHED_PIXELS: float = 10.0
 const FOLLOW_STUCK_SECONDS: float = 0.55
 const FOLLOW_ROUTE_BUDGET_FEET: int = 300
+const FOLLOW_SPEED_PIXELS: float = 150.0
 const FOLLOW_NEIGHBOR_OFFSETS: Array[Vector2i] = [
 	Vector2i.LEFT,
 	Vector2i.RIGHT,
@@ -314,9 +315,8 @@ func _process_party_follow_navigation(delta: float) -> void:
 		_stop_external_follow_motion(ally)
 		return
 	var direction: Vector2 = offset.normalized()
-	var follow_speed: float = maxf(float(ally.get("follow_speed_pixels")), 1.0)
 	ally.call("set_facing_direction", direction)
-	ally.velocity = direction * follow_speed
+	ally.velocity = direction * FOLLOW_SPEED_PIXELS
 	ally.move_and_slide()
 	_update_follow_stuck_state(ally, delta)
 
