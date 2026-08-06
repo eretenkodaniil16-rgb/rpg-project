@@ -1,0 +1,275 @@
+{
+  "schema_version": 1,
+  "composition_id": "combat_climax_v01",
+  "title_ru": "Сталь в огне",
+  "arrangement_revision": 1,
+  "tempo_bpm": 96,
+  "time_signature": [
+    6,
+    8
+  ],
+  "bars": 40,
+  "duration_seconds": 75.0,
+  "tonal_center": "D",
+  "mode_profile": "D minor with Phrygian pressure, tritone colour and martial pedal",
+  "leitmotif": [
+    "D",
+    "Eb",
+    "F",
+    "A",
+    "D"
+  ],
+  "relationship_to_standard": "independent climax development at the same tempo and meter as combat_standard_v01",
+  "external_samples_used": false,
+  "design_goal": "Событийная кульминационная тема: плотнее стандартного боя, без привязки к проценту здоровья и без победной каденции.",
+  "sections": [
+    {
+      "bars": "1-4",
+      "id": "breach",
+      "purpose": "немедленный фазовый прорыв"
+    },
+    {
+      "bars": "5-12",
+      "id": "pressure",
+      "purpose": "усиленный марш и плотная медь"
+    },
+    {
+      "bars": "13-20",
+      "id": "revelation",
+      "purpose": "раскрытие опасной способности"
+    },
+    {
+      "bars": "21-32",
+      "id": "climax",
+      "purpose": "максимальная плотность фазы"
+    },
+    {
+      "bars": "33-36",
+      "id": "counterforce",
+      "purpose": "короткое снижение перед возвратом"
+    },
+    {
+      "bars": "37-40",
+      "id": "loop_return",
+      "purpose": "бесшовный возврат без завершения боя"
+    }
+  ],
+  "instrumentation": [
+    "low bowed strings",
+    "double-layer short strings",
+    "martial synthetic brass",
+    "war drums",
+    "frame-snare hits",
+    "low synthetic choir",
+    "metal impacts",
+    "air texture"
+  ],
+  "trigger_contract": [
+    "boss_phase",
+    "reinforcement_arrival",
+    "dangerous_ability_reveal",
+    "scripted_condition_change"
+  ],
+  "harmony": [
+    [
+      "D2",
+      "A2",
+      "Eb2"
+    ],
+    [
+      "D2",
+      "A2",
+      "C2"
+    ],
+    [
+      "Bb1",
+      "F2",
+      "E2"
+    ],
+    [
+      "A1",
+      "E2",
+      "Eb2"
+    ],
+    [
+      "D2",
+      "A2",
+      "Eb2"
+    ],
+    [
+      "F1",
+      "C2",
+      "Gb2"
+    ],
+    [
+      "G1",
+      "D2",
+      "Db2"
+    ],
+    [
+      "A1",
+      "E2",
+      "Eb2"
+    ],
+    [
+      "D2",
+      "A2",
+      "C2"
+    ],
+    [
+      "Bb1",
+      "F2",
+      "E2"
+    ],
+    [
+      "Eb2",
+      "Bb2",
+      "A2"
+    ],
+    [
+      "A1",
+      "E2",
+      "Eb2"
+    ],
+    [
+      "D2",
+      "A2",
+      "Eb2"
+    ],
+    [
+      "F1",
+      "C2",
+      "Gb2"
+    ],
+    [
+      "Bb1",
+      "F2",
+      "E2"
+    ],
+    [
+      "A1",
+      "E2",
+      "Eb2"
+    ],
+    [
+      "D2",
+      "A2",
+      "C2"
+    ],
+    [
+      "G1",
+      "D2",
+      "Db2"
+    ],
+    [
+      "D2",
+      "A2",
+      "Eb2"
+    ],
+    [
+      "Eb2",
+      "Bb2",
+      "A2"
+    ],
+    [
+      "F1",
+      "C2",
+      "Gb2"
+    ],
+    [
+      "G1",
+      "D2",
+      "Db2"
+    ],
+    [
+      "Bb1",
+      "F2",
+      "E2"
+    ],
+    [
+      "A1",
+      "E2",
+      "Eb2"
+    ],
+    [
+      "D2",
+      "A2",
+      "C2"
+    ],
+    [
+      "A1",
+      "E2",
+      "Eb2"
+    ],
+    [
+      "D2",
+      "A2",
+      "Eb2"
+    ],
+    [
+      "F1",
+      "C2",
+      "Gb2"
+    ],
+    [
+      "G1",
+      "D2",
+      "Db2"
+    ],
+    [
+      "A1",
+      "E2",
+      "Eb2"
+    ],
+    [
+      "Bb1",
+      "F2",
+      "E2"
+    ],
+    [
+      "A1",
+      "E2",
+      "Eb2"
+    ],
+    [
+      "D2",
+      "A2",
+      "C2"
+    ],
+    [
+      "Eb2",
+      "Bb2",
+      "A2"
+    ],
+    [
+      "F1",
+      "C2",
+      "Gb2"
+    ],
+    [
+      "A1",
+      "E2",
+      "Eb2"
+    ],
+    [
+      "D2",
+      "A2",
+      "C2"
+    ],
+    [
+      "Bb1",
+      "F2",
+      "E2"
+    ],
+    [
+      "A1",
+      "E2",
+      "Eb2"
+    ],
+    [
+      "D2",
+      "A2",
+      "Eb2"
+    ]
+  ]
+}

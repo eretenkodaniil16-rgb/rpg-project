@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "catalog_id": "combat_music_profiles_v01",
+  "default_profile": "standard",
+  "valid_profiles": [
+    "standard",
+    "climax",
+    "scripted"
+  ],
+  "encounters": {
+    "training_construct": {
+      "initial_profile": "standard",
+      "allowed_profiles": [
+        "standard",
+        "climax",
+        "scripted"
+      ]
+    },
+    "vault_guard_post_01": {
+      "initial_profile": "standard",
+      "allowed_profiles": [
+        "standard",
+        "climax",
+        "scripted"
+      ]
+    },
+    "vault_inner_watch_01": {
+      "initial_profile": "standard",
+      "allowed_profiles": [
+        "standard",
+        "climax",
+        "scripted"
+      ]
+    }
+  }
+}
