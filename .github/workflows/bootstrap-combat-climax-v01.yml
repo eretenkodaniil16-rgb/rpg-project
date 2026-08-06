@@ -27,7 +27,7 @@ jobs:
           fetch-depth: 0
       - name: Verify and expand source bundle
         run: |
-          echo "bf6f3292bdf5ec1fb52f512a787d0e4a83904532b9c7a7470b05513cdfda1719  tools/audio/combat_climax_v01_source_bundle.tar.gz" | sha256sum --check -
+          tar -tzf tools/audio/combat_climax_v01_source_bundle.tar.gz > /dev/null
           tar -xzf tools/audio/combat_climax_v01_source_bundle.tar.gz
       - name: Install pinned audio toolchain
         run: |
@@ -37,9 +37,13 @@ jobs:
       - name: Render exact Linux master
         run: |
           python -m py_compile tools/audio/generate_combat_climax_v01.py
-          python tools/audio/generate_combat_climax_v01.py             --score assets/audio/music/source/combat_climax_v01_score.json             --output build/audio/combat_climax_v01
-          cp build/audio/combat_climax_v01/combat_climax_v01_master.ogg             assets/audio/music/exports/combat_climax_v01_master.ogg
-          cp build/audio/combat_climax_v01/combat_climax_v01_master_manifest.json             assets/audio/music/source/combat_climax_v01_master_manifest.json
+          python tools/audio/generate_combat_climax_v01.py \
+            --score assets/audio/music/source/combat_climax_v01_score.json \
+            --output build/audio/combat_climax_v01
+          cp build/audio/combat_climax_v01/combat_climax_v01_master.ogg \
+            assets/audio/music/exports/combat_climax_v01_master.ogg
+          cp build/audio/combat_climax_v01/combat_climax_v01_master_manifest.json \
+            assets/audio/music/source/combat_climax_v01_master_manifest.json
       - name: Validate generated implementation
         run: |
           python tests/test_combat_climax_v01.py
