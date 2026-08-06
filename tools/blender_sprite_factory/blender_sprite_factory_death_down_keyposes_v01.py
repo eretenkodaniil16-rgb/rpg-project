@@ -175,9 +175,9 @@ def _apply_gore_state(profile: object, frame_number: int) -> None:
 
 def _upper_body_offset(frame_number: int) -> tuple[float, float, float]:
     if frame_number == 4:
-        return (0.78, -0.38, 0.18)
+        return (0.55, -0.30, 0.45)
     if frame_number == 5:
-        return (1.05, -0.52, 0.10)
+        return (0.66, -0.40, 0.55)
     return (0.0, 0.0, 0.0)
 
 

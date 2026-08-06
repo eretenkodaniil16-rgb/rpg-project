@@ -47,7 +47,7 @@ def _create_gore_modules_v01(context: factory.BuildContext) -> None:
     upper_cap = factory._ellipsoid(
         _GORE_UPPER_CUT_CAP,
         (0.0, -0.01, 2.38),
-        (0.30, 0.22, 0.095),
+        (0.20, 0.15, 0.070),
         context.materials["scarf"],
         segments=10,
         rings=5,
@@ -61,7 +61,7 @@ def _create_gore_modules_v01(context: factory.BuildContext) -> None:
     lower_cap = factory._ellipsoid(
         _GORE_LOWER_CUT_CAP,
         (0.0, -0.01, 2.31),
-        (0.32, 0.23, 0.10),
+        (0.22, 0.16, 0.075),
         context.materials["scarf"],
         segments=10,
         rings=5,
