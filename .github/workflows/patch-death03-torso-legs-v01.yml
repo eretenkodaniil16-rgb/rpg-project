@@ -1,0 +1,61 @@
+name: Patch death03 torso legs v01
+
+on:
+  push:
+    branches:
+      - tools/human-warrior-death-down-keyposes-v01
+    paths:
+      - ".github/workflows/patch-death03-torso-legs-v01.yml"
+      - "tools/blender_sprite_factory/patch_death03_torso_legs_v01.py"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: patch-death03-torso-legs-v01-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  patch:
+    runs-on: ubuntu-slim
+    timeout-minutes: 15
+    steps:
+      - name: Checkout art branch
+        uses: actions/checkout@v4
+        with:
+          ref: tools/human-warrior-death-down-keyposes-v01
+
+      - name: Apply torso and legs replacement
+        run: python tools/blender_sprite_factory/patch_death03_torso_legs_v01.py
+
+      - name: Compile changed Python files
+        run: |
+          python -m py_compile \
+            tools/blender_sprite_factory/death_down_keyposes_profile_v01.py \
+            tools/blender_sprite_factory/death_down_keyposes_builder_v01.py \
+            tools/blender_sprite_factory/blender_sprite_factory_death_down_keyposes_v01.py \
+            tools/blender_sprite_factory/tests/test_death_down_keyposes_v01.py
+
+      - name: Run focused static tests
+        env:
+          PYTHONPATH: .
+        run: python -m unittest tools.blender_sprite_factory.tests.test_death_down_keyposes_v01
+
+      - name: Commit permanent files
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add \
+            tools/blender_sprite_factory/death_down_keyposes_profile_v01.py \
+            tools/blender_sprite_factory/death_down_keyposes_builder_v01.py \
+            tools/blender_sprite_factory/blender_sprite_factory_death_down_keyposes_v01.py \
+            tools/blender_sprite_factory/tests/test_death_down_keyposes_v01.py \
+            docs/HUMAN_WARRIOR_DEATH_DOWN_KEYPOSES_V01.md
+          if git diff --cached --quiet; then
+            echo "Torso/legs patch is already applied."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "art: заменить death_03 на разделение туловища и ног"
+          git push origin HEAD:tools/human-warrior-death-down-keyposes-v01
