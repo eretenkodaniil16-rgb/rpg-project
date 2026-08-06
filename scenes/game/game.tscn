@@ -1,7 +1,7 @@
 [gd_scene load_steps=12 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/game/game_base.tscn" id="1_base"]
-[ext_resource type="Script" path="res://scripts/game/game_party_navigation_follow_runtime.gd" id="2_feature"]
+[ext_resource type="Script" path="res://scripts/game/game_party_target_memory_runtime.gd" id="2_feature"]
 [ext_resource type="Script" path="res://scripts/game/guard_post_party_visibility.gd" id="3_two_room"]
 [ext_resource type="Script" path="res://scripts/game/npc_stealth_context_dialogue.gd" id="4_context_npc"]
 [ext_resource type="Script" path="res://scripts/ui/mobile_controls_party_routing.gd" id="5_mobile_context"]
