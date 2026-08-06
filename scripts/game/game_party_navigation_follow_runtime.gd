@@ -18,6 +18,29 @@ var _party_follow_portal_goal: Vector2 = Vector2.INF
 var _party_follow_portal_provider_id: int = 0
 
 
+func _begin_current_turn() -> void:
+	var previous_actor: Node = _party_control_context.active_actor()
+	if is_instance_valid(previous_actor) and _target_is_valid(_selected_target):
+		_party_control_context.set_target(previous_actor, _selected_target)
+
+	super._begin_current_turn()
+	if not _turn_system.active:
+		return
+	var actor: Node = _turn_system.current_actor()
+	if actor != player and actor != _controllable_ally:
+		return
+
+	_party_control_context.begin_turn(actor)
+	var actor_target: Node = _party_control_context.target_for(actor)
+	if _target_is_valid(actor_target):
+		_set_selected_target(actor_target)
+	else:
+		_set_selected_target(null)
+	_update_target_label()
+	_refresh_action_catalog()
+	_refresh_party_menu()
+
+
 func _process_party_follow_navigation(delta: float) -> void:
 	if not is_instance_valid(_controllable_ally) or not _controllable_ally is CharacterBody2D:
 		_release_external_follow_control()
