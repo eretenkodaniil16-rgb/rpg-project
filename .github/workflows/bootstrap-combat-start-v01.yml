@@ -5,7 +5,6 @@ on:
     branches:
       - feature/combat-start-v01
     paths:
-      - "tools/audio/combat_start_v01_bundle.tar.gz"
       - ".github/workflows/bootstrap-combat-start-v01.yml"
   workflow_dispatch:
 
@@ -33,15 +32,13 @@ jobs:
           sudo apt-get install --yes ffmpeg
           python -m pip install --disable-pip-version-check --upgrade "numpy==2.3.5"
 
-      - name: Expand implementation bundle
-        run: tar -xzf tools/audio/combat_start_v01_bundle.tar.gz
-
       - name: Render exact Linux game cue
         run: |
           python -m py_compile tools/audio/generate_combat_start_v01.py
           python tools/audio/generate_combat_start_v01.py \
             --score assets/audio/music/source/combat_start_v01_score.json \
             --output build/audio/combat_start_v01
+          mkdir -p assets/audio/music/exports assets/audio/music/source
           cp build/audio/combat_start_v01/combat_start_v01_master.ogg \
             assets/audio/music/exports/combat_start_v01_master.ogg
           cp build/audio/combat_start_v01/combat_start_v01_master_manifest.json \
@@ -52,29 +49,17 @@ jobs:
           python tests/test_combat_start_v01.py
           python tests/test_music_system_foundation.py
 
-      - name: Commit combat start implementation
+      - name: Commit generated cue and remove failed bundle
         env:
           HEAD_BRANCH: feature/combat-start-v01
         run: |
-          rm tools/audio/combat_start_v01_bundle.tar.gz
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .github/workflows/validate-combat-start-v01.yml
-          git add assets/audio/music/source/combat_start_v01_score.json
-          git add assets/audio/music/source/combat_start_v01_provenance.json
-          git add assets/audio/music/source/combat_start_v01_master_manifest.json
+          rm -f tools/audio/combat_start_v01_bundle.tar.gz
           git add -f assets/audio/music/exports/combat_start_v01_master.ogg
-          git add data/audio/music_catalog.json
-          git add docs/COMBAT_START_V01.md
-          git add project.godot
-          git add scripts/audio/music_combat_transition_tracker.gd
-          git add scripts/audio/music_combat_start_resolver.gd
-          git add tests/test_combat_start_v01.py
-          git add tests/test_music_combat_transition_tracker.gd
-          git add tests/test_combat_start_music.gd
-          git add tools/audio/generate_combat_start_v01.py
+          git add assets/audio/music/source/combat_start_v01_master_manifest.json
           git add -u tools/audio/combat_start_v01_bundle.tar.gz
-          git commit -m "feat(audio): добавить stinger начала боя v01"
+          git commit -m "feat(audio): сгенерировать stinger начала боя v01"
           git push origin "HEAD:${HEAD_BRANCH}"
 
       - name: Upload listening artifacts
