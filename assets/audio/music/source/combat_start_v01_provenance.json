@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "composition_id": "combat_start_v01",
+  "title_ru": "Первый удар",
+  "original_for_project": true,
+  "created_for": "Хроники странника",
+  "arrangement_revision": 1,
+  "renderer": "procedural_combat_start_renderer_v01",
+  "external_recordings_used": false,
+  "external_samples_used": false,
+  "imported_midi_used": false,
+  "third_party_melodies_used": false,
+  "license_note": "Оригинальный процедурный cue проекта; внешние записи, сэмплы и защищённые мелодии не использованы.",
+  "approved_scope": "Короткий stinger начала стандартного пошагового боя; не используется при загрузке сохранения внутри боя и не повторяется по ходам или раундам."
+}
