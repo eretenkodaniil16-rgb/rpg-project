@@ -1,7 +1,7 @@
 extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
-const MEDICINE_LABEL: String = "МЕДИЦИНА: СТАБИЛИЗИРОВАТЬ"
+const MEDICINE_LABEL: String = "МЕДИЦИНА: СТАБИЛИЗИРОВАТЬ ИРИНУ"
 
 var _completed: bool = false
 var _stage: String = "init"
@@ -49,7 +49,7 @@ func _run() -> void:
 	_stage = "exploration_action"
 	var entries: Dictionary = game.call("get_action_catalog_entries_for_testing") as Dictionary
 	if not _has_action_label(entries, MEDICINE_LABEL):
-		_fail("Exploration action catalogue does not expose the Medicine action.")
+		_fail("Exploration action catalogue does not expose Irina stabilization.")
 		return
 
 	_stage = "failed_check"
