@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "composition_id": "aftermath_v01",
+  "title_ru": "После клинков",
+  "render_id": "aftermath_v01_master_candidate_01",
+  "arrangement_revision": 1,
+  "tempo_bpm": 72,
+  "time_signature": [6, 8],
+  "bars": 9,
+  "duration_seconds": 22.5,
+  "tonal_center": "D",
+  "mode": "D minor with Phrygian colour",
+  "motif_notes": ["D", "A", "C", "Eb", "D"],
+  "dramatic_profile": "exhausted_uneasy_release",
+  "external_samples_used": false,
+  "seed": 24080601
+}

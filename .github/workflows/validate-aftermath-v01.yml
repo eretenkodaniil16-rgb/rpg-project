@@ -1,0 +1,92 @@
+name: Validate aftermath v01
+
+on:
+  pull_request:
+    paths:
+      - "assets/audio/music/source/aftermath_v01_score.json"
+      - "assets/audio/music/source/aftermath_v01_provenance.json"
+      - "assets/audio/music/source/aftermath_v01_master_manifest.json"
+      - "assets/audio/music/exports/aftermath_v01_master.ogg"
+      - "data/audio/music_catalog.json"
+      - "project.godot"
+      - "scripts/audio/music_aftermath_transition_tracker.gd"
+      - "scripts/audio/music_aftermath_resolver.gd"
+      - "scripts/audio/music_threat_state_resolver.gd"
+      - "scripts/systems/combat_outcome_registry.gd"
+      - "scripts/game/game_encounters_runtime.gd"
+      - "tools/audio/generate_aftermath_v01.py"
+      - "tests/test_aftermath_v01.py"
+      - "tests/test_music_aftermath_transition_tracker.gd"
+      - "tests/test_combat_outcome_registry.gd"
+      - "tests/test_aftermath_music.gd"
+      - "docs/AFTERMATH_V01.md"
+      - ".github/workflows/validate-aftermath-v01.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aftermath-v01-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned audio toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes ffmpeg
+          python -m pip install --disable-pip-version-check --upgrade "numpy==2.3.5"
+      - name: Render independent candidate
+        run: |
+          python -m py_compile tools/audio/generate_aftermath_v01.py
+          python tools/audio/generate_aftermath_v01.py --score assets/audio/music/source/aftermath_v01_score.json --output build/audio/aftermath_v01
+      - name: Validate static and PCM contracts
+        run: |
+          python tests/test_aftermath_v01.py
+          python tests/test_music_system_foundation.py
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          expected = json.loads(Path("assets/audio/music/source/aftermath_v01_master_manifest.json").read_text())
+          rendered = json.loads(Path("build/audio/aftermath_v01/aftermath_v01_master_manifest.json").read_text())
+          for key in ("renderer", "arrangement_revision", "numpy_version", "duration_seconds", "midi_sha256", "pcm_signature_shift_bits", "pcm_signature_sha256", "peak_dbfs", "rms_dbfs", "final_100ms_peak_dbfs"):
+              assert rendered[key] == expected[key], (key, rendered[key], expected[key])
+          PY
+      - name: Download Godot 4.7.1 Standard
+        run: |
+          curl --location --fail --retry 4 --retry-all-errors --retry-delay 3 --connect-timeout 20 --max-time 180 --output godot.zip "https://downloads.godotengine.org/?flavor=stable&platform=linux.64&slug=linux.x86_64.zip&version=4.7.1"
+          unzip -q godot.zip
+          chmod +x Godot_v4.7.1-stable_linux.x86_64
+      - name: Import project and reject parser errors
+        run: |
+          rm -rf .godot
+          set -o pipefail
+          timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --editor --path "$GITHUB_WORKSPACE" --quit 2>&1 | tee aftermath-import.log
+          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script" aftermath-import.log; then exit 1; fi
+      - name: Test outcome registry
+        run: |
+          timeout 90s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_combat_outcome_registry.gd 2>&1 | tee aftermath-registry-test.log
+          grep -F "Combat outcome registry tests passed." aftermath-registry-test.log
+      - name: Test transition tracker
+        run: |
+          timeout 90s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_music_aftermath_transition_tracker.gd 2>&1 | tee aftermath-tracker-test.log
+          grep -F "Music aftermath transition tracker tests passed." aftermath-tracker-test.log
+      - name: Test aftermath playback
+        run: |
+          timeout 90s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/test_aftermath_music.gd 2>&1 | tee aftermath-runtime-test.log
+          grep -F "Aftermath music tests passed." aftermath-runtime-test.log
+      - name: Upload listening and diagnostics artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aftermath-v01-preview
+          path: |
+            build/audio/aftermath_v01/
+            aftermath-*.log
+          if-no-files-found: ignore
+          retention-days: 14

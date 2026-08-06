@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "composition_id": "aftermath_v01",
+  "title_ru": "После клинков",
+  "render_id": "aftermath_v01_master_candidate_01",
+  "status": "integrated_master_candidate",
+  "renderer": "procedural_aftermath_renderer_v01",
+  "arrangement_revision": 1,
+  "numpy_version": "2.3.5",
+  "external_samples_used": false,
+  "sample_rate": 48000,
+  "channels": 2,
+  "tempo_bpm": 72,
+  "time_signature": [
+    6,
+    8
+  ],
+  "bars": 9,
+  "duration_seconds": 22.5,
+  "midi_note_count": 15,
+  "peak_dbfs": -2.0,
+  "rms_dbfs": -16.277,
+  "final_100ms_peak_dbfs": -75.223,
+  "boundary_value_delta": 0.0,
+  "ogg_bytes": 426844,
+  "ogg_sha256": "1a1cc9cfdb84fd1f571bbfc381e516568624e4800b6963e02bf76e623ce697b8",
+  "wav_sha256": "aaf1d3cdf531481bc5de9526ee3bacfdc52a3a9f4b4342a3f1db7a41dd1d53dd",
+  "midi_sha256": "5fb5a56f2c0958ce94e23144f4f6db1d065cac2a898df293aea4165383985d8e",
+  "source_score_sha256": "70a91b7a39468f17f5e3ae2b6773aa42e92c41aa86e0332bdea63bda2e316e2a",
+  "pcm_signature_shift_bits": 8,
+  "pcm_signature_sha256": "82a15db7a697522d3217026757e44caf999506499347b818cb6d017e1ebf9fa8",
+  "outcome_profile": [
+    "victory_only",
+    "escape_skips",
+    "defeat_skips",
+    "scripted_end_skips"
+  ]
+}
