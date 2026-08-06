@@ -28,6 +28,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          (cd tools/loading_screen_visual_v02_transport && sha256sum --check parts.sha256)
           cat tools/loading_screen_visual_v02_transport/parts/part_*.b64 > /tmp/loading_screen_visual_v02_patch.b64
           base64 --decode /tmp/loading_screen_visual_v02_patch.b64 > /tmp/loading_screen_visual_v02_patch.tar.gz
           echo "f6d2723ac8123a538b62513dd22b2c0910778034c4c11e37962110635652b544  /tmp/loading_screen_visual_v02_patch.tar.gz" | sha256sum --check
