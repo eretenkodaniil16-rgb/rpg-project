@@ -27,6 +27,7 @@ jobs:
           fetch-depth: 0
       - name: Reassemble and expand source bundle
         run: |
+          # Transport revision 04: all eight UTF-8 chunks are Git-blob verified.
           cat tools/audio/combat_climax_v01_source_bundle.part* > /tmp/combat-climax.b64
           base64 --decode /tmp/combat-climax.b64 > /tmp/combat-climax.tar.gz
           echo "bf6f3292bdf5ec1fb52f512a787d0e4a83904532b9c7a7470b05513cdfda1719  /tmp/combat-climax.tar.gz" | sha256sum --check -
