@@ -1,0 +1,73 @@
+name: Materialize scene transitions v01
+
+on:
+  push:
+    branches:
+      - feat/async-scene-transitions-v01
+    paths:
+      - "tools/scene_transition_v01_patch/READY"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: materialize-scene-transitions-v01
+  cancel-in-progress: false
+
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout target branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Import approved loading bar v03
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --depth=1 origin art/loading-screen-textures-v01
+          git checkout FETCH_HEAD -- \
+            assets/branding/loading_screen/approved/loading_bar_v03/loading_bar_center_rune_v03.png \
+            assets/branding/loading_screen/approved/loading_bar_v03/loading_bar_fill_v03.png \
+            assets/branding/loading_screen/approved/loading_bar_v03/loading_bar_glint_v03.png \
+            assets/branding/loading_screen/approved/loading_bar_v03/loading_bar_left_cap_v03.png \
+            assets/branding/loading_screen/approved/loading_bar_v03/loading_bar_track_v03.png \
+            scenes/ui/loading_progress_bar_v03.tscn \
+            scripts/ui/loading_progress_bar_v03.gd
+
+      - name: Patch existing transition call sites
+        run: python tools/scene_transition_v01_patch/apply_patch.py
+
+      - name: Remove obsolete loading transport from merged PR 95
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/materialize-loading-screen-visual-v02.yml
+          rm -rf assets/branding/loading_screen/embedded/loading_screen_visual_v02
+          rm -rf tools/loading_screen_visual_v02_transport
+
+      - name: Remove one-shot materializer
+        shell: bash
+        run: |
+          rm -rf tools/scene_transition_v01_patch
+          rm -f .github/workflows/materialize-scene-transitions-v01.yml
+
+      - name: Validate materialized tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tests/test_scene_transition_manager.py
+          git diff --check
+
+      - name: Commit materialized integration
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat: интегрировать асинхронные загрузочные переходы"
+          git push origin HEAD:feat/async-scene-transitions-v01
