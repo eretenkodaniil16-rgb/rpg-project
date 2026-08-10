@@ -1,0 +1,47 @@
+name: Inspect loading v02 transport
+
+on:
+  push:
+    branches:
+      - tmp/loading-blob-transport-check
+    paths:
+      - ".github/workflows/inspect-loading-v02-transport.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout scratch branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Restore merged transport from main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git checkout origin/main -- tools/loading_screen_visual_v02_transport
+          (cd tools/loading_screen_visual_v02_transport && sha256sum --check parts.sha256)
+          cat tools/loading_screen_visual_v02_transport/parts/part_*.b64 > /tmp/loading_screen_visual_v02_patch.b64
+          base64 --decode /tmp/loading_screen_visual_v02_patch.b64 > /tmp/loading_screen_visual_v02_patch.tar.gz
+          echo "f6d2723ac8123a538b62513dd22b2c0910778034c4c11e37962110635652b544  /tmp/loading_screen_visual_v02_patch.tar.gz" | sha256sum --check
+
+      - name: Inspect package
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "=== TAR LIST ==="
+          tar -tzvf /tmp/loading_screen_visual_v02_patch.tar.gz
+          mkdir -p /tmp/loading-v02
+          tar -xzf /tmp/loading_screen_visual_v02_patch.tar.gz -C /tmp/loading-v02
+          echo "=== FILE SIZES AND SHA256 ==="
+          find /tmp/loading-v02 -type f -print0 | sort -z | xargs -0 sha256sum
+          echo "=== JSON MANIFESTS ==="
+          find /tmp/loading-v02 -type f -name '*.json' -print -exec cat {} \;
+          echo "=== DOC HEADERS ==="
+          find /tmp/loading-v02 -type f -name '*.md' -print -exec sed -n '1,220p' {} \;
