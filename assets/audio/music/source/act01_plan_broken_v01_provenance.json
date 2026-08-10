@@ -5,7 +5,7 @@
   "external_samples_used": false,
   "third_party_melodies_used": false,
   "generated_from_repository_score": true,
-  "creative_reference_note": "Оригинальный финал акта; использует собственные внутрипроектные мотивы героя и Безумного волшебника, без сторонних мелодий.",
-  "renderer": "procedural_narrative_music_renderer_v01",
-  "score_sha256": "d1717b12fd95e4ddaa506ccd235d03211e9ab7a65d255e7a15dc6239dde463a9"
+  "creative_reference_note": "Оригинальный финал первого акта; revision 02 использует только собственные внутрипроектные мотивы героя и Безумного волшебника, превращая полутоновые клетки в истерический panic loop с нерегулярной перкуссией и провалами, без сторонних мелодий.",
+  "renderer": "procedural_narrative_music_renderer_v02",
+  "score_sha256": "1919a4d9d11724e45da85c734891de9260b299d3334cdf106e0201a549681640"
 }
