@@ -21,6 +21,7 @@ on:
       - "assets/audio/music/exports/act01_plan_broken_v01_master.ogg"
       - "data/audio/music_catalog.json"
       - "tools/audio/generate_narrative_music_pack_v01.py"
+      - "tools/audio/generate_narrative_music_pack_v02.py"
       - "tests/test_narrative_music_pack_v01.py"
       - "tests/test_narrative_music_pack.gd"
       - "docs/NARRATIVE_MUSIC_PACK_V01.md"
@@ -48,20 +49,22 @@ jobs:
           python -m pip install --disable-pip-version-check --upgrade "numpy==2.3.5"
 
       - name: Validate static contracts
-        run: |
-          python tests/test_narrative_music_pack_v01.py
+        run: python tests/test_narrative_music_pack_v01.py
 
       - name: Render independent candidates
         run: |
           set -euo pipefail
           python -m py_compile tools/audio/generate_narrative_music_pack_v01.py
-          for cid in \
-            mad_wizard_theme_v01 \
-            tavern_commonroom_v01 \
-            elevator_descent_floor01_v01 \
-            act01_plan_broken_v01
+          python -m py_compile tools/audio/generate_narrative_music_pack_v02.py
+          for cid in mad_wizard_theme_v01 tavern_commonroom_v01
           do
             python tools/audio/generate_narrative_music_pack_v01.py \
+              --score "assets/audio/music/source/${cid}_score.json" \
+              --output "build/audio/narrative_music_pack_v01/${cid}"
+          done
+          for cid in elevator_descent_floor01_v01 act01_plan_broken_v01
+          do
+            python tools/audio/generate_narrative_music_pack_v02.py \
               --score "assets/audio/music/source/${cid}_score.json" \
               --output "build/audio/narrative_music_pack_v01/${cid}"
           done
@@ -71,34 +74,13 @@ jobs:
           python - <<'PY'
           import json
           from pathlib import Path
-
           root = Path(".")
-          cids = [
-              "mad_wizard_theme_v01",
-              "tavern_commonroom_v01",
-              "elevator_descent_floor01_v01",
-              "act01_plan_broken_v01",
-          ]
+          cids = ["mad_wizard_theme_v01", "tavern_commonroom_v01", "elevator_descent_floor01_v01", "act01_plan_broken_v01"]
           keys = (
-              "composition_id",
-              "score_sha256",
-              "renderer",
-              "arrangement_revision",
-              "numpy_version",
-              "sample_rate",
-              "channels",
-              "duration_seconds",
-              "tempo_bpm",
-              "time_signature",
-              "bars",
-              "loop",
-              "pcm_signature_shift_bits",
-              "pcm_signature_sha256",
-              "peak_dbfs",
-              "rms_dbfs",
-              "boundary_value_delta",
-              "boundary_slope_delta",
-              "midi_sha256",
+              "composition_id", "score_sha256", "renderer", "arrangement_revision", "numpy_version",
+              "sample_rate", "channels", "duration_seconds", "tempo_bpm", "time_signature", "bars", "loop",
+              "pcm_signature_shift_bits", "pcm_signature_sha256", "peak_dbfs", "rms_dbfs",
+              "boundary_value_delta", "boundary_slope_delta", "midi_sha256",
           )
           for cid in cids:
               expected = json.loads((root / f"assets/audio/music/source/{cid}_master_manifest.json").read_text())
@@ -133,8 +115,7 @@ jobs:
           grep -F "Narrative music pack v01 runtime tests passed." narrative-music-runtime.log
 
       - name: Recheck shared music system
-        run: |
-          python tests/test_music_system_foundation.py
+        run: python tests/test_music_system_foundation.py
 
       - name: Upload listening pack
         if: always()
