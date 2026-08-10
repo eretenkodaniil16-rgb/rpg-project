@@ -1,17 +1,17 @@
 {
   "composition_id": "act01_plan_broken_v01",
   "title_ru": "Когда башня отвечает",
-  "render_profile": "act01_failure_finale",
-  "arrangement_revision": 1,
-  "tempo_bpm": 68,
+  "render_profile": "act01_hysteric_panic_v02",
+  "arrangement_revision": 2,
+  "tempo_bpm": 82,
   "time_signature": [
     4,
     4
   ],
-  "bars": 24,
+  "bars": 27,
   "loop": false,
-  "tonal_center": "D",
-  "mode": "minor_chromatic_collapse",
+  "tonal_center": "D with obsessive D/Eb and A/Ab fracture",
+  "mode": "minor_chromatic_panic_collapse",
   "leitmotif": [
     "D",
     "Eb",
@@ -20,51 +20,41 @@
     "F",
     "D"
   ],
-  "dramatic_function": "act01_end_everything_went_wrong",
+  "dramatic_function": "act01_end_panic_everything_went_wrong",
   "external_samples_used": false,
   "third_party_melodies_used": false,
-  "duration_seconds": 84.70588235294117,
+  "duration_seconds": 79.02439024390245,
   "sections": [
     {
-      "bars": [
-        1,
-        6
-      ],
-      "id": "we_still_have_a_plan",
-      "description": "Знакомая героическая интонация звучит сдержанно и ещё кажется устойчивой."
+      "bars": [1, 5],
+      "id": "we_can_still_fix_this",
+      "description": "Знакомая интонация ещё пытается держать форму, но уже заикается и не получает нормального разрешения."
     },
     {
-      "bars": [
-        7,
-        12
-      ],
-      "id": "first_crack",
-      "description": "Гармония ломается, появляется мотив волшебника, начинается низкая перкуссия."
+      "bars": [6, 12],
+      "id": "panic_takes_the_pulse",
+      "description": "Полутоновая фигура начинает навязчиво повторяться; удары смещаются с сильных долей, словно музыка теряет дыхание."
     },
     {
-      "bars": [
-        13,
-        18
-      ],
-      "id": "the_plan_was_never_ours",
-      "description": "Хор и искажённый лейтмотив захватывают фактуру, исходная тема перестаёт разрешаться."
+      "bars": [13, 20],
+      "id": "everyone_is_talking_at_once",
+      "description": "Резкие тревожные стеклянные сигналы, короткие медные выкрики и учащённые повторы создают истерическую перегрузку."
     },
     {
-      "bars": [
-        19,
-        24
-      ],
-      "id": "tower_answers",
-      "description": "Тяжёлые удары, тревожные стеклянные сигналы и обрыв без победной каденции."
+      "bars": [21, 27],
+      "id": "the_tower_is_not_listening",
+      "description": "Фактура почти срывается в паническую петлю, дважды проваливается в краткую пустоту и возвращается ещё резче, заканчиваясь без развязки."
     }
   ],
   "orchestration": [
-    "bowed strings",
+    "nervous bowed strings",
     "low choir",
-    "dark brass",
-    "war drums",
-    "glass alarm",
-    "mechanical fracture"
+    "short dark brass stabs",
+    "irregular war drums",
+    "high glass alarms",
+    "mechanical fractures",
+    "whisper swells",
+    "panic semitone ostinato"
   ],
-  "ending_contract": "one-shot act finale; no triumph, unresolved collapse"
+  "ending_contract": "one-shot act finale; hysterical escalation, panic dropouts, abrupt unresolved ending"
 }
