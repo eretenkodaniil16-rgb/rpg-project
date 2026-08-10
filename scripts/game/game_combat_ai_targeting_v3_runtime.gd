@@ -392,7 +392,7 @@ func resolve_npc_attack(
 ) -> Dictionary:
 	var target: Node = _selected_party_target_for_attacker_v3(attacker)
 	if not is_instance_valid(target) or target == player:
-		return super.resolve_npc_attack(attacker, attack_bonus, damage_die, damage_bonus, damage_type)
+		return await super.resolve_npc_attack(attacker, attack_bonus, damage_die, damage_bonus, damage_type)
 	if not attacker is Node2D or not target is Node2D or not _enemy_party_target_is_available(target):
 		return {"hit": false}
 	var cover: Dictionary = _combat_environment.get_cover((attacker as Node2D).global_position, (target as Node2D).global_position) if _combat_environment != null else {"bonus": 0, "total_cover": false}
