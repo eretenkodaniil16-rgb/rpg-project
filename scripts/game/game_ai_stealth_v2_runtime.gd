@@ -139,10 +139,18 @@ func _update_exploration_actor(actor: Node, delta: float) -> void:
 	if profile.is_empty():
 		return
 	var record: Dictionary = _record_for_actor(actor_id)
+	# Preserve the mature guard-post patrol/navigation contract instead of
+	# replacing it with a simplified stealth-only movement branch.
+	record["step_retarget_cooldown_seconds"] = maxf(
+		float(record.get("step_retarget_cooldown_seconds", 0.0)) - maxf(delta, 0.0),
+		0.0
+	)
 	var visible: bool = _exploration_actor_can_see_player(actor, profile)
 	if not visible and _exploration_hidden:
 		visible = _active_search_finds_hidden_player(actor, profile, record, delta)
-	var target_hidden: bool = _exploration_hidden
+	# Once passive perception or an active Search actually detects the hero, the
+	# old hiding-spot discount must no longer suppress the visual observation.
+	var target_hidden: bool = _exploration_hidden and not visible
 	record = _stealth_alerts.apply_visual_observation(
 		record,
 		visible,
@@ -154,10 +162,9 @@ func _update_exploration_actor(actor: Node, delta: float) -> void:
 	if visible:
 		if _exploration_hidden:
 			_break_exploration_hidden("%s обнаружил героя." % _target_name(actor))
-		if actor.has_method("set_facing_direction"):
-			actor.call("set_facing_direction", player.global_position - (actor as Node2D).global_position)
+		record = _advance_visible_actor_behavior(actor, record, profile, delta)
 	else:
-		record = _advance_actor_investigation(actor, record, profile, delta)
+		record = _advance_unseen_actor_behavior(actor, record, profile, delta)
 	_alert_records[actor_id] = record
 	_apply_record_to_actor(actor, record)
 	if str(record.get("state", "")) == StealthAlertSystem.STATE_ALERTED and visible:
