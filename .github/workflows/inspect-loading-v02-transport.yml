@@ -1,4 +1,4 @@
-name: Inspect loading v02 transport
+name: Inspect loading blob transport
 
 on:
   push:
@@ -13,35 +13,18 @@ permissions:
 jobs:
   inspect:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     steps:
       - name: Checkout scratch branch
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Restore merged transport from main
+      - name: Verify transported c00 bytes
         shell: bash
         run: |
           set -euo pipefail
-          git fetch origin main
-          git checkout origin/main -- tools/loading_screen_visual_v02_transport
-          (cd tools/loading_screen_visual_v02_transport && sha256sum --check parts.sha256)
-          cat tools/loading_screen_visual_v02_transport/parts/part_*.b64 > /tmp/loading_screen_visual_v02_patch.b64
-          base64 --decode /tmp/loading_screen_visual_v02_patch.b64 > /tmp/loading_screen_visual_v02_patch.tar.gz
-          echo "f6d2723ac8123a538b62513dd22b2c0910778034c4c11e37962110635652b544  /tmp/loading_screen_visual_v02_patch.tar.gz" | sha256sum --check
-
-      - name: Inspect package
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo "=== TAR LIST ==="
-          tar -tzvf /tmp/loading_screen_visual_v02_patch.tar.gz
-          mkdir -p /tmp/loading-v02
-          tar -xzf /tmp/loading_screen_visual_v02_patch.tar.gz -C /tmp/loading-v02
-          echo "=== FILE SIZES AND SHA256 ==="
-          find /tmp/loading-v02 -type f -print0 | sort -z | xargs -0 sha256sum
-          echo "=== JSON MANIFESTS ==="
-          find /tmp/loading-v02 -type f -name '*.json' -print -exec cat {} \;
-          echo "=== DOC HEADERS ==="
-          find /tmp/loading-v02 -type f -name '*.md' -print -exec sed -n '1,220p' {} \;
+          FILE="tmp/loading_blob_transport_check_c00.webp"
+          test -f "$FILE"
+          test "$(stat -c%s "$FILE")" -eq 4276
+          echo "e0ed039da3b1f73dca928747e78630567900477c9343f4f182a3661a670208cc  $FILE" | sha256sum --check
+          file "$FILE"
+          echo "LOADING_BLOB_TRANSPORT_OK"
