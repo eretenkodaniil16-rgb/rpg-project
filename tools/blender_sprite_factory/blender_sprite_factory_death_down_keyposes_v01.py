@@ -211,6 +211,7 @@ def _paeth_predictor(left: int, up: int, upper_left: int) -> int:
 
 def _decode_rgba8_png(
     path: Path,
+    expected_dimensions: tuple[int, int] | None = (96, 96),
 ) -> tuple[int, int, list[bytearray], tuple[tuple[bytes, bytes], ...]]:
     data = path.read_bytes()
     if not data.startswith(_PNG_SIGNATURE):
@@ -258,9 +259,12 @@ def _decode_rgba8_png(
             break
         offset = crc_end
 
-    if (width, height, bit_depth, color_type, interlace) != (96, 96, 8, 6, 0):
+    if (bit_depth, color_type, interlace) != (8, 6, 0) or (
+        expected_dimensions is not None
+        and (width, height) != expected_dimensions
+    ):
         raise RuntimeError(
-            "death_03 seam requires 96x96 RGBA8 non-interlaced PNG: "
+            "death_03 seam requires expected-size RGBA8 non-interlaced PNG: "
             f"{path}={(width, height, bit_depth, color_type, interlace)}"
         )
     if not idat_parts:
