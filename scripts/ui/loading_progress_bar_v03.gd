@@ -15,6 +15,7 @@ const GLINT_CYCLE_SECONDS: float = 2.8
 			_apply_layout()
 
 @export var animate_glint: bool = true
+@export var show_decorative_frame: bool = true
 
 @onready var _track: TextureRect = $Track
 @onready var _fill_clip: Control = $FillClip
@@ -34,6 +35,7 @@ func _ready() -> void:
 	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	_reduced_motion = bool(ProjectSettings.get_setting("accessibility/reduced_motion", false))
 	resized.connect(_apply_layout)
+	_apply_frame_visibility()
 	_apply_layout()
 	set_process(animate_glint and not _reduced_motion)
 
@@ -76,6 +78,13 @@ func has_complete_textures() -> bool:
 
 func uses_mirrored_right_cap() -> bool:
 	return _right_cap.texture == _left_cap.texture and _right_cap.scale.x < 0.0
+
+
+func _apply_frame_visibility() -> void:
+	_track.visible = show_decorative_frame
+	_left_cap.visible = show_decorative_frame
+	_right_cap.visible = show_decorative_frame
+	_center_rune.visible = show_decorative_frame
 
 
 func _apply_layout() -> void:
