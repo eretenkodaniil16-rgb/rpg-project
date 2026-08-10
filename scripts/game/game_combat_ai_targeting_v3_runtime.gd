@@ -25,10 +25,7 @@ func _select_enemy_party_target(actor: Node) -> Node:
 	var actor_key: String = str(actor.call("get_actor_id")) if actor.has_method("get_actor_id") else ""
 	var profile: Dictionary = _combat_ai.get_profile(actor_key) if _combat_ai != null and not actor_key.is_empty() else {}
 	var role_id: String = str(profile.get("role", NpcCombatAiSystem.ROLE_MELEE))
-	var attack_range: int = maxi(
-		int(profile.get("attack_range_feet", DistanceSystem.MELEE_REACH_FEET)),
-		DistanceSystem.MELEE_REACH_FEET
-	)
+	var attack_range: int = maxi(int(profile.get("attack_range_feet", DistanceSystem.MELEE_REACH_FEET)), DistanceSystem.MELEE_REACH_FEET)
 	var minimum_range: int = maxi(int(profile.get("minimum_range_feet", 0)), 0)
 	var preferred_range: int = clampi(int(profile.get("preferred_range_feet", attack_range)), minimum_range, attack_range)
 	var previous_target_id: int = int(_enemy_party_target_by_actor_id.get(actor_instance_id, 0))
@@ -109,92 +106,48 @@ func _run_enemy_turn_against_party_target_v3(actor: Node, target: Node) -> void:
 		var actor_node: Node2D = actor as Node2D
 		var target_node: Node2D = target as Node2D
 		var actor_id: String = str(actor.call("get_actor_id"))
-		var profile: Dictionary = _advanced_ai.get_profile(actor_id)
+		var profile: Dictionary = _advanced_ai.get_profile(actor_id) if _advanced_ai != null else _combat_ai.get_profile(actor_id)
 		var attack_range: int = maxi(int(profile.get("attack_range_feet", DistanceSystem.MELEE_REACH_FEET)), DistanceSystem.MELEE_REACH_FEET)
 		var minimum_range: int = maxi(int(profile.get("minimum_range_feet", 0)), 0)
 		var preferred_range: int = clampi(int(profile.get("preferred_range_feet", attack_range)), minimum_range, attack_range)
+		var movement_feet: int = int(actor.call("get_combat_speed_feet")) if actor.has_method("get_combat_speed_feet") else 30
 		var target_visible: bool = _enemy_can_see_party_target_from(actor_node.global_position, target)
 		var distance: int = DistanceSystem.distance_feet(actor_node.global_position, target_node.global_position)
-		var target_state: CombatantState = _party_target_state_v3(target)
-		var actor_health: int = int(actor.call("get_current_health")) if actor.has_method("get_current_health") else 1
-		var actor_maximum: int = int(actor.call("get_maximum_health")) if actor.has_method("get_maximum_health") else maxi(actor_health, 1)
-		var team_state: Dictionary = _combat_ai_team_state(actor)
 		var spell_plan: Dictionary = _evaluate_spell_plan_for_target_v3(actor, profile, actor_node.global_position, target)
-		var context: Dictionary = {
-			"distance_feet": distance,
-			"actor_health_ratio": float(actor_health) / float(maxi(actor_maximum, 1)),
-			"target_health_ratio": _party_target_health_ratio_v3(target),
-			"target_visible": target_visible,
-			"has_target_memory": false,
-			"memory_confidence": 0.0,
-			"can_attack": target_visible and distance <= attack_range and distance >= minimum_range,
-			"can_move": int(actor.call("get_combat_speed_feet")) > 0 if actor.has_method("get_combat_speed_feet") else true,
-			"ally_count": int(team_state.get("ally_count", 1)),
-			"hostile_count": int(team_state.get("hostile_count", 1)),
-			"defeated_ally_count": int(team_state.get("defeated_ally_count", 0)),
-			"escape_route_count": _combat_ai_mobility_from(actor_node, actor_node.global_position),
-			"nearest_ally_distance_feet": _nearest_combat_ai_ally_distance(actor, actor_node.global_position),
-			"can_shove": distance <= DistanceSystem.MELEE_REACH_FEET,
-			"target_prone": target_state != null and target_state.has_condition("prone"),
-			"can_dodge": true,
-			"no_safe_retreat": _combat_ai_mobility_from(actor_node, actor_node.global_position) <= 1,
-			"better_cover_available": _better_cover_available(actor_node, actor),
-			"target_near_hazard": false,
-			"no_useful_attack": not target_visible,
-			"spell_plan_score": float(spell_plan.get("score", NpcCombatAiSystem.BLOCKED_SCORE))
-		}
-		var intent: Dictionary = _advanced_ai.choose_combat_intent(actor_id, context)
-		var intent_id: String = str(intent.get("intent", NpcAiSystem.INTENT_WAIT))
-		var movement_feet: int = int(actor.call("get_combat_speed_feet")) if actor.has_method("get_combat_speed_feet") else 30
-		var attack_range_from_intent: int = maxi(int(intent.get("attack_range_feet", attack_range)), DistanceSystem.MELEE_REACH_FEET)
+		var role_id: String = str(profile.get("role", NpcCombatAiSystem.ROLE_MELEE))
+		var wants_spell: bool = role_id == AdvancedNpcCombatAiSystem.ROLE_CASTER and not spell_plan.is_empty()
+		var attack_ready: bool = target_visible and distance <= attack_range and distance >= minimum_range
 
-		if intent_id in ADVANCED_MOVEMENT_INTENTS and movement_feet >= GRID_STEP_FEET:
+		if not attack_ready and movement_feet >= GRID_STEP_FEET:
 			var plan: Dictionary = _plan_enemy_movement_to_party_target(
 				actor_node,
 				actor,
 				target,
 				movement_feet,
-				attack_range_from_intent,
+				attack_range,
 				minimum_range,
 				preferred_range
 			)
-			await _execute_combat_ai_path(actor_node, plan.get("path", []) as Array, intent_id)
+			await _execute_combat_ai_path(actor_node, plan.get("path", []) as Array, NpcAiSystem.INTENT_ADVANCE)
 
-		match intent_id:
-			AdvancedNpcCombatAiSystem.INTENT_RALLY:
-				_resolve_ai_rally(actor, profile)
-			AdvancedNpcCombatAiSystem.INTENT_DODGE:
-				_ai_dodge_until_round[actor.get_instance_id()] = _turn_system.round_number
-				show_combat_message("%s принимает защитную стойку." % _target_name(actor), true)
-			AdvancedNpcCombatAiSystem.INTENT_SHOVE:
-				_resolve_ai_shove_against_target_v3(actor_node, actor, target)
-			AdvancedNpcCombatAiSystem.INTENT_CAST_SPELL:
-				spell_plan = _evaluate_spell_plan_for_target_v3(actor, profile, actor_node.global_position, target)
-				await _cast_enemy_spell_at_party_target_v3(actor, target, spell_plan)
-			NpcAiSystem.INTENT_WAIT:
-				show_combat_message("%s удерживает позицию и наблюдает за целью." % _target_name(actor), true)
-
-		var action_intents: Array[String] = [
-			AdvancedNpcCombatAiSystem.INTENT_CAST_SPELL,
-			AdvancedNpcCombatAiSystem.INTENT_RALLY,
-			AdvancedNpcCombatAiSystem.INTENT_DODGE,
-			AdvancedNpcCombatAiSystem.INTENT_SHOVE
-		]
 		target_visible = _enemy_can_see_party_target_from(actor_node.global_position, target)
 		distance = DistanceSystem.distance_feet(actor_node.global_position, target_node.global_position)
-		if (
-			intent_id not in action_intents
-			and intent_id not in [NpcAiSystem.INTENT_RETREAT, NpcAiSystem.INTENT_WAIT, NpcCombatAiSystem.INTENT_GUARD]
-			and target_visible
-			and distance <= attack_range_from_intent
-			and distance >= minimum_range
-			and actor.has_method("perform_combat_turn_attack")
-		):
-			_enemy_party_target_by_actor_id[actor.get_instance_id()] = target.get_instance_id()
-			_enemy_attack_range_by_actor_id[actor.get_instance_id()] = attack_range_from_intent
+		attack_ready = target_visible and distance <= attack_range and distance >= minimum_range
+		if wants_spell:
+			spell_plan = _evaluate_spell_plan_for_target_v3(actor, profile, actor_node.global_position, target)
+			if not spell_plan.is_empty():
+				await _cast_enemy_spell_at_party_target_v3(actor, target, spell_plan)
+			elif attack_ready and actor.has_method("perform_combat_turn_attack"):
+				actor.call("perform_combat_turn_attack")
+		elif attack_ready and actor.has_method("perform_combat_turn_attack"):
 			actor.call("perform_combat_turn_attack")
-			_update_status()
-			await get_tree().create_timer(0.35).timeout
+		elif distance <= DistanceSystem.MELEE_REACH_FEET:
+			_resolve_ai_shove_against_target_v3(actor_node, actor, target)
+		else:
+			_ai_dodge_until_round[actor.get_instance_id()] = _turn_system.round_number
+			show_combat_message("%s удерживает позицию и готовится защищаться." % _target_name(actor), true)
+		_update_status()
+		await get_tree().create_timer(0.35).timeout
 
 	_enemy_turn_running = false
 	if _party_has_living_combatant():
@@ -210,7 +163,10 @@ func _evaluate_spell_plan_for_target_v3(
 	if actor == null or not actor.has_method("get_combat_spell_ids") or not target is Node2D:
 		return {}
 	var spell_ids: Array[String] = []
-	for value: Variant in actor.call("get_combat_spell_ids") as Array:
+	var raw_spell_ids: Variant = actor.call("get_combat_spell_ids")
+	if not raw_spell_ids is Array:
+		return {}
+	for value: Variant in raw_spell_ids as Array:
 		spell_ids.append(str(value))
 	var contexts: Dictionary = {}
 	for spell_id: String in spell_ids:
@@ -284,13 +240,18 @@ func _spell_option_context_for_target_v3(
 func _cast_enemy_spell_at_party_target_v3(actor: Node, target: Node, spell_plan: Dictionary) -> void:
 	if spell_plan.is_empty() or not is_instance_valid(actor) or not is_instance_valid(target):
 		return
-	var spell: Dictionary = spell_plan.get("spell", {}) as Dictionary if spell_plan.get("spell", {}) is Dictionary else {}
+	var spell_value: Variant = spell_plan.get("spell", {})
+	if not spell_value is Dictionary:
+		return
+	var spell: Dictionary = spell_value as Dictionary
 	if spell.is_empty():
 		return
 	var spell_level: int = maxi(int(spell.get("spell_level", 0)), 0)
-	if spell_level > 0:
-		if not actor.has_method("consume_combat_spell_slot") or not bool(actor.call("consume_combat_spell_slot", spell_level)):
-			return
+	if spell_level > 0 and (
+		not actor.has_method("consume_combat_spell_slot")
+		or not bool(actor.call("consume_combat_spell_slot", spell_level))
+	):
+		return
 	var slot_level: int = _enemy_spell_slot_level(actor, spell)
 	var area_value: Variant = spell.get("area", {})
 	if area_value is Dictionary and _advanced_spell_area.is_area_definition(area_value as Dictionary):
@@ -333,7 +294,7 @@ func _resolve_enemy_single_target_spell_v3(
 		)
 		hit = not bool(save.get("success", false))
 	if hit:
-		_apply_party_target_damage_v3(target, _roll_enemy_spell_damage_v3(spell), str(spell.get("damage_type", "force")), actor)
+		_apply_party_target_damage_v3(target, _roll_enemy_spell_damage_v3(spell), str(spell.get("damage_type", "force")), actor, false)
 		_apply_enemy_spell_condition_v3(target, actor, spell)
 	show_combat_message(
 		"%s применяет «%s» против %s: %s." % [
@@ -389,12 +350,9 @@ func _resolve_enemy_area_spell_against_party_v3(
 			if not failed_save:
 				damage = int(floor(float(base_damage) * (0.5 if bool(spell.get("half_damage_on_save", true)) else 0.0)))
 		if damage > 0:
-			_apply_party_target_damage_v3(target, damage, str(spell.get("damage_type", "force")), actor)
+			_apply_party_target_damage_v3(target, damage, str(spell.get("damage_type", "force")), actor, false)
 		if failed_save:
 			_apply_enemy_spell_condition_v3(target, actor, spell)
-			var push_feet: int = maxi(int(spell.get("push_feet_on_failed_save", 0)), 0)
-			if push_feet > 0:
-				_push_party_target_away_v3(actor as Node2D, target as Node2D, push_feet)
 		hit_count += 1
 	show_combat_message(
 		"%s применяет «%s»: затронуто целей отряда — %d." % [
@@ -430,49 +388,70 @@ func resolve_npc_attack(
 	attack_bonus: int,
 	damage_die: int,
 	damage_bonus: int,
-	damage_type: String
-) -> void:
+	damage_type: String = "slashing"
+) -> Dictionary:
 	var target: Node = _selected_party_target_for_attacker_v3(attacker)
-	if not is_instance_valid(target) or target == player or target == _controllable_ally:
-		super.resolve_npc_attack(attacker, attack_bonus, damage_die, damage_bonus, damage_type)
-		return
+	if not is_instance_valid(target) or target == player:
+		return super.resolve_npc_attack(attacker, attack_bonus, damage_die, damage_bonus, damage_type)
 	if not attacker is Node2D or not target is Node2D or not _enemy_party_target_is_available(target):
-		return
+		return {"hit": false}
 	var cover: Dictionary = _combat_environment.get_cover((attacker as Node2D).global_position, (target as Node2D).global_position) if _combat_environment != null else {"bonus": 0, "total_cover": false}
-	var target_ac: int = _party_target_armor_class_v3(target) + int(cover.get("bonus", 0))
-	var roll: Dictionary = _srd_rules.roll_d20(attack_bonus, false, _party_target_is_dodging_v3(target))
+	if bool(cover.get("total_cover", false)):
+		return {"hit": false, "total_cover": true}
+	var attacker_state: CombatantState = _state_for(attacker)
+	var defender_state: CombatantState = _party_target_state_v3(target)
+	var distance: int = DistanceSystem.distance_feet((attacker as Node2D).global_position, (target as Node2D).global_position)
+	var adjustments: Dictionary = _srd_rules.attack_roll_adjustments(attacker_state, defender_state, distance, true, true)
+	var roll: Dictionary = _srd_rules.roll_d20(
+		attack_bonus,
+		bool(adjustments.get("advantage", false)),
+		bool(adjustments.get("disadvantage", false)) or _party_target_is_dodging_v3(target)
+	)
 	var natural: int = int(roll.get("natural", 1))
-	var hit: bool = not bool(cover.get("total_cover", false)) and natural != 1 and (natural == 20 or int(roll.get("total", 0)) >= target_ac)
+	var target_ac: int = _party_target_armor_class_v3(target) + int(cover.get("bonus", 0))
+	var hit: bool = natural != 1 and (natural == 20 or int(roll.get("total", 0)) >= target_ac)
 	if not hit:
-		show_combat_message("%s промахивается по %s: d20 %d + %d против КД %d." % [_target_name(attacker), _party_target_name_v3(target), natural, attack_bonus, target_ac], false)
-		return
+		show_combat_message("%s промахивается по %s: %d против КД %d." % [_target_name(attacker), _party_target_name_v3(target), int(roll.get("total", 0)), target_ac], false)
+		return {"hit": false, "natural": natural, "total": int(roll.get("total", 0))}
+	var critical: bool = natural == 20 or bool(adjustments.get("automatic_critical", false))
 	var damage: int = damage_bonus
-	for _die_index: int in range(2 if natural == 20 else 1):
+	for _die_index: int in range(2 if critical else 1):
 		damage += _srd_dice.roll_die(maxi(damage_die, 2))
-	_apply_party_target_damage_v3(target, maxi(damage, 0), damage_type, attacker)
-	show_combat_message("%s наносит %s %d урона." % [_target_name(attacker), _party_target_name_v3(target), maxi(damage, 0)], false)
+	var applied: int = _apply_party_target_damage_v3(target, maxi(damage, 0), damage_type, attacker, critical)
+	show_combat_message("%s наносит %s %d урона." % [_target_name(attacker), _party_target_name_v3(target), applied], false)
 	GameState.save_game()
 	_update_status()
+	return {"hit": true, "applied": applied, "critical": critical, "natural": natural}
 
 
-func _apply_party_target_damage_v3(target: Node, raw_damage: int, damage_type: String, attacker: Node) -> int:
+func _apply_party_target_damage_v3(
+	target: Node,
+	raw_damage: int,
+	damage_type: String,
+	attacker: Node,
+	critical_hit: bool
+) -> int:
+	if target == player:
+		var player_result: Dictionary = apply_damage_to_player(raw_damage, damage_type, critical_hit, attacker)
+		return int(player_result.get("applied", 0))
 	var state: CombatantState = _party_target_state_v3(target)
-	var damage: int = maxi(raw_damage, 0)
-	if state != null:
-		var mitigation: Dictionary = _srd_rules.resolve_damage(damage, damage_type, state)
-		damage = maxi(int(mitigation.get("applied", damage)), 0)
+	if state != null and state.dead:
+		return 0
+	if _party_target_adapter_v3.get_current_health(target, player, GameState.player_character as PlayerCharacter) <= 0:
+		var zero_result: Dictionary = _srd_rules.damage_at_zero_hit_points(state, critical_hit)
+		return int(zero_result.get("failures_added", 0))
+	var mitigation: Dictionary = _srd_rules.resolve_damage(maxi(raw_damage, 0), damage_type, state)
+	var applied: int = maxi(int(mitigation.get("applied", 0)), 0)
 	var character: PlayerCharacter = GameState.player_character as PlayerCharacter
 	var current: int = _party_target_adapter_v3.get_current_health(target, player, character)
-	var next_health: int = maxi(current - damage, 0)
+	var next_health: int = maxi(current - applied, 0)
 	_party_target_adapter_v3.set_current_health(target, next_health, player, character)
 	if next_health <= 0:
 		if target.has_method("enter_dying"):
 			target.call("enter_dying")
 		elif state != null:
 			state.enter_dying()
-		if target == player:
-			handle_player_defeat(attacker)
-	return damage
+	return applied
 
 
 func _apply_enemy_spell_condition_v3(target: Node, actor: Node, spell: Dictionary) -> void:
@@ -481,33 +460,7 @@ func _apply_enemy_spell_condition_v3(target: Node, actor: Node, spell: Dictionar
 		return
 	var state: CombatantState = _party_target_state_v3(target)
 	if state != null:
-		state.add_condition(
-			condition_id,
-			maxi(int(spell.get("on_hit_condition_rounds", 1)), 1),
-			actor.get_instance_id()
-		)
-
-
-func _push_party_target_away_v3(actor: Node2D, target: Node2D, push_feet: int) -> void:
-	var grid: BattleGrid = _get_battle_grid()
-	if grid == null or push_feet < GRID_STEP_FEET:
-		return
-	var direction: Vector2 = (target.global_position - actor.global_position).normalized()
-	var step := Vector2i(signi(roundi(direction.x)), signi(roundi(direction.y)))
-	if step == Vector2i.ZERO:
-		step = Vector2i.RIGHT
-	var steps: int = maxi(push_feet / GRID_STEP_FEET, 1)
-	for _index: int in range(steps):
-		var current: Vector2i = grid.world_to_cell(target.global_position)
-		var destination: Vector2i = current + step
-		if not grid.is_cell_valid(destination) or _occupied_cells(target).has(destination):
-			break
-		if _combat_environment != null and (
-			_combat_environment.is_cell_blocked(grid, destination)
-			or _combat_environment.is_transition_blocked(grid, current, destination)
-		):
-			break
-		target.global_position = grid.cell_to_world_center(destination)
+		state.add_condition(condition_id, maxi(int(spell.get("on_hit_condition_rounds", 1)), 1), actor.get_instance_id())
 
 
 func _roll_enemy_spell_damage_v3(spell: Dictionary) -> int:
@@ -548,11 +501,7 @@ func _selected_party_target_for_attacker_v3(attacker: Node) -> Node:
 
 
 func _party_target_health_ratio_v3(target: Node) -> float:
-	return _party_target_adapter_v3.get_health_ratio(
-		target,
-		player,
-		GameState.player_character as PlayerCharacter
-	)
+	return _party_target_adapter_v3.get_health_ratio(target, player, GameState.player_character as PlayerCharacter)
 
 
 func _party_target_state_v3(target: Node) -> CombatantState:
@@ -566,12 +515,7 @@ func _party_target_armor_class_v3(target: Node) -> int:
 
 
 func _party_target_save_modifier_v3(target: Node, ability_id: String) -> int:
-	return _party_target_adapter_v3.get_saving_throw_modifier(
-		target,
-		ability_id,
-		player,
-		GameState.player_character as PlayerCharacter
-	)
+	return _party_target_adapter_v3.get_saving_throw_modifier(target, ability_id, player, GameState.player_character as PlayerCharacter)
 
 
 func _party_target_is_dodging_v3(target: Node) -> bool:
