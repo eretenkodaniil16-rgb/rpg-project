@@ -1,0 +1,28 @@
+{
+  "composition_id": "tavern_commonroom_v01",
+  "score_sha256": "3fbf15799e350ce363da809790b7fe89b39f9fd5009e799aedb75b4c271eb916",
+  "renderer": "procedural_narrative_music_renderer_v01",
+  "arrangement_revision": 1,
+  "numpy_version": "2.3.5",
+  "sample_rate": 48000,
+  "channels": 2,
+  "duration_seconds": 51.428562,
+  "tempo_bpm": 112,
+  "time_signature": [
+    6,
+    8
+  ],
+  "bars": 32,
+  "loop": true,
+  "pcm_signature_shift_bits": 8,
+  "pcm_signature_sha256": "9b7e6a2c3adfccb2bc9656234975be2230e073f366b608d021f38b31fa514cb8",
+  "peak_dbfs": -1.0,
+  "rms_dbfs": -13.9762,
+  "boundary_value_delta": 0.0,
+  "boundary_slope_delta": 0.0,
+  "wav_sha256": "9ca0404a0047f1dc7e662c1905d9726c5b4408a5b1e22e7c06b6a24ed6542ea5",
+  "midi_sha256": "054b52bdfa2e1661a12a9ea337ea5a38148607ce223bc1a54ac5b7e194ab0466",
+  "ogg_sha256": "b8ba04e75c700aab4d9c792d29638d04dedb8cc8a0efc561818e8744cb256686",
+  "ogg_size_bytes": 879918,
+  "mp3_sha256": "f88c8629de9953a521225e8f8ff6eef525907895c03adf16eae66acf7b2191d6"
+}

@@ -1,0 +1,28 @@
+{
+  "composition_id": "mad_wizard_theme_v01",
+  "score_sha256": "ec6d1da53ef0bdc15904e8a1205556b801179594a2fe8c138968da579f82421c",
+  "renderer": "procedural_narrative_music_renderer_v01",
+  "arrangement_revision": 1,
+  "numpy_version": "2.3.5",
+  "sample_rate": 48000,
+  "channels": 2,
+  "duration_seconds": 96.0,
+  "tempo_bpm": 70,
+  "time_signature": [
+    7,
+    8
+  ],
+  "bars": 32,
+  "loop": true,
+  "pcm_signature_shift_bits": 8,
+  "pcm_signature_sha256": "dc81da8b49f44c265b16d669a19a49ec2f030c171aa65ea188c55c182cc4f400",
+  "peak_dbfs": -1.2,
+  "rms_dbfs": -14.8192,
+  "boundary_value_delta": 0.0,
+  "boundary_slope_delta": 0.0,
+  "wav_sha256": "46118696929f4c27cdd861b15176ce7942d981e13630183a34c1a65f381f9b87",
+  "midi_sha256": "2a889f3cde470900af96907ad3e7d02ebc64a748f569b5fe95fa4ce85cd7e511",
+  "ogg_sha256": "83d55cb5d37a7a7007fa89dd5a67243ef22caf8d5015f0534d1e9efade708b33",
+  "ogg_size_bytes": 1423623,
+  "mp3_sha256": "136f47ce5afc1d8d729614d9ccd38e215bf64712cf40cbfd23d93c615d607fa3"
+}

@@ -1,0 +1,76 @@
+{
+  "composition_id": "mad_wizard_theme_v01",
+  "title_ru": "Шёпот невозможной башни",
+  "render_profile": "mad_wizard_labyrinthine",
+  "arrangement_revision": 1,
+  "tempo_bpm": 70,
+  "time_signature": [
+    7,
+    8
+  ],
+  "bars": 32,
+  "loop": true,
+  "tonal_center": "D",
+  "mode": "phrygian_chromatic",
+  "leitmotif": [
+    "D",
+    "Eb",
+    "A",
+    "Ab",
+    "F",
+    "D"
+  ],
+  "dramatic_function": "mad_wizard_signature_theme",
+  "reference_intent": "mysterious labyrinthine unstable, no copied melody or arrangement",
+  "external_samples_used": false,
+  "third_party_melodies_used": false,
+  "duration_seconds": 96.0,
+  "sections": [
+    {
+      "bars": [
+        1,
+        8
+      ],
+      "id": "false_calm",
+      "description": "Редкие стеклянные удары и неустойчивый 7/8; лейтмотив появляется как загадка."
+    },
+    {
+      "bars": [
+        9,
+        16
+      ],
+      "id": "mirrored_corridors",
+      "description": "Мотив опускается на октаву, гармония начинает отражать сама себя тритонами."
+    },
+    {
+      "bars": [
+        17,
+        24
+      ],
+      "id": "voices_behind_walls",
+      "description": "Вступает низкий хор и дыхательные шумы; ощущение присутствия без прямой угрозы."
+    },
+    {
+      "bars": [
+        25,
+        32
+      ],
+      "id": "the_same_door",
+      "description": "Возврат исходного мотива с изменённым тембром; конец точно замыкается в начало."
+    }
+  ],
+  "meter_grouping": [
+    3,
+    2,
+    2
+  ],
+  "orchestration": [
+    "glass harmonics",
+    "detuned celesta",
+    "low bowed strings",
+    "breathy flute",
+    "low choir",
+    "whisper texture"
+  ],
+  "loop_contract": "exact periodic PCM seam, no final cadence"
+}

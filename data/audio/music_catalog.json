@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "catalog_id": "chronicles_of_the_wanderer_music_v01",
-  "asset_status": "main_theme_exploration_standard_climax_start_and_aftermath_integrated",
+  "asset_status": "main_theme_exploration_combat_and_narrative_pack_v01_integrated",
   "contexts": {
     "main_menu": {
       "track_id": "main_theme",
@@ -30,6 +30,30 @@
     "aftermath": {
       "track_id": "aftermath",
       "fade_seconds": 0.55
+    },
+    "mad_wizard_theme": {
+      "track_id": "mad_wizard_theme",
+      "fade_seconds": 2.0,
+      "activation": "explicit_context_override",
+      "story_scope": "mad_wizard_signature"
+    },
+    "tavern_commonroom": {
+      "track_id": "tavern_commonroom",
+      "fade_seconds": 1.5,
+      "activation": "explicit_context_override",
+      "story_scope": "tavern_location"
+    },
+    "elevator_descent_floor01": {
+      "track_id": "elevator_descent_floor01",
+      "fade_seconds": 0.65,
+      "activation": "explicit_context_override",
+      "story_scope": "scripted_descent_floor01"
+    },
+    "act01_plan_broken": {
+      "track_id": "act01_plan_broken",
+      "fade_seconds": 0.85,
+      "activation": "explicit_context_override",
+      "story_scope": "act01_finale"
     }
   },
   "tracks": {
@@ -103,6 +127,74 @@
       "arrangement_revision": 1,
       "outcome_profile": "victory_only",
       "tempo_bpm": 72
+    },
+    "mad_wizard_theme": {
+      "path": "res://assets/audio/music/exports/mad_wizard_theme_v01_master.ogg",
+      "enabled": true,
+      "bus": "Music",
+      "volume_db": -7.5,
+      "loop": true,
+      "render_status": "master_candidate",
+      "composition_id": "mad_wizard_theme_v01",
+      "render_id": "mad_wizard_theme_v01_master_candidate_01",
+      "arrangement_revision": 1,
+      "narrative_profile": "labyrinthine_mad_wizard",
+      "tempo_bpm": 70,
+      "time_signature": [
+        7,
+        8
+      ]
+    },
+    "tavern_commonroom": {
+      "path": "res://assets/audio/music/exports/tavern_commonroom_v01_master.ogg",
+      "enabled": true,
+      "bus": "Music",
+      "volume_db": -8.0,
+      "loop": true,
+      "render_status": "master_candidate",
+      "composition_id": "tavern_commonroom_v01",
+      "render_id": "tavern_commonroom_v01_master_candidate_01",
+      "arrangement_revision": 1,
+      "narrative_profile": "warm_tavern_folk",
+      "tempo_bpm": 112,
+      "time_signature": [
+        6,
+        8
+      ]
+    },
+    "elevator_descent_floor01": {
+      "path": "res://assets/audio/music/exports/elevator_descent_floor01_v01_master.ogg",
+      "enabled": true,
+      "bus": "Music",
+      "volume_db": -6.5,
+      "loop": false,
+      "render_status": "master_candidate",
+      "composition_id": "elevator_descent_floor01_v01",
+      "render_id": "elevator_descent_floor01_v01_master_candidate_02",
+      "arrangement_revision": 2,
+      "narrative_profile": "scripted_fear_descent",
+      "tempo_bpm": 61,
+      "time_signature": [
+        4,
+        4
+      ]
+    },
+    "act01_plan_broken": {
+      "path": "res://assets/audio/music/exports/act01_plan_broken_v01_master.ogg",
+      "enabled": true,
+      "bus": "Music",
+      "volume_db": -5.5,
+      "loop": false,
+      "render_status": "master_candidate",
+      "composition_id": "act01_plan_broken_v01",
+      "render_id": "act01_plan_broken_v01_master_candidate_02",
+      "arrangement_revision": 2,
+      "narrative_profile": "act01_hysteric_panic",
+      "tempo_bpm": 82,
+      "time_signature": [
+        4,
+        4
+      ]
     }
   },
   "stingers": {
