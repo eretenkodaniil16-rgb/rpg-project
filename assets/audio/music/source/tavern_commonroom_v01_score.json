@@ -1,0 +1,74 @@
+{
+  "composition_id": "tavern_commonroom_v01",
+  "title_ru": "Пена, струны и старые байки",
+  "render_profile": "tavern_folk",
+  "arrangement_revision": 1,
+  "tempo_bpm": 112,
+  "time_signature": [
+    6,
+    8
+  ],
+  "bars": 32,
+  "loop": true,
+  "tonal_center": "D",
+  "mode": "major_mixolydian",
+  "leitmotif": [
+    "F#",
+    "A",
+    "D",
+    "A",
+    "F#",
+    "E"
+  ],
+  "dramatic_function": "warm_tavern_commonroom",
+  "external_samples_used": false,
+  "third_party_melodies_used": false,
+  "duration_seconds": 51.42857142857143,
+  "sections": [
+    {
+      "bars": [
+        1,
+        8
+      ],
+      "id": "first_mug",
+      "description": "Лютня и бубен задают живой 6/8, скрипка входит после короткого вступления."
+    },
+    {
+      "bars": [
+        9,
+        16
+      ],
+      "id": "stories_get_louder",
+      "description": "Основная плясовая тема развивается, появляются ответы флейты."
+    },
+    {
+      "bars": [
+        17,
+        24
+      ],
+      "id": "whole_room_joins",
+      "description": "Плотнее бас и перкуссия, мелодия становится шире без героического пафоса."
+    },
+    {
+      "bars": [
+        25,
+        32
+      ],
+      "id": "another_round",
+      "description": "Возврат к исходному танцевальному обороту с бесшовным продолжением."
+    }
+  ],
+  "meter_grouping": [
+    3,
+    3
+  ],
+  "orchestration": [
+    "lute",
+    "fiddle",
+    "wood flute",
+    "plucked bass",
+    "frame drum",
+    "shaker"
+  ],
+  "loop_contract": "dance loop, no applause or ending cadence"
+}

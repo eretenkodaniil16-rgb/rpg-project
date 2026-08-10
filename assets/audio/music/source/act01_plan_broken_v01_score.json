@@ -1,0 +1,70 @@
+{
+  "composition_id": "act01_plan_broken_v01",
+  "title_ru": "Когда башня отвечает",
+  "render_profile": "act01_failure_finale",
+  "arrangement_revision": 1,
+  "tempo_bpm": 68,
+  "time_signature": [
+    4,
+    4
+  ],
+  "bars": 24,
+  "loop": false,
+  "tonal_center": "D",
+  "mode": "minor_chromatic_collapse",
+  "leitmotif": [
+    "D",
+    "Eb",
+    "A",
+    "Ab",
+    "F",
+    "D"
+  ],
+  "dramatic_function": "act01_end_everything_went_wrong",
+  "external_samples_used": false,
+  "third_party_melodies_used": false,
+  "duration_seconds": 84.70588235294117,
+  "sections": [
+    {
+      "bars": [
+        1,
+        6
+      ],
+      "id": "we_still_have_a_plan",
+      "description": "Знакомая героическая интонация звучит сдержанно и ещё кажется устойчивой."
+    },
+    {
+      "bars": [
+        7,
+        12
+      ],
+      "id": "first_crack",
+      "description": "Гармония ломается, появляется мотив волшебника, начинается низкая перкуссия."
+    },
+    {
+      "bars": [
+        13,
+        18
+      ],
+      "id": "the_plan_was_never_ours",
+      "description": "Хор и искажённый лейтмотив захватывают фактуру, исходная тема перестаёт разрешаться."
+    },
+    {
+      "bars": [
+        19,
+        24
+      ],
+      "id": "tower_answers",
+      "description": "Тяжёлые удары, тревожные стеклянные сигналы и обрыв без победной каденции."
+    }
+  ],
+  "orchestration": [
+    "bowed strings",
+    "low choir",
+    "dark brass",
+    "war drums",
+    "glass alarm",
+    "mechanical fracture"
+  ],
+  "ending_contract": "one-shot act finale; no triumph, unresolved collapse"
+}

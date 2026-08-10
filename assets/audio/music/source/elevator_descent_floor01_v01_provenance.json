@@ -1,0 +1,11 @@
+{
+  "composition_id": "elevator_descent_floor01_v01",
+  "original_for_project": true,
+  "external_recordings_used": false,
+  "external_samples_used": false,
+  "third_party_melodies_used": false,
+  "generated_from_repository_score": true,
+  "creative_reference_note": "Оригинальная scripted-cue композиция; мотив Безумного волшебника используется только как собственный внутрипроектный лейтмотив.",
+  "renderer": "procedural_narrative_music_renderer_v01",
+  "score_sha256": "7fca0235b21470eec688f41d3478897d8e72a28a4bb36e672a3ee96bfd165c65"
+}

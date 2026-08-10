@@ -1,0 +1,12 @@
+{
+  "composition_id": "mad_wizard_theme_v01",
+  "original_for_project": true,
+  "external_recordings_used": false,
+  "external_samples_used": false,
+  "third_party_melodies_used": false,
+  "generated_from_repository_score": true,
+  "creative_reference_note": "Пользователь упомянул трек «Лабиринт». Использованы только общие характеристики: загадочность, ощущение блуждания, нестабильность и безумие. Мелодия, гармония, ритм и аранжировка не транскрибировались и не копировались.",
+  "original_leitmotif": "D–Eb–A–Ab–F–D",
+  "renderer": "procedural_narrative_music_renderer_v01",
+  "score_sha256": "ec6d1da53ef0bdc15904e8a1205556b801179594a2fe8c138968da579f82421c"
+}

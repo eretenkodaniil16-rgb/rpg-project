@@ -1,0 +1,66 @@
+{
+  "composition_id": "elevator_descent_floor01_v01",
+  "title_ru": "Ниже света",
+  "render_profile": "elevator_dark_descent",
+  "arrangement_revision": 1,
+  "tempo_bpm": 58,
+  "time_signature": [
+    4,
+    4
+  ],
+  "bars": 16,
+  "loop": false,
+  "tonal_center": "D descending chromatic axis",
+  "mode": "chromatic_dark_descent",
+  "leitmotif_fragment": [
+    "D",
+    "Eb",
+    "A"
+  ],
+  "dramatic_function": "scripted_elevator_descent_to_floor01",
+  "external_samples_used": false,
+  "third_party_melodies_used": false,
+  "duration_seconds": 66.20689655172414,
+  "sections": [
+    {
+      "bars": [
+        1,
+        4
+      ],
+      "id": "light_above",
+      "description": "Металл лифта ещё звучит механически и узнаваемо; сверху остаётся воздух."
+    },
+    {
+      "bars": [
+        5,
+        8
+      ],
+      "id": "shaft_swallowing",
+      "description": "Бас хроматически опускается, стеклянный мотив волшебника становится ниже."
+    },
+    {
+      "bars": [
+        9,
+        12
+      ],
+      "id": "no_return",
+      "description": "Пульс редеет, диссонансы сближаются, появляется почти неслышимое дыхание."
+    },
+    {
+      "bars": [
+        13,
+        16
+      ],
+      "id": "floor_one",
+      "description": "Механика почти исчезает; остаётся низкий нерешённый кластер для перехода в темноту."
+    }
+  ],
+  "orchestration": [
+    "sub drone",
+    "bowed metal-like strings",
+    "inharmonic glass bell",
+    "lift mechanism clicks",
+    "whisper texture"
+  ],
+  "transition_contract": "one-shot scripted cue; unresolved tail crossfades into floor ambience"
+}
