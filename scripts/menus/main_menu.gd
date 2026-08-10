@@ -45,7 +45,7 @@ func _exit_tree() -> void:
 
 
 func _on_new_game_pressed() -> void:
-	get_tree().change_scene_to_file(CHARACTER_CREATOR_SCENE)
+	_request_scene_transition(CHARACTER_CREATOR_SCENE)
 
 
 func _on_continue_pressed() -> void:
@@ -165,9 +165,17 @@ func _install_save_slots_panel() -> void:
 
 func _on_save_loaded(success: bool, _kind: String, _slot_id: int) -> void:
 	if success:
-		get_tree().change_scene_to_file(GAME_SCENE)
+		_request_scene_transition(GAME_SCENE)
 		return
 	status_label.text = "Не удалось загрузить выбранное сохранение."
+
+
+func _request_scene_transition(scene_path: String) -> void:
+	var manager: Node = get_node_or_null("/root/SceneTransitionManager")
+	if manager != null and manager.has_method("request_scene"):
+		manager.call("request_scene", scene_path)
+		return
+	get_tree().change_scene_to_file(scene_path)
 
 
 func _refresh_save_status() -> void:
