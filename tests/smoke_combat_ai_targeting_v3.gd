@@ -124,12 +124,24 @@ func _run() -> void:
 		_fail("Utility targeting did not select the immediate vulnerable second ally.")
 		return
 
+	# CombatNpc._perform_retaliation() uses the same synchronous game.call() shape.
+	# The generic target branch must finish without yielding even though the hero
+	# fallback may await the inherited reaction-aware attack pipeline.
+	second_ally.set_current_health(second_ally.maximum_health)
+	var weapon_resolution: Variant = game.call("resolve_npc_attack", mage, 100, 2, 2, "piercing")
+	if not weapon_resolution is Dictionary:
+		_fail("Generic NPC weapon resolution yielded instead of returning synchronously.")
+		return
+	if bool((weapon_resolution as Dictionary).get("hit", false)) and second_ally.current_health >= second_ally.maximum_health:
+		_fail("Generic NPC weapon hit did not reduce the selected ally HP.")
+		return
+
 	var spell_plan: Dictionary = game.call("evaluate_spell_plan_for_target_v3_for_testing", mage, second_ally) as Dictionary
 	if spell_plan.is_empty():
 		_fail("Caster produced no spell plan for a non-Irina party target.")
 		return
 
-	second_ally.current_health = 10
+	second_ally.set_current_health(10)
 	var single_spell: Dictionary = {
 		"id": "targeting_v3_test_bolt",
 		"name": "Тестовый импульс",
