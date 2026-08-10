@@ -1,66 +1,57 @@
 {
   "composition_id": "elevator_descent_floor01_v01",
   "title_ru": "Ниже света",
-  "render_profile": "elevator_dark_descent",
-  "arrangement_revision": 1,
-  "tempo_bpm": 58,
+  "render_profile": "elevator_fear_descent_v02",
+  "arrangement_revision": 2,
+  "tempo_bpm": 61,
   "time_signature": [
     4,
     4
   ],
-  "bars": 16,
+  "bars": 17,
   "loop": false,
-  "tonal_center": "D descending chromatic axis",
-  "mode": "chromatic_dark_descent",
+  "tonal_center": "D descending chromatic axis with unstable upper semitone field",
+  "mode": "chromatic_fear_descent",
   "leitmotif_fragment": [
     "D",
     "Eb",
-    "A"
+    "A",
+    "Ab"
   ],
-  "dramatic_function": "scripted_elevator_descent_to_floor01",
+  "dramatic_function": "scripted_elevator_descent_into_fear",
   "external_samples_used": false,
   "third_party_melodies_used": false,
-  "duration_seconds": 66.20689655172414,
+  "duration_seconds": 66.88524590163934,
   "sections": [
     {
-      "bars": [
-        1,
-        4
-      ],
-      "id": "light_above",
-      "description": "Металл лифта ещё звучит механически и узнаваемо; сверху остаётся воздух."
+      "bars": [1, 4],
+      "id": "mechanism_still_obeys",
+      "description": "Лифт ещё сохраняет узнаваемый размер и механический пульс, но в стеклянных обертонах уже появляется полутоновая трещина."
     },
     {
-      "bars": [
-        5,
-        8
-      ],
-      "id": "shaft_swallowing",
-      "description": "Бас хроматически опускается, стеклянный мотив волшебника становится ниже."
+      "bars": [5, 9],
+      "id": "fear_learns_the_rhythm",
+      "description": "Механический рисунок теряет симметрию; лейтмотив раздваивается между D/Eb и A/Ab, создавая чувство неправильности."
     },
     {
-      "bars": [
-        9,
-        12
-      ],
-      "id": "no_return",
-      "description": "Пульс редеет, диссонансы сближаются, появляется почти неслышимое дыхание."
+      "bars": [10, 13],
+      "id": "shaft_inside_the_head",
+      "description": "Высокие полутоновые вспышки и шёпот становятся навязчивее, тогда как низ продолжает физически опускаться."
     },
     {
-      "bars": [
-        13,
-        16
-      ],
-      "id": "floor_one",
-      "description": "Механика почти исчезает; остаётся низкий нерешённый кластер для перехода в темноту."
+      "bars": [14, 17],
+      "id": "below_reason",
+      "description": "Поверх медленного спуска возникает ускоряющийся внутренний пульс; музыка перестаёт давать устойчивую метрическую опору и обрывается в нерешённом страхе."
     }
   ],
   "orchestration": [
     "sub drone",
-    "bowed metal-like strings",
-    "inharmonic glass bell",
-    "lift mechanism clicks",
-    "whisper texture"
+    "detuned bowed strings",
+    "inharmonic glass",
+    "unstable celesta",
+    "asymmetric lift mechanism",
+    "whisper field",
+    "panic pulse"
   ],
-  "transition_contract": "one-shot scripted cue; unresolved tail crossfades into floor ambience"
+  "transition_contract": "one-shot scripted cue; unresolved fearful tail crossfades into floor ambience"
 }
