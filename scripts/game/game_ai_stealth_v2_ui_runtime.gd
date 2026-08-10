@@ -1,4 +1,4 @@
-extends "res://scripts/game/game_ai_stealth_v2_runtime.gd"
+extends "res://scripts/game/game_combat_ai_targeting_v3_runtime.gd"
 
 
 func _refresh_alert_indicator() -> void:
