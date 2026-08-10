@@ -1,7 +1,7 @@
 [gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/menus/loading_screen_visual_v02.gd" id="1_visual"]
-[ext_resource type="Script" path="res://scripts/menus/main_menu_tiled_background.gd" id="2_background"]
+[ext_resource type="Script" path="res://scripts/menus/loading_screen_approved_composite_v03.gd" id="2_background"]
 [ext_resource type="PackedScene" path="res://scenes/ui/loading_progress_bar_v03.tscn" id="3_bar"]
 
 [sub_resource type="StyleBoxFlat" id="StyleTitle"]
@@ -72,21 +72,22 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.0, 0.01, 0.025, 0.42)
+color = Color(0.0, 0.005, 0.012, 0.08)
 
 [node name="AmbientGlow" type="ColorRect" parent="Root"]
 unique_name_in_owner = true
 layout_mode = 1
-anchor_left = 0.22
-anchor_top = 0.08
-anchor_right = 0.78
-anchor_bottom = 0.76
+anchor_left = 0.31
+anchor_top = 0.42
+anchor_right = 0.69
+anchor_bottom = 0.79
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.0, 0.25, 0.5, 0.2)
+color = Color(0.0, 0.28, 0.58, 0.055)
 
 [node name="TitlePanel" type="PanelContainer" parent="Root"]
+visible = false
 layout_mode = 1
 anchor_left = 0.20
 anchor_top = 0.10
@@ -109,6 +110,7 @@ horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="SubtitlePanel" type="PanelContainer" parent="Root"]
+visible = false
 layout_mode = 1
 anchor_left = 0.30
 anchor_top = 0.33
@@ -132,6 +134,7 @@ vertical_alignment = 1
 
 [node name="LoadingLabel" type="Label" parent="Root"]
 unique_name_in_owner = true
+visible = false
 layout_mode = 1
 anchor_left = 0.32
 anchor_top = 0.735
@@ -151,23 +154,27 @@ vertical_alignment = 1
 [node name="LoadingProgressBar" parent="Root" instance=ExtResource("3_bar")]
 unique_name_in_owner = true
 layout_mode = 1
-anchor_left = 0.17
-anchor_top = 0.805
-anchor_right = 0.83
-anchor_bottom = 0.925
+anchor_left = 0.19
+anchor_top = 0.84
+anchor_right = 0.81
+anchor_bottom = 0.94
 grow_horizontal = 2
 grow_vertical = 2
+show_decorative_frame = false
 
 [node name="ProgressLabel" type="Label" parent="Root"]
 unique_name_in_owner = true
 layout_mode = 1
-anchor_left = 0.44
-anchor_top = 0.925
-anchor_right = 0.56
-anchor_bottom = 0.972
+anchor_left = 0.455
+anchor_top = 0.86
+anchor_right = 0.545
+anchor_bottom = 0.915
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_colors/font_color = Color(0.56, 0.89, 1, 1)
+theme_override_colors/font_color = Color(0.68, 0.94, 1, 1)
+theme_override_colors/font_shadow_color = Color(0, 0.03, 0.07, 1)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
 theme_override_font_sizes/font_size = 18
 text = "0%"
 horizontal_alignment = 1
