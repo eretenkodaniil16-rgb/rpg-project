@@ -1,6 +1,7 @@
 extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
+const MAGE_SCENE: String = "res://scenes/game/combat_ai_training_mage.tscn"
 const TEST_ALLY_ID: String = "companion_test_target_02"
 
 
@@ -56,6 +57,9 @@ func _run() -> void:
 	if state == null:
 		_fail("GameState autoload is missing.")
 		return
+	var save_path: String = ProjectSettings.globalize_path("user://savegame.json")
+	if FileAccess.file_exists(save_path):
+		DirAccess.remove_absolute(save_path)
 	state.call("new_game")
 	state.set("player_character", _make_hero())
 
@@ -67,6 +71,7 @@ func _run() -> void:
 	root.add_child(game)
 	for _frame: int in range(20):
 		await process_frame
+	game.set_process(false)
 
 	for method_name: String in [
 		"get_party_combat_target_ids_v3_for_testing",
@@ -80,9 +85,19 @@ func _run() -> void:
 
 	var player: Node2D = game.get_node_or_null("Player") as Node2D
 	var irina: ControllableAlly = game.call("get_controllable_ally_for_testing") as ControllableAlly
-	var mage: Node = _find_actor("training_mage")
-	if player == null or irina == null or mage == null or not mage is Node2D:
-		_fail("Runtime fixtures for player, Irina or training mage are missing.")
+	if player == null or irina == null:
+		_fail("Runtime fixtures for player or Irina are missing.")
+		return
+
+	var mage_packed: PackedScene = load(MAGE_SCENE) as PackedScene
+	var mage: Node = mage_packed.instantiate() if mage_packed != null else null
+	if mage == null or not mage is Node2D:
+		_fail("Training mage scene could not be instantiated.")
+		return
+	game.add_child(mage)
+	(mage as Node2D).global_position = Vector2(560.0, 360.0)
+	if not mage.has_method("activate_combat_participant") or not bool(mage.call("activate_combat_participant")):
+		_fail("Training mage could not become a combat participant.")
 		return
 
 	var second_ally := DummyPartyTarget.new()
@@ -158,15 +173,10 @@ func _run() -> void:
 
 	game.queue_free()
 	await process_frame
+	if FileAccess.file_exists(save_path):
+		DirAccess.remove_absolute(save_path)
 	print("Combat AI Targeting v3 actor-agnostic runtime smoke test passed.")
 	quit(0)
-
-
-func _find_actor(actor_id: String) -> Node:
-	for target: Node in get_nodes_in_group("combat_targets"):
-		if is_instance_valid(target) and target.has_method("get_actor_id") and str(target.call("get_actor_id")) == actor_id:
-			return target
-	return null
 
 
 func _make_hero() -> PlayerCharacter:
