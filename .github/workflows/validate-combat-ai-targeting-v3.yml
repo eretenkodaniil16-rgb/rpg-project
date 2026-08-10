@@ -6,6 +6,7 @@ on:
       - 'scripts/systems/combat_ai_party_target_adapter.gd'
       - 'scripts/game/game_combat_ai_targeting_v3_runtime.gd'
       - 'scripts/game/game_ai_stealth_v2_ui_runtime.gd'
+      - 'tests/compile_combat_ai_targeting_v3.gd'
       - 'tests/test_combat_ai_party_target_adapter.gd'
       - 'tests/smoke_combat_ai_targeting_v3.gd'
       - '.github/workflows/validate-combat-ai-targeting-v3.yml'
@@ -33,6 +34,10 @@ jobs:
           set -o pipefail
           timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 --headless --editor --path "$GITHUB_WORKSPACE" --quit 2>&1 | tee combat-ai-targeting-v3-import.log
           if grep -E "SCRIPT ERROR|Parse Error|Failed to load script" combat-ai-targeting-v3-import.log; then exit 1; fi
+
+      - name: Direct compile targeting v3 runtime
+        shell: bash
+        run: timeout 60s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/compile_combat_ai_targeting_v3.gd
 
       - name: Test party target adapter
         shell: bash
