@@ -1,4 +1,4 @@
-name: Inspect loading blob transport
+name: Inspect loading v02 bundles
 
 on:
   push:
@@ -17,14 +17,28 @@ jobs:
     steps:
       - name: Checkout scratch branch
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Verify transported c00 bytes
+      - name: Inspect merged bundle containers
         shell: bash
         run: |
           set -euo pipefail
-          FILE="tmp/loading_blob_transport_check_c00.webp"
-          test -f "$FILE"
-          test "$(stat -c%s "$FILE")" -eq 4276
-          echo "e0ed039da3b1f73dca928747e78630567900477c9343f4f182a3661a670208cc  $FILE" | sha256sum --check
-          file "$FILE"
-          echo "LOADING_BLOB_TRANSPORT_OK"
+          git fetch origin main
+          git checkout origin/main -- tools/loading_screen_visual_v02_transport/bundles
+          for source in tools/loading_screen_visual_v02_transport/bundles/bundle_*.b64; do
+            name="$(basename "$source" .b64)"
+            decoded="/tmp/${name}.bin"
+            base64 --decode "$source" > "$decoded"
+            echo "=== $name ==="
+            stat -c 'bytes=%s' "$decoded"
+            sha256sum "$decoded"
+            file "$decoded"
+            if tar -tzf "$decoded" >/tmp/${name}.list 2>/dev/null; then
+              echo "--- TAR CONTENTS ---"
+              cat /tmp/${name}.list
+            else
+              echo "--- GZIP TEXT HEAD ---"
+              gzip -dc "$decoded" 2>/dev/null | sed -n '1,120p' || true
+            fi
+          done
