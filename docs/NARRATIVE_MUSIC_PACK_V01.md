@@ -15,8 +15,9 @@ The package uses a new villain leitmotif:
 `D – Eb – A – Ab – F – D`
 
 It is intentionally asymmetrical and unstable. The motif is heard clearly in the Mad
-Wizard theme, stretched and lowered during the elevator descent, and made heavier and
-more destructive in the Act I finale.
+Wizard theme. In `elevator_descent_floor01_v01` revision 02 it fractures between `D/Eb`
+and `A/Ab` while the lift keeps descending; in `act01_plan_broken_v01` revision 02 the
+same semitone cells become an obsessive panic loop.
 
 The tavern track is deliberately outside that dark language. It provides a human,
 warm contrast so the tower's music feels stranger when the player returns to it.
@@ -47,27 +48,39 @@ unstable and touched by madness.
 - context: `tavern_commonroom`;
 - no borrowed folk melody.
 
-### `elevator_descent_floor01_v01` — «Ниже света»
+### `elevator_descent_floor01_v01` — «Ниже света», revision 02
 
-- 58 BPM, 4/4;
-- 16 bars / ~66.21 s;
+- 61 BPM, 4/4;
+- 17 bars / ~66.89 s;
 - one-shot scripted cue;
-- chromatically descending bass axis;
-- the Mad Wizard motif appears only as increasingly low fragments;
-- metallic mechanism pulses disappear as the descent continues;
+- chromatically descending physical bass axis remains slow and unavoidable;
+- the lift mechanism begins regular, then loses metric symmetry;
+- `D/Eb` and `A/Ab` fragments split the Mad Wizard leitmotif into unstable semitone pairs;
+- high celesta flashes and whispers become increasingly intrusive while the low register continues downward;
+- in the final section a faster internal panic pulse appears over the still-slow descent, creating the sensation that the character is sinking into fear rather than merely travelling downward;
 - ends unresolved for a crossfade into first-floor ambience;
 - context: `elevator_descent_floor01`.
 
-### `act01_plan_broken_v01` — «Когда башня отвечает»
+The revision deliberately avoids a simple volume crescendo. The dramatic mechanism is a
+loss of perceptual stability: the machine is physically slow, while the mind starts to
+hear increasingly fast and asymmetric patterns.
 
-- 68 BPM, 4/4;
-- 24 bars / ~84.71 s;
+### `act01_plan_broken_v01` — «Когда башня отвечает», revision 02
+
+- 82 BPM, 4/4;
+- 27 bars / ~79.02 s;
 - one-shot Act I finale;
-- starts with a restrained familiar heroic contour;
-- the Mad Wizard motif progressively takes over the harmony;
-- low choir, dark brass, war drums, glass alarms and mechanical fractures;
-- no victory cadence; the ending collapses unresolved;
+- a familiar contour survives only briefly and already stutters;
+- obsessive `D/Eb` and `A/Ab` repetitions become progressively faster;
+- irregular war-drum accents stop respecting a stable heroic pulse;
+- short dark-brass stabs and high glass alarms interrupt rather than support the harmony;
+- two brief panic dropouts break continuity before the score slams back in;
+- the final section approaches a hysterical loop but cuts off unresolved instead of cadencing;
 - context: `act01_plan_broken`.
+
+This revision is intentionally less "epic failure" and more immediate loss of control:
+the player should feel that several bad things are happening at once and nobody has time
+to process them.
 
 ## Runtime contract
 
@@ -96,7 +109,9 @@ This prevents scene-specific music rules from being embedded in the audio manage
 
 ## Source and provenance
 
-- deterministic NumPy renderer;
+- deterministic NumPy renderers;
+- revision 01 renderer remains authoritative for Mad Wizard and tavern;
+- `procedural_narrative_music_renderer_v02` is isolated to the revised elevator and Act I finale;
 - 48 kHz stereo;
 - Ogg Vorbis game masters;
 - MIDI and MP3 diagnostics are generated in CI;
@@ -113,8 +128,8 @@ Before approval:
 3. verify both looping tracks through at least two complete seams;
 4. compare relative loudness against exploration and combat music;
 5. confirm the tavern remains positive without becoming comedic;
-6. confirm the elevator becomes darker over time instead of merely getting louder;
-7. confirm the Act I finale communicates failure without sounding like a victory/boss ending;
-8. verify the Mad Wizard theme is recognizable when its motif returns in the elevator and finale.
+6. confirm «Ниже света» starts physically controlled but gradually feels mentally unstable and frightening;
+7. confirm «Когда башня отвечает» reads as nervous, hysterical and panicked rather than simply dark or epic;
+8. verify the Mad Wizard theme is recognizable when its motif mutates in the elevator and finale.
 
 Do not call these tracks final before the in-game check.
