@@ -1,7 +1,7 @@
 extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
-const EXPECTED_GAME_SCRIPT: String = "res://scripts/game/game_ai_stealth_v2_runtime.gd"
+const EXPECTED_GAME_SCRIPT: String = "res://scripts/game/game_ai_stealth_v2_ui_runtime.gd"
 
 
 func _init() -> void:
@@ -32,8 +32,12 @@ func _run() -> void:
 			return
 
 	game.call("set_exploration_stealth_total_v2_for_testing", 18)
+	game.call("_refresh_alert_indicator")
 	if int(game.call("get_exploration_stealth_total_v2_for_testing")) != 18:
 		_fail("Runtime did not retain the exploration Stealth total.")
+		return
+	if str(game.call("get_alert_indicator_text_for_testing")) != "СКРЫТ":
+		_fail("AI v2 exposed internal Stealth DC in the global HUD.")
 		return
 	var safe: Dictionary = game.call(
 		"resolve_passive_detection_v2_for_testing",
