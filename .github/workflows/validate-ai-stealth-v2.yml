@@ -53,7 +53,7 @@ jobs:
       - name: Regression test squad tactical plans
         shell: bash
         run: |
-          timeout 60s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_squad_tactical_plans.gd
+          timeout 60s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_squad_tactical_plans_runtime.gd
       - name: Upload diagnostics
         if: always()
         uses: actions/upload-artifact@v4
