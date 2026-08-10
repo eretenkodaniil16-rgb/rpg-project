@@ -119,6 +119,24 @@ This prevents scene-specific music rules from being embedded in the audio manage
 - no external recordings;
 - no third-party melodies.
 
+## Revision 02 verified render contracts
+
+`elevator_descent_floor01_v01`:
+
+- Linux Ogg size: 1,077,508 bytes;
+- Ogg SHA-256: `3ed4542122c85e865050665b6622055597e19076bc9d2963965393fc9a9e4528`;
+- PCM fingerprint: `46e3937b9e02dd93236b7b4db2d92ff493204c07dad6497b1ebe27914bf7d16b`;
+- peak: -1.25 dBFS;
+- RMS: -14.5526 dBFS.
+
+`act01_plan_broken_v01`:
+
+- Linux Ogg size: 1,304,990 bytes;
+- Ogg SHA-256: `36e60f2a92679710c7bbf3f9e6378e378b738cb59be3b2850cef7267bfde3334`;
+- PCM fingerprint: `ae789214ed333c97c298a43852ae34f74c042d5acedd7d7c4a96264492f6e3f4`;
+- peak: -0.9 dBFS;
+- RMS: -15.6652 dBFS.
+
 ## Manual acceptance
 
 Before approval:
