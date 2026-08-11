@@ -2,7 +2,7 @@
 
 [ext_resource type="PackedScene" path="res://scenes/game/game_base.tscn" id="1_base"]
 [ext_resource type="Script" path="res://scripts/game/game_ai_stealth_v2_ui_runtime.gd" id="2_feature"]
-[ext_resource type="Script" path="res://scripts/game/guard_post_party_visibility.gd" id="3_two_room"]
+[ext_resource type="Script" path="res://scripts/game/guard_post_environment_integration.gd" id="3_two_room"]
 [ext_resource type="Script" path="res://scripts/game/npc_stealth_context_dialogue.gd" id="4_context_npc"]
 [ext_resource type="Script" path="res://scripts/ui/mobile_controls_party_routing.gd" id="5_mobile_context"]
 [ext_resource type="Script" path="res://scripts/game/world_state_npc_navigation_controller_safe.gd" id="6_world_controller"]
