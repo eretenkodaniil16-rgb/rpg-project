@@ -1,0 +1,11 @@
+{
+  "composition_id": "tavern_commonroom_v01",
+  "original_for_project": true,
+  "external_recordings_used": false,
+  "external_samples_used": false,
+  "third_party_melodies_used": false,
+  "generated_from_repository_score": true,
+  "creative_reference_note": "Оригинальная камерная тавернная плясовая тема без заимствованных народных мелодий.",
+  "renderer": "procedural_narrative_music_renderer_v01",
+  "score_sha256": "3fbf15799e350ce363da809790b7fe89b39f9fd5009e799aedb75b4c271eb916"
+}

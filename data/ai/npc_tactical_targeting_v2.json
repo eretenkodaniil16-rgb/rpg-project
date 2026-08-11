@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "target_switch_hysteresis": 24.0,
+  "weights": {
+    "base": 100.0,
+    "visible": 65.0,
+    "attack_ready": 185.0,
+    "health_vulnerability": 62.0,
+    "distance": -0.22,
+    "range_error": -1.45,
+    "previous_target": 34.0,
+    "claim_penalty": -31.0,
+    "immediate_melee_threat": 28.0,
+    "full_tactics_capability": 20.0,
+    "limited_tactics_penalty_caster": -42.0,
+    "limited_tactics_penalty_ranged": -10.0
+  }
+}

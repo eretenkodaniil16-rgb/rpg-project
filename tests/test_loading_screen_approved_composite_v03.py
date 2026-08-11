@@ -69,3 +69,16 @@ def test_background_renderer_contract() -> None:
 def test_materialization_transport_is_not_committed_in_final_package() -> None:
     assert not TRANSPORT.exists(), "Temporary loading transport must be removed after materialization"
     assert not MATERIALIZER.exists(), "One-shot loading materializer must remove itself"
+
+
+def main() -> None:
+    test_manifest_contract()
+    test_pixel_master_matches_manifest()
+    test_scene_uses_approved_composite_without_duplicate_copy()
+    test_background_renderer_contract()
+    test_materialization_transport_is_not_committed_in_final_package()
+    print("Loading screen approved composite v03 static contracts passed.")
+
+
+if __name__ == "__main__":
+    main()

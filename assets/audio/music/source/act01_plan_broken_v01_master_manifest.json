@@ -1,0 +1,28 @@
+{
+  "composition_id": "act01_plan_broken_v01",
+  "score_sha256": "1919a4d9d11724e45da85c734891de9260b299d3334cdf106e0201a549681640",
+  "renderer": "procedural_narrative_music_renderer_v02",
+  "arrangement_revision": 2,
+  "numpy_version": "2.3.5",
+  "sample_rate": 48000,
+  "channels": 2,
+  "duration_seconds": 79.024396,
+  "tempo_bpm": 82,
+  "time_signature": [
+    4,
+    4
+  ],
+  "bars": 27,
+  "loop": false,
+  "pcm_signature_shift_bits": 8,
+  "pcm_signature_sha256": "ae789214ed333c97c298a43852ae34f74c042d5acedd7d7c4a96264492f6e3f4",
+  "peak_dbfs": -0.9,
+  "rms_dbfs": -15.6652,
+  "boundary_value_delta": 0.0,
+  "boundary_slope_delta": 0.0,
+  "wav_sha256": "742b5dce5bbb485a8223e9b8c961d407d010d7f0235095db26a9f9fcbccec4a4",
+  "midi_sha256": "b64400843b501b3d9c12a9949beb33c27dc0bf72b7cbce0767de989344281dd8",
+  "ogg_sha256": "36e60f2a92679710c7bbf3f9e6378e378b738cb59be3b2850cef7267bfde3334",
+  "ogg_size_bytes": 1304990,
+  "mp3_sha256": "21324873dad3461d6aa29f6b252269857b80c9a8a9ffba674d49ed462a7902d1"
+}
