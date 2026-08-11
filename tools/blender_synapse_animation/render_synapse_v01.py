@@ -13,6 +13,7 @@ if str(SCRIPT_DIR) not in sys.path:
 
 from blender_helpers import clear_scene
 from synapse_data import DURATION_SECONDS, FPS, PHASES, SOURCE_NOTE, TOTAL_FRAMES
+from synapse_layout_v01 import apply_teaching_layout
 from synapse_scene_v01 import SEED, build_synapse_scene
 
 
@@ -60,6 +61,7 @@ def build(args: argparse.Namespace) -> None:
     clear_scene()
     configure_scene(args.resolution, args.render_samples)
     build_synapse_scene()
+    apply_teaching_layout()
 
 
 def write_manifest(output_root: Path, args: argparse.Namespace) -> None:
