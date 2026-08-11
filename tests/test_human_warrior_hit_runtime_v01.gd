@@ -48,8 +48,8 @@ func _run() -> void:
 	if player == null or sprite == null or runtime_character == null:
 		_fail("Production human warrior runtime nodes are missing.")
 		return
-	if sprite.sprite_frames.get_animation_names().size() != 40:
-		_fail("Expected 40 directional runtime animations after hit integration.")
+	if sprite.sprite_frames.get_animation_names().size() != 52:
+		_fail("Expected 52 directional runtime animations after death integration.")
 		return
 	for grip: String in ["onehand", "twohand"]:
 		for direction: String in ["down", "left", "right", "up"]:

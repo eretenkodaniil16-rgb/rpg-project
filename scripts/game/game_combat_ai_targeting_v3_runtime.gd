@@ -394,10 +394,10 @@ func resolve_npc_attack(
 	if not is_instance_valid(target) or target == player:
 		return await super.resolve_npc_attack(attacker, attack_bonus, damage_die, damage_bonus, damage_type)
 	if not attacker is Node2D or not target is Node2D or not _enemy_party_target_is_available(target):
-		return {"hit": false}
+		return {"hit": false, "target": "ally"}
 	var cover: Dictionary = _combat_environment.get_cover((attacker as Node2D).global_position, (target as Node2D).global_position) if _combat_environment != null else {"bonus": 0, "total_cover": false}
 	if bool(cover.get("total_cover", false)):
-		return {"hit": false, "total_cover": true}
+		return {"hit": false, "total_cover": true, "target": "ally"}
 	var attacker_state: CombatantState = _state_for(attacker)
 	var defender_state: CombatantState = _party_target_state_v3(target)
 	var distance: int = DistanceSystem.distance_feet((attacker as Node2D).global_position, (target as Node2D).global_position)
@@ -412,7 +412,7 @@ func resolve_npc_attack(
 	var hit: bool = natural != 1 and (natural == 20 or int(roll.get("total", 0)) >= target_ac)
 	if not hit:
 		show_combat_message("%s промахивается по %s: %d против КД %d." % [_target_name(attacker), _party_target_name_v3(target), int(roll.get("total", 0)), target_ac], false)
-		return {"hit": false, "natural": natural, "total": int(roll.get("total", 0))}
+		return {"hit": false, "natural": natural, "total": int(roll.get("total", 0)), "target": "ally"}
 	var critical: bool = natural == 20 or bool(adjustments.get("automatic_critical", false))
 	var damage: int = damage_bonus
 	for _die_index: int in range(2 if critical else 1):
@@ -421,7 +421,7 @@ func resolve_npc_attack(
 	show_combat_message("%s наносит %s %d урона." % [_target_name(attacker), _party_target_name_v3(target), applied], false)
 	GameState.save_game()
 	_update_status()
-	return {"hit": true, "applied": applied, "critical": critical, "natural": natural}
+	return {"hit": true, "applied": applied, "critical": critical, "natural": natural, "target": "ally"}
 
 
 func _apply_party_target_damage_v3(

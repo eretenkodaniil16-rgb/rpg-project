@@ -4,8 +4,11 @@ signal melee_attack_contact(sequence_id: int)
 signal melee_attack_finished(sequence_id: int)
 signal hit_reaction_started(sequence_id: int, damage_amount: int)
 signal hit_reaction_finished(sequence_id: int)
+signal death_animation_started(sequence_id: int, death_variant_id: String, direction_id: String)
+signal death_animation_finished(sequence_id: int, death_visual_state: Dictionary)
 
 const HUMAN_WARRIOR_LIBRARY_SCRIPT: Script = preload("res://scripts/game/human_warrior_animation_library.gd")
+const DEATH_ANIMATION_SELECTOR_SCRIPT: Script = preload("res://scripts/systems/death_animation_selector.gd")
 const AUTHORED_SPRITE_OFFSET: Vector2 = Vector2(0.0, -43.0)
 const VISUAL_MOVEMENT_EPSILON_SQUARED: float = 0.01
 const VISUAL_STOP_GRACE_SECONDS: float = 0.10
@@ -15,6 +18,8 @@ const VISUAL_MODE_AUTO: StringName = &"auto"
 const VISUAL_MODE_UNARMED: StringName = &"unarmed"
 const VISUAL_MODE_ONEHAND: StringName = &"onehand"
 const VISUAL_MODE_TWOHAND: StringName = &"twohand"
+const DEATH_STATE_PLAYING: String = "playing"
+const DEATH_STATE_CORPSE_HOLD: String = "corpse_hold"
 
 @export var movement_speed: float = 220.0
 @export var movement_bounds: Rect2 = Rect2(28.0, 28.0, 1224.0, 664.0)
@@ -63,6 +68,14 @@ var _active_hit_animation: StringName = &""
 var _queued_hit_damage: int = 0
 var _queued_hit_source_global_position: Vector2 = Vector2.INF
 
+var _death_selector: DeathAnimationSelector = DEATH_ANIMATION_SELECTOR_SCRIPT.new() as DeathAnimationSelector
+var _death_sequence_counter: int = 0
+var _active_death_sequence_id: int = 0
+var _active_death_animation: StringName = &""
+var _death_visual_state: Dictionary = {}
+var _death_animation_completed: bool = false
+var _death_fallback_tween: Tween = null
+
 
 func _ready() -> void:
 	_install_character_sprite()
@@ -70,6 +83,7 @@ func _ready() -> void:
 	_last_visual_sample_position = global_position
 	_last_visual_weapon_id = GameState.player_character.equipped_weapon_id
 	_visual_sample_initialized = true
+	_restore_death_visual_state_if_needed()
 
 
 func _process(delta: float) -> void:
@@ -269,6 +283,224 @@ func is_hit_reaction_active() -> bool:
 	return _active_hit_sequence_id > 0
 
 
+func is_death_animation_active() -> bool:
+	return (
+		_active_death_sequence_id > 0
+		and str(_death_visual_state.get("corpse_state", "")) == DEATH_STATE_PLAYING
+	)
+
+
+func is_corpse_hold_active() -> bool:
+	return (
+		_active_death_sequence_id > 0
+		and str(_death_visual_state.get("corpse_state", "")) == DEATH_STATE_CORPSE_HOLD
+	)
+
+
+func get_death_visual_state() -> Dictionary:
+	return _death_visual_state.duplicate(true)
+
+
+func get_visual_facing_direction_id() -> StringName:
+	return _direction_id(_visual_facing_direction)
+
+
+func start_confirmed_death_animation(
+	restored_state: Dictionary = {},
+	roll_override: float = -1.0
+) -> int:
+	if _active_death_sequence_id > 0:
+		return _active_death_sequence_id
+	var character: PlayerCharacter = GameState.player_character
+	if character == null or character.current_health > 0:
+		return -1
+
+	var source_state: Dictionary = PlayerCharacter.normalize_death_visual_state(restored_state)
+	if source_state.is_empty():
+		source_state = PlayerCharacter.normalize_death_visual_state(character.death_visual_state)
+	var entries: Array[Dictionary] = (
+		_animation_library.get_death_variant_entries()
+		if _animation_library != null
+		else []
+	)
+	var fallback_variant_id: String = (
+		_animation_library.get_death_fallback_variant_id()
+		if _animation_library != null
+		else DeathAnimationSelector.DEFAULT_FALLBACK_VARIANT_ID
+	)
+	var requested_variant_id: String = str(source_state.get("death_variant_id", ""))
+	var death_variant_id: String = ""
+	if not requested_variant_id.is_empty():
+		death_variant_id = _death_selector.resolve_available_variant(
+			requested_variant_id,
+			entries,
+			fallback_variant_id
+		)
+	else:
+		death_variant_id = _death_selector.select_variant(
+			entries,
+			character.last_death_variant_id,
+			roll_override
+		)
+	if death_variant_id.is_empty():
+		death_variant_id = fallback_variant_id
+
+	var direction_id: StringName = _direction_id(_visual_facing_direction)
+	if not source_state.is_empty():
+		direction_id = StringName(str(source_state.get("direction_id", str(direction_id))))
+	var restored_corpse_hold: bool = (
+		str(source_state.get("corpse_state", "")) == DEATH_STATE_CORPSE_HOLD
+	)
+	var restored_frame_index: int = clampi(int(source_state.get("frame_index", 0)), 0, 7)
+
+	_cancel_action_animation_for_death()
+	_death_sequence_counter += 1
+	_active_death_sequence_id = _death_sequence_counter
+	_death_animation_completed = false
+	_action_animation_locked = true
+	_visual_motion_state = VISUAL_STATE_IDLE
+	_visual_stop_grace_remaining = 0.0
+	velocity = Vector2.ZERO
+	_death_visual_state = {
+		"death_variant_id": death_variant_id,
+		"direction_id": str(direction_id),
+		"corpse_state": DEATH_STATE_CORPSE_HOLD if restored_corpse_hold else DEATH_STATE_PLAYING,
+		"frame_index": restored_frame_index
+	}
+	character.last_death_variant_id = death_variant_id
+	_persist_death_visual_state()
+
+	var set_id: StringName = (
+		_animation_library.get_death_set_for_variant(death_variant_id)
+		if _animation_library != null
+		else &""
+	)
+	var animation_name := StringName("%s_%s" % [str(set_id), str(direction_id)])
+	var authored_death_available: bool = (
+		not str(set_id).is_empty()
+		and is_instance_valid(_character_sprite)
+		and _character_sprite.visible
+		and _character_sprite.sprite_frames.has_animation(animation_name)
+	)
+	if authored_death_available:
+		_active_death_animation = animation_name
+		_character_sprite.position = (
+			AUTHORED_SPRITE_OFFSET
+			+ _animation_library.get_death_anchor_offset(death_variant_id, direction_id)
+		)
+		_character_sprite.stop()
+		_character_sprite.play(animation_name)
+		var hold_frame_index: int = _animation_library.get_death_corpse_hold_frame_index(
+			death_variant_id
+		)
+		if restored_corpse_hold:
+			_character_sprite.frame = hold_frame_index
+			_character_sprite.pause()
+		else:
+			_character_sprite.frame = mini(restored_frame_index, hold_frame_index)
+	else:
+		_active_death_animation = &""
+		if is_instance_valid(_character_sprite):
+			_character_sprite.pause()
+
+	death_animation_started.emit(
+		_active_death_sequence_id,
+		death_variant_id,
+		str(direction_id)
+	)
+	if restored_corpse_hold:
+		call_deferred("_complete_death_animation", _active_death_sequence_id)
+	elif not authored_death_available:
+		_start_static_death_fallback(_active_death_sequence_id)
+	return _active_death_sequence_id
+
+
+func clear_death_visual_state() -> void:
+	if _death_fallback_tween != null:
+		_death_fallback_tween.kill()
+		_death_fallback_tween = null
+	_active_death_sequence_id = 0
+	_active_death_animation = &""
+	_death_visual_state.clear()
+	_death_animation_completed = false
+	_action_animation_locked = false
+	if GameState.player_character != null:
+		GameState.player_character.death_visual_state.clear()
+	if is_instance_valid(_character_sprite):
+		_character_sprite.position = AUTHORED_SPRITE_OFFSET
+	_refresh_visual_animation()
+
+
+func _restore_death_visual_state_if_needed() -> void:
+	var character: PlayerCharacter = GameState.player_character
+	if character == null:
+		return
+	if character.current_health > 0:
+		character.death_visual_state.clear()
+		return
+	var restored_state: Dictionary = PlayerCharacter.normalize_death_visual_state(
+		character.death_visual_state
+	)
+	if restored_state.is_empty():
+		return
+	start_confirmed_death_animation(restored_state)
+
+
+func _persist_death_visual_state() -> void:
+	var character: PlayerCharacter = GameState.player_character
+	if character == null:
+		return
+	var normalized_state: Dictionary = PlayerCharacter.normalize_death_visual_state(
+		_death_visual_state
+	)
+	character.death_visual_state = normalized_state.duplicate(true)
+	if not normalized_state.is_empty():
+		character.last_death_variant_id = str(
+			normalized_state.get("death_variant_id", character.last_death_variant_id)
+		)
+
+
+func _start_static_death_fallback(sequence_id: int) -> void:
+	if sequence_id != _active_death_sequence_id:
+		return
+	if _death_fallback_tween != null:
+		_death_fallback_tween.kill()
+	var duration_seconds: float = (
+		_animation_library.get_death_duration_seconds()
+		if _animation_library != null
+		else 0.8
+	)
+	_death_fallback_tween = create_tween()
+	_death_fallback_tween.tween_interval(maxf(duration_seconds, 0.8))
+	_death_fallback_tween.tween_callback(
+		Callable(self, "_complete_death_animation").bind(sequence_id)
+	)
+
+
+func _complete_death_animation(sequence_id: int) -> void:
+	if sequence_id != _active_death_sequence_id or _death_animation_completed:
+		return
+	_death_animation_completed = true
+	_death_fallback_tween = null
+	var death_variant_id: String = str(_death_visual_state.get("death_variant_id", ""))
+	var hold_frame_index: int = 7
+	if _animation_library != null:
+		hold_frame_index = _animation_library.get_death_corpse_hold_frame_index(
+			death_variant_id
+		)
+	if (
+		is_instance_valid(_character_sprite)
+		and not str(_active_death_animation).is_empty()
+		and _character_sprite.animation == _active_death_animation
+	):
+		_character_sprite.frame = hold_frame_index
+		_character_sprite.pause()
+	_death_visual_state["corpse_state"] = DEATH_STATE_CORPSE_HOLD
+	_death_visual_state["frame_index"] = hold_frame_index
+	_persist_death_visual_state()
+	death_animation_finished.emit(sequence_id, get_death_visual_state())
+
+
 func play_hit_reaction(
 	damage_amount: int,
 	source_global_position: Vector2 = Vector2.INF
@@ -282,19 +514,39 @@ func play_hit_reaction(
 
 
 func cancel_hit_reaction_for_death() -> void:
+	_cancel_action_animation_for_death()
+
+
+func _cancel_action_animation_for_death() -> void:
+	if _active_death_sequence_id > 0:
+		return
+	var cancelled_attack_sequence_id: int = _active_attack_sequence_id
+	var cancelled_hit_sequence_id: int = _active_hit_sequence_id
 	_queued_hit_damage = 0
 	_queued_hit_source_global_position = Vector2.INF
-	if _active_hit_sequence_id <= 0:
-		return
+	_pending_attack_contact = Callable()
+	_attack_contact_fired = true
+	if _attack_tween != null:
+		_attack_tween.kill()
+		_attack_tween = null
 	if _hit_tween != null:
 		_hit_tween.kill()
 		_hit_tween = null
-	if is_instance_valid(_character_sprite) and _character_sprite.animation == _active_hit_animation:
+	if is_instance_valid(_character_sprite) and (
+		_character_sprite.animation == _active_attack_animation
+		or _character_sprite.animation == _active_hit_animation
+	):
 		_character_sprite.stop()
 	get_active_visual().position = _active_visual_base_position
+	_active_attack_animation = &""
+	_active_attack_sequence_id = 0
 	_active_hit_animation = &""
 	_active_hit_sequence_id = 0
 	_action_animation_locked = false
+	if cancelled_attack_sequence_id > 0:
+		melee_attack_finished.emit(cancelled_attack_sequence_id)
+	if cancelled_hit_sequence_id > 0:
+		hit_reaction_finished.emit(cancelled_hit_sequence_id)
 
 
 func _start_hit_reaction(damage_amount: int, source_global_position: Vector2) -> int:
@@ -373,7 +625,7 @@ func apply_character_appearance() -> void:
 	if use_authored_sprite and is_instance_valid(_character_sprite):
 		body_visual.color = Color(0.0, 0.0, 0.0, 0.0)
 		_character_sprite.show()
-		_character_sprite.position = AUTHORED_SPRITE_OFFSET
+		_apply_active_death_anchor()
 		name_label.offset_top = -112.0
 		name_label.offset_bottom = -86.0
 		_refresh_visual_animation()
@@ -402,6 +654,8 @@ func get_active_visual_base_position() -> Vector2:
 
 
 func set_visual_facing(direction: Vector2) -> void:
+	if _active_death_sequence_id > 0:
+		return
 	if direction.length_squared() <= 0.0001:
 		return
 	_visual_facing_direction = direction.normalized()
@@ -448,6 +702,9 @@ func get_visual_debug_state() -> Dictionary:
 		"animation": str(_character_sprite.animation) if is_instance_valid(_character_sprite) else "fallback",
 		"action_locked": _action_animation_locked,
 		"hit_active": _active_hit_sequence_id > 0,
+		"death_active": is_death_animation_active(),
+		"corpse_hold": is_corpse_hold_active(),
+		"death_visual_state": get_death_visual_state(),
 		"queued_hit_damage": _queued_hit_damage,
 		"library_error": _animation_library_error
 	}
@@ -611,6 +868,14 @@ func _start_fallback_hit_reaction(sequence_id: int, source_global_position: Vect
 func _on_character_sprite_frame_changed() -> void:
 	if not _action_animation_locked or not is_instance_valid(_character_sprite):
 		return
+	if (
+		_active_death_sequence_id > 0
+		and not str(_active_death_animation).is_empty()
+		and _character_sprite.animation == _active_death_animation
+	):
+		_death_visual_state["frame_index"] = clampi(_character_sprite.frame, 0, 7)
+		_persist_death_visual_state()
+		return
 	if _character_sprite.animation != _active_attack_animation:
 		return
 	if _character_sprite.frame >= _active_attack_contact_frame:
@@ -619,6 +884,13 @@ func _on_character_sprite_frame_changed() -> void:
 
 func _on_character_sprite_animation_finished() -> void:
 	if not _action_animation_locked or not is_instance_valid(_character_sprite):
+		return
+	if (
+		_active_death_sequence_id > 0
+		and not str(_active_death_animation).is_empty()
+		and _character_sprite.animation == _active_death_animation
+	):
+		call_deferred("_complete_death_animation", _active_death_sequence_id)
 		return
 	if not str(_active_hit_animation).is_empty() and _character_sprite.animation == _active_hit_animation:
 		call_deferred("_finish_hit_reaction", _active_hit_sequence_id)
@@ -674,6 +946,20 @@ func _finish_hit_reaction(sequence_id: int) -> void:
 		_refresh_visual_animation()
 	hit_reaction_finished.emit(sequence_id)
 	call_deferred("_start_queued_hit_reaction")
+
+
+func _apply_active_death_anchor() -> void:
+	if not is_instance_valid(_character_sprite):
+		return
+	_character_sprite.position = AUTHORED_SPRITE_OFFSET
+	if _active_death_sequence_id <= 0 or _animation_library == null:
+		return
+	var death_variant_id: String = str(_death_visual_state.get("death_variant_id", ""))
+	var direction_id := StringName(str(_death_visual_state.get("direction_id", "down")))
+	_character_sprite.position += _animation_library.get_death_anchor_offset(
+		death_variant_id,
+		direction_id
+	)
 
 
 func _supports_authored_human_warrior(character: PlayerCharacter) -> bool:
