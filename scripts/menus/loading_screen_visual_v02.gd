@@ -17,8 +17,8 @@ var _reduced_motion: bool = false
 func _ready() -> void:
 	layer = 1000
 	_reduced_motion = bool(ProjectSettings.get_setting(REDUCED_MOTION_SETTING, false))
-	if _approved_background.has_method("has_complete_tiles"):
-		_approved_background.visible = bool(_approved_background.call("has_complete_tiles"))
+	if _approved_background.has_method("has_background_texture"):
+		_approved_background.visible = bool(_approved_background.call("has_background_texture"))
 	set_progress(0.0)
 	set_process(not _reduced_motion)
 	if _reduced_motion:
@@ -51,3 +51,11 @@ func uses_reduced_motion() -> bool:
 
 func has_runtime_progress_bar() -> bool:
 	return _progress_bar != null and _progress_bar.has_method("set_progress")
+
+
+func has_approved_background() -> bool:
+	return (
+		_approved_background != null
+		and _approved_background.has_method("has_background_texture")
+		and bool(_approved_background.call("has_background_texture"))
+	)

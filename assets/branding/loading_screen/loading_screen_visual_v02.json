@@ -1,0 +1,43 @@
+{
+  "visual_id": "loading_screen_visual_v02",
+  "display_name": "Хроники странника: Башня, уходящая вниз",
+  "status": "runtime_candidate",
+  "style": "pixel_art_dark_fantasy",
+  "approved_direction": "cylindrical_tower_blue_tapestries_pixel_pass",
+  "resources": {
+    "scene": "res://scenes/menus/loading_screen_visual_v02.tscn",
+    "background_script": "res://scripts/menus/loading_screen_background_v02.gd",
+    "background_texture": "res://assets/branding/loading_screen/approved/loading_screen_visual_v02/background/loading_screen_tower_blue_v02.png",
+    "progress_bar_scene": "res://scenes/ui/loading_progress_bar_v03.tscn"
+  },
+  "background_contract": {
+    "source_size": [1672, 941],
+    "encoding": "png_rgb8",
+    "sha256": "271f14237067e093b783367fb9e7b2c6d5fa4249158aece8b21d963e639b65f0",
+    "stretch_mode": "keep_aspect_covered",
+    "texture_filter": "linear",
+    "contains_title": false,
+    "contains_subtitle": false,
+    "contains_loading_ui": false,
+    "composition": [
+      "cylindrical_tower",
+      "descending_stairs",
+      "bright_blue_tapestries",
+      "warm_torches",
+      "blue_runic_circle",
+      "vertical_magic_beam"
+    ]
+  },
+  "fallback": {
+    "background_color": "#010306",
+    "loading_flow_preserved_without_art": true,
+    "texture_loaded_dynamically": true
+  },
+  "approval": {
+    "background_reference_approved": true,
+    "pixel_pass_approved": true,
+    "windows_physical_tested": false,
+    "android_physical_tested": false,
+    "final": false
+  }
+}
