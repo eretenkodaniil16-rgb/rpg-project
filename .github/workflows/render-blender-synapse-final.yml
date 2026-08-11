@@ -1,0 +1,212 @@
+name: Render Blender synapse final 1080p
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - tools/blender-synapse-neurotransmitter-v01
+    paths:
+      - ".github/synapse-final-render-request.json"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: blender-synapse-final-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate-final-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile sources
+        run: python -m compileall -q tools/blender_synapse_animation
+      - name: Install pytest
+        run: python -m pip install --disable-pip-version-check "pytest>=8.3,<9"
+      - name: Validate 45 second contract
+        env:
+          PYTHONPATH: tools/blender_synapse_animation
+        run: python -m pytest -q tools/blender_synapse_animation/test_synapse_data.py tools/blender_synapse_animation/test_synapse_source_contract.py
+
+  render-final-shards:
+    needs: validate-final-contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      max-parallel: 15
+      matrix:
+        include:
+          - { start: 1, end: 50 }
+          - { start: 51, end: 100 }
+          - { start: 101, end: 150 }
+          - { start: 151, end: 200 }
+          - { start: 201, end: 250 }
+          - { start: 251, end: 300 }
+          - { start: 301, end: 350 }
+          - { start: 351, end: 400 }
+          - { start: 401, end: 450 }
+          - { start: 451, end: 500 }
+          - { start: 501, end: 550 }
+          - { start: 551, end: 600 }
+          - { start: 601, end: 650 }
+          - { start: 651, end: 700 }
+          - { start: 701, end: 750 }
+          - { start: 751, end: 800 }
+          - { start: 801, end: 850 }
+          - { start: 851, end: 900 }
+          - { start: 901, end: 950 }
+          - { start: 951, end: 1000 }
+          - { start: 1001, end: 1050 }
+          - { start: 1051, end: 1100 }
+          - { start: 1101, end: 1150 }
+          - { start: 1151, end: 1200 }
+          - { start: 1201, end: 1250 }
+          - { start: 1251, end: 1300 }
+          - { start: 1301, end: 1350 }
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install headless Blender dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xvfb libgl1 libxi6 libxrender1 libxkbcommon-x11-0 fonts-dejavu-core
+      - name: Download and verify Blender 5.2.0 LTS
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/blender-5.2.0-linux-x64.tar.xz"
+          extract="$RUNNER_TEMP/blender-5.2.0"
+          curl -L --fail --retry 3 --output "$archive" "https://download.blender.org/release/Blender5.2/blender-5.2.0-linux-x64.tar.xz"
+          actual="$(sha256sum "$archive" | cut -d' ' -f1)"
+          expected="96f6c181a30f4950607839dc84d42a354b250d8a0231b098b59b7bc69c351c48"
+          test "$actual" = "$expected"
+          mkdir -p "$extract"
+          tar -xJf "$archive" -C "$extract"
+          blender="$(find "$extract" -type f -name blender -perm -111 | head -n 1)"
+          test -n "$blender"
+          echo "BLENDER_EXE=$blender" >> "$GITHUB_ENV"
+      - name: Render native 1080p frames
+        shell: bash
+        run: |
+          set -euo pipefail
+          output="$GITHUB_WORKSPACE/artifacts/synapse_final"
+          save=()
+          if [[ "${{ matrix.start }}" == "1" ]]; then save+=(--save-blend); fi
+          xvfb-run -a "$BLENDER_EXE" --background --factory-startup --python-exit-code 1 \
+            --python tools/blender_synapse_animation/render_synapse_v01.py -- \
+            --output-root "$output" \
+            --frame-start "${{ matrix.start }}" --frame-end "${{ matrix.end }}" \
+            --resolution 1080 --render-samples 64 "${save[@]}"
+          expected=$(( ${{ matrix.end }} - ${{ matrix.start }} + 1 ))
+          actual="$(find "$output/frames" -maxdepth 1 -type f -name 'synapse_*.png' | wc -l)"
+          test "$actual" -eq "$expected"
+      - name: Upload final shard
+        uses: actions/upload-artifact@v4
+        with:
+          name: synapse-final-${{ matrix.start }}-${{ matrix.end }}
+          path: artifacts/synapse_final/**
+          if-no-files-found: error
+          retention-days: 4
+          compression-level: 0
+
+  assemble-final-video:
+    needs: render-final-shards
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install FFmpeg and zip
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg zip
+      - name: Download rendered shards
+        uses: actions/download-artifact@v4
+        with:
+          pattern: synapse-final-*
+          path: artifacts/synapse_final
+          merge-multiple: true
+      - name: Verify complete 1080p PNG sequence
+        shell: bash
+        run: |
+          set -euo pipefail
+          frames="artifacts/synapse_final/frames"
+          count="$(find "$frames" -maxdepth 1 -type f -name 'synapse_*.png' | wc -l)"
+          test "$count" -eq 1350
+          for frame in $(seq 1 1350); do
+            test -s "$frames/synapse_$(printf '%04d' "$frame").png"
+          done
+          first="$frames/synapse_0001.png"
+          last="$frames/synapse_1350.png"
+          test "$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of csv=p=0 "$first")" = "1920"
+          test "$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of csv=p=0 "$first")" = "1080"
+          test "$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of csv=p=0 "$last")" = "1920"
+          test "$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of csv=p=0 "$last")" = "1080"
+      - name: Encode 45 second MP4 delivery
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="artifacts/synapse_final"
+          frames="$root/frames/synapse_%04d.png"
+          master="$root/chemical_synapse_neurotransmitter_v01_1080p30_master.mp4"
+          compatible="$root/chemical_synapse_neurotransmitter_v01_1080p30_compatible.mp4"
+          ffmpeg -y -framerate 30 -start_number 1 -i "$frames" \
+            -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=48000 -t 45 \
+            -vf "setsar=1,format=yuv420p" \
+            -c:v libx264 -preset veryslow -crf 12 -profile:v high -level:v 4.2 \
+            -color_primaries bt709 -color_trc bt709 -colorspace bt709 \
+            -c:a aac -b:a 128k -shortest -movflags +faststart "$master"
+          ffmpeg -y -framerate 30 -start_number 1 -i "$frames" \
+            -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=48000 -t 45 \
+            -vf "setsar=1,format=yuv420p" \
+            -c:v libx264 -preset slow -crf 17 -profile:v main -level:v 4.0 \
+            -color_primaries bt709 -color_trc bt709 -colorspace bt709 \
+            -c:a aac -b:a 128k -shortest -movflags +faststart "$compatible"
+          cp "$root/frames/synapse_0690.png" "$root/chemical_synapse_neurotransmitter_v01_poster.png"
+      - name: Verify video contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="artifacts/synapse_final"
+          for video in "$root"/*1080p30*.mp4; do
+            test "$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of csv=p=0 "$video")" = "1920"
+            test "$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of csv=p=0 "$video")" = "1080"
+            fps="$(ffprobe -v error -select_streams v:0 -show_entries stream=avg_frame_rate -of csv=p=0 "$video")"
+            test "$fps" = "30/1"
+            duration="$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$video")"
+            python - "$duration" <<'PY'
+import sys
+value = float(sys.argv[1])
+assert 44.9 <= value <= 45.1, value
+PY
+          done
+      - name: Create delivery archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="artifacts/synapse_final"
+          cd "$root"
+          zip -9 chemical_synapse_neurotransmitter_v01_delivery.zip \
+            chemical_synapse_neurotransmitter_v01_1080p30_master.mp4 \
+            chemical_synapse_neurotransmitter_v01_1080p30_compatible.mp4 \
+            chemical_synapse_neurotransmitter_v01_poster.png \
+            chemical_synapse_neurotransmitter_v01.blend \
+            synapse_v01_manifest.json
+      - name: Upload final delivery
+        uses: actions/upload-artifact@v4
+        with:
+          name: chemical-synapse-neurotransmitter-v01-delivery
+          path: |
+            artifacts/synapse_final/chemical_synapse_neurotransmitter_v01_1080p30_master.mp4
+            artifacts/synapse_final/chemical_synapse_neurotransmitter_v01_1080p30_compatible.mp4
+            artifacts/synapse_final/chemical_synapse_neurotransmitter_v01_poster.png
+            artifacts/synapse_final/chemical_synapse_neurotransmitter_v01.blend
+            artifacts/synapse_final/synapse_v01_manifest.json
+            artifacts/synapse_final/chemical_synapse_neurotransmitter_v01_delivery.zip
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
