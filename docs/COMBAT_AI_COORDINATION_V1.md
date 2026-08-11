@@ -11,11 +11,12 @@
 `game_ai_stealth_v2_ui_runtime.gd`
 → `game_combat_ai_coordination_v1_runtime.gd`
 → `game_advanced_party_tactics_v1_runtime.gd`
+→ существующая цепочка, уже включающая `game_squad_tactical_plans_runtime.gd`
 → `game_combat_ai_targeting_v3_runtime.gd`
 
-Новый слой не создаёт второй набор AI-профилей. `SquadPlanNpcAiSystem` является подклассом уже используемого Advanced AI и сохраняет существующие spell/target/tactical contracts.
+Ключевое ограничение: Combat AI Coordination v1 **не создаёт второй squad-blackboard и второй AI**. Исторический `game_squad_tactical_plans_runtime.gd` уже владеет `_squad_ai`, `_squad_plans`, назначениями, tactical objectives, outcome tracking и резервированием клеток. Новый runtime является только bridge-слоем: передаёт в этот существующий blackboard generic party-target context из Advanced Party Tactics v1 и возвращает его role-specific назначения в актуальный путь движения/действий.
 
-`SquadTacticalPlanSystem` остаётся data-driven и читает `res://data/ai/squad_tactical_plans.json`.
+`SquadPlanNpcAiSystem` является подклассом уже используемого Advanced AI, поэтому сохраняются существующие spell/target/tactical contracts. `SquadTacticalPlanSystem` остаётся data-driven и читает `res://data/ai/squad_tactical_plans.json`.
 
 ## Что координируется
 
@@ -28,38 +29,48 @@
 - `orderly_withdrawal` — организованный отход;
 - `sector_search` — разделение последней известной позиции на сектора;
 - `rescue_bound_ally` — освобождение связанного союзника, когда есть реальный видимый bound-body context;
-- `hold_chokepoint` — остаётся data-driven, но Combat AI Coordination v1 не синтезирует passage incident без реального environment-context.
+- `hold_chokepoint` — остаётся data-driven и использует реальный environment/passage context существующей системы; новый bridge не синтезирует знание о проходе сам.
 
 ## Generic party target
 
 Координация использует выбранную `Combat AI Targeting v3` цель. Поэтому front/flank/rear/search objectives строятся относительно фактического выбранного члена партии, а не жёстко относительно главного героя.
 
+Если враг выбрал Ирину или будущего поддерживаемого спутника, тот же squad-plan продолжает работать без отдельной ветки AI для конкретного персонажа.
+
 ## Tactical blackboard
 
-Runtime хранит только временное боевое состояние:
+Единственный источник временного squad-state — унаследованный `game_squad_tactical_plans_runtime.gd`. В нём сохраняются:
 
 - назначение NPC;
-- рассчитанную tactical objective;
-- зарезервированную конечную клетку;
+- рассчитанная tactical objective;
+- зарезервированная конечная клетка;
 - уже объявленный squad-plan;
-- outcome назначения.
+- outcome назначения и failure count.
 
-Состояние очищается после боя. Save schema не меняется и миграция старых сохранений не требуется.
+Combat AI Coordination v1 не дублирует эти структуры. Состояние очищается после боя. Save schema не меняется и миграция старых сохранений не требуется.
 
 ## Cell reservations
 
-Когда NPC планирует движение, выбранная конечная клетка резервируется для его `actor_id` внутри squad. Следующие союзники считают клетки других назначений недоступными и не пытаются закончить ход в одной точке.
+Когда NPC планирует generic party-target movement, новый bridge выставляет унаследованный `_active_planning_actor_id`. Поэтому существующая проверка `_combat_ai_cell_is_available()` учитывает клетки, уже зарезервированные другими членами того же squad. После выбора пути конечная клетка записывается в тот же унаследованный `_squad_reserved_cells`.
 
-Резервации сбрасываются при смене раунда.
+Резервации сбрасываются при смене раунда существующим squad runtime.
+
+## Совместимость Advanced Party Tactics v1
+
+Production runtime получает squad assignment через `_build_party_tactical_context_v1()` и позволяет squad-плану переопределять более слабое индивидуальное utility-решение.
+
+Старый helper `choose_party_tactical_intent_v1_for_testing()` сохранён как изолированный тест нижнего слоя Rally / Take Cover / Regroup: из его тестового context удаляются только coordination keys. Это не влияет на production decision path; для самой координации существует отдельный integration smoke.
 
 ## Ограничения v1
 
 - Координация не даёт NPC всеведения. Targeting, LOS и shared memory продолжают ограничиваться существующими системами.
-- Environment-specific passage/chokepoint план не активируется без конкретного события окружения.
+- Новый bridge не создаёт фиктивный passage/chokepoint context.
 - Система не телепортирует NPC и не отключает collision/path rules.
-- Боевой план не записывается в сохранение: после загрузки активного боя он должен быть пересчитан из актуального состояния мира.
+- Боевой план не записывается отдельной сущностью в сохранение: после загрузки он пересчитывается из актуального состояния мира существующей системой.
 
 ## Автоматическая проверка
+
+`tests/smoke_load_combat_ai_coordination_v1.gd` напрямую загружает новый leaf и требует `Script.can_instantiate()`, чтобы parser error не мог ложно пройти как загруженный Resource.
 
 `tests/smoke_combat_ai_coordination_v1.gd` проверяет реальный `vault_watch` mixed squad:
 
@@ -71,6 +82,8 @@ Runtime хранит только временное боевое состоян
 - tactical objectives расходятся по секторам;
 - два NPC не резервируют одну конечную клетку;
 - runtime state очищается.
+
+Workflow также прогоняет регрессии Advanced Party Tactics v1, Combat AI Targeting v3, Advanced Combat AI, исторического squad tactical runtime, AI/Stealth v2 и controllable ally.
 
 ## Ручная проверка Android
 
