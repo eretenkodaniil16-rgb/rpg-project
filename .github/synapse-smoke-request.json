@@ -1,10 +1,10 @@
 {
-  "request": "chemical-synapse-v01-smoke-rerun-4-text-facing",
+  "request": "chemical-synapse-v01-smoke-rerun-5-teaching-layout",
   "duration_seconds": 45,
   "fps": 30,
   "keyframes": [1, 180, 330, 540, 690, 900, 1110, 1290, 1350],
   "resolution": 540,
   "render_samples": 32,
   "blender": "5.2.0 LTS",
-  "requested_at": "2026-08-11T11:52:00+03:00"
+  "requested_at": "2026-08-11T11:58:00+03:00"
 }
