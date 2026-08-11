@@ -65,7 +65,8 @@ func _run() -> void:
 		&"get_squad_sighting_memory_v3_for_testing",
 		&"report_party_noise_v3_for_testing",
 		&"get_persisted_party_stealth_state_v3_for_testing",
-		&"is_party_follow_position_exposed_v3_for_testing"
+		&"is_party_follow_position_exposed_v3_for_testing",
+		&"is_player_combat_hidden_v3_for_testing"
 	]:
 		if not game.has_method(method_name):
 			_fail("Final game runtime is missing Party Stealth v3 capability: %s" % method_name)
@@ -156,11 +157,10 @@ func _run() -> void:
 	alert_record["suspicion"] = StealthAlertSystem.SUSPICION_ALERTED
 	game.call("_begin_combat_from_party_alert_v3", caretaker, alert_record, irina)
 	var turn_system: TurnBasedCombatSystem = game.get("_turn_system") as TurnBasedCombatSystem
-	var player_combat_state: CombatantState = game.get("_player_combat_state") as CombatantState
 	if turn_system == null or not turn_system.active:
 		_fail("Irina detection did not transition the encounter into combat.")
 		return
-	if player_combat_state == null or not player_combat_state.hidden:
+	if not bool(game.call("is_player_combat_hidden_v3_for_testing")):
 		_fail("Combat transition caused by Irina revealed the hidden hero.")
 		return
 	hero_state = game.call("get_party_stealth_snapshot_v3_for_testing", player) as Dictionary
