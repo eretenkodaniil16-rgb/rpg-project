@@ -1,0 +1,58 @@
+name: Materialize loading screen approved composite v03
+
+on:
+  push:
+    branches:
+      - art/loading-screen-approved-composite-v03
+    paths:
+      - "tools/loading_screen_approved_composite_v03_transport/READY"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: materialize-loading-screen-approved-composite-v03
+  cancel-in-progress: false
+
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout target branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Reassemble and verify approved pixel master
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(find tools/loading_screen_approved_composite_v03_transport -maxdepth 1 -name 'piece_*.b64' | wc -l)" -eq 22
+          cat tools/loading_screen_approved_composite_v03_transport/piece_*.b64 > /tmp/loading_screen_approved_composite_v03.b64
+          base64 --decode /tmp/loading_screen_approved_composite_v03.b64 > /tmp/loading_screen_approved_composite_v03.webp
+          test "$(stat -c%s /tmp/loading_screen_approved_composite_v03.webp)" -eq 47864
+          echo "09484720511999dcff2b7be5311a74dad646d469af0c40b21856092770e38005  /tmp/loading_screen_approved_composite_v03.webp" | sha256sum --check
+          file /tmp/loading_screen_approved_composite_v03.webp | grep -F "Web/P image"
+
+      - name: Materialize runtime asset
+        shell: bash
+        run: |
+          set -euo pipefail
+          target="assets/branding/loading_screen/approved/loading_screen_composite_v03/loading_screen_approved_composite_v03.webp"
+          mkdir -p "$(dirname "$target")"
+          cp /tmp/loading_screen_approved_composite_v03.webp "$target"
+          rm -rf tools/loading_screen_approved_composite_v03_transport
+          rm -f .github/workflows/materialize-loading-screen-approved-composite-v03.yml
+          python tests/test_loading_screen_approved_composite_v03.py
+
+      - name: Commit exact runtime asset
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "art: материализовать pixel loading composite v03"
+          git push origin HEAD:art/loading-screen-approved-composite-v03
