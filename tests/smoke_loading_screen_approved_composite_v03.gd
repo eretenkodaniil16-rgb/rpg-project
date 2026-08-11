@@ -1,8 +1,8 @@
 extends SceneTree
 
 const SCENE: PackedScene = preload("res://scenes/menus/loading_screen_visual_v02.tscn")
-const EXPECTED_SOURCE_SIZE: Vector2 = Vector2(1672.0, 941.0)
-const EXPECTED_TILE_COUNT: int = 26
+const EXPECTED_SOURCE_SIZE: Vector2 = Vector2(768.0, 432.0)
+const EXPECTED_TILE_COUNT: int = 1
 
 
 func _initialize() -> void:
@@ -18,8 +18,8 @@ func _run() -> void:
 	var background: Control = instance.get_node_or_null("Root/ApprovedBackground") as Control
 	assert(background != null, "ApprovedBackground is missing")
 	assert(background.has_method("has_complete_tiles"), "ApprovedBackground contract is missing")
-	assert(bool(background.call("has_complete_tiles")), "Approved loading composite is incomplete")
-	assert(int(background.call("expected_tile_count")) == EXPECTED_TILE_COUNT, "Unexpected approved strip count")
+	assert(bool(background.call("has_complete_tiles")), "Approved loading pixel master is incomplete")
+	assert(int(background.call("expected_tile_count")) == EXPECTED_TILE_COUNT, "Unexpected approved texture count")
 	assert(Vector2(background.call("source_size")) == EXPECTED_SOURCE_SIZE, "Unexpected approved source size")
 
 	var progress_bar: Control = instance.get_node_or_null("Root/LoadingProgressBar") as Control
