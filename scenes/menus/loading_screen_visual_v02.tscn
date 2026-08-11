@@ -1,7 +1,7 @@
 [gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/menus/loading_screen_visual_v02.gd" id="1_visual"]
-[ext_resource type="Script" path="res://scripts/menus/main_menu_tiled_background.gd" id="2_background"]
+[ext_resource type="Script" path="res://scripts/menus/loading_screen_background_v02.gd" id="2_background"]
 [ext_resource type="PackedScene" path="res://scenes/ui/loading_progress_bar_v03.tscn" id="3_bar"]
 
 [sub_resource type="StyleBoxFlat" id="StyleTitle"]

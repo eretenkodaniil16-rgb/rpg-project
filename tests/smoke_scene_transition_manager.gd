@@ -18,6 +18,18 @@ func _run() -> void:
 	assert(visual.has_method("set_progress"))
 	assert(visual.has_method("has_runtime_progress_bar"))
 	assert(bool(visual.call("has_runtime_progress_bar")))
+	assert(visual.has_method("has_approved_background"))
+	assert(bool(visual.call("has_approved_background")))
+	var approved_background: Control = visual.get_node("Root/ApprovedBackground") as Control
+	assert(approved_background != null)
+	assert(approved_background.visible)
+	assert(approved_background.has_method("source_size"))
+	assert(approved_background.call("source_size") == Vector2(1672.0, 941.0))
+	assert(approved_background.has_method("texture_path"))
+	assert(
+		String(approved_background.call("texture_path"))
+		== "res://assets/branding/loading_screen/approved/loading_screen_visual_v02/background/loading_screen_tower_blue_v02.png"
+	)
 	visual.call("set_progress", 50.0)
 	var progress_label: Label = visual.get_node("Root/ProgressLabel") as Label
 	var subtitle: Label = visual.get_node("Root/SubtitlePanel/Subtitle") as Label

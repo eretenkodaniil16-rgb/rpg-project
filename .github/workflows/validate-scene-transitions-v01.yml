@@ -7,15 +7,20 @@ on:
       - "scripts/systems/scene_transition_manager.gd"
       - "scripts/menus/main_menu.gd"
       - "scripts/menus/loading_screen_visual_v02.gd"
+      - "scripts/menus/loading_screen_background_v02.gd"
       - "scripts/character_creation/character_creator.gd"
       - "scripts/character_creation/character_creator_customized.gd"
       - "scenes/menus/loading_screen_visual_v02.tscn"
       - "scenes/ui/loading_progress_bar_v03.tscn"
       - "scripts/ui/loading_progress_bar_v03.gd"
       - "assets/branding/loading_screen/approved/loading_bar_v03/**"
+      - "assets/branding/loading_screen/approved/loading_screen_visual_v02/**"
+      - "assets/branding/loading_screen/loading_screen_visual_v02.json"
       - "tests/test_scene_transition_manager.py"
+      - "tests/test_loading_screen_background_v02.py"
       - "tests/smoke_scene_transition_manager.gd"
       - "docs/SCENE_TRANSITIONS_LOADING_V01.md"
+      - "docs/LOADING_SCREEN_BACKGROUND_V02.md"
       - ".github/workflows/validate-scene-transitions-v01.yml"
   workflow_dispatch:
 
@@ -31,7 +36,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Validate static contracts
-        run: python tests/test_scene_transition_manager.py
+        run: |
+          python tests/test_scene_transition_manager.py
+          python tests/test_loading_screen_background_v02.py
 
       - name: Download Godot 4.7.1 Standard
         run: |
