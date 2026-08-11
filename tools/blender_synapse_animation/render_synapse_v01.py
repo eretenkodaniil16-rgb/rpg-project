@@ -7,6 +7,10 @@ from pathlib import Path
 
 import bpy
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
 from blender_helpers import clear_scene
 from synapse_data import DURATION_SECONDS, FPS, PHASES, SOURCE_NOTE, TOTAL_FRAMES
 from synapse_scene_v01 import SEED, build_synapse_scene
