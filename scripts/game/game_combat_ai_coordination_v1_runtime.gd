@@ -176,6 +176,37 @@ func _execute_party_target_path_v1(
 	)
 
 
+# Keep the pre-v1 Advanced Party Tactics test API isolated. Production runtime
+# receives squad assignments through _build_party_tactical_context_v1(), while
+# this inherited helper is specifically used to verify the lower-level Rally /
+# Take Cover / Regroup utility contract independently of coordination.
+func choose_party_tactical_intent_v1_for_testing(
+	actor: Node,
+	target: Node,
+	overrides: Dictionary = {}
+) -> Dictionary:
+	if _squad_ai == null:
+		return {}
+	var actor_id: String = actor_id_for_party_tactics_v1(actor)
+	if actor_id.is_empty():
+		return {}
+	var context: Dictionary = get_party_tactical_context_v1_for_testing(
+		actor,
+		target,
+		overrides
+	)
+	if context.is_empty():
+		return {}
+	for key: String in [
+		"squad_plan",
+		"squad_plan_assignment",
+		"squad_plan_id",
+		"squad_plan_phase"
+	]:
+		context.erase(key)
+	return _squad_ai.choose_combat_intent(actor_id, context)
+
+
 func get_coordination_plan_v1_for_testing(squad_id: String) -> Dictionary:
 	return get_squad_plan_for_testing(squad_id)
 
