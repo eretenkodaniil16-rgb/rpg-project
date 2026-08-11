@@ -52,8 +52,8 @@ func _run() -> void:
 	collapse["average_health_ratio"] = 0.30
 	var withdrawal: Dictionary = system.evaluate_squad_plan("test_squad", 2, collapse)
 	_assert_plan(withdrawal, SquadTacticalPlanSystem.PLAN_ORDERLY_WITHDRAWAL, "Emergency withdrawal")
-	if str(withdrawal.get("switch_reason", "")) != "priority_interrupt":
-		_fail("Emergency withdrawal did not interrupt lower-priority protection: %s" % JSON.stringify(withdrawal))
+	if str(withdrawal.get("switch_reason", "")) != "existing_invalid":
+		_fail("Emergency collapse did not invalidate local wounded protection: %s" % JSON.stringify(withdrawal))
 		return
 
 	system.clear()
