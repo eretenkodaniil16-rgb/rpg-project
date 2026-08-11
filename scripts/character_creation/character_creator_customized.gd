@@ -667,7 +667,7 @@ func _finish_creation() -> void:
 	if not GameState.save_game():
 		_message_label.text = "Не удалось сохранить созданного персонажа."
 		return
-	get_tree().change_scene_to_file(GAME_SCENE)
+	_request_scene_transition(GAME_SCENE)
 
 
 func _select_race(race_id: String) -> void:

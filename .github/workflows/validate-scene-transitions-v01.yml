@@ -1,0 +1,62 @@
+name: Validate scene transitions v01
+
+on:
+  pull_request:
+    paths:
+      - "project.godot"
+      - "scripts/systems/scene_transition_manager.gd"
+      - "scripts/menus/main_menu.gd"
+      - "scripts/menus/loading_screen_visual_v02.gd"
+      - "scripts/character_creation/character_creator.gd"
+      - "scripts/character_creation/character_creator_customized.gd"
+      - "scenes/menus/loading_screen_visual_v02.tscn"
+      - "scenes/ui/loading_progress_bar_v03.tscn"
+      - "scripts/ui/loading_progress_bar_v03.gd"
+      - "assets/branding/loading_screen/approved/loading_bar_v03/**"
+      - "tests/test_scene_transition_manager.py"
+      - "tests/smoke_scene_transition_manager.gd"
+      - "docs/SCENE_TRANSITIONS_LOADING_V01.md"
+      - ".github/workflows/validate-scene-transitions-v01.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate static contracts
+        run: python tests/test_scene_transition_manager.py
+
+      - name: Download Godot 4.7.1 Standard
+        run: |
+          curl --location --fail --retry 4 --retry-all-errors --retry-delay 3 \
+            --connect-timeout 20 --max-time 180 --output godot.zip \
+            "https://downloads.godotengine.org/?flavor=stable&platform=linux.64&slug=linux.x86_64.zip&version=4.7.1"
+          unzip -q godot.zip
+          chmod +x Godot_v4.7.1-stable_linux.x86_64
+
+      - name: Import project and reject parser errors
+        run: |
+          rm -rf .godot
+          set -o pipefail
+          timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 \
+            --headless --editor --path "$GITHUB_WORKSPACE" --quit \
+            2>&1 | tee scene-transition-import.log
+          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script" scene-transition-import.log; then
+            exit 1
+          fi
+
+      - name: Run transition smoke test
+        run: |
+          set -o pipefail
+          timeout 90s ./Godot_v4.7.1-stable_linux.x86_64 \
+            --headless --path "$GITHUB_WORKSPACE" \
+            --script res://tests/smoke_scene_transition_manager.gd \
+            2>&1 | tee scene-transition-smoke.log
+          grep -F "Scene transition manager smoke test passed." scene-transition-smoke.log

@@ -1,0 +1,174 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/menus/loading_screen_visual_v02.gd" id="1_visual"]
+[ext_resource type="Script" path="res://scripts/menus/main_menu_tiled_background.gd" id="2_background"]
+[ext_resource type="PackedScene" path="res://scenes/ui/loading_progress_bar_v03.tscn" id="3_bar"]
+
+[sub_resource type="StyleBoxFlat" id="StyleTitle"]
+bg_color = Color(0.004, 0.014, 0.027, 0.84)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.07, 0.45, 0.72, 0.78)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+shadow_color = Color(0.0, 0.18, 0.34, 0.7)
+shadow_size = 18
+
+[sub_resource type="StyleBoxFlat" id="StyleSubtitle"]
+bg_color = Color(0.003, 0.012, 0.023, 0.9)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.05, 0.34, 0.56, 0.62)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[node name="LoadingScreenVisualV02" type="CanvasLayer"]
+layer = 1000
+script = ExtResource("1_visual")
+
+[node name="Root" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+
+[node name="Fallback" type="ColorRect" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0.0039, 0.0118, 0.0235, 1)
+
+[node name="ApprovedBackground" type="Control" parent="Root"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("2_background")
+
+[node name="Shade" type="ColorRect" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.0, 0.01, 0.025, 0.42)
+
+[node name="AmbientGlow" type="ColorRect" parent="Root"]
+unique_name_in_owner = true
+layout_mode = 1
+anchor_left = 0.22
+anchor_top = 0.08
+anchor_right = 0.78
+anchor_bottom = 0.76
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.0, 0.25, 0.5, 0.2)
+
+[node name="TitlePanel" type="PanelContainer" parent="Root"]
+layout_mode = 1
+anchor_left = 0.20
+anchor_top = 0.10
+anchor_right = 0.80
+anchor_bottom = 0.31
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleTitle")
+
+[node name="Title" type="Label" parent="Root/TitlePanel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.38, 0.86, 1, 1)
+theme_override_colors/font_shadow_color = Color(0, 0.03, 0.07, 1)
+theme_override_constants/shadow_offset_x = 3
+theme_override_constants/shadow_offset_y = 4
+theme_override_font_sizes/font_size = 52
+text = "Хроники странника"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SubtitlePanel" type="PanelContainer" parent="Root"]
+layout_mode = 1
+anchor_left = 0.30
+anchor_top = 0.33
+anchor_right = 0.70
+anchor_bottom = 0.405
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleSubtitle")
+
+[node name="Subtitle" type="Label" parent="Root/SubtitlePanel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.31, 0.82, 1, 1)
+theme_override_colors/font_shadow_color = Color(0, 0.04, 0.08, 1)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 26
+text = "Башня, уходящая вниз"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="LoadingLabel" type="Label" parent="Root"]
+unique_name_in_owner = true
+layout_mode = 1
+anchor_left = 0.32
+anchor_top = 0.735
+anchor_right = 0.68
+anchor_bottom = 0.79
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.28, 0.82, 1, 1)
+theme_override_colors/font_shadow_color = Color(0, 0.04, 0.08, 1)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 23
+text = "Загрузка..."
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="LoadingProgressBar" parent="Root" instance=ExtResource("3_bar")]
+unique_name_in_owner = true
+layout_mode = 1
+anchor_left = 0.17
+anchor_top = 0.805
+anchor_right = 0.83
+anchor_bottom = 0.925
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ProgressLabel" type="Label" parent="Root"]
+unique_name_in_owner = true
+layout_mode = 1
+anchor_left = 0.44
+anchor_top = 0.925
+anchor_right = 0.56
+anchor_bottom = 0.972
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.56, 0.89, 1, 1)
+theme_override_font_sizes/font_size = 18
+text = "0%"
+horizontal_alignment = 1
+vertical_alignment = 1

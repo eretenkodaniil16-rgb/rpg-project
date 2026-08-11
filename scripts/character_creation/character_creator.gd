@@ -442,7 +442,15 @@ func _finish_creation() -> void:
 	if not GameState.save_game():
 		_message_label.text = "Не удалось сохранить созданного персонажа."
 		return
-	get_tree().change_scene_to_file(GAME_SCENE)
+	_request_scene_transition(GAME_SCENE)
+
+
+func _request_scene_transition(scene_path: String) -> void:
+	var manager: Node = get_node_or_null("/root/SceneTransitionManager")
+	if manager != null and manager.has_method("request_scene"):
+		manager.call("request_scene", scene_path)
+		return
+	get_tree().change_scene_to_file(scene_path)
 
 
 func _return_to_menu() -> void:
