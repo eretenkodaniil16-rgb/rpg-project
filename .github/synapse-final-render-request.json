@@ -1,0 +1,10 @@
+{
+  "request": "chemical-synapse-v01-final-1080p30",
+  "duration_seconds": 45,
+  "fps": 30,
+  "frames": 1350,
+  "resolution": "1920x1080",
+  "render_samples": 64,
+  "blender": "5.2.0 LTS",
+  "requested_at": "2026-08-11T12:10:00+03:00"
+}

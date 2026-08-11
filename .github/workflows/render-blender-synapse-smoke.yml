@@ -1,0 +1,86 @@
+name: Render Blender synapse smoke
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - tools/blender-synapse-neurotransmitter-v01
+    paths:
+      - ".github/synapse-smoke-request.json"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: blender-synapse-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile sources
+        run: python -m compileall -q tools/blender_synapse_animation
+      - name: Install pytest
+        run: python -m pip install --disable-pip-version-check "pytest>=8.3,<9"
+      - name: Validate timeline and source contracts
+        env:
+          PYTHONPATH: tools/blender_synapse_animation
+        run: python -m pytest -q tools/blender_synapse_animation/test_synapse_data.py tools/blender_synapse_animation/test_synapse_source_contract.py
+
+  render-keyframes:
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        frame: [1, 180, 330, 540, 690, 900, 1110, 1290, 1350]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install headless Blender dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xvfb libgl1 libxi6 libxrender1 libxkbcommon-x11-0 fonts-dejavu-core
+      - name: Download and verify Blender 5.2.0 LTS
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/blender-5.2.0-linux-x64.tar.xz"
+          extract="$RUNNER_TEMP/blender-5.2.0"
+          curl -L --fail --retry 3 --output "$archive" "https://download.blender.org/release/Blender5.2/blender-5.2.0-linux-x64.tar.xz"
+          actual="$(sha256sum "$archive" | cut -d' ' -f1)"
+          expected="96f6c181a30f4950607839dc84d42a354b250d8a0231b098b59b7bc69c351c48"
+          test "$actual" = "$expected"
+          mkdir -p "$extract"
+          tar -xJf "$archive" -C "$extract"
+          blender="$(find "$extract" -type f -name blender -perm -111 | head -n 1)"
+          test -n "$blender"
+          echo "BLENDER_EXE=$blender" >> "$GITHUB_ENV"
+      - name: Render phase keyframe
+        shell: bash
+        run: |
+          set -euo pipefail
+          output="$GITHUB_WORKSPACE/artifacts/synapse_smoke_${{ matrix.frame }}"
+          save=()
+          if [[ "${{ matrix.frame }}" == "1" ]]; then save+=(--save-blend); fi
+          xvfb-run -a "$BLENDER_EXE" --background --factory-startup --python-exit-code 1 \
+            --python tools/blender_synapse_animation/render_synapse_v01.py -- \
+            --output-root "$output" \
+            --frame-start "${{ matrix.frame }}" --frame-end "${{ matrix.frame }}" \
+            --resolution 540 --render-samples 32 "${save[@]}"
+          test -s "$output/frames/synapse_$(printf '%04d' '${{ matrix.frame }}').png"
+          test -s "$output/synapse_v01_manifest.json"
+      - name: Upload smoke keyframe
+        uses: actions/upload-artifact@v4
+        with:
+          name: synapse-smoke-${{ matrix.frame }}
+          path: artifacts/synapse_smoke_${{ matrix.frame }}/**
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
