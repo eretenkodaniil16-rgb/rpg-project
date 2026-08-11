@@ -162,8 +162,21 @@ def visibility_window(obj, start, end, total_frames) -> None:
 
 
 def ease(obj) -> None:
-    if obj.animation_data and obj.animation_data.action:
-        for curve in obj.animation_data.action.fcurves:
-            for key in curve.keyframe_points:
-                key.interpolation = "BEZIER"
-                key.easing = "EASE_IN_OUT"
+    """Use Blender's default Bezier interpolation and tune legacy actions when possible.
+
+    Blender 5.x uses layered/slotted Actions, for which ``Action.fcurves`` is no
+    longer a stable public attribute. Keyframe insertion already creates Bezier
+    interpolation by default, so the safe 5.2 path is to leave layered actions
+    untouched. Legacy actions still receive the explicit easing pass.
+    """
+    animation_data = getattr(obj, "animation_data", None)
+    action = getattr(animation_data, "action", None) if animation_data else None
+    if action is None:
+        return
+    curves = getattr(action, "fcurves", None)
+    if curves is None:
+        return
+    for curve in curves:
+        for key in curve.keyframe_points:
+            key.interpolation = "BEZIER"
+            key.easing = "EASE_IN_OUT"
