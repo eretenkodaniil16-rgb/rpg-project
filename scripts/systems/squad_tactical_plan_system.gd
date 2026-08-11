@@ -6,6 +6,8 @@ const BLOCKED_SCORE: float = -1000000.0
 
 const PLAN_RESCUE_BOUND_ALLY: String = "rescue_bound_ally"
 const PLAN_ORDERLY_WITHDRAWAL: String = "orderly_withdrawal"
+const PLAN_CASUALTY_REGROUP: String = "casualty_regroup"
+const PLAN_PROTECT_WOUNDED_ALLY: String = "protect_wounded_ally"
 const PLAN_HOLD_CHOKEPOINT: String = "hold_chokepoint"
 const PLAN_SUPPRESS_AND_FLANK: String = "suppress_and_flank"
 const PLAN_SECTOR_SEARCH: String = "sector_search"
@@ -14,6 +16,8 @@ const PLAN_COORDINATED_ASSAULT: String = "coordinated_assault"
 const DEFAULT_PLAN_ORDER: Array[String] = [
 	PLAN_RESCUE_BOUND_ALLY,
 	PLAN_ORDERLY_WITHDRAWAL,
+	PLAN_CASUALTY_REGROUP,
+	PLAN_PROTECT_WOUNDED_ALLY,
 	PLAN_HOLD_CHOKEPOINT,
 	PLAN_SUPPRESS_AND_FLANK,
 	PLAN_SECTOR_SEARCH,
@@ -24,6 +28,7 @@ var _plan_order: Array[String] = []
 var _plans: Dictionary = {}
 var _role_profiles: Dictionary = {}
 var _actor_profiles: Dictionary = {}
+var _replanning: Dictionary = {}
 var _active_plans: Dictionary = {}
 var _actor_failures: Dictionary = {}
 
@@ -35,31 +40,57 @@ func _init() -> void:
 func evaluate_squad_plan(squad_id: String, round_number: int, context: Dictionary) -> Dictionary:
 	if squad_id.is_empty():
 		return {}
+	var safe_round: int = maxi(round_number, 0)
 	var existing_value: Variant = _active_plans.get(squad_id, {})
 	var existing: Dictionary = existing_value as Dictionary if existing_value is Dictionary else {}
-	if not existing.is_empty() and round_number <= int(existing.get("expires_round", -1)) and _plan_still_valid(str(existing.get("plan_id", "")), context):
-		existing["phase"] = _phase_for(existing, round_number)
-		_active_plans[squad_id] = existing
+	var best: Dictionary = _best_plan(context)
+	var selected_plan_id: String = str(best.get("plan_id", ""))
+	var selected_score: float = float(best.get("score", BLOCKED_SCORE))
+
+	if existing.is_empty():
+		if selected_plan_id.is_empty():
+			return {}
+		return _activate_plan(squad_id, selected_plan_id, selected_score, safe_round, context, {}, "initial")
+
+	var existing_plan_id: String = str(existing.get("plan_id", ""))
+	var expired: bool = safe_round > int(existing.get("expires_round", -1))
+	var still_valid: bool = _plan_still_valid(existing_plan_id, context)
+	if expired or not still_valid:
+		if selected_plan_id.is_empty():
+			_active_plans.erase(squad_id)
+			return {}
+		return _activate_plan(
+			squad_id,
+			selected_plan_id,
+			selected_score,
+			safe_round,
+			context,
+			existing,
+			"expired" if expired else "existing_invalid"
+		)
+
+	var existing_score: float = _plan_score(existing_plan_id, context)
+	existing["score"] = existing_score
+	existing["phase"] = _phase_for(existing, safe_round)
+	_update_plan_focus(existing, context)
+
+	if selected_plan_id.is_empty() or selected_plan_id == existing_plan_id:
+		_active_plans[squad_id] = existing.duplicate(true)
 		return existing.duplicate(true)
 
-	var selected_plan_id: String = _select_plan(context)
-	if selected_plan_id.is_empty():
-		_active_plans.erase(squad_id)
-		return {}
-	var plan_profile: Dictionary = _dictionary_copy(_plans.get(selected_plan_id, {}))
-	var duration: int = maxi(int(plan_profile.get("duration_rounds", 2)), 1)
-	var plan: Dictionary = {
-		"squad_id": squad_id,
-		"plan_id": selected_plan_id,
-		"started_round": round_number,
-		"expires_round": round_number + duration - 1,
-		"duration_rounds": duration,
-		"score": _plan_score(selected_plan_id, context),
-		"phase": "setup",
-		"source_event_id": str(context.get("environment_event_id", ""))
-	}
-	_active_plans[squad_id] = plan.duplicate(true)
-	return plan
+	if _should_switch_plan(existing, existing_score, selected_plan_id, selected_score, safe_round):
+		return _activate_plan(
+			squad_id,
+			selected_plan_id,
+			selected_score,
+			safe_round,
+			context,
+			existing,
+			_switch_reason(existing_plan_id, selected_plan_id)
+		)
+
+	_active_plans[squad_id] = existing.duplicate(true)
+	return existing.duplicate(true)
 
 
 func get_actor_assignment(squad_id: String, actor_id: String, role_id: String, actor_index: int, round_number: int) -> Dictionary:
@@ -147,15 +178,101 @@ func clear() -> void:
 	_actor_failures.clear()
 
 
-func _select_plan(context: Dictionary) -> String:
+func _activate_plan(
+	squad_id: String,
+	plan_id: String,
+	score: float,
+	round_number: int,
+	context: Dictionary,
+	previous: Dictionary,
+	reason: String
+) -> Dictionary:
+	var plan_profile: Dictionary = _dictionary_copy(_plans.get(plan_id, {}))
+	var duration: int = maxi(int(plan_profile.get("duration_rounds", 2)), 1)
+	var previous_id: String = str(previous.get("plan_id", ""))
+	var replan_count: int = maxi(int(previous.get("replan_count", 0)), 0)
+	if not previous.is_empty():
+		replan_count += 1
+	var plan: Dictionary = {
+		"squad_id": squad_id,
+		"plan_id": plan_id,
+		"started_round": round_number,
+		"expires_round": round_number + duration - 1,
+		"duration_rounds": duration,
+		"score": score,
+		"phase": "setup",
+		"source_event_id": str(context.get("environment_event_id", "")),
+		"interrupt_priority": _plan_interrupt_priority(plan_id),
+		"last_switch_round": round_number,
+		"previous_plan_id": previous_id,
+		"replan_count": replan_count,
+		"switch_reason": reason
+	}
+	_update_plan_focus(plan, context)
+	_active_plans[squad_id] = plan.duplicate(true)
+	return plan
+
+
+func _best_plan(context: Dictionary) -> Dictionary:
 	var selected: String = ""
 	var selected_score: float = BLOCKED_SCORE
+	var selected_priority: int = -1
 	for plan_id: String in _plan_order:
 		var score: float = _plan_score(plan_id, context)
-		if score > selected_score + 0.0001:
+		if score <= BLOCKED_SCORE * 0.5:
+			continue
+		var priority: int = _plan_interrupt_priority(plan_id)
+		if priority > selected_priority or (priority == selected_priority and score > selected_score + 0.0001):
 			selected = plan_id
 			selected_score = score
-	return selected if selected_score > BLOCKED_SCORE * 0.5 else ""
+			selected_priority = priority
+	if selected.is_empty():
+		return {}
+	return {
+		"plan_id": selected,
+		"score": selected_score,
+		"interrupt_priority": selected_priority
+	}
+
+
+func _select_plan(context: Dictionary) -> String:
+	return str(_best_plan(context).get("plan_id", ""))
+
+
+func _should_switch_plan(
+	existing: Dictionary,
+	existing_score: float,
+	candidate_plan_id: String,
+	candidate_score: float,
+	round_number: int
+) -> bool:
+	var existing_plan_id: String = str(existing.get("plan_id", ""))
+	var existing_priority: int = _plan_interrupt_priority(existing_plan_id)
+	var candidate_priority: int = _plan_interrupt_priority(candidate_plan_id)
+	if candidate_priority > existing_priority:
+		return true
+	if candidate_priority < existing_priority:
+		return false
+	var age: int = maxi(round_number - int(existing.get("started_round", round_number)), 0)
+	var min_commitment: int = maxi(int(_replanning.get("min_commitment_rounds", 1)), 0)
+	if age < min_commitment:
+		return false
+	var same_round: bool = round_number <= int(existing.get("last_switch_round", -1))
+	var margin_key: String = "same_round_switch_score_margin" if same_round else "switch_score_margin"
+	var margin: float = maxf(float(_replanning.get(margin_key, 20.0)), 0.0)
+	return candidate_score >= existing_score + margin
+
+
+func _switch_reason(existing_plan_id: String, candidate_plan_id: String) -> String:
+	var existing_priority: int = _plan_interrupt_priority(existing_plan_id)
+	var candidate_priority: int = _plan_interrupt_priority(candidate_plan_id)
+	if candidate_priority > existing_priority:
+		return "priority_interrupt"
+	return "score_margin"
+
+
+func _plan_interrupt_priority(plan_id: String) -> int:
+	return maxi(int(_dictionary_copy(_plans.get(plan_id, {})).get("interrupt_priority", 0)), 0)
 
 
 func _plan_score(plan_id: String, context: Dictionary) -> float:
@@ -169,6 +286,10 @@ func _plan_score(plan_id: String, context: Dictionary) -> float:
 	var morale: float = clampf(float(context.get("average_morale", 1.0)), 0.0, 1.0)
 	var target_visible: bool = bool(context.get("target_visible", false))
 	var target_memory: bool = bool(context.get("has_target_memory", false))
+	var memory_confidence: float = clampf(float(context.get("memory_confidence", 0.0)), 0.0, 1.0)
+	var wounded_count: int = maxi(int(context.get("wounded_ally_count", 0)), 0)
+	var critical_count: int = maxi(int(context.get("critical_ally_count", 0)), 0)
+	var lowest_health_ratio: float = clampf(float(context.get("lowest_health_ratio", 1.0)), 0.0, 1.0)
 	match plan_id:
 		PLAN_RESCUE_BOUND_ALLY:
 			return base_score + float(ally_count) * 5.0 if bool(context.get("bound_ally_visible", false)) and ally_count > 1 else BLOCKED_SCORE
@@ -176,13 +297,21 @@ func _plan_score(plan_id: String, context: Dictionary) -> float:
 			if casualty_count >= 2 or health_ratio <= 0.35 or morale <= 0.32:
 				return base_score + float(casualty_count) * 18.0 + (1.0 - health_ratio) * 50.0
 			return BLOCKED_SCORE
+		PLAN_CASUALTY_REGROUP:
+			if bool(context.get("recent_casualty", false)) and casualty_count >= 1 and ally_count >= 2 and health_ratio > 0.35:
+				return base_score + float(casualty_count) * 12.0 + (1.0 - health_ratio) * 24.0
+			return BLOCKED_SCORE
+		PLAN_PROTECT_WOUNDED_ALLY:
+			if ally_count >= 2 and casualty_count < 2 and health_ratio > 0.35 and (critical_count >= 1 or (wounded_count >= 2 and lowest_health_ratio <= 0.4)):
+				return base_score + float(critical_count) * 20.0 + float(wounded_count) * 6.0 + (1.0 - lowest_health_ratio) * 36.0
+			return BLOCKED_SCORE
 		PLAN_HOLD_CHOKEPOINT:
 			return base_score + 20.0 if bool(context.get("passage_relevant", false)) and bool(context.get("has_defender", false)) else BLOCKED_SCORE
 		PLAN_SUPPRESS_AND_FLANK:
 			var combined_arms: bool = bool(context.get("has_melee", false)) and (bool(context.get("has_ranged", false)) or bool(context.get("has_caster", false)))
 			return base_score + float(int(context.get("flank_route_count", 0))) * 8.0 if target_visible and ally_count >= 3 and combined_arms else BLOCKED_SCORE
 		PLAN_SECTOR_SEARCH:
-			return base_score + float(ally_count) * 4.0 if not target_visible and target_memory and ally_count >= 2 else BLOCKED_SCORE
+			return base_score + float(ally_count) * 4.0 + memory_confidence * 20.0 if not target_visible and target_memory and ally_count >= 2 else BLOCKED_SCORE
 		PLAN_COORDINATED_ASSAULT:
 			return base_score + float(ally_count) * 6.0 if target_visible and ally_count >= 2 else BLOCKED_SCORE
 		_:
@@ -195,14 +324,32 @@ func _plan_still_valid(plan_id: String, context: Dictionary) -> bool:
 			return bool(context.get("bound_ally_visible", false))
 		PLAN_ORDERLY_WITHDRAWAL:
 			return int(context.get("casualty_count", 0)) >= 1 or float(context.get("average_health_ratio", 1.0)) <= 0.55
+		PLAN_CASUALTY_REGROUP:
+			return bool(context.get("recent_casualty", false)) and int(context.get("casualty_count", 0)) >= 1 and int(context.get("ally_count", 0)) >= 2
+		PLAN_PROTECT_WOUNDED_ALLY:
+			return int(context.get("critical_ally_count", 0)) >= 1 and int(context.get("ally_count", 0)) >= 2 and float(context.get("average_health_ratio", 1.0)) > 0.30
 		PLAN_HOLD_CHOKEPOINT:
 			return bool(context.get("passage_relevant", false))
 		PLAN_SUPPRESS_AND_FLANK, PLAN_COORDINATED_ASSAULT:
-			return bool(context.get("target_visible", false)) or bool(context.get("has_target_memory", false))
+			return bool(context.get("target_visible", false))
 		PLAN_SECTOR_SEARCH:
 			return bool(context.get("has_target_memory", false)) and not bool(context.get("target_visible", false))
 		_:
 			return false
+
+
+func _update_plan_focus(plan: Dictionary, context: Dictionary) -> void:
+	plan.erase("focus_actor_id")
+	plan.erase("focus_position")
+	match str(plan.get("plan_id", "")):
+		PLAN_CASUALTY_REGROUP:
+			plan["focus_actor_id"] = str(context.get("latest_casualty_actor_id", ""))
+			if context.get("latest_casualty_position", null) is Vector2:
+				plan["focus_position"] = context.get("latest_casualty_position") as Vector2
+		PLAN_PROTECT_WOUNDED_ALLY:
+			plan["focus_actor_id"] = str(context.get("wounded_ally_actor_id", ""))
+			if context.get("wounded_ally_position", null) is Vector2:
+				plan["focus_position"] = context.get("wounded_ally_position") as Vector2
 
 
 func _phase_for(plan: Dictionary, round_number: int) -> String:
@@ -236,6 +383,7 @@ func _load_profiles() -> void:
 	_plans.clear()
 	_role_profiles.clear()
 	_actor_profiles.clear()
+	_replanning.clear()
 	if not FileAccess.file_exists(DATA_PATH):
 		return
 	var file: FileAccess = FileAccess.open(DATA_PATH, FileAccess.READ)
@@ -251,3 +399,4 @@ func _load_profiles() -> void:
 	_plans = _dictionary_copy(data.get("plans", {}))
 	_role_profiles = _dictionary_copy(data.get("role_profiles", {}))
 	_actor_profiles = _dictionary_copy(data.get("profiles", {}))
+	_replanning = _dictionary_copy(data.get("replanning", {}))
