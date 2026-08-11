@@ -19,9 +19,9 @@ var _coordination_announced_plan_by_squad: Dictionary = {}
 func _ready() -> void:
 	super._ready()
 	_coordination_ai = COORDINATION_AI_SCRIPT.new() as SquadPlanNpcAiSystem
-	# The squad-aware system is a strict subclass of the already-approved
-	# AdvancedNpcCombatAiSystem. Replacing these facades keeps every existing
-	# target/spell/tactical contract while enabling assignment-aware decisions.
+	# SquadPlanNpcAiSystem extends the already approved AdvancedNpcCombatAiSystem
+	# chain. Replacing the facades preserves targeting/spells/tactics while
+	# allowing a shared squad assignment to participate in utility selection.
 	_advanced_ai = _coordination_ai
 	_combat_ai = _coordination_ai
 	_npc_ai = _coordination_ai
@@ -56,6 +56,22 @@ func _build_party_tactical_context_v1(
 		target_memory,
 		casualty_observation
 	)
+	return _apply_coordination_plan_v1(
+		actor,
+		profile,
+		context,
+		perceived_target_position,
+		true
+	)
+
+
+func _apply_coordination_plan_v1(
+	actor: Node,
+	profile: Dictionary,
+	context: Dictionary,
+	perceived_target_position: Vector2,
+	announce: bool
+) -> Dictionary:
 	if _coordination_ai == null or _coordination_plans == null:
 		return context
 	var actor_id: String = actor_id_for_party_tactics_v1(actor)
@@ -79,15 +95,21 @@ func _build_party_tactical_context_v1(
 	if plan.is_empty():
 		_coordination_assignment_by_actor.erase(actor_id)
 		_coordination_objective_by_actor.erase(actor_id)
+		context.erase("squad_plan")
+		context.erase("squad_plan_assignment")
+		context.erase("squad_plan_id")
+		context.erase("squad_plan_phase")
 		return context
 
 	var actor_ids: Array[String] = []
 	var member_ids_value: Variant = squad_context.get("member_ids", [])
 	if member_ids_value is Array:
-		for value: Variant in member_ids_value as Array:
-			actor_ids.append(str(value))
+		for member_id_value: Variant in member_ids_value as Array:
+			actor_ids.append(str(member_id_value))
 	actor_ids.sort()
-	var actor_index: int = maxi(actor_ids.find(actor_id), 0)
+	var actor_index: int = actor_ids.find(actor_id)
+	if actor_index < 0:
+		actor_index = 0
 	var assignment: Dictionary = _coordination_plans.get_actor_assignment(
 		squad_id,
 		actor_id,
@@ -103,7 +125,8 @@ func _build_party_tactical_context_v1(
 	context["squad_plan_id"] = str(plan.get("plan_id", ""))
 	context["squad_plan_phase"] = str(plan.get("phase", ""))
 	_coordination_assignment_by_actor[actor_id] = assignment.duplicate(true)
-	_announce_coordination_plan_if_needed_v1(squad_id, plan, actor)
+	if announce:
+		_announce_coordination_plan_if_needed_v1(squad_id, plan, actor)
 	return context
 
 
@@ -113,14 +136,31 @@ func _objective_for_advanced_intent(
 	target_position: Vector2,
 	intent_id: String
 ) -> Vector2:
-	if actor == null or not actor.has_method("get_actor_id") or not actor is Node2D:
-		return super._objective_for_advanced_intent(actor, guard_anchor, target_position, intent_id)
+	if actor == null or not actor is Node2D or not actor.has_method("get_actor_id"):
+		return super._objective_for_advanced_intent(
+			actor,
+			guard_anchor,
+			target_position,
+			intent_id
+		)
 	var actor_id: String = str(actor.call("get_actor_id"))
 	var assignment_value: Variant = _coordination_assignment_by_actor.get(actor_id, {})
-	if not assignment_value is Dictionary or (assignment_value as Dictionary).is_empty():
-		return super._objective_for_advanced_intent(actor, guard_anchor, target_position, intent_id)
-
+	if not assignment_value is Dictionary:
+		return super._objective_for_advanced_intent(
+			actor,
+			guard_anchor,
+			target_position,
+			intent_id
+		)
 	var assignment: Dictionary = assignment_value as Dictionary
+	if assignment.is_empty():
+		return super._objective_for_advanced_intent(
+			actor,
+			guard_anchor,
+			target_position,
+			intent_id
+		)
+
 	var objective_id: String = str(assignment.get("objective", ""))
 	var slot: String = str(assignment.get("slot", "front"))
 	var actor_node: Node2D = actor as Node2D
@@ -173,11 +213,16 @@ func _objective_for_advanced_intent(
 			var ally: Node2D = _nearest_living_ally(actor)
 			objective = ally.global_position if ally != null else guard_anchor
 		"passage":
-			# Environment-reactive passage plans are intentionally not synthesized
-			# here. Without a concrete world event, the safe fallback is the anchor.
+			# No fabricated passage knowledge: without a concrete environment event,
+			# the safe objective is the actor's established guard anchor.
 			objective = guard_anchor
 		_:
-			return super._objective_for_advanced_intent(actor, guard_anchor, target_position, intent_id)
+			return super._objective_for_advanced_intent(
+				actor,
+				guard_anchor,
+				target_position,
+				intent_id
+			)
 	_coordination_objective_by_actor[actor_id] = objective
 	return objective
 
@@ -214,11 +259,9 @@ func _plan_advanced_party_movement_v1(
 	if squad_id.is_empty():
 		return selected
 	var reservations_value: Variant = _coordination_reserved_cells.get(squad_id, {})
-	var reservations: Dictionary = (
-		reservations_value as Dictionary
-		if reservations_value is Dictionary
-		else {}
-	)
+	var reservations: Dictionary = {}
+	if reservations_value is Dictionary:
+		reservations = (reservations_value as Dictionary).duplicate(true)
 	reservations[planning_actor_id] = cell_value
 	_coordination_reserved_cells[squad_id] = reservations
 	return selected
@@ -267,13 +310,12 @@ func _execute_party_target_path_v1(
 		return
 	var objective_value: Variant = _coordination_objective_by_actor.get(actor_id, null)
 	var moved: bool = actor.global_position.distance_to(start_position) >= 8.0
-	var reached: bool = (
-		objective_value is Vector2
-		and DistanceSystem.distance_feet(
+	var reached: bool = false
+	if objective_value is Vector2:
+		reached = DistanceSystem.distance_feet(
 			actor.global_position,
 			objective_value as Vector2
 		) <= 15
-	)
 	var stationary_success: bool = intent_id in [
 		AdvancedNpcCombatAiSystem.INTENT_CAST_SPELL,
 		AdvancedNpcCombatAiSystem.INTENT_TAKE_COVER,
@@ -305,11 +347,9 @@ func _build_coordination_squad_context_v1(
 	var has_defender: bool = false
 	var has_caster: bool = false
 	for member: Node in members:
-		var member_id: String = (
-			str(member.call("get_actor_id"))
-			if member.has_method("get_actor_id")
-			else member.name.to_snake_case()
-		)
+		if not member.has_method("get_actor_id"):
+			continue
+		var member_id: String = str(member.call("get_actor_id"))
 		member_ids.append(member_id)
 		var member_profile: Dictionary = _coordination_ai.get_profile(member_id)
 		var role_id: String = str(
@@ -323,11 +363,9 @@ func _build_coordination_squad_context_v1(
 		total_morale += clampf(float(member_profile.get("morale", 0.6)), 0.0, 1.0)
 	member_ids.sort()
 	var member_count: int = maxi(members.size(), 1)
-	var bound_ally: Dictionary = (
-		_coordination_visible_bound_ally_v1(actor as Node2D, squad_id)
-		if actor is Node2D
-		else {}
-	)
+	var bound_ally: Dictionary = {}
+	if actor is Node2D:
+		bound_ally = _coordination_visible_bound_ally_v1(actor as Node2D, squad_id)
 	return {
 		"squad_id": squad_id,
 		"actor_id": actor_id,
@@ -348,7 +386,10 @@ func _build_coordination_squad_context_v1(
 		"has_ranged": has_ranged,
 		"has_defender": has_defender,
 		"has_caster": has_caster,
-		"flank_route_count": maxi(int(actor_context.get("escape_route_count", 0)) - 1, 0),
+		"flank_route_count": maxi(
+			int(actor_context.get("escape_route_count", 0)) - 1,
+			0
+		),
 		"target_position": perceived_target_position
 	}
 
@@ -365,8 +406,8 @@ func _living_coordination_members_v1(
 		for entry: Dictionary in _turn_system.entries:
 			var participant: Node = entry.get("node") as Node
 			_add_coordination_member_v1(result, seen, participant, squad_id)
-	for target: Node in get_tree().get_nodes_in_group("combat_targets"):
-		_add_coordination_member_v1(result, seen, target, squad_id)
+	for target_node: Node in get_tree().get_nodes_in_group("combat_targets"):
+		_add_coordination_member_v1(result, seen, target_node, squad_id)
 	return result
 
 
@@ -376,11 +417,11 @@ func _add_coordination_member_v1(
 	participant: Node,
 	squad_id: String
 ) -> void:
-	if (
-		not is_instance_valid(participant)
-		or seen.has(participant.get_instance_id())
-		or not participant.has_method("get_actor_id")
-	):
+	if not is_instance_valid(participant):
+		return
+	if seen.has(participant.get_instance_id()):
+		return
+	if not participant.has_method("get_actor_id"):
 		return
 	if participant.has_method("is_combat_active") and not bool(participant.call("is_combat_active")):
 		return
@@ -398,12 +439,9 @@ func _coordination_visible_bound_ally_v1(
 	if observer == null:
 		return {}
 	for body: Node in get_tree().get_nodes_in_group("bound_bodies"):
-		if (
-			not is_instance_valid(body)
-			or not body is Node2D
-			or body == observer
-			or not body.has_method("get_body_actor_id")
-		):
+		if not is_instance_valid(body) or not body is Node2D:
+			continue
+		if body == observer or not body.has_method("get_body_actor_id"):
 			continue
 		var body_id: String = str(body.call("get_body_actor_id"))
 		if str(_coordination_ai.get_profile(body_id).get("squad_id", "")) != squad_id:
@@ -423,11 +461,9 @@ func _coordination_bound_ally_position_v1(
 	fallback: Vector2
 ) -> Vector2:
 	for body: Node in get_tree().get_nodes_in_group("bound_bodies"):
-		if (
-			not is_instance_valid(body)
-			or not body is Node2D
-			or not body.has_method("get_body_actor_id")
-		):
+		if not is_instance_valid(body) or not body is Node2D:
+			continue
+		if not body.has_method("get_body_actor_id"):
 			continue
 		var body_id: String = str(body.call("get_body_actor_id"))
 		if str(_coordination_ai.get_profile(body_id).get("squad_id", "")) == squad_id:
@@ -438,16 +474,12 @@ func _coordination_bound_ally_position_v1(
 func _coordination_actor_health_ratio_v1(actor: Node) -> float:
 	if actor == null:
 		return 0.0
-	var current: int = (
-		int(actor.call("get_current_health"))
-		if actor.has_method("get_current_health")
-		else int(actor.get("current_health"))
-	)
-	var maximum: int = (
-		int(actor.call("get_maximum_health"))
-		if actor.has_method("get_maximum_health")
-		else int(actor.get("maximum_health"))
-	)
+	var current: int = 1
+	if actor.has_method("get_current_health"):
+		current = int(actor.call("get_current_health"))
+	var maximum: int = maxi(current, 1)
+	if actor.has_method("get_maximum_health"):
+		maximum = int(actor.call("get_maximum_health"))
 	return clampf(float(current) / float(maxi(maximum, 1)), 0.0, 1.0)
 
 
@@ -462,8 +494,8 @@ func _coordination_fallback_line_position_v1(
 		away = actor_position - target_position
 	if away.length_squared() <= 0.0001:
 		away = Vector2.LEFT
-	var base: Vector2 = guard_anchor + away.normalized() * 128.0
-	return base + _coordination_absolute_slot_offset_v1(slot, 54.0)
+	var base_position: Vector2 = guard_anchor + away.normalized() * 128.0
+	return base_position + _coordination_absolute_slot_offset_v1(slot, 54.0)
 
 
 func _coordination_target_slot_position_v1(
@@ -476,16 +508,24 @@ func _coordination_target_slot_position_v1(
 	if forward.length_squared() <= 0.0001:
 		forward = Vector2.DOWN
 	forward = forward.normalized()
-	var lateral := Vector2(-forward.y, forward.x)
+	var lateral: Vector2 = Vector2(-forward.y, forward.x)
 	match slot:
-		"left": return target_position + lateral * distance_pixels
-		"right": return target_position - lateral * distance_pixels
-		"rear_left": return target_position + forward * distance_pixels + lateral * 72.0
-		"rear_right": return target_position + forward * distance_pixels - lateral * 72.0
-		"rear": return target_position + forward * distance_pixels
-		"front_left": return target_position + forward * distance_pixels * 0.45 + lateral * 58.0
-		"front_right": return target_position + forward * distance_pixels * 0.45 - lateral * 58.0
-		_: return target_position + forward * distance_pixels
+		"left":
+			return target_position + lateral * distance_pixels
+		"right":
+			return target_position - lateral * distance_pixels
+		"rear_left":
+			return target_position + forward * distance_pixels + lateral * 72.0
+		"rear_right":
+			return target_position + forward * distance_pixels - lateral * 72.0
+		"rear":
+			return target_position + forward * distance_pixels
+		"front_left":
+			return target_position + forward * distance_pixels * 0.45 + lateral * 58.0
+		"front_right":
+			return target_position + forward * distance_pixels * 0.45 - lateral * 58.0
+		_:
+			return target_position + forward * distance_pixels
 
 
 func _coordination_absolute_slot_offset_v1(
@@ -493,14 +533,22 @@ func _coordination_absolute_slot_offset_v1(
 	distance_pixels: float
 ) -> Vector2:
 	match slot:
-		"left": return Vector2(-distance_pixels, 0.0)
-		"right": return Vector2(distance_pixels, 0.0)
-		"rear_left": return Vector2(-distance_pixels * 0.7, distance_pixels * 0.7)
-		"rear_right": return Vector2(distance_pixels * 0.7, distance_pixels * 0.7)
-		"rear": return Vector2(0.0, distance_pixels)
-		"front_left": return Vector2(-distance_pixels * 0.7, -distance_pixels * 0.45)
-		"front_right": return Vector2(distance_pixels * 0.7, -distance_pixels * 0.45)
-		_: return Vector2(0.0, -distance_pixels)
+		"left":
+			return Vector2(-distance_pixels, 0.0)
+		"right":
+			return Vector2(distance_pixels, 0.0)
+		"rear_left":
+			return Vector2(-distance_pixels * 0.7, distance_pixels * 0.7)
+		"rear_right":
+			return Vector2(distance_pixels * 0.7, distance_pixels * 0.7)
+		"rear":
+			return Vector2(0.0, distance_pixels)
+		"front_left":
+			return Vector2(-distance_pixels * 0.7, -distance_pixels * 0.45)
+		"front_right":
+			return Vector2(distance_pixels * 0.7, -distance_pixels * 0.45)
+		_:
+			return Vector2(0.0, -distance_pixels)
 
 
 func _reset_coordination_reservations_if_new_round_v1() -> void:
@@ -516,7 +564,9 @@ func _announce_coordination_plan_if_needed_v1(
 	actor: Node
 ) -> void:
 	var plan_id: String = str(plan.get("plan_id", ""))
-	if plan_id.is_empty() or str(_coordination_announced_plan_by_squad.get(squad_id, "")) == plan_id:
+	if plan_id.is_empty():
+		return
+	if str(_coordination_announced_plan_by_squad.get(squad_id, "")) == plan_id:
 		return
 	_coordination_announced_plan_by_squad[squad_id] = plan_id
 	show_combat_message(
@@ -529,14 +579,15 @@ func _announce_coordination_plan_if_needed_v1(
 
 
 func _coordination_plan_label_v1(plan_id: String) -> String:
-	return {
+	var labels: Dictionary = {
 		SquadTacticalPlanSystem.PLAN_RESCUE_BOUND_ALLY: "освободить союзника",
 		SquadTacticalPlanSystem.PLAN_ORDERLY_WITHDRAWAL: "организованный отход",
 		SquadTacticalPlanSystem.PLAN_HOLD_CHOKEPOINT: "удержать проход",
 		SquadTacticalPlanSystem.PLAN_SUPPRESS_AND_FLANK: "подавление и обход",
 		SquadTacticalPlanSystem.PLAN_SECTOR_SEARCH: "разделить область поиска",
 		SquadTacticalPlanSystem.PLAN_COORDINATED_ASSAULT: "согласованное наступление"
-	}.get(plan_id, plan_id)
+	}
+	return str(labels.get(plan_id, plan_id))
 
 
 func _clear_coordination_runtime_v1() -> void:
@@ -551,11 +602,9 @@ func _clear_coordination_runtime_v1() -> void:
 
 
 func get_coordination_plan_v1_for_testing(squad_id: String) -> Dictionary:
-	return (
-		_coordination_plans.get_active_plan(squad_id)
-		if _coordination_plans != null
-		else {}
-	)
+	if _coordination_plans == null:
+		return {}
+	return _coordination_plans.get_active_plan(squad_id)
 
 
 func get_coordination_assignment_v1_for_testing(actor_id: String) -> Dictionary:
@@ -564,8 +613,9 @@ func get_coordination_assignment_v1_for_testing(actor_id: String) -> Dictionary:
 
 
 func get_coordination_objective_v1_for_testing(actor_id: String) -> Vector2:
-	var value: Variant = _coordination_objective_by_actor.get(actor_id, Vector2.INF)
-	return value as Vector2 if value is Vector2 else Vector2.INF
+	var invalid_position: Vector2 = Vector2(INF, INF)
+	var value: Variant = _coordination_objective_by_actor.get(actor_id, invalid_position)
+	return value as Vector2 if value is Vector2 else invalid_position
 
 
 func get_coordination_reserved_cells_v1_for_testing(squad_id: String) -> Dictionary:
@@ -578,12 +628,50 @@ func build_coordination_context_v1_for_testing(
 	target: Node,
 	overrides: Dictionary = {}
 ) -> Dictionary:
-	var context: Dictionary = get_party_tactical_context_v1_for_testing(
+	if _coordination_ai == null or not actor is Node2D or not target is Node2D:
+		return {}
+	var actor_id: String = actor_id_for_party_tactics_v1(actor)
+	if actor_id.is_empty():
+		return {}
+	var profile: Dictionary = _coordination_ai.get_profile(actor_id)
+	if profile.is_empty():
+		return {}
+	var actor_node: Node2D = actor as Node2D
+	var guard_anchor: Vector2 = _ensure_combat_ai_guard_anchor(
+		actor_id,
+		actor_node.global_position
+	)
+	var visible: bool = _enemy_can_see_party_target_from(
+		actor_node.global_position,
+		target
+	)
+	if visible:
+		_record_party_target_sighting_v1(actor, profile, target)
+	var memory: Dictionary = _get_party_target_memory_v1(actor, profile)
+	var perceived_position: Vector2 = guard_anchor
+	if visible:
+		perceived_position = (target as Node2D).global_position
+	elif memory.get("position", null) is Vector2:
+		perceived_position = memory.get("position", guard_anchor) as Vector2
+	var context: Dictionary = super._build_party_tactical_context_v1(
+		actor_node,
 		actor,
 		target,
-		overrides
+		profile,
+		guard_anchor,
+		perceived_position,
+		visible,
+		memory,
+		{"new": false}
 	)
-	return context
+	context.merge(overrides, true)
+	return _apply_coordination_plan_v1(
+		actor,
+		profile,
+		context,
+		perceived_position,
+		false
+	)
 
 
 func choose_coordination_intent_v1_for_testing(
@@ -601,6 +689,8 @@ func choose_coordination_intent_v1_for_testing(
 		target,
 		overrides
 	)
+	if context.is_empty():
+		return {}
 	return _coordination_ai.choose_combat_intent(actor_id, context)
 
 
