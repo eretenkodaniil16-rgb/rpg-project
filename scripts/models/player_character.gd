@@ -4,6 +4,8 @@ extends RefCounted
 const DEFAULT_APPEARANCE_COLOR_HEX: String = "#4DA3E8"
 const DEFAULT_RACE_ID: String = "human"
 const DEFAULT_RULESET_ID: String = "srd_5_2_1"
+const DEATH_VISUAL_DIRECTIONS: Array[String] = ["down", "left", "right", "up"]
+const DEATH_VISUAL_STATES: Array[String] = ["playing", "corpse_hold"]
 const SIMPLE_WEAPON_TRAINING: String = "simple_weapons"
 const MARTIAL_WEAPON_TRAINING: String = "martial_weapons"
 const MARTIAL_LIGHT_WEAPON_TRAINING: String = "martial_light_weapons"
@@ -100,6 +102,8 @@ var class_resources: Dictionary = {}
 var class_resource_maximums: Dictionary = {}
 var active_effects: Dictionary = {}
 var starter_loadout_granted: bool = false
+var last_death_variant_id: String = ""
+var death_visual_state: Dictionary = {}
 
 
 func get_ability_score(ability_id: String) -> int:
@@ -300,7 +304,13 @@ func to_dict() -> Dictionary:
 		"class_resources": class_resources.duplicate(true),
 		"class_resource_maximums": class_resource_maximums.duplicate(true),
 		"active_effects": active_effects.duplicate(true),
-		"starter_loadout_granted": starter_loadout_granted
+		"starter_loadout_granted": starter_loadout_granted,
+		"last_death_variant_id": last_death_variant_id,
+		"death_visual_state": (
+			normalize_death_visual_state(death_visual_state)
+			if current_health <= 0
+			else {}
+		)
 	}
 
 
@@ -390,6 +400,12 @@ static func from_dict(data: Dictionary) -> PlayerCharacter:
 	var effects_value: Variant = data.get("active_effects", {})
 	character.active_effects = (effects_value as Dictionary).duplicate(true) if effects_value is Dictionary else {}
 	character.starter_loadout_granted = bool(data.get("starter_loadout_granted", false))
+	character.last_death_variant_id = str(data.get("last_death_variant_id", ""))
+	character.death_visual_state = normalize_death_visual_state(data.get("death_visual_state", {}))
+	if character.current_health > 0:
+		character.death_visual_state.clear()
+	elif character.last_death_variant_id.is_empty() and not character.death_visual_state.is_empty():
+		character.last_death_variant_id = str(character.death_visual_state.get("death_variant_id", ""))
 	return character
 
 
@@ -425,6 +441,27 @@ static func normalize_color_hex(value: String) -> String:
 		if "0123456789ABCDEF".find(character) < 0:
 			return DEFAULT_APPEARANCE_COLOR_HEX
 	return normalized
+
+
+static func normalize_death_visual_state(value: Variant) -> Dictionary:
+	if not value is Dictionary:
+		return {}
+	var source: Dictionary = value as Dictionary
+	var death_variant_id: String = str(source.get("death_variant_id", ""))
+	var direction_id: String = str(source.get("direction_id", ""))
+	var corpse_state: String = str(source.get("corpse_state", ""))
+	if (
+		death_variant_id.is_empty()
+		or direction_id not in DEATH_VISUAL_DIRECTIONS
+		or corpse_state not in DEATH_VISUAL_STATES
+	):
+		return {}
+	return {
+		"death_variant_id": death_variant_id,
+		"direction_id": direction_id,
+		"corpse_state": corpse_state,
+		"frame_index": clampi(int(source.get("frame_index", 0)), 0, 7)
+	}
 
 
 static func modifier_for_score(score: int) -> int:
