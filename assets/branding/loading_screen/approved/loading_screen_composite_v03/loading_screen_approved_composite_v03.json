@@ -1,0 +1,11 @@
+{
+  "visual_id": "loading_screen_approved_composite_v03",
+  "source_size": [768, 432],
+  "source_reference_size": [1672, 941],
+  "encoding": "webp",
+  "quality": 75,
+  "pixelation_mode": "nearest_neighbor_downscale",
+  "file": "loading_screen_approved_composite_v03.webp",
+  "bytes": 47864,
+  "sha256": "09484720511999dcff2b7be5311a74dad646d469af0c40b21856092770e38005"
+}

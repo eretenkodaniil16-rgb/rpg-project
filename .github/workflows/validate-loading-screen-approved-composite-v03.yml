@@ -1,0 +1,57 @@
+name: Validate loading screen approved composite v03
+
+on:
+  pull_request:
+    paths:
+      - "assets/branding/loading_screen/approved/loading_screen_composite_v03/**"
+      - "scripts/menus/loading_screen_approved_composite_v03.gd"
+      - "scripts/menus/loading_screen_visual_v02.gd"
+      - "scripts/ui/loading_progress_bar_v03.gd"
+      - "scenes/menus/loading_screen_visual_v02.tscn"
+      - "tests/test_loading_screen_approved_composite_v03.py"
+      - "tests/smoke_loading_screen_approved_composite_v03.gd"
+      - "docs/LOADING_SCREEN_APPROVED_COMPOSITE_V03.md"
+      - ".github/workflows/validate-loading-screen-approved-composite-v03.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate pixel master contracts
+        run: python tests/test_loading_screen_approved_composite_v03.py
+
+      - name: Download Godot 4.7.1 Standard
+        run: |
+          curl --location --fail --retry 4 --retry-all-errors --retry-delay 3 \
+            --connect-timeout 20 --max-time 180 --output godot.zip \
+            "https://downloads.godotengine.org/?flavor=stable&platform=linux.64&slug=linux.x86_64.zip&version=4.7.1"
+          unzip -q godot.zip
+          chmod +x Godot_v4.7.1-stable_linux.x86_64
+
+      - name: Import project and reject parser errors
+        run: |
+          rm -rf .godot
+          set -o pipefail
+          timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 \
+            --headless --editor --path "$GITHUB_WORKSPACE" --quit \
+            2>&1 | tee loading-composite-v03-import.log
+          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script" loading-composite-v03-import.log; then
+            exit 1
+          fi
+
+      - name: Run approved loading screen smoke test
+        run: |
+          set -o pipefail
+          timeout 90s ./Godot_v4.7.1-stable_linux.x86_64 \
+            --headless --path "$GITHUB_WORKSPACE" \
+            --script res://tests/smoke_loading_screen_approved_composite_v03.gd \
+            2>&1 | tee loading-composite-v03-smoke.log
+          grep -F "LOADING_SCREEN_APPROVED_COMPOSITE_V03_SMOKE_OK" loading-composite-v03-smoke.log
