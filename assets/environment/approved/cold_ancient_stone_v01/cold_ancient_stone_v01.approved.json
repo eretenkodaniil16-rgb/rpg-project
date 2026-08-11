@@ -1,0 +1,752 @@
+{
+  "schema_version": 1,
+  "visual_id": "cold_ancient_stone_v01",
+  "stage": "approved_runtime_asset",
+  "approved_on": "2026-08-11",
+  "source": {
+    "factory_id": "blender_environment_factory_v01",
+    "profile_id": "cold_ancient_stone_v01",
+    "profile_sha256": "a589602410f3cdaac775ee3e690d701c24926e1754b847aec3161af0e4edffb9",
+    "run_id": "local_20260811_environment_v01_render_final",
+    "blender_version": "5.2.0 LTS"
+  },
+  "game_contract": {
+    "combat_cell_size": 64,
+    "character_sprite_canvas": 96,
+    "runtime_filter": "NEAREST",
+    "walls_and_doors_use_cell_edges": true,
+    "local_light_baked_into_floor": false
+  },
+  "tile_set_contract": {
+    "path": "tilesets/cold_ancient_stone_v01.tres",
+    "tile_size": [
+      64,
+      64
+    ],
+    "source_ids": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "custom_data_layer": "visual_id",
+    "texture_filter": "nearest",
+    "collision_enabled": false,
+    "navigation_enabled": false
+  },
+  "palette": [
+    "#090E15",
+    "#0E151E",
+    "#131C27",
+    "#192532",
+    "#20303F",
+    "#293B49",
+    "#344857",
+    "#405666",
+    "#4D6372",
+    "#5B7180",
+    "#6B808D",
+    "#81939D",
+    "#98A7AE",
+    "#152D3B",
+    "#1B3F50",
+    "#24566B",
+    "#2A1B18",
+    "#452B25",
+    "#644238",
+    "#51606B",
+    "#748693",
+    "#2A93B7",
+    "#55D7EC",
+    "#A3F5FF"
+  ],
+  "modules": [
+    {
+      "asset_id": "arcane_inlay_01",
+      "kind": "arcane",
+      "path": "modules/overlays/arcane_inlay_01.png",
+      "canvas": [
+        64,
+        64
+      ],
+      "anchor": [
+        32,
+        32
+      ],
+      "sha256": "48284da6609531ebaed4b5742079cda40909c10c4fe6a6365f40828b8327d23f"
+    },
+    {
+      "asset_id": "arcane_inlay_02",
+      "kind": "arcane",
+      "path": "modules/overlays/arcane_inlay_02.png",
+      "canvas": [
+        64,
+        64
+      ],
+      "anchor": [
+        32,
+        32
+      ],
+      "sha256": "8518986b3cc44a4a8fe6df71fe8620840bebde113a51ff51c87e6625a2bef81a"
+    },
+    {
+      "asset_id": "cold_stone_floor_01",
+      "kind": "floor",
+      "path": "modules/floors/cold_stone_floor_01.png",
+      "canvas": [
+        64,
+        64
+      ],
+      "anchor": [
+        32,
+        32
+      ],
+      "sha256": "b6fd70f21201bb4b18745be05cef7b23eeb3e9d37170203db04a586c14b18a3e"
+    },
+    {
+      "asset_id": "cold_stone_floor_02",
+      "kind": "floor",
+      "path": "modules/floors/cold_stone_floor_02.png",
+      "canvas": [
+        64,
+        64
+      ],
+      "anchor": [
+        32,
+        32
+      ],
+      "sha256": "f398e012471d90953005cd2b8662e497b5997ff126fa685a2dd1b1ae67a288ce"
+    },
+    {
+      "asset_id": "cold_stone_floor_03",
+      "kind": "floor",
+      "path": "modules/floors/cold_stone_floor_03.png",
+      "canvas": [
+        64,
+        64
+      ],
+      "anchor": [
+        32,
+        32
+      ],
+      "sha256": "5df079d50d103e983a4b941d22b6d2426c56271ee25bbcbc831bb3d1068ad959"
+    },
+    {
+      "asset_id": "cold_stone_floor_04",
+      "kind": "floor",
+      "path": "modules/floors/cold_stone_floor_04.png",
+      "canvas": [
+        64,
+        64
+      ],
+      "anchor": [
+        32,
+        32
+      ],
+      "sha256": "4af37ace18c59c8f8c4ef10c451ac55ce916fb8c68771d7756e2696674fd97c1"
+    },
+    {
+      "asset_id": "cold_stone_floor_05",
+      "kind": "floor",
+      "path": "modules/floors/cold_stone_floor_05.png",
+      "canvas": [
+        64,
+        64
+      ],
+      "anchor": [
+        32,
+        32
+      ],
+      "sha256": "49cef085e263fd2f4cdbd067fd4420d95d8befd24b476e95eb96180a342e0e8e"
+    },
+    {
+      "asset_id": "cold_stone_floor_06",
+      "kind": "floor",
+      "path": "modules/floors/cold_stone_floor_06.png",
+      "canvas": [
+        64,
+        64
+      ],
+      "anchor": [
+        32,
+        32
+      ],
+      "sha256": "6ead1676e838738a453675509cee0d75a78f223b9e077eb6c1ac41f2f9eeebb2"
+    },
+    {
+      "asset_id": "cold_stone_floor_07",
+      "kind": "floor",
+      "path": "modules/floors/cold_stone_floor_07.png",
+      "canvas": [
+        64,
+        64
+      ],
+      "anchor": [
+        32,
+        32
+      ],
+      "sha256": "8917329f37f9d2f3b7a5370eccbc7b6dbfbe7b4eea5914a970e48d8afa3c3209"
+    },
+    {
+      "asset_id": "cold_stone_floor_08",
+      "kind": "floor",
+      "path": "modules/floors/cold_stone_floor_08.png",
+      "canvas": [
+        64,
+        64
+      ],
+      "anchor": [
+        32,
+        32
+      ],
+      "sha256": "e9b7f26cb7bc5b81787c2ca55896ce299ff2f396176fccf6c24e615272a3c392"
+    },
+    {
+      "asset_id": "dry_to_damp_east",
+      "kind": "transition",
+      "path": "modules/overlays/dry_to_damp_east.png",
+      "canvas": [
+        64,
+        64
+      ],
+      "anchor": [
+        32,
+        32
+      ],
+      "sha256": "e612dc087beb775a036ccdc487513f80aa2d48233d900dbefd88dcd922cceba5"
+    },
+    {
+      "asset_id": "dry_to_damp_north",
+      "kind": "transition",
+      "path": "modules/overlays/dry_to_damp_north.png",
+      "canvas": [
+        64,
+        64
+      ],
+      "anchor": [
+        32,
+        32
+      ],
+      "sha256": "beaa8b6bf4b270b9f031950aed8df7bc605856ba85cbbd2fc5f255e83fc47a43"
+    },
+    {
+      "asset_id": "dry_to_damp_south",
+      "kind": "transition",
+      "path": "modules/overlays/dry_to_damp_south.png",
+      "canvas": [
+        64,
+        64
+      ],
+      "anchor": [
+        32,
+        32
+      ],
+      "sha256": "4a63ee597b766287227afb555a737a1a4a078eb294d10f8142419c614c38abf6"
+    },
+    {
+      "asset_id": "dry_to_damp_west",
+      "kind": "transition",
+      "path": "modules/overlays/dry_to_damp_west.png",
+      "canvas": [
+        64,
+        64
+      ],
+      "anchor": [
+        32,
+        32
+      ],
+      "sha256": "496d6bb7a2c4dd75db025e395d8660f077c6e589e37fe2d8305aeec5e47ca724"
+    },
+    {
+      "asset_id": "stone_crack_01",
+      "kind": "decal",
+      "path": "modules/overlays/stone_crack_01.png",
+      "canvas": [
+        64,
+        64
+      ],
+      "anchor": [
+        32,
+        32
+      ],
+      "sha256": "9634894c43281e55d64670c3daee462e1d9192e168e49e62d3b7beb1c4e52475"
+    },
+    {
+      "asset_id": "stone_crack_02",
+      "kind": "decal",
+      "path": "modules/overlays/stone_crack_02.png",
+      "canvas": [
+        64,
+        64
+      ],
+      "anchor": [
+        32,
+        32
+      ],
+      "sha256": "d5e61715462c3752485c3f41ea2ad5f30d078e24b122446043f5aeacd44036ae"
+    },
+    {
+      "asset_id": "stone_damp_01",
+      "kind": "decal",
+      "path": "modules/overlays/stone_damp_01.png",
+      "canvas": [
+        64,
+        64
+      ],
+      "anchor": [
+        32,
+        32
+      ],
+      "sha256": "8eef80084c0f8ea958ed6de467cce867606102f2ba828af9e5646bad5b0e5265"
+    },
+    {
+      "asset_id": "stone_damp_02",
+      "kind": "decal",
+      "path": "modules/overlays/stone_damp_02.png",
+      "canvas": [
+        64,
+        64
+      ],
+      "anchor": [
+        32,
+        32
+      ],
+      "sha256": "0df03b738dca0d8ab2196e51b41f864d23fdd9e12123e1d94e6b6721b633937d"
+    },
+    {
+      "asset_id": "stone_door_x_closed",
+      "kind": "door",
+      "path": "modules/doors/stone_door_x_closed.png",
+      "canvas": [
+        64,
+        96
+      ],
+      "anchor": [
+        32,
+        48
+      ],
+      "sha256": "c20292d78cc00d9e049b0722c37db73ce1d5fdf2da9950c0bd38560988ad764a"
+    },
+    {
+      "asset_id": "stone_door_x_open",
+      "kind": "door",
+      "path": "modules/doors/stone_door_x_open.png",
+      "canvas": [
+        64,
+        96
+      ],
+      "anchor": [
+        32,
+        48
+      ],
+      "sha256": "ccb88c1ca63d414b5f323629060201e064aecea6751752239dd71ae997e117a3"
+    },
+    {
+      "asset_id": "stone_door_y_closed",
+      "kind": "door",
+      "path": "modules/doors/stone_door_y_closed.png",
+      "canvas": [
+        64,
+        96
+      ],
+      "anchor": [
+        32,
+        48
+      ],
+      "sha256": "2bd48c16e9316695684f8933f402f3efd158841af14bb0849d3d35953f8a6690"
+    },
+    {
+      "asset_id": "stone_door_y_open",
+      "kind": "door",
+      "path": "modules/doors/stone_door_y_open.png",
+      "canvas": [
+        64,
+        96
+      ],
+      "anchor": [
+        32,
+        48
+      ],
+      "sha256": "2b1815c62b6e7465c7e6c65197f50ff04b9737000bbf2a28e50d43534e1fce1d"
+    },
+    {
+      "asset_id": "stone_dust_01",
+      "kind": "decal",
+      "path": "modules/overlays/stone_dust_01.png",
+      "canvas": [
+        64,
+        64
+      ],
+      "anchor": [
+        32,
+        32
+      ],
+      "sha256": "7267906f57a9467fcaea822846104438e472d239eeba2ba1ef7660fe8caca4e9"
+    },
+    {
+      "asset_id": "stone_dust_02",
+      "kind": "decal",
+      "path": "modules/overlays/stone_dust_02.png",
+      "canvas": [
+        64,
+        64
+      ],
+      "anchor": [
+        32,
+        32
+      ],
+      "sha256": "fa34cbe237b9d8f5f1dd4b3f936cceb6928e9073bb467243cebd230a7dfe140f"
+    },
+    {
+      "asset_id": "stone_stairs_down_01",
+      "kind": "stairs",
+      "path": "modules/structures/stone_stairs_down_01.png",
+      "canvas": [
+        64,
+        96
+      ],
+      "anchor": [
+        32,
+        88
+      ],
+      "sha256": "95dd6de894568a72cee4c57ea9b72b72ad1ebc239906f37353a93bcfb746038e"
+    },
+    {
+      "asset_id": "stone_wall_corner_ne",
+      "kind": "wall_corner",
+      "path": "modules/walls/stone_wall_corner_ne.png",
+      "canvas": [
+        96,
+        96
+      ],
+      "anchor": [
+        48,
+        48
+      ],
+      "sha256": "463e0b3e0e3e4a6c684b90b6448cdb1c919fd1a0215d0f995860cd9410b8dcc6"
+    },
+    {
+      "asset_id": "stone_wall_corner_nw",
+      "kind": "wall_corner",
+      "path": "modules/walls/stone_wall_corner_nw.png",
+      "canvas": [
+        96,
+        96
+      ],
+      "anchor": [
+        48,
+        48
+      ],
+      "sha256": "9a7af67caa49f69ebf3a9db4a1b046b8c3937d6d57e1c293a9a8f506bb90f4ad"
+    },
+    {
+      "asset_id": "stone_wall_corner_se",
+      "kind": "wall_corner",
+      "path": "modules/walls/stone_wall_corner_se.png",
+      "canvas": [
+        96,
+        96
+      ],
+      "anchor": [
+        48,
+        48
+      ],
+      "sha256": "58497e9d0b895d756427ce9677a9fa46ed102d64ef51acee2e42ac6c325e7bb0"
+    },
+    {
+      "asset_id": "stone_wall_corner_sw",
+      "kind": "wall_corner",
+      "path": "modules/walls/stone_wall_corner_sw.png",
+      "canvas": [
+        96,
+        96
+      ],
+      "anchor": [
+        48,
+        48
+      ],
+      "sha256": "c87a06a03de66b06b7a55240382892328f3d74f63507e22f33f27e143604c86b"
+    },
+    {
+      "asset_id": "stone_wall_east",
+      "kind": "wall_edge",
+      "path": "modules/walls/stone_wall_east.png",
+      "canvas": [
+        64,
+        96
+      ],
+      "anchor": [
+        32,
+        48
+      ],
+      "sha256": "718787772f457a8aec3969986c03d60dc784028c989e1be2e559ed1aa6052b89"
+    },
+    {
+      "asset_id": "stone_wall_north",
+      "kind": "wall_edge",
+      "path": "modules/walls/stone_wall_north.png",
+      "canvas": [
+        64,
+        96
+      ],
+      "anchor": [
+        32,
+        48
+      ],
+      "sha256": "51e52d71e6eeca2b405dd40a9773f7bec140d1a896392d1ce31273f8691e364e"
+    },
+    {
+      "asset_id": "stone_wall_south",
+      "kind": "wall_edge",
+      "path": "modules/walls/stone_wall_south.png",
+      "canvas": [
+        64,
+        96
+      ],
+      "anchor": [
+        32,
+        48
+      ],
+      "sha256": "d90bad032aaf3594e5741c40f89584ab233dbe0edc478ca3ba0a864eab22f36b"
+    },
+    {
+      "asset_id": "stone_wall_west",
+      "kind": "wall_edge",
+      "path": "modules/walls/stone_wall_west.png",
+      "canvas": [
+        64,
+        96
+      ],
+      "anchor": [
+        32,
+        48
+      ],
+      "sha256": "1b92851c93f29abc9842399aeab59365afefa8a0b892f4f8012947d610ca5659"
+    }
+  ],
+  "atlases": {
+    "cold_stone_floor_atlas_v01.png": {
+      "path": "atlases/cold_stone_floor_atlas_v01.png",
+      "sha256": "fe0016b8126b99c06f732c4a4cab913e764ec9919766ac63fbead72ffc0af459",
+      "region_size": [
+        64,
+        64
+      ],
+      "atlas_size": [
+        512,
+        64
+      ],
+      "coordinates": {
+        "cold_stone_floor_01": [
+          0,
+          0
+        ],
+        "cold_stone_floor_02": [
+          1,
+          0
+        ],
+        "cold_stone_floor_03": [
+          2,
+          0
+        ],
+        "cold_stone_floor_04": [
+          3,
+          0
+        ],
+        "cold_stone_floor_05": [
+          4,
+          0
+        ],
+        "cold_stone_floor_06": [
+          5,
+          0
+        ],
+        "cold_stone_floor_07": [
+          6,
+          0
+        ],
+        "cold_stone_floor_08": [
+          7,
+          0
+        ]
+      }
+    },
+    "cold_stone_overlay_atlas_v01.png": {
+      "path": "atlases/cold_stone_overlay_atlas_v01.png",
+      "sha256": "836b10d2b4a71c863a3b5d03940485f88acf71bccbb875fef2e0cdd33489b1d4",
+      "region_size": [
+        64,
+        64
+      ],
+      "atlas_size": [
+        768,
+        64
+      ],
+      "coordinates": {
+        "stone_crack_01": [
+          0,
+          0
+        ],
+        "stone_crack_02": [
+          1,
+          0
+        ],
+        "stone_dust_01": [
+          2,
+          0
+        ],
+        "stone_dust_02": [
+          3,
+          0
+        ],
+        "stone_damp_01": [
+          4,
+          0
+        ],
+        "stone_damp_02": [
+          5,
+          0
+        ],
+        "dry_to_damp_north": [
+          6,
+          0
+        ],
+        "dry_to_damp_east": [
+          7,
+          0
+        ],
+        "dry_to_damp_south": [
+          8,
+          0
+        ],
+        "dry_to_damp_west": [
+          9,
+          0
+        ],
+        "arcane_inlay_01": [
+          10,
+          0
+        ],
+        "arcane_inlay_02": [
+          11,
+          0
+        ]
+      }
+    },
+    "cold_stone_wall_edge_atlas_v01.png": {
+      "path": "atlases/cold_stone_wall_edge_atlas_v01.png",
+      "sha256": "0fba3632a728d2a2dd434633153633ab2ee3bfbbbc2c7f733f8234011d8da0bb",
+      "region_size": [
+        64,
+        96
+      ],
+      "atlas_size": [
+        256,
+        96
+      ],
+      "coordinates": {
+        "stone_wall_north": [
+          0,
+          0
+        ],
+        "stone_wall_east": [
+          1,
+          0
+        ],
+        "stone_wall_south": [
+          2,
+          0
+        ],
+        "stone_wall_west": [
+          3,
+          0
+        ]
+      }
+    },
+    "cold_stone_wall_corner_atlas_v01.png": {
+      "path": "atlases/cold_stone_wall_corner_atlas_v01.png",
+      "sha256": "f7e47c3ed877b5d491da0a58415d239fbc6e2aa20e976350884076d6f795e69d",
+      "region_size": [
+        96,
+        96
+      ],
+      "atlas_size": [
+        384,
+        96
+      ],
+      "coordinates": {
+        "stone_wall_corner_ne": [
+          0,
+          0
+        ],
+        "stone_wall_corner_se": [
+          1,
+          0
+        ],
+        "stone_wall_corner_sw": [
+          2,
+          0
+        ],
+        "stone_wall_corner_nw": [
+          3,
+          0
+        ]
+      }
+    },
+    "cold_stone_door_atlas_v01.png": {
+      "path": "atlases/cold_stone_door_atlas_v01.png",
+      "sha256": "50f8ad884805026528e7228df04f6e6bf0b46061ac4e674a202276098fff4957",
+      "region_size": [
+        64,
+        96
+      ],
+      "atlas_size": [
+        256,
+        96
+      ],
+      "coordinates": {
+        "stone_door_x_closed": [
+          0,
+          0
+        ],
+        "stone_door_x_open": [
+          1,
+          0
+        ],
+        "stone_door_y_closed": [
+          2,
+          0
+        ],
+        "stone_door_y_open": [
+          3,
+          0
+        ]
+      }
+    },
+    "cold_stone_structure_atlas_v01.png": {
+      "path": "atlases/cold_stone_structure_atlas_v01.png",
+      "sha256": "5bf5821f27668ace214bcdc7eebaa24ca9e58755f8cb536a35949d97c29eeb1d",
+      "region_size": [
+        64,
+        96
+      ],
+      "atlas_size": [
+        64,
+        96
+      ],
+      "coordinates": {
+        "stone_stairs_down_01": [
+          0,
+          0
+        ]
+      }
+    }
+  },
+  "approval": {
+    "manual_review_required": true,
+    "approved": true,
+    "runtime_integrated": true
+  }
+}

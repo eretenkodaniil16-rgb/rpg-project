@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "visual_id": "guard_post_cold_ancient_stone_v01",
+  "tile_set_path": "res://assets/environment/approved/cold_ancient_stone_v01/tilesets/cold_ancient_stone_v01.tres",
+  "tile_size": 64,
+  "floor_seed": 1729,
+  "local_bounds": {
+    "position": [-200, -315],
+    "size": [1190, 630]
+  },
+  "room_columns": {
+    "west_service_room": [0, 2],
+    "outer_guard_room": [3, 12],
+    "inner_watch_room": [13, 18]
+  },
+  "transitions": [
+    {"asset_id": "dry_to_damp_east", "cell": [12, 2]},
+    {"asset_id": "dry_to_damp_east", "cell": [12, 6]},
+    {"asset_id": "dry_to_damp_west", "cell": [13, 4]}
+  ],
+  "decals": [
+    {"asset_id": "stone_dust_01", "cell": [1, 1]},
+    {"asset_id": "stone_crack_01", "cell": [1, 6]},
+    {"asset_id": "stone_dust_02", "cell": [4, 2]},
+    {"asset_id": "stone_crack_02", "cell": [7, 5]},
+    {"asset_id": "stone_dust_01", "cell": [9, 7]},
+    {"asset_id": "stone_crack_01", "cell": [11, 3]},
+    {"asset_id": "stone_damp_01", "cell": [13, 1]},
+    {"asset_id": "stone_damp_02", "cell": [14, 4]},
+    {"asset_id": "stone_damp_01", "cell": [16, 7]},
+    {"asset_id": "stone_damp_02", "cell": [17, 2]},
+    {"asset_id": "arcane_inlay_01", "cell": [15, 2]},
+    {"asset_id": "arcane_inlay_02", "cell": [15, 7]}
+  ],
+  "walls": {
+    "room_left": -200,
+    "room_right": 990,
+    "room_top": -315,
+    "room_bottom": 315,
+    "door_gap_top": -59,
+    "door_gap_bottom": 69,
+    "partition_x": [-8, 632]
+  },
+  "doors": {
+    "west_service_door": "y",
+    "inner_watch_gate": "y"
+  }
+}
