@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from math import pi
+
 from mathutils import Vector
 import bpy
 
@@ -107,6 +109,9 @@ def text(name, body, location, size, mat, align="CENTER"):
     obj = bpy.data.objects.new(name, curve)
     bpy.context.collection.objects.link(obj)
     obj.location = location
+    # The teaching camera looks approximately along +Y. Blender text is created
+    # in the local XY plane, so rotate its normal from +Z to -Y to face camera.
+    obj.rotation_euler = (pi / 2.0, 0.0, 0.0)
     assign(obj, mat)
     return obj
 
