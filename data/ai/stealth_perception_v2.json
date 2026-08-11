@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "hide_entry_dc": 15,
+  "perception_tick_seconds": 0.125,
+  "active_search_interval_seconds": 1.75,
+  "active_search_max_distance_feet": 45,
+  "min_auto_detection_feet": 5,
+  "max_auto_detection_feet": 20,
+  "feet_reduction_per_stealth_margin": 2,
+  "concealed_auto_detection_feet": 5,
+  "active_search_states": ["investigating", "searching", "alerted"]
+}
