@@ -376,13 +376,15 @@ func _begin_combat_from_party_alert_v3(observer: Node, record: Dictionary, detec
 func _start_turn_based_combat(trigger_target: Node) -> void:
 	var hero_was_hidden: bool = is_instance_valid(player) and _is_party_target_hidden_v3(player)
 	super._start_turn_based_combat(trigger_target)
-	if hero_was_hidden and _player_combat_state != null:
-		_player_combat_state.hidden = true
+	if hero_was_hidden:
+		_set_player_combat_hidden_v3(true)
 	for observer: Node in _active_observers():
 		if not observer.has_method("get_actor_id"):
 			continue
 		var memory: Dictionary = _party_stealth_state_v3.get_latest_observer_memory(str(observer.call("get_actor_id")))
 		if memory.is_empty():
+			if hero_was_hidden:
+				_set_observer_state(observer, DETECTION_LOST, (observer as Node2D).global_position)
 			continue
 		_set_observer_state(observer, DETECTION_AWARE, _memory_position_v3(memory, (observer as Node2D).global_position))
 
@@ -558,12 +560,12 @@ func _party_stealth_target_available_v3(target: Node) -> bool:
 	if not is_instance_valid(target) or not target is Node2D:
 		return false
 	if target == player:
-		return GameState.player_character != null and GameState.player_character.current_health > 0 and not _player_combat_state.dead
+		return GameState.player_character != null and GameState.player_character.current_health > 0
 	if target.has_method("get_current_health") and int(target.call("get_current_health")) <= 0:
 		return false
 	if target.has_method("get_combatant_state"):
-		var state: CombatantState = target.call("get_combatant_state") as CombatantState
-		if state != null and state.dead:
+		var state: Object = target.call("get_combatant_state") as Object
+		if state != null and bool(state.get("dead")):
 			return false
 	return true
 
@@ -587,6 +589,33 @@ func _prime_party_step_tracking_v3() -> void:
 func _memory_position_v3(memory: Dictionary, fallback: Vector2 = Vector2.ZERO) -> Vector2:
 	var value: Variant = memory.get("position", fallback)
 	return value as Vector2 if value is Vector2 else fallback
+
+
+func _combat_state_has_property_v3(state: Object, property_name: StringName) -> bool:
+	if state == null:
+		return false
+	for property: Dictionary in state.get_property_list():
+		if StringName(str(property.get("name", ""))) == property_name:
+			return true
+	return false
+
+
+func _set_player_combat_hidden_v3(hidden: bool) -> void:
+	if GameState.player_character != null:
+		if hidden:
+			GameState.player_character.active_effects["combat_hidden"] = true
+		else:
+			GameState.player_character.active_effects.erase("combat_hidden")
+	if _player_combat_state != null and _combat_state_has_property_v3(_player_combat_state, &"hidden"):
+		_player_combat_state.set("hidden", hidden)
+
+
+func _is_player_combat_hidden_v3() -> bool:
+	if GameState.player_character != null and bool(GameState.player_character.active_effects.get("combat_hidden", false)):
+		return true
+	if _player_combat_state != null and _combat_state_has_property_v3(_player_combat_state, &"hidden"):
+		return bool(_player_combat_state.get("hidden"))
+	return false
 
 
 func set_party_stealth_total_v3_for_testing(target: Node, total: int) -> void:
@@ -654,3 +683,7 @@ func get_persisted_party_stealth_state_v3_for_testing() -> Dictionary:
 
 func is_party_follow_position_exposed_v3_for_testing(position: Vector2) -> bool:
 	return _party_follow_position_exposed_v3(position)
+
+
+func is_player_combat_hidden_v3_for_testing() -> bool:
+	return _is_player_combat_hidden_v3()
