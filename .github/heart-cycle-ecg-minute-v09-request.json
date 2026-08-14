@@ -1,0 +1,27 @@
+{
+  "revision": "heart_cycle_ecg_minute_v09",
+  "requested_at": "2026-08-14T10:53:00+03:00",
+  "source_branch": "tools/blender-heart-cycle",
+  "target_duration_seconds": 60,
+  "review": {
+    "width": 1280,
+    "height": 720,
+    "fps": 15,
+    "authored_fps": 30,
+    "authored_frames": 1800,
+    "sample_step": 2,
+    "output_frames": 900,
+    "render_samples": 64,
+    "native_blender_render": true,
+    "upscale": false,
+    "shards": 15
+  },
+  "content": [
+    "intro explaining ECG-to-mechanics relationship",
+    "existing approved 9-phase Blender heart rig retimed into a 50-second teaching core",
+    "P/QRS/T ECG trace with synchronized moving cursor",
+    "phase-specific electrical-event labels",
+    "existing valve motion, chamber deformation and blood-flow animation",
+    "outro summarizing P, QRS and T mechanical relationships"
+  ]
+}
