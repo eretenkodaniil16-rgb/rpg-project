@@ -1,0 +1,257 @@
+name: Render Blender Frank-Starling and Anrep v01
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - tools/blender-heart-starling-anrep-v01
+    paths:
+      - ".github/heart-starling-anrep-v01-request.json"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: blender-heart-starling-anrep-v01-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Run source-level physiology and timeline checks
+        shell: bash
+        run: |
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+          path = Path("tools/blender_heart_cycle/heart_starling_anrep_v01.py")
+          source = path.read_text(encoding="utf-8")
+          ast.parse(source)
+          required = [
+              'DURATION_SECONDS = 105.0',
+              'ФРАНК—СТАРЛИНГ',
+              'ГЕТЕРОМЕТРИЧЕСКАЯ РЕГУЛЯЦИЯ',
+              'АНРЕП: ШАГ ПОСТНАГРУЗКИ',
+              'АНРЕП: ОТСРОЧЕННЫЙ ОТВЕТ',
+              'unchanged diastolic scale',
+              'delayed rise in contractility',
+          ]
+          for item in required:
+              assert item in source, item
+          print("source checks passed")
+          PY
+
+  render-shards:
+    needs: static-checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { id: 1,  start: 1,    end: 210 }
+          - { id: 2,  start: 211,  end: 420 }
+          - { id: 3,  start: 421,  end: 630 }
+          - { id: 4,  start: 631,  end: 840 }
+          - { id: 5,  start: 841,  end: 1050 }
+          - { id: 6,  start: 1051, end: 1260 }
+          - { id: 7,  start: 1261, end: 1470 }
+          - { id: 8,  start: 1471, end: 1680 }
+          - { id: 9,  start: 1681, end: 1890 }
+          - { id: 10, start: 1891, end: 2100 }
+          - { id: 11, start: 2101, end: 2310 }
+          - { id: 12, start: 2311, end: 2520 }
+          - { id: 13, start: 2521, end: 2730 }
+          - { id: 14, start: 2731, end: 2940 }
+          - { id: 15, start: 2941, end: 3150 }
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Blender runtime dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            xvfb libgl1 libxi6 libxrender1 libxkbcommon-x11-0 \
+            fonts-dejavu-core ffmpeg
+
+      - name: Download and verify Blender 5.2.0 LTS
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/blender-5.2.0-linux-x64.tar.xz"
+          extract="$RUNNER_TEMP/blender-5.2.0"
+          curl -L --fail --retry 3 --output "$archive" \
+            "https://download.blender.org/release/Blender5.2/blender-5.2.0-linux-x64.tar.xz"
+          actual="$(sha256sum "$archive" | cut -d' ' -f1)"
+          expected="96f6c181a30f4950607839dc84d42a354b250d8a0231b098b59b7bc69c351c48"
+          test "$actual" = "$expected"
+          mkdir -p "$extract"
+          tar -xJf "$archive" -C "$extract"
+          blender="$(find "$extract" -type f -name blender -perm -111 | head -n 1)"
+          test -n "$blender"
+          echo "BLENDER_EXE=$blender" >> "$GITHUB_ENV"
+
+      - name: Render 720p15 teaching shard
+        shell: bash
+        run: |
+          set -euo pipefail
+          output="$GITHUB_WORKSPACE/artifacts/heart_starling_anrep_v01"
+          extra=()
+          if [[ "${{ matrix.id }}" == "1" ]]; then
+            extra+=(--save-blend)
+          fi
+          xvfb-run -a "$BLENDER_EXE" \
+            --background \
+            --factory-startup \
+            --python-exit-code 1 \
+            --python tools/blender_heart_cycle/heart_starling_anrep_v01.py \
+            -- \
+            --output-root "$output" \
+            --resolution 720 \
+            --frame-start "${{ matrix.start }}" \
+            --frame-end "${{ matrix.end }}" \
+            --sample-step 2 \
+            --render-samples 64 \
+            --render-animation \
+            "${extra[@]}" 2>&1 | tee "heart_starling_anrep_v01_shard_${{ matrix.id }}.log"
+
+      - name: Verify shard PNGs
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="artifacts/heart_starling_anrep_v01/starling_anrep_frames"
+          count="$(find "$root" -maxdepth 1 -type f -name 'starling_anrep_*.png' | wc -l)"
+          test "$count" -eq 105
+          test -s "artifacts/heart_starling_anrep_v01/heart_starling_anrep_v01_manifest.json"
+          if [[ "${{ matrix.id }}" == "1" ]]; then
+            find artifacts/heart_starling_anrep_v01 -maxdepth 1 -type f -name '*starling_anrep_v01.blend' -size +0c | grep -q .
+          fi
+
+      - name: Upload shard
+        uses: actions/upload-artifact@v4
+        with:
+          name: heart-starling-anrep-v01-shard-${{ matrix.id }}
+          path: |
+            artifacts/heart_starling_anrep_v01/**
+            heart_starling_anrep_v01_shard_${{ matrix.id }}.log
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+  assemble-review:
+    needs: render-shards
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg
+
+      - name: Download all rendered shards
+        uses: actions/download-artifact@v4
+        with:
+          pattern: heart-starling-anrep-v01-shard-*
+          path: artifacts/merged
+          merge-multiple: true
+
+      - name: Assemble 105-second 720p15 review MP4
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="artifacts/merged/artifacts/heart_starling_anrep_v01"
+          frames="$root/starling_anrep_frames"
+          delivery="artifacts/heart_starling_anrep_v01_delivery"
+          mkdir -p "$delivery"
+
+          count="$(find "$frames" -maxdepth 1 -type f -name 'starling_anrep_*.png' | wc -l)"
+          test "$count" -eq 1575
+
+          ffmpeg -y \
+            -framerate 15 \
+            -pattern_type glob \
+            -i "$frames/starling_anrep_*.png" \
+            -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=48000 \
+            -t 105 \
+            -vf "setsar=1,format=yuv420p" \
+            -c:v libx264 -preset slow -crf 16 -profile:v high \
+            -c:a aac -b:a 128k -shortest -movflags +faststart \
+            "$delivery/heart_starling_anrep_v01_720p15_review.mp4"
+
+          ffmpeg -y -ss 00:00:32 -i "$delivery/heart_starling_anrep_v01_720p15_review.mp4" -frames:v 1 "$delivery/frank_starling_poster.png"
+          ffmpeg -y -ss 00:01:18 -i "$delivery/heart_starling_anrep_v01_720p15_review.mp4" -frames:v 1 "$delivery/anrep_poster.png"
+
+          blend="$(find "$root" -maxdepth 1 -type f -name '*starling_anrep_v01.blend' | head -n 1)"
+          test -n "$blend"
+          cp "$blend" "$delivery/"
+          cp "$root/heart_starling_anrep_v01_manifest.json" "$delivery/heart_starling_anrep_v01_source_manifest.json"
+
+      - name: Verify final review
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import subprocess
+          from pathlib import Path
+
+          root = Path("artifacts/heart_starling_anrep_v01_delivery")
+          video = root / "heart_starling_anrep_v01_720p15_review.mp4"
+          frank = root / "frank_starling_poster.png"
+          anrep = root / "anrep_poster.png"
+          blends = list(root.glob("*starling_anrep_v01.blend"))
+          assert video.is_file() and video.stat().st_size > 0
+          assert frank.is_file() and frank.stat().st_size > 0
+          assert anrep.is_file() and anrep.stat().st_size > 0
+          assert len(blends) == 1 and blends[0].stat().st_size > 0
+
+          probe = json.loads(subprocess.check_output([
+              "ffprobe", "-v", "error", "-count_frames", "-select_streams", "v:0",
+              "-show_entries", "stream=width,height,nb_read_frames,r_frame_rate,pix_fmt",
+              "-show_entries", "format=duration", "-of", "json", str(video)
+          ], text=True))
+          stream = probe["streams"][0]
+          duration = float(probe["format"]["duration"])
+          assert stream["width"] == 1280
+          assert stream["height"] == 720
+          assert stream["r_frame_rate"] == "15/1"
+          assert stream["pix_fmt"] == "yuv420p"
+          assert int(stream["nb_read_frames"]) == 1575
+          assert 104.8 <= duration <= 105.2
+
+          delivery = {
+              "revision": "heart_starling_anrep_v01",
+              "status": "review_render_verified",
+              "width": 1280,
+              "height": 720,
+              "fps": 15,
+              "frame_count": 1575,
+              "duration_seconds": duration,
+              "video": video.name,
+              "posters": [frank.name, anrep.name],
+              "blend": blends[0].name,
+              "source_is_native_blender_render": True,
+              "upscaled": False,
+          }
+          (root / "heart_starling_anrep_v01_delivery.json").write_text(
+              json.dumps(delivery, ensure_ascii=False, indent=2), encoding="utf-8"
+          )
+          PY
+
+      - name: Upload assembled review
+        uses: actions/upload-artifact@v4
+        with:
+          name: heart-starling-anrep-v01-review-${{ github.run_id }}
+          path: artifacts/heart_starling_anrep_v01_delivery/**
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
