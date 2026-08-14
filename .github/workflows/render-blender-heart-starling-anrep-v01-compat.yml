@@ -23,12 +23,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { id: 1, start: 1,    end: 526,  expected: 263 }
-          - { id: 2, start: 527,  end: 1050, expected: 262 }
-          - { id: 3, start: 1051, end: 1576, expected: 263 }
-          - { id: 4, start: 1577, end: 2100, expected: 262 }
-          - { id: 5, start: 2101, end: 2626, expected: 263 }
-          - { id: 6, start: 2627, end: 3150, expected: 262 }
+          - { id: 1, start: 1,    end: 630,  expected: 315 }
+          - { id: 2, start: 631,  end: 1260, expected: 315 }
+          - { id: 3, start: 1261, end: 1890, expected: 315 }
+          - { id: 4, start: 1891, end: 2520, expected: 315 }
+          - { id: 5, start: 2521, end: 3150, expected: 315 }
     steps:
       - uses: actions/checkout@v4
 
