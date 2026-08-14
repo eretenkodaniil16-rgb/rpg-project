@@ -80,7 +80,7 @@ jobs:
             --background \
             --factory-startup \
             --python-exit-code 1 \
-            --python tools/blender_heart_cycle/heart_cycle_ecg_minute_v09.py \
+            --python tools/blender_heart_cycle/heart_cycle_ecg_minute_v09_compat.py \
             -- \
             --output-root "$output" \
             --resolution 720 \
