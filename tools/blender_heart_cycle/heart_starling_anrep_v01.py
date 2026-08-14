@@ -47,6 +47,21 @@ def span(start: float, end: float) -> tuple[int, int]:
     return sec(start), min(TOTAL_FRAMES, int(round(end * FPS)))
 
 
+def set_visibility(objects, start: int, end: int) -> None:
+    """Visibility interval using this video's 105 s timeline, not the 60 s helper."""
+    for obj in objects:
+        obj.hide_viewport = True; obj.hide_render = True
+        obj.keyframe_insert(data_path="hide_viewport", frame=1); obj.keyframe_insert(data_path="hide_render", frame=1)
+        if start > 1:
+            obj.keyframe_insert(data_path="hide_viewport", frame=start - 1); obj.keyframe_insert(data_path="hide_render", frame=start - 1)
+        obj.hide_viewport = False; obj.hide_render = False
+        obj.keyframe_insert(data_path="hide_viewport", frame=start); obj.keyframe_insert(data_path="hide_render", frame=start)
+        obj.keyframe_insert(data_path="hide_viewport", frame=end); obj.keyframe_insert(data_path="hide_render", frame=end)
+        if end < TOTAL_FRAMES:
+            obj.hide_viewport = True; obj.hide_render = True
+            obj.keyframe_insert(data_path="hide_viewport", frame=end + 1); obj.keyframe_insert(data_path="hide_render", frame=end + 1)
+
+
 def arguments() -> argparse.Namespace:
     argv = sys.argv
     argv = argv[argv.index("--") + 1 :] if "--" in argv else []
@@ -219,7 +234,7 @@ def reference_torso(build: model.HeartBuild) -> tuple[bpy.types.Object, ...]:
     bpy.ops.mesh.primitive_cylinder_add(vertices=32, radius=0.72, depth=1.0, location=(0.0, 0.74, 6.95))
     neck = bpy.context.object; neck.name = "UserReference_Neck_v01"; neck.data.materials.append(material)
     model._move_to_collection(neck, build.collections["anatomy"]); parts.append(neck)
-    minute._set_visibility_interval(parts, *span(0, 8)); minute._set_constant_visibility(parts)
+    set_visibility(parts, *span(0, 8)); minute._set_constant_visibility(parts)
     return tuple(parts)
 
 
@@ -228,7 +243,7 @@ def afterload_ring(build: model.HeartBuild) -> bpy.types.Object:
     bpy.ops.mesh.primitive_torus_add(major_radius=0.50, minor_radius=0.055, major_segments=56, minor_segments=12, location=(0.50, 0.24, 5.82))
     ring = bpy.context.object; ring.name = "Afterload_AorticPressureRing_v01"; ring.data.materials.append(material)
     model._move_to_collection(ring, build.collections["render"])
-    minute._set_visibility_interval((ring,), *span(60, 90)); minute._set_constant_visibility((ring,))
+    set_visibility((ring,), *span(60, 90)); minute._set_constant_visibility((ring,))
     for frame, scale in ((sec(60), 0.88), (sec(64), 1.15), (sec(75), 1.05), (sec(90), 1.12)):
         ring.scale = (scale, scale, scale); ring.keyframe_insert(data_path="scale", frame=frame)
     return ring
@@ -256,7 +271,7 @@ def starling_graph(camera: bpy.types.Object, collection: bpy.types.Collection) -
     infographic._parent_local(marker, camera, (pts[18][0], pts[18][1], -2.46))
     for frame, index in ((sec(15), 18), (sec(30), 43), (sec(45), 61)):
         marker.location = (pts[index][0], pts[index][1], -2.46); marker.keyframe_insert(data_path="location", frame=frame)
-    made.append(marker); minute._set_visibility_interval(made, *span(15, 50)); minute._set_constant_visibility(made)
+    made.append(marker); set_visibility(made, *span(15, 50)); minute._set_constant_visibility(made)
     return tuple(made)
 
 
@@ -278,7 +293,7 @@ def text_cards(build: model.HeartBuild) -> tuple[bpy.types.Object, ...]:
             infographic._camera_text(prefix + "_Title", title, camera, collection, (-0.715, 0.165, -2.47), 0.028, accent, font),
             infographic._camera_text(prefix + "_Body", body, camera, collection, (-0.715, 0.105, -2.47), 0.0165, text, font, line_spacing=0.91),
         )
-        minute._set_visibility_interval(objects, *span(start, end)); minute._set_constant_visibility(objects); made.extend(objects)
+        set_visibility(objects, *span(start, end)); minute._set_constant_visibility(objects); made.extend(objects)
 
     card("Law_Intro_v01", 0, 8, "САМОРЕГУЛЯЦИЯ СЕРДЦА", "Франк—Старлинг — адаптация к наполнению\nАнреп — адаптация к сопротивлению изгнанию", text)
     card("Law_Baseline_v01", 8, 15, "ИСХОДНЫЙ ЦИКЛ", "Обычное наполнение и обычная\nамплитуда сокращения желудочка.", muted)
@@ -294,13 +309,13 @@ def text_cards(build: model.HeartBuild) -> tuple[bpy.types.Object, ...]:
         infographic._camera_text("Law_CompareLeft_v01", "ФРАНК—СТАРЛИНГ\n↑ преднагрузка\nменяется длина волокон\nгетерометрическая регуляция", camera, collection, (-0.705, 0.105, -2.47), 0.0175, blue, font, line_spacing=0.93),
         infographic._camera_text("Law_CompareRight_v01", "АНРЕП\n↑ постнагрузка\n↑ сократимость при сходной длине\nгомеометрическая регуляция", camera, collection, (-0.365, 0.105, -2.47), 0.0175, orange, font, line_spacing=0.93),
     )
-    minute._set_visibility_interval(compare, *span(90, 102)); minute._set_constant_visibility(compare); made.extend(compare)
+    set_visibility(compare, *span(90, 102)); minute._set_constant_visibility(compare); made.extend(compare)
     outro = (
         infographic._camera_plane("Law_OutroPanel_v01", camera, collection, (-0.41, 0.02, -2.59), (0.34, 0.20), card_mat),
         infographic._camera_text("Law_OutroTitle_v01", "ОДНА ЦЕЛЬ — СТАБИЛЬНЫЙ ВЫБРОС", camera, collection, (-0.705, 0.145, -2.47), 0.029, green, font),
         infographic._camera_text("Law_OutroBody_v01", "Сердце приспосабливает насосную функцию\nи к объёму крови, и к нагрузке на изгнание.", camera, collection, (-0.705, 0.055, -2.47), 0.020, text, font),
     )
-    minute._set_visibility_interval(outro, *span(102, 105)); minute._set_constant_visibility(outro); made.extend(outro)
+    set_visibility(outro, *span(102, 105)); minute._set_constant_visibility(outro); made.extend(outro)
     made.extend(starling_graph(camera, collection)); return tuple(made)
 
 
