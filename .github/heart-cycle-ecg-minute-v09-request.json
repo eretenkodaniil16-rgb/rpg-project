@@ -1,7 +1,9 @@
 {
   "revision": "heart_cycle_ecg_minute_v09",
-  "requested_at": "2026-08-14T10:53:00+03:00",
+  "requested_at": "2026-08-14T11:09:00+03:00",
   "source_branch": "tools/blender-heart-cycle",
+  "retry_of_run_id": 31782210353,
+  "retry_reason": "Blender 5.2 layered Actions compatibility fix applied to F-curve traversal.",
   "target_duration_seconds": 60,
   "review": {
     "width": 1280,
