@@ -1,8 +1,8 @@
 {
-  "revision": "heart_cycle_ecg_minute_v09_compat",
-  "requested_at": "2026-08-14T11:08:00+03:00",
-  "reason": "Retry the one-minute Blender ECG review with Blender 5.2 layered Action compatibility for F-curves.",
-  "source_failed_run_id": 31782210353,
+  "revision": "heart_cycle_ecg_minute_v09_compat_r2",
+  "requested_at": "2026-08-14T11:28:00+03:00",
+  "reason": "Retry after adding the Blender script directory to sys.path before importing the ECG minute module.",
+  "source_failed_run_id": 31782762122,
   "render": {
     "resolution": [1280, 720],
     "fps": 15,
