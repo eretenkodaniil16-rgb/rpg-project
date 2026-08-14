@@ -1,0 +1,82 @@
+name: Smoke Blender Frank-Starling and Anrep v01
+
+on:
+  push:
+    branches:
+      - tools/blender-heart-starling-anrep-v01
+    paths:
+      - ".github/heart-starling-anrep-v01-smoke-request.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: smoke-blender-heart-starling-anrep-v01-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Blender runtime dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xvfb libgl1 libxi6 libxrender1 libxkbcommon-x11-0 fonts-dejavu-core
+
+      - name: Download Blender 5.2.0 LTS
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/blender-5.2.0-linux-x64.tar.xz"
+          extract="$RUNNER_TEMP/blender-5.2.0"
+          curl -L --fail --retry 3 --output "$archive" "https://download.blender.org/release/Blender5.2/blender-5.2.0-linux-x64.tar.xz"
+          actual="$(sha256sum "$archive" | cut -d' ' -f1)"
+          test "$actual" = "96f6c181a30f4950607839dc84d42a354b250d8a0231b098b59b7bc69c351c48"
+          mkdir -p "$extract"
+          tar -xJf "$archive" -C "$extract"
+          blender="$(find "$extract" -type f -name blender -perm -111 | head -n 1)"
+          test -n "$blender"
+          echo "BLENDER_EXE=$blender" >> "$GITHUB_ENV"
+
+      - name: Build full scene and render three control frames
+        shell: bash
+        run: |
+          set -euo pipefail
+          output="$GITHUB_WORKSPACE/artifacts/smoke_starling_anrep_v01"
+          xvfb-run -a "$BLENDER_EXE" \
+            --background --factory-startup --python-exit-code 1 \
+            --python tools/blender_heart_cycle/heart_starling_anrep_v01_runner.py \
+            -- \
+            --output-root "$output" \
+            --resolution 360 \
+            --frame-start 1 \
+            --frame-end 5 \
+            --sample-step 2 \
+            --render-samples 16 \
+            --render-animation \
+            --save-blend 2>&1 | tee smoke_starling_anrep_v01.log
+
+      - name: Verify smoke outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="artifacts/smoke_starling_anrep_v01"
+          count="$(find "$root/starling_anrep_frames" -maxdepth 1 -type f -name 'starling_anrep_*.png' | wc -l)"
+          test "$count" -eq 3
+          test -s "$root/heart_starling_anrep_v01_manifest.json"
+          find "$root" -maxdepth 1 -type f -name '*starling_anrep_v01.blend' -size +0c | grep -q .
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-heart-starling-anrep-v01-${{ github.run_id }}
+          path: |
+            artifacts/smoke_starling_anrep_v01/**
+            smoke_starling_anrep_v01.log
+          if-no-files-found: warn
+          retention-days: 7
+          compression-level: 0
