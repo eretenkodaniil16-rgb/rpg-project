@@ -2,13 +2,20 @@ from __future__ import annotations
 
 """Blender 5.2 compatibility runner for heart_starling_anrep_v01.
 
-Blender 5.x can store animation curves in layered Actions.  The v01 teaching
+Blender 5.x can store animation curves in layered Actions. The v01 teaching
 scene intentionally reuses a few helpers written against legacy Action.fcurves.
 This runner patches only those traversal points so the authored physiology and
 scene code remain unchanged.
 """
 
+import sys
+from pathlib import Path
+
 import bpy
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
 
 import heart_starling_anrep_v01 as app
 
