@@ -1,0 +1,153 @@
+name: Render Blender Frank-Starling and Anrep v01 compat
+
+on:
+  push:
+    branches:
+      - tools/blender-heart-starling-anrep-v01
+    paths:
+      - ".github/heart-starling-anrep-v01-final-request.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: render-blender-heart-starling-anrep-v01-compat-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { id: 1,  start: 1,    end: 210 }
+          - { id: 2,  start: 211,  end: 420 }
+          - { id: 3,  start: 421,  end: 630 }
+          - { id: 4,  start: 631,  end: 840 }
+          - { id: 5,  start: 841,  end: 1050 }
+          - { id: 6,  start: 1051, end: 1260 }
+          - { id: 7,  start: 1261, end: 1470 }
+          - { id: 8,  start: 1471, end: 1680 }
+          - { id: 9,  start: 1681, end: 1890 }
+          - { id: 10, start: 1891, end: 2100 }
+          - { id: 11, start: 2101, end: 2310 }
+          - { id: 12, start: 2311, end: 2520 }
+          - { id: 13, start: 2521, end: 2730 }
+          - { id: 14, start: 2731, end: 2940 }
+          - { id: 15, start: 2941, end: 3150 }
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install runtime dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xvfb libgl1 libxi6 libxrender1 libxkbcommon-x11-0 fonts-dejavu-core ffmpeg
+
+      - name: Download Blender 5.2.0 LTS
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/blender-5.2.0-linux-x64.tar.xz"
+          extract="$RUNNER_TEMP/blender-5.2.0"
+          curl -L --fail --retry 3 --output "$archive" "https://download.blender.org/release/Blender5.2/blender-5.2.0-linux-x64.tar.xz"
+          actual="$(sha256sum "$archive" | cut -d' ' -f1)"
+          test "$actual" = "96f6c181a30f4950607839dc84d42a354b250d8a0231b098b59b7bc69c351c48"
+          mkdir -p "$extract"
+          tar -xJf "$archive" -C "$extract"
+          blender="$(find "$extract" -type f -name blender -perm -111 | head -n 1)"
+          test -n "$blender"
+          echo "BLENDER_EXE=$blender" >> "$GITHUB_ENV"
+
+      - name: Render native 720p15 shard
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$GITHUB_WORKSPACE/artifacts/starling_anrep_v01"
+          extra=()
+          if [[ "${{ matrix.id }}" == "1" ]]; then extra+=(--save-blend); fi
+          xvfb-run -a "$BLENDER_EXE" \
+            --background --factory-startup --python-exit-code 1 \
+            --python tools/blender_heart_cycle/heart_starling_anrep_v01_runner.py \
+            -- \
+            --output-root "$root" \
+            --resolution 720 \
+            --frame-start "${{ matrix.start }}" \
+            --frame-end "${{ matrix.end }}" \
+            --sample-step 2 \
+            --render-samples 64 \
+            --render-animation \
+            "${extra[@]}" 2>&1 | tee "starling_anrep_shard_${{ matrix.id }}.log"
+
+      - name: Verify shard
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="artifacts/starling_anrep_v01"
+          count="$(find "$root/starling_anrep_frames" -maxdepth 1 -type f -name 'starling_anrep_*.png' | wc -l)"
+          test "$count" -eq 105
+          test -s "$root/heart_starling_anrep_v01_manifest.json"
+          if [[ "${{ matrix.id }}" == "1" ]]; then
+            find "$root" -maxdepth 1 -type f -name '*starling_anrep_v01.blend' -size +0c | grep -q .
+          fi
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: starling-anrep-v01-shard-${{ matrix.id }}
+          path: |
+            artifacts/starling_anrep_v01/**
+            starling_anrep_shard_${{ matrix.id }}.log
+          if-no-files-found: warn
+          retention-days: 14
+          compression-level: 0
+
+  assemble:
+    needs: render
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: starling-anrep-v01-shard-*
+          path: artifacts/merged
+          merge-multiple: true
+
+      - name: Assemble and verify review
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="artifacts/merged/artifacts/starling_anrep_v01"
+          frames="$root/starling_anrep_frames"
+          out="artifacts/starling_anrep_v01_delivery"
+          mkdir -p "$out"
+          count="$(find "$frames" -maxdepth 1 -type f -name 'starling_anrep_*.png' | wc -l)"
+          test "$count" -eq 1575
+          ffmpeg -y -framerate 15 -pattern_type glob -i "$frames/starling_anrep_*.png" \
+            -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=48000 -t 105 \
+            -vf "setsar=1,format=yuv420p" -c:v libx264 -preset slow -crf 16 -profile:v high \
+            -c:a aac -b:a 128k -shortest -movflags +faststart \
+            "$out/heart_starling_anrep_v01_720p15_review.mp4"
+          ffmpeg -y -ss 00:00:32 -i "$out/heart_starling_anrep_v01_720p15_review.mp4" -frames:v 1 "$out/frank_starling_poster.png"
+          ffmpeg -y -ss 00:01:18 -i "$out/heart_starling_anrep_v01_720p15_review.mp4" -frames:v 1 "$out/anrep_poster.png"
+          blend="$(find "$root" -maxdepth 1 -type f -name '*starling_anrep_v01.blend' | head -n 1)"
+          test -n "$blend"
+          cp "$blend" "$out/"
+          cp "$root/heart_starling_anrep_v01_manifest.json" "$out/heart_starling_anrep_v01_source_manifest.json"
+          frames_read="$(ffprobe -v error -count_frames -select_streams v:0 -show_entries stream=nb_read_frames -of default=nw=1:nk=1 "$out/heart_starling_anrep_v01_720p15_review.mp4")"
+          test "$frames_read" -eq 1575
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: heart-starling-anrep-v01-review-${{ github.run_id }}
+          path: artifacts/starling_anrep_v01_delivery/**
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
