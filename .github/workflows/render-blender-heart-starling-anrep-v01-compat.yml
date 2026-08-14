@@ -23,21 +23,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { id: 1,  start: 1,    end: 210 }
-          - { id: 2,  start: 211,  end: 420 }
-          - { id: 3,  start: 421,  end: 630 }
-          - { id: 4,  start: 631,  end: 840 }
-          - { id: 5,  start: 841,  end: 1050 }
-          - { id: 6,  start: 1051, end: 1260 }
-          - { id: 7,  start: 1261, end: 1470 }
-          - { id: 8,  start: 1471, end: 1680 }
-          - { id: 9,  start: 1681, end: 1890 }
-          - { id: 10, start: 1891, end: 2100 }
-          - { id: 11, start: 2101, end: 2310 }
-          - { id: 12, start: 2311, end: 2520 }
-          - { id: 13, start: 2521, end: 2730 }
-          - { id: 14, start: 2731, end: 2940 }
-          - { id: 15, start: 2941, end: 3150 }
+          - { id: 1, start: 1,    end: 526,  expected: 263 }
+          - { id: 2, start: 527,  end: 1050, expected: 262 }
+          - { id: 3, start: 1051, end: 1576, expected: 263 }
+          - { id: 4, start: 1577, end: 2100, expected: 262 }
+          - { id: 5, start: 2101, end: 2626, expected: 263 }
+          - { id: 6, start: 2627, end: 3150, expected: 262 }
     steps:
       - uses: actions/checkout@v4
 
@@ -61,7 +52,7 @@ jobs:
           test -n "$blender"
           echo "BLENDER_EXE=$blender" >> "$GITHUB_ENV"
 
-      - name: Render native 720p15 shard
+      - name: Render native 720p15 review shard
         shell: bash
         run: |
           set -euo pipefail
@@ -77,7 +68,7 @@ jobs:
             --frame-start "${{ matrix.start }}" \
             --frame-end "${{ matrix.end }}" \
             --sample-step 2 \
-            --render-samples 64 \
+            --render-samples 16 \
             --render-animation \
             "${extra[@]}" 2>&1 | tee "starling_anrep_shard_${{ matrix.id }}.log"
 
@@ -87,7 +78,7 @@ jobs:
           set -euo pipefail
           root="artifacts/starling_anrep_v01"
           count="$(find "$root/starling_anrep_frames" -maxdepth 1 -type f -name 'starling_anrep_*.png' | wc -l)"
-          test "$count" -eq 105
+          test "$count" -eq "${{ matrix.expected }}"
           test -s "$root/heart_starling_anrep_v01_manifest.json"
           if [[ "${{ matrix.id }}" == "1" ]]; then
             find "$root" -maxdepth 1 -type f -name '*starling_anrep_v01.blend' -size +0c | grep -q .
