@@ -1,5 +1,5 @@
 {
   "revision": "heart_starling_anrep_v01",
-  "attempt": 2,
-  "purpose": "Build full 105-second scene after Blender 5.2 runner import-path fix and render control frames."
+  "attempt": 3,
+  "purpose": "Render cleaned intro after hiding inherited UI and replacing the noisy translucent torso with a medical wireframe proxy."
 }
