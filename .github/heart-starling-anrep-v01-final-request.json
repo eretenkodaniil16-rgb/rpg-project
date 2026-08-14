@@ -1,12 +1,14 @@
 {
   "revision": "heart_starling_anrep_v01",
-  "attempt": 1,
-  "purpose": "Render the visually verified 105-second Frank-Starling and Anrep review using the Blender 5.2 compatibility runner.",
+  "attempt": 2,
+  "purpose": "Render the visually verified 105-second Frank-Starling and Anrep review using six concurrent optimized Blender shards.",
   "render": {
     "resolution": "1280x720",
     "fps": 15,
     "duration_seconds": 105,
-    "native_blender_png_sequence": true
+    "native_blender_png_sequence": true,
+    "review_samples": 16,
+    "shards": 6
   },
   "qa": {
     "smoke_scene_build": "passed",
