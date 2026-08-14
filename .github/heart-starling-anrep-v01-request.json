@@ -1,7 +1,8 @@
 {
   "revision": "heart_starling_anrep_v01",
+  "request_attempt": 2,
   "requested_at": "2026-08-14",
-  "purpose": "Generate the first 105-second Blender review render for Frank-Starling and Anrep cardiac autoregulation.",
+  "purpose": "Generate the corrected 105-second Blender review render for Frank-Starling and Anrep cardiac autoregulation.",
   "render": {
     "resolution": "1280x720",
     "fps": 15,
