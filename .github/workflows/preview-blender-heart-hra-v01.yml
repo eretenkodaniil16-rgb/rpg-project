@@ -1,0 +1,90 @@
+name: Preview Blender HRA Heart v01
+
+on:
+  push:
+    branches:
+      - tools/blender-heart-starling-anrep-v02
+    paths:
+      - ".github/heart-hra-v01-preview-request.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: preview-heart-hra-v01-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        yaw: [0, 90, 180, 270]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Blender runtime dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xvfb libgl1 libxi6 libxrender1 libxkbcommon-x11-0 fonts-dejavu-core
+
+      - name: Download Blender 5.2.0 LTS
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/blender-5.2.0-linux-x64.tar.xz"
+          extract="$RUNNER_TEMP/blender-5.2.0"
+          curl -L --fail --retry 3 --output "$archive" "https://download.blender.org/release/Blender5.2/blender-5.2.0-linux-x64.tar.xz"
+          test "$(sha256sum "$archive" | cut -d' ' -f1)" = "96f6c181a30f4950607839dc84d42a354b250d8a0231b098b59b7bc69c351c48"
+          mkdir -p "$extract"
+          tar -xJf "$archive" -C "$extract"
+          blender="$(find "$extract" -type f -name blender -perm -111 | head -n 1)"
+          test -n "$blender"
+          echo "BLENDER_EXE=$blender" >> "$GITHUB_ENV"
+
+      - name: Download HRA Heart Male v1.2 (CC BY 4.0)
+        shell: bash
+        run: |
+          set -euo pipefail
+          model="$RUNNER_TEMP/VH_M_Heart.glb"
+          curl -L --fail --retry 4 --output "$model" \
+            "https://ccf-ontology.hubmapconsortium.org/objects/v1.2/VH_M_Heart.glb"
+          test -s "$model"
+          echo "HRA_HEART_GLB=$model" >> "$GITHUB_ENV"
+          ls -lh "$model"
+
+      - name: Render HRA orientation preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$GITHUB_WORKSPACE/artifacts/hra_yaw_${{ matrix.yaw }}"
+          xvfb-run -a "$BLENDER_EXE" \
+            --background --factory-startup --python-exit-code 1 \
+            --python tools/blender_heart_cycle/heart_starling_anrep_hra_runner.py \
+            -- \
+            --hra-glb "$HRA_HEART_GLB" \
+            --hra-yaw "${{ matrix.yaw }}" \
+            --output-root "$root" \
+            --resolution 720 \
+            --frame-start 961 \
+            --frame-end 961 \
+            --sample-step 1 \
+            --render-samples 32 \
+            --render-animation \
+            --save-blend 2>&1 | tee "hra_yaw_${{ matrix.yaw }}.log"
+          test "$(find "$root/starling_anrep_v02_frames" -type f -name 'starling_anrep_v02_*.png' | wc -l)" -eq 1
+          find "$root" -maxdepth 1 -type f -name 'hra_heart_male_v1_2_starling_anrep.blend' -size +0c | grep -q .
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hra-heart-yaw-${{ matrix.yaw }}-${{ github.run_id }}
+          path: |
+            artifacts/hra_yaw_${{ matrix.yaw }}/**
+            hra_yaw_${{ matrix.yaw }}.log
+          if-no-files-found: warn
+          retention-days: 7
+          compression-level: 0
