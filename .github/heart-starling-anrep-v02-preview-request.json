@@ -1,7 +1,7 @@
 {
   "revision": "heart_starling_anrep_v02",
-  "attempt": 2,
-  "purpose": "Render the unified single-shell anatomy v02 after removing duplicated chamber shells and floating internal structures.",
+  "attempt": 3,
+  "purpose": "Render the reassembled single-heart v02 with chamber centers collapsed into one cardiac coordinate space and all post-infographic vessels attached to the heart offset.",
   "frames": [90, 961, 2341, 2881],
   "quality": {
     "resolution": "1280x720",
