@@ -1,0 +1,8 @@
+{
+  "revision": "hra_heart_male_v1_2_integration_v01",
+  "source": "Human Reference Atlas Heart Male v1.2",
+  "license": "CC BY 4.0",
+  "source_url": "https://ccf-ontology.hubmapconsortium.org/objects/v1.2/VH_M_Heart.glb",
+  "preview_frame": 961,
+  "yaw_degrees": [0, 90, 180, 270]
+}
