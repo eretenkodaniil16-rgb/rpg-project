@@ -1,0 +1,20 @@
+{
+  "revision": "heart_starling_anrep_hra_v02",
+  "requested_at": "2026-08-15",
+  "source_model": "Human Reference Atlas Heart Male v1.2",
+  "license": "CC BY 4.0",
+  "qa": {
+    "baseline_preview": "passed",
+    "frank_starling_preview": "passed",
+    "anrep_preview": "passed",
+    "transparent_cutaway": "rejected in favor of opaque chamber-specific deformation"
+  },
+  "render": {
+    "duration_seconds": 105,
+    "resolution": "1280x720",
+    "fps": 15,
+    "native_png_sequence": true,
+    "shards": 5,
+    "samples": 16
+  }
+}
