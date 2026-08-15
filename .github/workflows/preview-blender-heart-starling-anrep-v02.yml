@@ -1,0 +1,82 @@
+name: Preview Blender Frank-Starling and Anrep v02
+
+on:
+  push:
+    branches:
+      - tools/blender-heart-starling-anrep-v02
+    paths:
+      - ".github/heart-starling-anrep-v02-preview-request.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: preview-heart-starling-anrep-v02-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: intro, frame: 90 }
+          - { name: starling, frame: 961 }
+          - { name: anrep, frame: 2341 }
+          - { name: comparison, frame: 2881 }
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Blender runtime dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xvfb libgl1 libxi6 libxrender1 libxkbcommon-x11-0 fonts-dejavu-core
+
+      - name: Download Blender 5.2.0 LTS
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/blender-5.2.0-linux-x64.tar.xz"
+          extract="$RUNNER_TEMP/blender-5.2.0"
+          curl -L --fail --retry 3 --output "$archive" "https://download.blender.org/release/Blender5.2/blender-5.2.0-linux-x64.tar.xz"
+          test "$(sha256sum "$archive" | cut -d' ' -f1)" = "96f6c181a30f4950607839dc84d42a354b250d8a0231b098b59b7bc69c351c48"
+          mkdir -p "$extract"
+          tar -xJf "$archive" -C "$extract"
+          blender="$(find "$extract" -type f -name blender -perm -111 | head -n 1)"
+          test -n "$blender"
+          echo "BLENDER_EXE=$blender" >> "$GITHUB_ENV"
+
+      - name: Build v02 scene and render control frame
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$GITHUB_WORKSPACE/artifacts/v02_${{ matrix.name }}"
+          xvfb-run -a "$BLENDER_EXE" \
+            --background --factory-startup --python-exit-code 1 \
+            --python tools/blender_heart_cycle/heart_starling_anrep_v02_runner.py \
+            -- \
+            --output-root "$root" \
+            --resolution 720 \
+            --frame-start "${{ matrix.frame }}" \
+            --frame-end "${{ matrix.frame }}" \
+            --sample-step 1 \
+            --render-samples 32 \
+            --render-animation \
+            --save-blend 2>&1 | tee "v02_${{ matrix.name }}.log"
+          test "$(find "$root/starling_anrep_v02_frames" -type f -name 'starling_anrep_v02_*.png' | wc -l)" -eq 1
+          test -s "$root/heart_starling_anrep_v01_manifest.json"
+          find "$root" -maxdepth 1 -type f -name 'heart_cutaway_v02_starling_anrep.blend' -size +0c | grep -q .
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: heart-starling-anrep-v02-${{ matrix.name }}-${{ github.run_id }}
+          path: |
+            artifacts/v02_${{ matrix.name }}/**
+            v02_${{ matrix.name }}.log
+          if-no-files-found: warn
+          retention-days: 7
+          compression-level: 0
