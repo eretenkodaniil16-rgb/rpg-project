@@ -1,0 +1,180 @@
+name: Render Blender HRA Frank-Starling and Anrep v02
+
+on:
+  push:
+    branches:
+      - tools/blender-heart-starling-anrep-v02
+    paths:
+      - ".github/heart-starling-anrep-hra-v02-final-request.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: render-heart-starling-anrep-hra-v02-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { id: 1, start: 1,    end: 630,  expected: 315 }
+          - { id: 2, start: 631,  end: 1260, expected: 315 }
+          - { id: 3, start: 1261, end: 1890, expected: 315 }
+          - { id: 4, start: 1891, end: 2520, expected: 315 }
+          - { id: 5, start: 2521, end: 3150, expected: 315 }
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install runtime dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            xvfb libgl1 libxi6 libxrender1 libxkbcommon-x11-0 fonts-dejavu-core ffmpeg
+
+      - name: Download Blender 5.2.0 LTS
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/blender-5.2.0-linux-x64.tar.xz"
+          extract="$RUNNER_TEMP/blender-5.2.0"
+          curl -L --fail --retry 3 --output "$archive" \
+            "https://download.blender.org/release/Blender5.2/blender-5.2.0-linux-x64.tar.xz"
+          test "$(sha256sum "$archive" | cut -d' ' -f1)" = \
+            "96f6c181a30f4950607839dc84d42a354b250d8a0231b098b59b7bc69c351c48"
+          mkdir -p "$extract"
+          tar -xJf "$archive" -C "$extract"
+          blender="$(find "$extract" -type f -name blender -perm -111 | head -n 1)"
+          test -n "$blender"
+          echo "BLENDER_EXE=$blender" >> "$GITHUB_ENV"
+
+      - name: Download HRA Heart Male v1.2 (CC BY 4.0)
+        shell: bash
+        run: |
+          set -euo pipefail
+          model="$RUNNER_TEMP/VH_M_Heart.glb"
+          curl -L --fail --retry 4 --output "$model" \
+            "https://ccf-ontology.hubmapconsortium.org/objects/v1.2/VH_M_Heart.glb"
+          test -s "$model"
+          echo "HRA_HEART_GLB=$model" >> "$GITHUB_ENV"
+
+      - name: Render native 720p15 HRA review shard
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$GITHUB_WORKSPACE/artifacts/heart_starling_anrep_hra_v02"
+          extra=()
+          if [[ "${{ matrix.id }}" == "1" ]]; then extra+=(--save-blend); fi
+          xvfb-run -a "$BLENDER_EXE" \
+            --background --factory-startup --python-exit-code 1 \
+            --python tools/blender_heart_cycle/heart_starling_anrep_hra_runner.py \
+            -- \
+            --hra-glb "$HRA_HEART_GLB" \
+            --hra-yaw 0 \
+            --output-root "$root" \
+            --resolution 720 \
+            --frame-start "${{ matrix.start }}" \
+            --frame-end "${{ matrix.end }}" \
+            --sample-step 2 \
+            --render-samples 16 \
+            --render-animation \
+            "${extra[@]}" 2>&1 | tee "hra_v02_shard_${{ matrix.id }}.log"
+
+      - name: Verify shard
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="artifacts/heart_starling_anrep_hra_v02"
+          count="$(find "$root/starling_anrep_v02_frames" -maxdepth 1 -type f -name 'starling_anrep_v02_*.png' | wc -l)"
+          test "$count" -eq "${{ matrix.expected }}"
+          test -s "$root/heart_starling_anrep_v01_manifest.json"
+          if [[ "${{ matrix.id }}" == "1" ]]; then
+            test -s "$root/hra_heart_male_v1_2_starling_anrep.blend"
+          fi
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: heart-starling-anrep-hra-v02-shard-${{ matrix.id }}
+          path: |
+            artifacts/heart_starling_anrep_hra_v02/**
+            hra_v02_shard_${{ matrix.id }}.log
+          if-no-files-found: warn
+          retention-days: 14
+          compression-level: 0
+
+  assemble:
+    needs: render
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: heart-starling-anrep-hra-v02-shard-*
+          path: artifacts/merged
+          merge-multiple: true
+
+      - name: Assemble and verify 105-second HRA review
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="artifacts/merged/artifacts/heart_starling_anrep_hra_v02"
+          frames="$root/starling_anrep_v02_frames"
+          out="artifacts/heart_starling_anrep_hra_v02_delivery"
+          mkdir -p "$out"
+
+          count="$(find "$frames" -maxdepth 1 -type f -name 'starling_anrep_v02_*.png' | wc -l)"
+          test "$count" -eq 1575
+
+          ffmpeg -y \
+            -framerate 15 \
+            -pattern_type glob \
+            -i "$frames/starling_anrep_v02_*.png" \
+            -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=48000 \
+            -t 105 \
+            -vf "setsar=1,format=yuv420p" \
+            -c:v libx264 -preset slow -crf 16 -profile:v high \
+            -c:a aac -b:a 128k -shortest -movflags +faststart \
+            "$out/heart_starling_anrep_hra_v02_720p15_review.mp4"
+
+          ffmpeg -y -ss 00:00:32 -i "$out/heart_starling_anrep_hra_v02_720p15_review.mp4" \
+            -frames:v 1 "$out/frank_starling_hra_v02_poster.png"
+          ffmpeg -y -ss 00:01:18 -i "$out/heart_starling_anrep_hra_v02_720p15_review.mp4" \
+            -frames:v 1 "$out/anrep_hra_v02_poster.png"
+
+          blend="$(find "$root" -maxdepth 1 -type f -name 'hra_heart_male_v1_2_starling_anrep.blend' | head -n 1)"
+          test -n "$blend"
+          cp "$blend" "$out/"
+          cp "$root/heart_starling_anrep_v01_manifest.json" "$out/heart_starling_anrep_hra_v02_source_manifest.json"
+          cp tools/blender_heart_cycle/ATTRIBUTION_HRA_HEART.md "$out/ATTRIBUTION_HRA_HEART.md"
+
+          frames_read="$(ffprobe -v error -count_frames -select_streams v:0 \
+            -show_entries stream=nb_read_frames -of default=nw=1:nk=1 \
+            "$out/heart_starling_anrep_hra_v02_720p15_review.mp4")"
+          test "$frames_read" -eq 1575
+          duration="$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 \
+            "$out/heart_starling_anrep_hra_v02_720p15_review.mp4")"
+          python - "$duration" <<'PY'
+          import sys
+          value = float(sys.argv[1])
+          assert 104.8 <= value <= 105.2, value
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: heart-starling-anrep-hra-v02-review-${{ github.run_id }}
+          path: artifacts/heart_starling_anrep_hra_v02_delivery/**
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
