@@ -23,8 +23,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { name: opaque, frame: 300 }
-          - { name: teaching, frame: 961 }
+          - { name: baseline, frame: 300 }
+          - { name: starling, frame: 961 }
+          - { name: anrep, frame: 2341 }
     steps:
       - uses: actions/checkout@v4
 
@@ -58,7 +59,7 @@ jobs:
           echo "HRA_HEART_GLB=$model" >> "$GITHUB_ENV"
           ls -lh "$model"
 
-      - name: Render integrated HRA preview
+      - name: Render independently rigged HRA preview
         shell: bash
         run: |
           set -euo pipefail
