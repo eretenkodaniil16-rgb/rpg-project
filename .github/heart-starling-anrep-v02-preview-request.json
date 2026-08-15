@@ -1,7 +1,7 @@
 {
   "revision": "heart_starling_anrep_v02",
-  "attempt": 3,
-  "purpose": "Render the reassembled single-heart v02 with chamber centers collapsed into one cardiac coordinate space and all post-infographic vessels attached to the heart offset.",
+  "attempt": 4,
+  "purpose": "Render compact unified v02 after overlapping LV/RV centers, shrinking chamber proxy dimensions, and reducing valve/chordae visual dominance.",
   "frames": [90, 961, 2341, 2881],
   "quality": {
     "resolution": "1280x720",
