@@ -1,7 +1,7 @@
 {
   "revision": "heart_starling_anrep_v02",
-  "attempt": 4,
-  "purpose": "Render compact unified v02 after overlapping LV/RV centers, shrinking chamber proxy dimensions, and reducing valve/chordae visual dominance.",
+  "attempt": 5,
+  "purpose": "Render the replacement visible anatomy: one tapered ventricular myocardial cutaway containing compact LV/RV cavities and septum, with the old split chamber shells hidden.",
   "frames": [90, 961, 2341, 2881],
   "quality": {
     "resolution": "1280x720",
