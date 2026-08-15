@@ -22,7 +22,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        yaw: [0, 90, 180, 270]
+        include:
+          - { name: opaque, frame: 300 }
+          - { name: teaching, frame: 961 }
     steps:
       - uses: actions/checkout@v4
 
@@ -56,35 +58,35 @@ jobs:
           echo "HRA_HEART_GLB=$model" >> "$GITHUB_ENV"
           ls -lh "$model"
 
-      - name: Render HRA orientation preview
+      - name: Render integrated HRA preview
         shell: bash
         run: |
           set -euo pipefail
-          root="$GITHUB_WORKSPACE/artifacts/hra_yaw_${{ matrix.yaw }}"
+          root="$GITHUB_WORKSPACE/artifacts/hra_${{ matrix.name }}"
           xvfb-run -a "$BLENDER_EXE" \
             --background --factory-startup --python-exit-code 1 \
             --python tools/blender_heart_cycle/heart_starling_anrep_hra_runner.py \
             -- \
             --hra-glb "$HRA_HEART_GLB" \
-            --hra-yaw "${{ matrix.yaw }}" \
+            --hra-yaw 0 \
             --output-root "$root" \
             --resolution 720 \
-            --frame-start 961 \
-            --frame-end 961 \
+            --frame-start "${{ matrix.frame }}" \
+            --frame-end "${{ matrix.frame }}" \
             --sample-step 1 \
-            --render-samples 32 \
+            --render-samples 48 \
             --render-animation \
-            --save-blend 2>&1 | tee "hra_yaw_${{ matrix.yaw }}.log"
+            --save-blend 2>&1 | tee "hra_${{ matrix.name }}.log"
           test "$(find "$root/starling_anrep_v02_frames" -type f -name 'starling_anrep_v02_*.png' | wc -l)" -eq 1
           find "$root" -maxdepth 1 -type f -name 'hra_heart_male_v1_2_starling_anrep.blend' -size +0c | grep -q .
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: hra-heart-yaw-${{ matrix.yaw }}-${{ github.run_id }}
+          name: hra-heart-${{ matrix.name }}-${{ github.run_id }}
           path: |
-            artifacts/hra_yaw_${{ matrix.yaw }}/**
-            hra_yaw_${{ matrix.yaw }}.log
+            artifacts/hra_${{ matrix.name }}/**
+            hra_${{ matrix.name }}.log
           if-no-files-found: warn
           retention-days: 7
           compression-level: 0
