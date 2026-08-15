@@ -1,0 +1,10 @@
+{
+  "revision": "heart_starling_anrep_v02",
+  "attempt": 1,
+  "purpose": "Render intro, Frank-Starling, Anrep and comparison control frames after the anatomical v02 model replacement.",
+  "frames": [90, 961, 2341, 2881],
+  "quality": {
+    "resolution": "1280x720",
+    "samples": 32
+  }
+}
