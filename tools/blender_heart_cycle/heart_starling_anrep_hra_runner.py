@@ -27,12 +27,13 @@ HRA_YAW = float(_extract_option("--hra-yaw", "0") or 0.0)
 if not HRA_GLB:
     raise RuntimeError("--hra-glb is required")
 
-# Base runner provides Blender 5.2 layered-Action compatibility, v02 delivery
-# names, and the proven 105 s law animation.
-import heart_starling_anrep_v02_runner as base  # noqa: E402
+# v2 base runner keeps the proven 105 s mechanics but also runs the chamber
+# assembly/vessel-offset repair. The procedural chambers are subsequently
+# hidden by the HRA integration; its improved great-vessel tree remains.
+import heart_starling_anrep_v02_runner_v2 as base  # noqa: E402
 import heart_hra_reference_v01 as hra  # noqa: E402
 
-app = base.app
+app = base.runner.app
 _original_app_build_model = app.build_model
 
 
