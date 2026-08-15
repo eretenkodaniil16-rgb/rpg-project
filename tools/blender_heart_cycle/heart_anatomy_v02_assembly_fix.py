@@ -5,7 +5,7 @@ from mathutils import Vector
 
 import heart_cycle_model as model
 
-REVISION = "heart_anatomy_v02_assembly_fix"
+REVISION = "heart_anatomy_v02_assembly_fix_v02"
 
 
 def _target_world(offset: bpy.types.Object | None, local_xyz: tuple[float, float, float]) -> Vector:
@@ -38,42 +38,68 @@ def _move_object_center(obj: bpy.types.Object | None, target_world: Vector) -> N
     obj.matrix_world = matrix
 
 
+def _scale_object(name: str, factors: tuple[float, float, float]) -> None:
+    obj = bpy.data.objects.get(name)
+    if obj is None:
+        return
+    obj.scale = tuple(obj.scale[i] * factors[i] for i in range(3))
+
+
 def _reassemble_chambers(build: model.HeartBuild) -> None:
-    """Collapse the old exploded/proxy layout into one coherent cardiac mass."""
+    """Collapse the old exploded/proxy layout into one compact cardiac mass."""
     offset = bpy.data.objects.get("CTRL_InfographicHeartOffset")
 
+    # The ventricle shells intentionally overlap in frontal projection.  LV
+    # supplies the inferior apex; RV is slightly left/anterior and flatter.
     _move_control_to_place_wall(
         build.controls.get("left_ventricle"),
         bpy.data.objects.get("LeftVentricle_Wall"),
-        _target_world(offset, (0.42, 0.18, 2.55)),
+        _target_world(offset, (0.10, 0.18, 2.55)),
     )
     _move_control_to_place_wall(
         build.controls.get("right_ventricle"),
         bpy.data.objects.get("RightVentricle_Wall"),
-        _target_world(offset, (-0.42, 0.18, 2.76)),
+        _target_world(offset, (-0.16, -0.04, 2.77)),
     )
     _move_control_to_place_wall(
         build.controls.get("left_atrium"),
         bpy.data.objects.get("LeftAtrium_Wall"),
-        _target_world(offset, (0.58, 0.20, 4.48)),
+        _target_world(offset, (0.34, 0.24, 4.43)),
     )
     _move_control_to_place_wall(
         build.controls.get("right_atrium"),
         bpy.data.objects.get("RightAtrium_Wall"),
-        _target_world(offset, (-0.62, 0.20, 4.48)),
+        _target_world(offset, (-0.38, 0.18, 4.43)),
     )
 
-    # The septum is not chamber-controlled in the base scene.
     _move_object_center(
         bpy.data.objects.get("Interventricular_Septum"),
-        _target_world(offset, (0.00, 0.28, 2.70)),
+        _target_world(offset, (-0.01, 0.16, 2.72)),
     )
 
-    bpy.context.scene["assembly_layout"] = "single coherent heart; LV/RV and atria re-centered around common septum"
+    # The old proxy was dimensioned for side-by-side display; after overlap its
+    # absolute size is too large. Reduce chamber widths while preserving LV wall dominance.
+    for name, factors in {
+        "LeftVentricle_Wall": (0.84, 0.92, 0.94),
+        "LeftVentricle_Cavity": (0.82, 0.90, 0.93),
+        "RightVentricle_Wall": (0.83, 0.72, 0.90),
+        "RightVentricle_Cavity": (0.80, 0.70, 0.88),
+        "LeftAtrium_Wall": (0.82, 0.86, 0.86),
+        "LeftAtrium_Cavity": (0.80, 0.84, 0.84),
+        "RightAtrium_Wall": (0.84, 0.86, 0.88),
+        "RightAtrium_Cavity": (0.82, 0.84, 0.86),
+        "Interventricular_Septum": (0.80, 0.78, 0.94),
+    }.items():
+        _scale_object(name, factors)
+
+    bpy.context.scene["assembly_layout"] = (
+        "compact single heart; ventricular projected centers separated by 0.26 local units; "
+        "LV forms apex; RV overlaps anterior-left"
+    )
 
 
 def _attach_post_infographic_vessels() -> None:
-    """V02 vessels are authored after the infographic offset exists; attach them explicitly."""
+    """V02 vessels use heart-local points; make the infographic heart offset their parent."""
     offset = bpy.data.objects.get("CTRL_InfographicHeartOffset")
     if offset is None:
         return
@@ -81,38 +107,63 @@ def _attach_post_infographic_vessels() -> None:
         if not obj.name.startswith("V02_"):
             continue
         if obj.name.startswith(("V02_LAD", "V02_Circumflex", "V02_RightCoronary", "V02_EpicardialFat")):
-            # These were authored against pre-offset world coordinates in the first pass.
-            # Hide them until they are rebuilt as proper surface-following curves.
             obj.hide_viewport = True
             obj.hide_render = True
             continue
-        if obj.parent is not None:
-            continue
-        # The curve geometry uses heart-local coordinates, therefore do not preserve
-        # its old world matrix when parenting: the offset must actually be applied.
-        obj.parent = offset
+        if obj.parent is None:
+            # Curves were created in heart-local coordinates after the offset;
+            # parenting without preserving world applies exactly one offset.
+            obj.parent = offset
+
+
+def _compact_valve_apparatus() -> None:
+    """Keep valve identity but remove the oversized white-ring/proxy appearance."""
+    for name, factors in {
+        "Mitral_Annulus": (0.62, 0.56, 0.62),
+        "Tricuspid_Annulus": (0.64, 0.56, 0.64),
+        "Aortic_Annulus": (0.60, 0.56, 0.60),
+        "Pulmonary_Annulus": (0.60, 0.56, 0.60),
+    }.items():
+        _scale_object(name, factors)
+
+    for prefix, count in (("Mitral", 2), ("Tricuspid", 3), ("Aortic", 3), ("Pulmonary", 3)):
+        for index in range(1, count + 1):
+            _scale_object(f"{prefix}_Leaflet_{index}", (0.72, 0.60, 0.72))
+
+    for obj in bpy.data.objects:
+        if "Chord" in obj.name and obj.type == "CURVE":
+            obj.data.bevel_depth = min(obj.data.bevel_depth, 0.007)
 
 
 def _trim_exploded_visuals() -> None:
-    """Remove remaining decorative elements that read as detached anatomy."""
     for obj in bpy.data.objects:
-        if obj.name.startswith(("LeftAuricle_Pectinate_", "RightAtrium_Pectinate_")):
+        if obj.name.startswith((
+            "LeftAuricle_Pectinate_", "RightAtrium_Pectinate_",
+            "LV_Trabecula_", "RV_Trabecula_",
+            "LVOT_SeptalRidge", "RVOT_InfundibularRidge",
+        )):
             obj.hide_viewport = True
             obj.hide_render = True
 
-    # Reduce visual dominance of papillary proxy cones; keep the landmark present.
     for obj in bpy.data.objects:
         if obj.name.startswith("Papillary_") and obj.type == "MESH":
-            obj.scale *= 0.72
+            obj.scale *= 0.55
         if obj.name == "RightPapillary_Septal" and obj.type == "MESH":
-            obj.scale *= 0.70
+            obj.scale *= 0.52
+        if obj.name == "RV_ModeratorBand":
+            obj.hide_viewport = True
+            obj.hide_render = True
 
 
 def apply(build: model.HeartBuild) -> model.HeartBuild:
     _reassemble_chambers(build)
     _attach_post_infographic_vessels()
+    _compact_valve_apparatus()
     _trim_exploded_visuals()
     scene = bpy.context.scene
     scene["anatomy_assembly_revision"] = REVISION
-    scene["anatomy_assembly_rule"] = "all chambers share one cardiac coordinate space; no exploded ventricular display"
+    scene["anatomy_assembly_rule"] = (
+        "LV/RV physically overlap as one organ; compact valve apparatus; "
+        "new great vessels inherit heart offset"
+    )
     return build
