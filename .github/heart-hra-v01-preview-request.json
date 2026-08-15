@@ -1,18 +1,21 @@
 {
-  "revision": "hra_heart_male_v1_2_integration_v03",
-  "attempt": 3,
+  "revision": "hra_heart_male_v1_2_integration_v04",
+  "attempt": 4,
   "source": "Human Reference Atlas Heart Male v1.2",
   "license": "CC BY 4.0",
   "source_url": "https://ccf-ontology.hubmapconsortium.org/objects/v1.2/VH_M_Heart.glb",
   "yaw_degrees": 0,
   "preview_frames": {
-    "opaque": 300,
-    "teaching_transparent": 961
+    "baseline": 300,
+    "frank_starling": 961,
+    "anrep": 2341
   },
   "features": [
-    "BLENDED ventricular transparency at 0.68",
-    "myocardial procedural micro-bump",
-    "great-vessel tree lowered onto HRA ostia",
-    "muted valve material for internal readability"
+    "opaque HRA cardiac anatomy",
+    "independent LV/RV/LA/RA control parenting",
+    "mitral+aortic structures follow LV",
+    "tricuspid+pulmonary structures follow RV",
+    "myocardial micro-bump and matte PBR",
+    "great-vessel tree seated on HRA heart"
   ]
 }
