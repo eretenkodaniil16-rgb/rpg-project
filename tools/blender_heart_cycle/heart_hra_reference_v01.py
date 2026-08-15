@@ -10,8 +10,9 @@ License:
 Provenance:
   Visible Human Male, U.S. National Library of Medicine.
 
-The binary is downloaded by CI, never vendored. We keep the HRA geometry and
-replace only presentation materials/rig attachment for the physiology film.
+The binary is downloaded by CI, never vendored. HRA supplies the anatomical
+meshes; the project supplies the great vessels, animation controls and the
+Frank-Starling/Anrep teaching timeline.
 """
 
 import math
@@ -22,7 +23,7 @@ from mathutils import Vector
 
 SOURCE_URL = "https://ccf-ontology.hubmapconsortium.org/objects/v1.2/VH_M_Heart.glb"
 SOURCE_LICENSE = "CC BY 4.0"
-REVISION = "hra_heart_male_v1_2_integration_v03"
+REVISION = "hra_heart_male_v1_2_integration_v04"
 
 
 def _collection(name: str) -> bpy.types.Collection:
@@ -71,9 +72,8 @@ def _bbox(objects: list[bpy.types.Object]) -> tuple[Vector, Vector]:
 
 
 def _hide_procedural_anatomy(build) -> None:
-    # Keep the rebuilt procedural great-vessel tree because the HRA reference
-    # organ contains chambers, valves and papillary muscles but terminates at
-    # vessel ostia. Hide the old procedural chamber/valve/flow geometry.
+    # Preserve the rebuilt great-vessel tree. HRA replaces only chamber,
+    # valve, flow and old anatomy meshes.
     for key in ("chambers", "valves", "flow"):
         collection = build.collections.get(key)
         if collection is None:
@@ -131,7 +131,6 @@ def _normalize(root: bpy.types.Object, imported: list[bpy.types.Object], yaw_deg
 
 
 def _add_myocardial_microtexture(material: bpy.types.Material) -> None:
-    """Break the smooth-plastic appearance without altering HRA anatomy."""
     tree = material.node_tree
     if tree is None:
         return
@@ -145,13 +144,13 @@ def _add_myocardial_microtexture(material: bpy.types.Material) -> None:
     texcoord.name = "HRA_Myocardium_TexCoord"
     noise = tree.nodes.new("ShaderNodeTexNoise")
     noise.name = "HRA_Myocardium_Noise"
-    noise.inputs["Scale"].default_value = 7.0
-    noise.inputs["Detail"].default_value = 3.2
-    noise.inputs["Roughness"].default_value = 0.58
+    noise.inputs["Scale"].default_value = 14.0
+    noise.inputs["Detail"].default_value = 3.4
+    noise.inputs["Roughness"].default_value = 0.60
     bump = tree.nodes.new("ShaderNodeBump")
     bump.name = "HRA_Myocardium_Bump"
-    bump.inputs["Strength"].default_value = 0.14
-    bump.inputs["Distance"].default_value = 0.055
+    bump.inputs["Strength"].default_value = 0.16
+    bump.inputs["Distance"].default_value = 0.032
 
     tree.links.new(texcoord.outputs["Generated"], noise.inputs["Vector"])
     tree.links.new(noise.outputs["Fac"], bump.inputs["Height"])
@@ -162,7 +161,6 @@ def _material(
     name: str,
     color,
     roughness: float,
-    alpha: float = 1.0,
     *,
     myocardium: bool = False,
 ) -> bpy.types.Material:
@@ -170,100 +168,134 @@ def _material(
     if mat is None:
         mat = bpy.data.materials.new(name=name)
     mat.use_nodes = True
+    mat.diffuse_color = color
     bsdf = mat.node_tree.nodes.get("Principled BSDF")
     if bsdf is not None:
         bsdf.inputs["Base Color"].default_value = color
         bsdf.inputs["Roughness"].default_value = roughness
         if "Subsurface Weight" in bsdf.inputs:
-            bsdf.inputs["Subsurface Weight"].default_value = 0.085 if myocardium else 0.025
+            bsdf.inputs["Subsurface Weight"].default_value = 0.12 if myocardium else 0.035
         if "Coat Weight" in bsdf.inputs:
-            bsdf.inputs["Coat Weight"].default_value = 0.045 if myocardium else 0.07
+            bsdf.inputs["Coat Weight"].default_value = 0.02 if myocardium else 0.045
         if "Coat Roughness" in bsdf.inputs:
-            bsdf.inputs["Coat Roughness"].default_value = 0.36 if myocardium else 0.30
+            bsdf.inputs["Coat Roughness"].default_value = 0.42 if myocardium else 0.34
         if "Alpha" in bsdf.inputs:
-            bsdf.inputs["Alpha"].default_value = alpha
+            bsdf.inputs["Alpha"].default_value = 1.0
     if myocardium:
         _add_myocardial_microtexture(mat)
-    if hasattr(mat, "surface_render_method"):
-        # BLENDED avoids the screen-door stippling seen in the first teaching
-        # preview while still allowing the valves/papillary muscles to read.
-        mat.surface_render_method = "BLENDED"
     return mat
 
 
-def _category_material(obj_name: str) -> tuple[bpy.types.Material, bool]:
+def _category_material(obj_name: str) -> bpy.types.Material:
     low = obj_name.lower()
     if "valve" in low:
-        return _material("M_HRA_Valve_v03", (0.66, 0.46, 0.34, 1.0), 0.36), False
+        return _material("M_HRA_Valve_v04", (0.60, 0.34, 0.27, 1.0), 0.43)
     if "papillary" in low:
-        return _material("M_HRA_Papillary_v03", (0.34, 0.026, 0.024, 1.0), 0.48, myocardium=True), False
+        return _material("M_HRA_Papillary_v04", (0.30, 0.020, 0.019, 1.0), 0.54, myocardium=True)
     if "interventricular_septum" in low:
-        return _material("M_HRA_Septum_v03", (0.30, 0.021, 0.019, 1.0), 0.45, myocardium=True), False
+        return _material("M_HRA_Septum_v04", (0.27, 0.016, 0.015, 1.0), 0.53, myocardium=True)
     if "left_ventricle" in low:
-        return _material("M_HRA_LV_Myocardium_v03", (0.275, 0.016, 0.015, 1.0), 0.44, myocardium=True), True
+        return _material("M_HRA_LV_Myocardium_v04", (0.255, 0.014, 0.013, 1.0), 0.54, myocardium=True)
     if "right_ventricle" in low:
-        return _material("M_HRA_RV_Myocardium_v03", (0.37, 0.028, 0.026, 1.0), 0.45, myocardium=True), True
+        return _material("M_HRA_RV_Myocardium_v04", (0.34, 0.024, 0.022, 1.0), 0.53, myocardium=True)
     if "left_cardiac_atrium" in low:
-        return _material("M_HRA_LA_Myocardium_v03", (0.34, 0.023, 0.021, 1.0), 0.45, myocardium=True), False
+        return _material("M_HRA_LA_Myocardium_v04", (0.31, 0.020, 0.018, 1.0), 0.54, myocardium=True)
     if "right_cardiac_atrium" in low:
-        return _material("M_HRA_RA_Myocardium_v03", (0.40, 0.033, 0.030, 1.0), 0.46, myocardium=True), False
-    return _material("M_HRA_Myocardium_v03", (0.32, 0.021, 0.019, 1.0), 0.45, myocardium=True), False
-
-
-def _animate_wall_alpha(material: bpy.types.Material) -> None:
-    bsdf = material.node_tree.nodes.get("Principled BSDF") if material.node_tree else None
-    if bsdf is None or "Alpha" not in bsdf.inputs:
-        return
-    socket = bsdf.inputs["Alpha"]
-    # A moderate 0.68 transparency keeps the myocardium visible while exposing
-    # HRA valve/papillary structures; the old 0.46 setting was too x-ray-like.
-    for frame, value in (
-        (1, 1.0),
-        (330, 1.0),
-        (420, 0.68),
-        (2700, 0.68),
-        (2940, 0.94),
-        (3150, 1.0),
-    ):
-        socket.default_value = value
-        socket.keyframe_insert(data_path="default_value", frame=frame)
+        return _material("M_HRA_RA_Myocardium_v04", (0.36, 0.027, 0.024, 1.0), 0.54, myocardium=True)
+    return _material("M_HRA_Myocardium_v04", (0.29, 0.018, 0.016, 1.0), 0.54, myocardium=True)
 
 
 def _style_imported_structures(imported: list[bpy.types.Object]) -> None:
-    transparent_materials: set[bpy.types.Material] = set()
     for obj in imported:
         if obj.type != "MESH":
             continue
-        material, wall = _category_material(obj.name)
+        material = _category_material(obj.name)
         obj.data.materials.clear()
         obj.data.materials.append(material)
-        if wall:
-            transparent_materials.add(material)
-    for material in transparent_materials:
-        _animate_wall_alpha(material)
 
 
 def _seat_great_vessels(build) -> None:
-    """Move the rebuilt vessel tree down onto the superior HRA ostia."""
     collection = build.collections.get("vessels")
     if collection is None:
         return
     for obj in collection.objects:
         if not obj.name.startswith("V02_"):
             continue
-        # The tree is already a child of CTRL_InfographicHeartOffset. The HRA
-        # mesh is slightly shorter superiorly than the old procedural chambers.
         obj.location.z -= 0.43
         obj.location.x += 0.03
 
+    # Match the HRA myocardium's more matte medical-CGI finish.
+    for key, roughness in (("artery", 0.44), ("vein", 0.47)):
+        material = build.materials.get(key)
+        if material is None or not material.use_nodes:
+            continue
+        bsdf = material.node_tree.nodes.get("Principled BSDF")
+        if bsdf is None:
+            continue
+        bsdf.inputs["Roughness"].default_value = roughness
+        if "Coat Weight" in bsdf.inputs:
+            bsdf.inputs["Coat Weight"].default_value = 0.025
 
-def _attach_to_rig(root: bpy.types.Object, build) -> None:
-    control = build.controls.get("left_ventricle")
-    if control is None:
+
+def _reparent_keep_world(obj: bpy.types.Object, parent: bpy.types.Object | None) -> None:
+    if parent is None:
         return
-    matrix = root.matrix_world.copy()
-    root.parent = control
-    root.matrix_world = matrix
+    matrix = obj.matrix_world.copy()
+    obj.parent = parent
+    obj.matrix_world = matrix
+
+
+def _control_for_structure(name: str, build) -> bpy.types.Object | None:
+    low = name.lower()
+    if "left_cardiac_atrium" in low:
+        return build.controls.get("left_atrium")
+    if "right_cardiac_atrium" in low:
+        return build.controls.get("right_atrium")
+    if "heart_left_ventricle" in low:
+        return build.controls.get("left_ventricle")
+    if "heart_right_ventricle" in low:
+        return build.controls.get("right_ventricle")
+
+    # Structures mechanically coupled to LV.
+    if any(token in low for token in (
+        "mitral_valve",
+        "aortic_valve",
+        "interventricular_septum",
+        "papillary_muscle_of_heart_anterolateral",
+        "papillary_muscle_of_heart_posteromedial",
+    )):
+        return build.controls.get("left_ventricle")
+
+    # Structures mechanically coupled to RV.
+    if any(token in low for token in (
+        "tricuspid_valve",
+        "pulmonary_valve",
+        "papillary_muscle_of_heart_anterior",
+        "papillary_muscle_of_heart_posterior",
+        "papillary_muscle_of_heart_medial",
+    )):
+        return build.controls.get("right_ventricle")
+
+    return build.controls.get("left_ventricle")
+
+
+def _attach_structures_to_rig(
+    root: bpy.types.Object,
+    imported: list[bpy.types.Object],
+    build,
+) -> None:
+    # Default non-mesh/import helper nodes follow LV; individual anatomical
+    # meshes are detached from the GLB root and attached to chamber-specific
+    # controls while preserving their normalized world transforms.
+    _reparent_keep_world(root, build.controls.get("left_ventricle"))
+    bpy.context.view_layer.update()
+
+    for obj in imported:
+        if obj.type != "MESH":
+            continue
+        control = _control_for_structure(obj.name, build)
+        _reparent_keep_world(obj, control)
+    bpy.context.view_layer.update()
 
 
 def integrate(build, glb_path: str, yaw_degrees: float = 0.0):
@@ -277,7 +309,7 @@ def integrate(build, glb_path: str, yaw_degrees: float = 0.0):
     _normalize(root, imported, yaw_degrees)
     _style_imported_structures(imported)
     _seat_great_vessels(build)
-    _attach_to_rig(root, build)
+    _attach_structures_to_rig(root, imported, build)
 
     scene = bpy.context.scene
     scene["anatomical_source"] = "Human Reference Atlas Heart Male v1.2"
@@ -286,7 +318,11 @@ def integrate(build, glb_path: str, yaw_degrees: float = 0.0):
     scene["anatomical_source_revision"] = REVISION
     scene["hra_yaw_degrees"] = float(yaw_degrees)
     scene["hra_presentation"] = (
-        "anatomical HRA materials; smooth 0.68 teaching transparency; "
-        "myocardial micro-bump; seated procedural great vessels"
+        "opaque HRA anatomy; chamber-specific rigging; myocardial micro-bump; "
+        "seated procedural great vessels"
+    )
+    scene["hra_rigging"] = (
+        "LV, RV, LA and RA HRA meshes follow their corresponding proven controls; "
+        "mitral/aortic structures follow LV; tricuspid/pulmonary structures follow RV"
     )
     return root, imported
