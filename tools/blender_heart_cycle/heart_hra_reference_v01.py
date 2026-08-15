@@ -10,9 +10,8 @@ License:
 Provenance:
   Visible Human Male, U.S. National Library of Medicine.
 
-The mesh is downloaded by CI, imported into Blender, normalized to the teaching
-scene, and attached to the proven cardiac control rig.  The source binary is
-not vendored into this repository.
+The binary is downloaded by CI, never vendored.  We keep the HRA geometry and
+replace only presentation materials/rig attachment for the physiology film.
 """
 
 import math
@@ -23,7 +22,7 @@ from mathutils import Vector
 
 SOURCE_URL = "https://ccf-ontology.hubmapconsortium.org/objects/v1.2/VH_M_Heart.glb"
 SOURCE_LICENSE = "CC BY 4.0"
-REVISION = "hra_heart_male_v1_2_integration_v01"
+REVISION = "hra_heart_male_v1_2_integration_v02"
 
 
 def _collection(name: str) -> bpy.types.Collection:
@@ -68,8 +67,10 @@ def _bbox(objects: list[bpy.types.Object]) -> tuple[Vector, Vector]:
 
 
 def _hide_procedural_anatomy(build) -> None:
-    # Keep render/UI objects, camera, lights, afterload indicator and intro torso.
-    for key in ("chambers", "valves", "vessels", "flow"):
+    # Keep the procedural great-vessel tree because the HRA reference organ
+    # intentionally contains the cardiac structures/valves but terminates at
+    # vessel ostia.  Hide all old procedural chamber/valve geometry instead.
+    for key in ("chambers", "valves", "flow"):
         collection = build.collections.get(key)
         if collection is None:
             continue
@@ -105,8 +106,6 @@ def _make_root(imported: list[bpy.types.Object]) -> bpy.types.Object:
 
 
 def _normalize(root: bpy.types.Object, imported: list[bpy.types.Object], yaw_degrees: float) -> None:
-    # glTF importer resolves coordinate-system conversion; yaw selects the best
-    # anatomical view relative to the teaching camera.
     root.rotation_euler[2] = math.radians(yaw_degrees)
     bpy.context.view_layer.update()
 
@@ -116,41 +115,85 @@ def _normalize(root: bpy.types.Object, imported: list[bpy.types.Object], yaw_deg
     if largest <= 1e-6:
         raise RuntimeError("HRA heart has degenerate bounds")
 
-    # Fit the whole heart/great vessels into the right-side teaching viewport.
-    scale = 5.35 / largest
+    scale = 5.05 / largest
     root.scale = (scale, scale, scale)
     bpy.context.view_layer.update()
 
     minimum, maximum = _bbox(imported)
     center = (minimum + maximum) * 0.5
-    target = Vector((1.95, 0.20, 3.75))
+    # Slightly lower than v01 so aortic/pulmonary procedural roots sit naturally
+    # above the HRA vessel ostia instead of intersecting the ventricular body.
+    target = Vector((1.90, 0.18, 3.48))
     root.location += target - center
     bpy.context.view_layer.update()
 
 
-def _refine_imported_materials(imported: list[bpy.types.Object]) -> None:
-    """Retain HRA anatomical colors but remove flat/plastic appearance."""
+def _material(name: str, color, roughness: float, alpha: float = 1.0) -> bpy.types.Material:
+    mat = bpy.data.materials.get(name)
+    if mat is None:
+        mat = bpy.data.materials.new(name=name)
+    mat.use_nodes = True
+    bsdf = mat.node_tree.nodes.get("Principled BSDF")
+    if bsdf is not None:
+        bsdf.inputs["Base Color"].default_value = color
+        bsdf.inputs["Roughness"].default_value = roughness
+        if "Subsurface Weight" in bsdf.inputs:
+            bsdf.inputs["Subsurface Weight"].default_value = 0.08 if "Myocardium" in name else 0.03
+        if "Coat Weight" in bsdf.inputs:
+            bsdf.inputs["Coat Weight"].default_value = 0.08
+        if "Coat Roughness" in bsdf.inputs:
+            bsdf.inputs["Coat Roughness"].default_value = 0.28
+        if "Alpha" in bsdf.inputs:
+            bsdf.inputs["Alpha"].default_value = alpha
+    if hasattr(mat, "surface_render_method"):
+        mat.surface_render_method = "DITHERED"
+    return mat
+
+
+def _category_material(obj_name: str) -> tuple[bpy.types.Material, bool]:
+    low = obj_name.lower()
+    if "valve" in low:
+        return _material("M_HRA_Valve_v02", (0.82, 0.72, 0.57, 1.0), 0.31), False
+    if "papillary" in low:
+        return _material("M_HRA_Papillary_v02", (0.42, 0.036, 0.031, 1.0), 0.46), False
+    if "interventricular_septum" in low:
+        return _material("M_HRA_Septum_v02", (0.36, 0.027, 0.024, 1.0), 0.44), False
+    if "left_ventricle" in low:
+        return _material("M_HRA_LV_Myocardium_v02", (0.31, 0.020, 0.018, 1.0), 0.40), True
+    if "right_ventricle" in low:
+        return _material("M_HRA_RV_Myocardium_v02", (0.43, 0.035, 0.031, 1.0), 0.42), True
+    if "left_cardiac_atrium" in low:
+        return _material("M_HRA_LA_Myocardium_v02", (0.38, 0.028, 0.026, 1.0), 0.42), False
+    if "right_cardiac_atrium" in low:
+        return _material("M_HRA_RA_Myocardium_v02", (0.46, 0.042, 0.038, 1.0), 0.43), False
+    return _material("M_HRA_Myocardium_v02", (0.36, 0.027, 0.024, 1.0), 0.42), False
+
+
+def _animate_wall_alpha(material: bpy.types.Material) -> None:
+    bsdf = material.node_tree.nodes.get("Principled BSDF") if material.node_tree else None
+    if bsdf is None or "Alpha" not in bsdf.inputs:
+        return
+    socket = bsdf.inputs["Alpha"]
+    for frame, value in ((1, 1.0), (330, 1.0), (420, 0.46), (2700, 0.46), (2940, 0.92), (3150, 1.0)):
+        socket.default_value = value
+        socket.keyframe_insert(data_path="default_value", frame=frame)
+
+
+def _style_imported_structures(imported: list[bpy.types.Object]) -> None:
+    transparent_materials: set[bpy.types.Material] = set()
     for obj in imported:
         if obj.type != "MESH":
             continue
-        for material in obj.data.materials:
-            if material is None:
-                continue
-            material.use_nodes = True
-            bsdf = material.node_tree.nodes.get("Principled BSDF") if material.node_tree else None
-            if bsdf is None:
-                continue
-            bsdf.inputs["Roughness"].default_value = 0.38
-            if "Coat Weight" in bsdf.inputs:
-                bsdf.inputs["Coat Weight"].default_value = 0.08
-            if "Coat Roughness" in bsdf.inputs:
-                bsdf.inputs["Coat Roughness"].default_value = 0.30
+        material, wall = _category_material(obj.name)
+        obj.data.materials.clear()
+        obj.data.materials.append(material)
+        if wall:
+            transparent_materials.add(material)
+    for material in transparent_materials:
+        _animate_wall_alpha(material)
 
 
 def _attach_to_rig(root: bpy.types.Object, build) -> None:
-    # The original LV control is already a child of the law-specific wrapper by
-    # the time this integration runs, so the HRA heart inherits both base pulse
-    # and Frank-Starling/Anrep scale response.
     control = build.controls.get("left_ventricle")
     if control is None:
         return
@@ -168,7 +211,7 @@ def integrate(build, glb_path: str, yaw_degrees: float = 0.0):
     imported = _import_glb(path)
     root = _make_root(imported)
     _normalize(root, imported, yaw_degrees)
-    _refine_imported_materials(imported)
+    _style_imported_structures(imported)
     _attach_to_rig(root, build)
 
     scene = bpy.context.scene
@@ -177,4 +220,5 @@ def integrate(build, glb_path: str, yaw_degrees: float = 0.0):
     scene["anatomical_source_license"] = SOURCE_LICENSE
     scene["anatomical_source_revision"] = REVISION
     scene["hra_yaw_degrees"] = float(yaw_degrees)
+    scene["hra_presentation"] = "anatomical materials + ventricular transparency during teaching interval + procedural great vessels"
     return root, imported
