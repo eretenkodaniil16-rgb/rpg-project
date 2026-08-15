@@ -49,14 +49,14 @@ jobs:
           test -n "$blender"
           echo "BLENDER_EXE=$blender" >> "$GITHUB_ENV"
 
-      - name: Build unified v02 scene and render control frame
+      - name: Build unified visible-heart scene and render control frame
         shell: bash
         run: |
           set -euo pipefail
           root="$GITHUB_WORKSPACE/artifacts/v02_${{ matrix.name }}"
           xvfb-run -a "$BLENDER_EXE" \
             --background --factory-startup --python-exit-code 1 \
-            --python tools/blender_heart_cycle/heart_starling_anrep_v02_runner_v2.py \
+            --python tools/blender_heart_cycle/heart_starling_anrep_v02_runner_v3.py \
             -- \
             --output-root "$root" \
             --resolution 720 \
