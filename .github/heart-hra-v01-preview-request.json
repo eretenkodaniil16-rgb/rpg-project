@@ -1,26 +1,22 @@
 {
-  "revision": "hra_heart_male_v1_2_integration_v04_text_readability_v02",
-  "attempt": 5,
+  "revision": "hra_heart_male_v1_2_mechanism_insets_v03",
+  "attempt": 6,
   "source": "Human Reference Atlas Heart Male v1.2",
   "license": "CC BY 4.0",
-  "source_url": "https://ccf-ontology.hubmapconsortium.org/objects/v1.2/VH_M_Heart.glb",
   "yaw_degrees": 0,
   "preview_frames": {
-    "baseline": 300,
-    "frank_starling": 961,
-    "anrep": 2341
+    "starling_filling": 601,
+    "starling_sarcomere": 1081,
+    "anrep_pressure_early": 1951,
+    "anrep_pressure_adapted": 2341
   },
   "features": [
-    "opaque HRA cardiac anatomy",
-    "independent LV/RV/LA/RA control parenting",
-    "mitral+aortic structures follow LV",
-    "tricuspid+pulmonary structures follow RV",
-    "myocardial micro-bump and matte PBR",
-    "great-vessel tree seated on HRA heart",
-    "main card titles enlarged by 32 percent",
-    "body copy enlarged by 45 percent",
-    "comparison text enlarged by 27 percent",
-    "Frank-Starling graph labels enlarged by 48 percent",
-    "information panels expanded to preserve spacing"
+    "phone-first text enlargement: titles +45 percent, body +60 percent",
+    "Frank-Starling atrium/ventricle filling cutaway",
+    "Frank-Starling sarcomere actin-myosin cross-bridge visualization",
+    "length-dependent activation and calcium-sensitivity caption",
+    "Anrep aortic cross-section with elevated pressure/filling",
+    "afterload pressure vector opposing ventricular ejection",
+    "main 3D aorta calibre increases up to 20 percent as a pressure cue"
   ]
 }
