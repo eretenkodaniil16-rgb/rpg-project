@@ -1,0 +1,67 @@
+name: Validate action-potential Blender v04
+
+on:
+  push:
+    branches:
+      - tools/action-potential-blender-models-v03
+    paths:
+      - 'tools/biomedical_visualization/action_potential/**'
+      - '.github/workflows/validate-action-potential-blender.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'tools/biomedical_visualization/action_potential/**'
+      - '.github/workflows/validate-action-potential-blender.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  blender-validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Blender and FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender ffmpeg
+          blender --version
+
+      - name: Build integrated 90-second scene
+        env:
+          AP_PREVIEW: '1'
+        run: |
+          blender --background --python tools/biomedical_visualization/action_potential/ci_run_action_potential_v04.py | tee action_potential_blender_build.log
+          grep -q 'ACTION_POTENTIAL_V04_OK' action_potential_blender_build.log
+          test -s tools/biomedical_visualization/action_potential/action_potential_pokrovsky_v04.blend
+
+      - name: Render validation keyframes
+        run: |
+          mkdir -p action_potential_validation
+          BLEND='tools/biomedical_visualization/action_potential/action_potential_pokrovsky_v04.blend'
+          for FRAME in 480 780 1110 1590 1980 2280 2550; do
+            blender -b "$BLEND" -o "$GITHUB_WORKSPACE/action_potential_validation/frame_${FRAME}_" -F PNG -f "$FRAME"
+          done
+          ls -lh action_potential_validation
+
+      - name: Package render-ready scene
+        run: |
+          cp tools/biomedical_visualization/action_potential/action_potential_pokrovsky_v04.blend action_potential_validation/
+          cp action_potential_blender_build.log action_potential_validation/
+          cp tools/biomedical_visualization/action_potential/action_potential_video_v04.py action_potential_validation/
+          cp tools/biomedical_visualization/action_potential/refined_models_v03.py action_potential_validation/
+          cp tools/biomedical_visualization/action_potential/ci_run_action_potential_v04.py action_potential_validation/
+
+      - name: Upload validation artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: action-potential-blender-v04-validation
+          path: action_potential_validation/
+          if-no-files-found: error
+          retention-days: 14
