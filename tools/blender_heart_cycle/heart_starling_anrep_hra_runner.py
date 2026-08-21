@@ -32,6 +32,7 @@ if not HRA_GLB:
 # hidden by the HRA integration; its improved great-vessel tree remains.
 import heart_starling_anrep_v02_runner_v2 as base  # noqa: E402
 import heart_hra_reference_v01 as hra  # noqa: E402
+import heart_starling_anrep_text_readability_v02 as readability  # noqa: E402
 
 app = base.runner.app
 _original_app_build_model = app.build_model
@@ -40,12 +41,13 @@ _original_app_build_model = app.build_model
 def build_model_with_hra(resolution: int):
     build = _original_app_build_model(resolution)
     hra.integrate(build, HRA_GLB, HRA_YAW)
+    readability.apply()
     return build
 
 
 app.build_model = build_model_with_hra
-app.MODEL_REVISION = "hra_heart_male_v1_2_starling_anrep"
-app.BLEND_NAME = "hra_heart_male_v1_2_starling_anrep.blend"
+app.MODEL_REVISION = "hra_heart_male_v1_2_starling_anrep_text_v02"
+app.BLEND_NAME = "hra_heart_male_v1_2_starling_anrep_text_v02.blend"
 
 
 if __name__ == "__main__":
