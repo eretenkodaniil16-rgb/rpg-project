@@ -7,6 +7,12 @@ on:
     paths:
       - 'tools/biomedical_visualization/action_potential/**'
       - '.github/workflows/validate-action-potential-blender.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'tools/biomedical_visualization/action_potential/**'
+      - '.github/workflows/validate-action-potential-blender.yml'
   workflow_dispatch:
 
 permissions:
