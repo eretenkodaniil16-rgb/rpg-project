@@ -1,0 +1,270 @@
+name: Render Blender heart ECG minute v10 1080p30
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - tools/blender-heart-ecg-minute-v10
+    paths:
+      - ".github/heart-cycle-ecg-minute-v10-request.json"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: blender-heart-ecg-minute-v10-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  render-shards:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { id: "01", start: 1, end: 45 }
+          - { id: "02", start: 46, end: 90 }
+          - { id: "03", start: 91, end: 135 }
+          - { id: "04", start: 136, end: 180 }
+          - { id: "05", start: 181, end: 225 }
+          - { id: "06", start: 226, end: 270 }
+          - { id: "07", start: 271, end: 315 }
+          - { id: "08", start: 316, end: 360 }
+          - { id: "09", start: 361, end: 405 }
+          - { id: "10", start: 406, end: 450 }
+          - { id: "11", start: 451, end: 495 }
+          - { id: "12", start: 496, end: 540 }
+          - { id: "13", start: 541, end: 585 }
+          - { id: "14", start: 586, end: 630 }
+          - { id: "15", start: 631, end: 675 }
+          - { id: "16", start: 676, end: 720 }
+          - { id: "17", start: 721, end: 765 }
+          - { id: "18", start: 766, end: 810 }
+          - { id: "19", start: 811, end: 855 }
+          - { id: "20", start: 856, end: 900 }
+          - { id: "21", start: 901, end: 945 }
+          - { id: "22", start: 946, end: 990 }
+          - { id: "23", start: 991, end: 1035 }
+          - { id: "24", start: 1036, end: 1080 }
+          - { id: "25", start: 1081, end: 1125 }
+          - { id: "26", start: 1126, end: 1170 }
+          - { id: "27", start: 1171, end: 1215 }
+          - { id: "28", start: 1216, end: 1260 }
+          - { id: "29", start: 1261, end: 1305 }
+          - { id: "30", start: 1306, end: 1350 }
+          - { id: "31", start: 1351, end: 1395 }
+          - { id: "32", start: 1396, end: 1440 }
+          - { id: "33", start: 1441, end: 1485 }
+          - { id: "34", start: 1486, end: 1530 }
+          - { id: "35", start: 1531, end: 1575 }
+          - { id: "36", start: 1576, end: 1620 }
+          - { id: "37", start: 1621, end: 1665 }
+          - { id: "38", start: 1666, end: 1710 }
+          - { id: "39", start: 1711, end: 1755 }
+          - { id: "40", start: 1756, end: 1800 }
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install runtime dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            xvfb libgl1 libxi6 libxrender1 libxkbcommon-x11-0 \
+            fonts-dejavu-core ffmpeg
+
+      - name: Download Blender 5.2.0 LTS
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/blender-5.2.0-linux-x64.tar.xz"
+          extract="$RUNNER_TEMP/blender-5.2.0"
+          curl -L --fail --retry 3 --output "$archive" \
+            "https://download.blender.org/release/Blender5.2/blender-5.2.0-linux-x64.tar.xz"
+          actual="$(sha256sum "$archive" | cut -d' ' -f1)"
+          expected="96f6c181a30f4950607839dc84d42a354b250d8a0231b098b59b7bc69c351c48"
+          test "$actual" = "$expected"
+          mkdir -p "$extract"
+          tar -xJf "$archive" -C "$extract"
+          blender="$(find "$extract" -type f -name blender -perm -111 | head -n 1)"
+          test -n "$blender"
+          echo "BLENDER_EXE=$blender" >> "$GITHUB_ENV"
+
+      - name: Render native 1080p30 shard
+        shell: bash
+        run: |
+          set -euo pipefail
+          output="$GITHUB_WORKSPACE/artifacts/heart_minute_v10"
+          extra=()
+          if [[ "${{ matrix.id }}" == "01" ]]; then
+            extra+=(--save-blend)
+          fi
+          xvfb-run -a "$BLENDER_EXE" \
+            --background --factory-startup --python-exit-code 1 \
+            --python tools/blender_heart_cycle/heart_cycle_ecg_minute_v10.py \
+            -- \
+            --output-root "$output" \
+            --resolution 1080 \
+            --frame-start "${{ matrix.start }}" \
+            --frame-end "${{ matrix.end }}" \
+            --sample-step 1 \
+            --render-samples 64 \
+            --render-animation \
+            "${extra[@]}" 2>&1 | tee "heart_minute_v10_shard_${{ matrix.id }}.log"
+
+      - name: Encode shard segment
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="artifacts/heart_minute_v10"
+          frames="$root/minute_frames"
+          segment="$root/heart_minute_v10_segment_${{ matrix.id }}.mp4"
+          count="$(find "$frames" -maxdepth 1 -type f -name 'heart_cycle_ecg_*.png' | wc -l)"
+          test "$count" -eq 45
+
+          ffmpeg -y \
+            -framerate 30 -pattern_type glob -i "$frames/heart_cycle_ecg_*.png" \
+            -vf "setsar=1,format=yuv420p" \
+            -c:v libx264 -preset medium -crf 10 -profile:v high \
+            -movflags +faststart \
+            "$segment"
+
+          rm -rf "$frames"
+
+      - name: Verify shard segment
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="artifacts/heart_minute_v10"
+          segment="$root/heart_minute_v10_segment_${{ matrix.id }}.mp4"
+          test -s "$segment"
+          test -s "$root/heart_cycle_ecg_minute_v10_manifest.json"
+          if [[ "${{ matrix.id }}" == "01" ]]; then
+            test -s "$root/heart_cutaway_reference_layout_v05_phase_rig_v03_infographic_v04_presentation_v06_animation_v07_ecg_minute_v10.blend"
+          fi
+
+          python - "$segment" <<'PY'
+          import json, subprocess, sys
+          path = sys.argv[1]
+          probe = json.loads(subprocess.check_output([
+              'ffprobe','-v','error','-count_frames','-select_streams','v:0',
+              '-show_entries','stream=width,height,nb_read_frames,r_frame_rate,pix_fmt',
+              '-show_entries','format=duration','-of','json',path
+          ], text=True))
+          s = probe['streams'][0]
+          duration = float(probe['format']['duration'])
+          assert s['width'] == 1920 and s['height'] == 1080
+          assert s['r_frame_rate'] == '30/1'
+          assert s['pix_fmt'] == 'yuv420p'
+          assert int(s['nb_read_frames']) == 45
+          assert 1.45 <= duration <= 1.55
+          PY
+
+      - name: Upload shard segment
+        uses: actions/upload-artifact@v4
+        with:
+          name: heart-minute-v10-shard-${{ matrix.id }}
+          path: |
+            artifacts/heart_minute_v10/heart_minute_v10_segment_${{ matrix.id }}.mp4
+            artifacts/heart_minute_v10/heart_cycle_ecg_minute_v10_manifest.json
+            artifacts/heart_minute_v10/heart_cutaway_reference_layout_v05_phase_rig_v03_infographic_v04_presentation_v06_animation_v07_ecg_minute_v10.blend
+            heart_minute_v10_shard_${{ matrix.id }}.log
+          if-no-files-found: warn
+          retention-days: 14
+          compression-level: 0
+
+  assemble-review:
+    needs: render-shards
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg
+
+      - name: Download shard segments
+        uses: actions/download-artifact@v4
+        with:
+          pattern: heart-minute-v10-shard-*
+          path: artifacts/segments
+          merge-multiple: true
+
+      - name: Assemble native 1080p30 review MP4
+        shell: bash
+        run: |
+          set -euo pipefail
+          delivery="artifacts/heart_minute_v10_delivery"
+          mkdir -p "$delivery"
+
+          mapfile -t segments < <(find artifacts/segments -maxdepth 1 -type f -name 'heart_minute_v10_segment_*.mp4' | sort)
+          test "${#segments[@]}" -eq 40
+
+          : > segments.txt
+          for segment in "${segments[@]}"; do
+            printf "file '%s'\n" "$PWD/$segment" >> segments.txt
+          done
+
+          ffmpeg -y \
+            -f concat -safe 0 -i segments.txt \
+            -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=48000 \
+            -t 60 \
+            -vf "setsar=1,format=yuv420p" \
+            -c:v libx264 -preset slow -crf 15 -profile:v high \
+            -c:a aac -b:a 128k -shortest -movflags +faststart \
+            "$delivery/heart_cycle_ecg_minute_v10_1080p30_review.mp4"
+
+          ffmpeg -y -ss 00:00:30 \
+            -i "$delivery/heart_cycle_ecg_minute_v10_1080p30_review.mp4" \
+            -frames:v 1 "$delivery/heart_cycle_ecg_minute_v10_poster.png"
+
+          blend="$(find artifacts/segments -maxdepth 1 -type f -name '*ecg_minute_v10.blend' | head -n 1)"
+          manifest="$(find artifacts/segments -maxdepth 1 -type f -name 'heart_cycle_ecg_minute_v10_manifest.json' | head -n 1)"
+          test -n "$blend"
+          test -n "$manifest"
+          cp "$blend" "$delivery/"
+          cp "$manifest" "$delivery/heart_cycle_ecg_minute_v10_source_manifest.json"
+
+      - name: Verify assembled review
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          root = Path('artifacts/heart_minute_v10_delivery')
+          video = root / 'heart_cycle_ecg_minute_v10_1080p30_review.mp4'
+          probe = json.loads(subprocess.check_output([
+              'ffprobe','-v','error','-count_frames','-select_streams','v:0',
+              '-show_entries','stream=width,height,nb_read_frames,r_frame_rate,pix_fmt',
+              '-show_entries','format=duration','-of','json',str(video)
+          ], text=True))
+          s = probe['streams'][0]
+          duration = float(probe['format']['duration'])
+          assert s['width'] == 1920 and s['height'] == 1080
+          assert s['r_frame_rate'] == '30/1'
+          assert s['pix_fmt'] == 'yuv420p'
+          assert int(s['nb_read_frames']) == 1800
+          assert 59.8 <= duration <= 60.2
+          (root / 'heart_cycle_ecg_minute_v10_delivery.json').write_text(json.dumps({
+              'revision':'heart_cycle_ecg_minute_v10',
+              'status':'review_render_verified',
+              'width':1920,'height':1080,'fps':30,'frame_count':1800,
+              'duration_seconds':duration,
+              'source_is_native_blender_render':True,
+              'upscaled':False,
+              'typography_profile':'large_1080p_mobile_v10'
+          }, ensure_ascii=False, indent=2), encoding='utf-8')
+          PY
+
+      - name: Upload assembled review
+        uses: actions/upload-artifact@v4
+        with:
+          name: heart-cycle-ecg-minute-v10-1080p30-review-${{ github.run_id }}
+          path: artifacts/heart_minute_v10_delivery/**
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
