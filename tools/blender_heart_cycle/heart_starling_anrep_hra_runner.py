@@ -47,7 +47,9 @@ def build_model_with_hra(resolution: int):
 
 app.build_model = build_model_with_hra
 app.MODEL_REVISION = "hra_heart_male_v1_2_starling_anrep_text_v02"
-app.BLEND_NAME = "hra_heart_male_v1_2_starling_anrep_text_v02.blend"
+# Keep the established artifact filename so existing preview/render workflows
+# remain compatible; the scene metadata records the text-readability revision.
+app.BLEND_NAME = "hra_heart_male_v1_2_starling_anrep.blend"
 
 
 if __name__ == "__main__":
