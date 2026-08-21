@@ -38,3 +38,9 @@ The standalone model pack uses frames 1–180 only to demonstrate geometry/state
 - frame 180: recovered/closed configuration
 
 These are not intended as the final physiological timing; the 90-second video generator maps these states to the educational timeline.
+
+## 90-second integration v04
+
+`action_potential_video_v04.py` executes the refined model builder and remaps the reusable model states onto the educational 90-second timeline. The integration adds phase-specific Na+ and K+ fluxes, slow background Cl- drift, continuous Na+/K+-ATPase transport, a membrane-potential graph with axes/threshold/current-phase highlight, a moving Vm marker, absolute and relative refractory-period overlays, and subtle camera emphasis.
+
+The validation workflow `validate-action-potential-blender.yml` runs the generator in preview mode, saves `action_potential_pokrovsky_v04.blend`, and renders representative keyframes for rest/local depolarization/depolarization/repolarization/hyperpolarization/recovery before any full-resolution movie render is attempted.
