@@ -27,12 +27,13 @@ HRA_YAW = float(_extract_option("--hra-yaw", "0") or 0.0)
 if not HRA_GLB:
     raise RuntimeError("--hra-glb is required")
 
-# v2 base runner keeps the proven 105 s mechanics but also runs the chamber
-# assembly/vessel-offset repair. The procedural chambers are subsequently
-# hidden by the HRA integration; its improved great-vessel tree remains.
+# v2 base runner keeps the proven 105 s mechanics and chamber assembly repair.
+# HRA replaces the old chamber surfaces; our great-vessel tree and teaching rig
+# remain animated. Readability and mechanistic insets are camera-space overlays.
 import heart_starling_anrep_v02_runner_v2 as base  # noqa: E402
 import heart_hra_reference_v01 as hra  # noqa: E402
 import heart_starling_anrep_text_readability_v02 as readability  # noqa: E402
+import heart_starling_anrep_mechanism_insets_v03 as mechanisms  # noqa: E402
 
 app = base.runner.app
 _original_app_build_model = app.build_model
@@ -42,13 +43,13 @@ def build_model_with_hra(resolution: int):
     build = _original_app_build_model(resolution)
     hra.integrate(build, HRA_GLB, HRA_YAW)
     readability.apply()
+    mechanisms.apply(build, app)
     return build
 
 
 app.build_model = build_model_with_hra
-app.MODEL_REVISION = "hra_heart_male_v1_2_starling_anrep_text_v02"
-# Keep the established artifact filename so existing preview/render workflows
-# remain compatible; the scene metadata records the text-readability revision.
+app.MODEL_REVISION = "hra_heart_male_v1_2_starling_anrep_mechanisms_v03"
+# Keep established artifact filename so existing preview/render workflows remain compatible.
 app.BLEND_NAME = "hra_heart_male_v1_2_starling_anrep.blend"
 
 
