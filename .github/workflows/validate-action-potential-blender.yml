@@ -37,7 +37,7 @@ jobs:
         env:
           AP_PREVIEW: '1'
         run: |
-          blender --background --python tools/biomedical_visualization/action_potential/action_potential_video_v04.py | tee action_potential_blender_build.log
+          blender --background --python tools/biomedical_visualization/action_potential/ci_run_action_potential_v04.py | tee action_potential_blender_build.log
           grep -q 'ACTION_POTENTIAL_V04_OK' action_potential_blender_build.log
           test -s tools/biomedical_visualization/action_potential/action_potential_pokrovsky_v04.blend
 
@@ -56,6 +56,7 @@ jobs:
           cp action_potential_blender_build.log action_potential_validation/
           cp tools/biomedical_visualization/action_potential/action_potential_video_v04.py action_potential_validation/
           cp tools/biomedical_visualization/action_potential/refined_models_v03.py action_potential_validation/
+          cp tools/biomedical_visualization/action_potential/ci_run_action_potential_v04.py action_potential_validation/
 
       - name: Upload validation artifact
         uses: actions/upload-artifact@v4
