@@ -1,6 +1,6 @@
 {
-  "revision": "hra_heart_male_v1_2_integration_v04",
-  "attempt": 4,
+  "revision": "hra_heart_male_v1_2_integration_v04_text_readability_v02",
+  "attempt": 5,
   "source": "Human Reference Atlas Heart Male v1.2",
   "license": "CC BY 4.0",
   "source_url": "https://ccf-ontology.hubmapconsortium.org/objects/v1.2/VH_M_Heart.glb",
@@ -16,6 +16,11 @@
     "mitral+aortic structures follow LV",
     "tricuspid+pulmonary structures follow RV",
     "myocardial micro-bump and matte PBR",
-    "great-vessel tree seated on HRA heart"
+    "great-vessel tree seated on HRA heart",
+    "main card titles enlarged by 32 percent",
+    "body copy enlarged by 45 percent",
+    "comparison text enlarged by 27 percent",
+    "Frank-Starling graph labels enlarged by 48 percent",
+    "information panels expanded to preserve spacing"
   ]
 }
