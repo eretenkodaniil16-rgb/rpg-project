@@ -1,0 +1,30 @@
+{
+  "revision": "heart_cycle_ecg_minute_v10",
+  "requested_at": "2026-08-21T12:25:00+03:00",
+  "source_branch": "tools/blender-heart-ecg-minute-v09",
+  "target_duration_seconds": 60,
+  "changes": {
+    "typography": {
+      "header_scale": "~1.24x",
+      "phase_title_scale": "~1.22x",
+      "phase_body_scale": "~1.21x",
+      "ecg_event_scale": "~1.18x",
+      "intro_outro_scale": "~1.20x",
+      "layout_reflowed_for_larger_text": true
+    },
+    "render": {
+      "width": 1920,
+      "height": 1080,
+      "fps": 30,
+      "authored_fps": 30,
+      "authored_frames": 1800,
+      "sample_step": 1,
+      "render_samples": 64,
+      "native_blender_render": true,
+      "upscale": false,
+      "shards": 40,
+      "frames_per_shard": 45
+    }
+  },
+  "delivery": "heart_cycle_ecg_minute_v10_1080p30_review.mp4"
+}
