@@ -1,4 +1,4 @@
-name: Preview Blender HRA Heart v01
+name: Preview Blender HRA Heart mechanisms v03
 
 on:
   push:
@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: preview-heart-hra-v01-${{ github.ref }}
+  group: preview-heart-hra-mechanisms-v03-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -23,9 +23,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { name: baseline, frame: 300 }
-          - { name: starling, frame: 961 }
-          - { name: anrep, frame: 2341 }
+          - { name: starling_filling, frame: 601 }
+          - { name: starling_sarcomere, frame: 1081 }
+          - { name: anrep_pressure_early, frame: 1951 }
+          - { name: anrep_pressure_adapted, frame: 2341 }
     steps:
       - uses: actions/checkout@v4
 
@@ -57,9 +58,8 @@ jobs:
             "https://ccf-ontology.hubmapconsortium.org/objects/v1.2/VH_M_Heart.glb"
           test -s "$model"
           echo "HRA_HEART_GLB=$model" >> "$GITHUB_ENV"
-          ls -lh "$model"
 
-      - name: Render independently rigged HRA preview
+      - name: Render mechanism preview
         shell: bash
         run: |
           set -euo pipefail
@@ -75,7 +75,7 @@ jobs:
             --frame-start "${{ matrix.frame }}" \
             --frame-end "${{ matrix.frame }}" \
             --sample-step 1 \
-            --render-samples 48 \
+            --render-samples 32 \
             --render-animation \
             --save-blend 2>&1 | tee "hra_${{ matrix.name }}.log"
           test "$(find "$root/starling_anrep_v02_frames" -type f -name 'starling_anrep_v02_*.png' | wc -l)" -eq 1
@@ -84,7 +84,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: hra-heart-${{ matrix.name }}-${{ github.run_id }}
+          name: hra-mechanism-${{ matrix.name }}-${{ github.run_id }}
           path: |
             artifacts/hra_${{ matrix.name }}/**
             hra_${{ matrix.name }}.log
