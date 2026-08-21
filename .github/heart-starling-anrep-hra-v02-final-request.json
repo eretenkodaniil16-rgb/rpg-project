@@ -1,13 +1,14 @@
 {
-  "revision": "heart_starling_anrep_hra_v02",
-  "requested_at": "2026-08-15",
+  "revision": "heart_starling_anrep_hra_v02_text_readability_v02",
+  "requested_at": "2026-08-21",
   "source_model": "Human Reference Atlas Heart Male v1.2",
   "license": "CC BY 4.0",
   "qa": {
-    "baseline_preview": "passed",
-    "frank_starling_preview": "passed",
-    "anrep_preview": "passed",
-    "transparent_cutaway": "rejected in favor of opaque chamber-specific deformation"
+    "baseline_preview": "passed on HRA anatomy",
+    "frank_starling_preview": "passed on HRA anatomy",
+    "anrep_preview": "passed on HRA anatomy",
+    "transparent_cutaway": "rejected in favor of opaque chamber-specific deformation",
+    "typography": "mobile readability pass: titles +32%, body +45%, comparison +27%, graph labels +48%"
   },
   "render": {
     "duration_seconds": 105,
