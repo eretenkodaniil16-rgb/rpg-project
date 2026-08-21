@@ -15,6 +15,12 @@ exports/
 .secrets/
 local-build-environment.json
 
+# Sprite pipeline generated candidates and reports
+art_pipeline_runs/
+tools/sprite_pipeline/.venv/
+__pycache__/
+*.py[cod]
+
 # Android build cache and signing material
 android/build/
 *.keystore
