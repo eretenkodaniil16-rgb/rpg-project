@@ -107,6 +107,16 @@ func _run() -> void:
 		_fail("Third companion did not receive an independent stealth total.")
 		return
 
+	# The live scene gets a few initialization frames before the smoke freezes it.
+	# Clear any incidental hero sighting from those frames so this case measures
+	# only whether an Irina sighting leaks to an unrelated hidden target.
+	var party_stealth_state: PartyStealthStateSystem = game.get("_party_stealth_state_v3") as PartyStealthStateSystem
+	if party_stealth_state == null:
+		_fail("Party Stealth v3 state system is missing from the final runtime.")
+		return
+	party_stealth_state.clear_target_memory(HERO_ID)
+	game.call("_persist_party_stealth_state_v3")
+
 	var detected: Dictionary = game.call("force_party_target_detection_v3_for_testing", caretaker, irina) as Dictionary
 	if str(detected.get("target_actor_id", "")) != IRINA_ID:
 		_fail("Forced sighting did not identify Irina.")
