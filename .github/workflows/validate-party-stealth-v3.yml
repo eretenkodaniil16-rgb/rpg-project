@@ -5,7 +5,6 @@ on:
     paths:
       - 'scripts/systems/party_stealth_state_system.gd'
       - 'scripts/game/game_party_stealth_v3_runtime.gd'
-      - 'scripts/game/game_party_stealth_v3_combat_bridge_runtime.gd'
       - 'scripts/game/game_ai_stealth_v2_ui_runtime.gd'
       - 'tests/test_party_stealth_state_system.gd'
       - 'tests/smoke_party_stealth_v3.gd'
