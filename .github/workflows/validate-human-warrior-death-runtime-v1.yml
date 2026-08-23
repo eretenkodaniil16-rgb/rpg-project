@@ -1,0 +1,192 @@
+name: Validate human warrior Death Runtime v1
+
+on:
+  pull_request:
+    paths:
+      - "assets/characters/human/warrior_m01/gameplay/approved/atlases/**"
+      - "data/visuals/human_warrior_m01_animation_assets_v01.json"
+      - "data/visuals/human_warrior_m01_animation_assets_v01.lock.json"
+      - "scenes/game/game.tscn"
+      - "scripts/game/game_death_runtime_v1.gd"
+      - "scripts/game/human_warrior_animation_library.gd"
+      - "scripts/game/player.gd"
+      - "scripts/models/player_character.gd"
+      - "scripts/systems/death_animation_selector.gd"
+      - "tests/test_death_animation_selector.gd"
+      - "tests/test_human_warrior_animation_assets_v01.py"
+      - "tests/test_human_warrior_death_runtime_v01.gd"
+      - "tests/test_human_warrior_hit_runtime_v01.gd"
+      - "tests/test_human_warrior_runtime_animation_v02.gd"
+      - "docs/HUMAN_WARRIOR_DEATH_RUNTIME_V1.md"
+      - ".github/workflows/validate-human-warrior-death-runtime-v1.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: human-warrior-death-runtime-v1-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate approved death atlases and manifest contracts
+        shell: bash
+        run: |
+          python -m pip install --disable-pip-version-check Pillow==11.3.0
+          python -m unittest tests.test_human_warrior_animation_assets_v01
+
+      - name: Download Godot 4.7.1 Standard
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl \
+            --location \
+            --fail \
+            --retry 4 \
+            --retry-all-errors \
+            --retry-delay 3 \
+            --connect-timeout 20 \
+            --max-time 180 \
+            --output godot.zip \
+            "https://github.com/godotengine/godot/releases/download/4.7.1-stable/Godot_v4.7.1-stable_linux.x86_64.zip"
+          unzip -q godot.zip
+          chmod +x Godot_v4.7.1-stable_linux.x86_64
+
+      - name: Import project and reject parser errors
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .godot
+          timeout 240s ./Godot_v4.7.1-stable_linux.x86_64 \
+            --headless \
+            --path "$GITHUB_WORKSPACE" \
+            --import \
+            2>&1 | tee human-warrior-death-runtime-import.log
+          if grep -E "SCRIPT ERROR:|Parse Error:|Failed to load script" human-warrior-death-runtime-import.log; then
+            exit 1
+          fi
+
+      - name: Create regression scene wrappers
+        shell: bash
+        run: |
+          cat > tests/__ci_human_warrior_hit_runtime_v01.tscn <<'EOF'
+          [gd_scene load_steps=2 format=3]
+
+          [ext_resource type="Script" path="res://tests/test_human_warrior_hit_runtime_v01.gd" id="1_test"]
+
+          [node name="HumanWarriorHitRuntimeV01Test" type="Node"]
+          script = ExtResource("1_test")
+          EOF
+          cat > tests/__ci_human_warrior_runtime_v02.tscn <<'EOF'
+          [gd_scene load_steps=2 format=3]
+
+          [ext_resource type="Script" path="res://tests/test_human_warrior_runtime_animation_v02.gd" id="1_test"]
+
+          [node name="HumanWarriorRuntimeV02Test" type="Node"]
+          script = ExtResource("1_test")
+          EOF
+
+      - name: Validate weighted selection, fallback and persistence
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 90s ./Godot_v4.7.1-stable_linux.x86_64 \
+            --headless \
+            --path "$GITHUB_WORKSPACE" \
+            --script res://tests/test_death_animation_selector.gd \
+            2>&1 | tee human-warrior-death-selector-test.log
+
+      - name: Validate confirmed-death runtime and corpse hold
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 \
+            --headless \
+            --path "$GITHUB_WORKSPACE" \
+            --script res://tests/test_human_warrior_death_runtime_v01.gd \
+            2>&1 | tee human-warrior-death-runtime-test.log
+
+      - name: Regression test attack animation runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 \
+            --headless \
+            --path "$GITHUB_WORKSPACE" \
+            res://tests/__ci_human_warrior_runtime_v02.tscn \
+            2>&1 | tee human-warrior-runtime-v02-regression.log
+
+      - name: Regression test hit reaction and lethal priority
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 \
+            --headless \
+            --path "$GITHUB_WORKSPACE" \
+            res://tests/__ci_human_warrior_hit_runtime_v01.tscn \
+            2>&1 | tee human-warrior-hit-runtime-regression.log
+
+      - name: Regression test damage and fall reactions
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 \
+            --headless \
+            --path "$GITHUB_WORKSPACE" \
+            --script res://tests/smoke_damage_fall_reactions_runtime.gd \
+            2>&1 | tee damage-fall-regression.log
+
+      - name: Regression test nonlethal outcomes and controllable ally
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 \
+            --headless \
+            --path "$GITHUB_WORKSPACE" \
+            --script res://tests/smoke_corpse_interactions_runtime.gd \
+            2>&1 | tee corpse-interactions-regression.log
+          timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 \
+            --headless \
+            --path "$GITHUB_WORKSPACE" \
+            --script res://tests/smoke_controllable_ally_damage.gd \
+            2>&1 | tee controllable-ally-damage-regression.log
+          timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 \
+            --headless \
+            --path "$GITHUB_WORKSPACE" \
+            --script res://tests/smoke_controllable_ally_runtime.gd \
+            2>&1 | tee controllable-ally-runtime-regression.log
+
+      - name: Preserve current Combat AI Coordination v1 runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 \
+            --headless \
+            --path "$GITHUB_WORKSPACE" \
+            --script res://tests/smoke_combat_ai_coordination_v1.gd \
+            2>&1 | tee combat-ai-coordination-runtime-regression.log
+
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: human-warrior-death-runtime-v1-diagnostics
+          path: |
+            human-warrior-death-runtime-import.log
+            human-warrior-death-selector-test.log
+            human-warrior-death-runtime-test.log
+            human-warrior-runtime-v02-regression.log
+            human-warrior-hit-runtime-regression.log
+            damage-fall-regression.log
+            corpse-interactions-regression.log
+            controllable-ally-damage-regression.log
+            controllable-ally-runtime-regression.log
+            combat-ai-coordination-runtime-regression.log
+          retention-days: 7

@@ -1,7 +1,7 @@
 extends SceneTree
 
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
-const EXPECTED_GAME_SCRIPT: String = "res://scripts/game/game_ai_stealth_v2_ui_runtime.gd"
+const REQUIRED_GAME_SCRIPT: String = "res://scripts/game/game_ai_stealth_v2_ui_runtime.gd"
 
 
 func _init() -> void:
@@ -18,7 +18,7 @@ func _run() -> void:
 	for _frame: int in range(20):
 		await process_frame
 	var script: Script = game.get_script() as Script
-	if script == null or script.resource_path != EXPECTED_GAME_SCRIPT:
+	if not _script_chain_contains(script, REQUIRED_GAME_SCRIPT):
 		_fail("Game scene is not wired to AI/stealth v2 runtime.")
 		return
 	for method_name: String in [
@@ -69,6 +69,15 @@ func _run() -> void:
 	await process_frame
 	print("AI/stealth v2 runtime smoke test passed.")
 	quit(0)
+
+
+func _script_chain_contains(script: Script, required_path: String) -> bool:
+	var current: Script = script
+	while current != null:
+		if current.resource_path == required_path:
+			return true
+		current = current.get_base_script()
+	return false
 
 
 func _fail(message: String) -> void:

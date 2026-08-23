@@ -21,7 +21,10 @@
     "hit_reaction_damage_threshold": 1,
     "hit_reaction_movement_locked": true,
     "hit_reaction_facing_locked": true,
-    "death_priority_over_hit": true
+    "death_priority_over_hit": true,
+    "death_priority_over_attack_and_movement": true,
+    "death_confirmed_state_only": true,
+    "death_transition_minimum_seconds": 0.8
   },
   "source": {
     "idle_walk": {
@@ -63,7 +66,46 @@
         "twohand_center_high"
       ],
       "mirroring_used": false
+    },
+    "death_directional_v01": {
+      "branch": "tools/human-warrior-death-directional-cycles-v01",
+      "commit": "a9184e7b90e2470c0368ae40908b05bee3118449",
+      "local_equivalent_commit": "3f1d37ca1b0df71929b8a77438693b5339822da3",
+      "pull_request": 101,
+      "workflow_run": 31444434386,
+      "local_run_id": "local_20260810_death_directional_cycles_v01_render_final2",
+      "local_run_manifest_sha256": "857f0dc53619611edf40a481768a5fbfec51ae98149fca6768c336e29a0688f3",
+      "directional_revision": "death_directional_cycles_v01_from_approved_down",
+      "rendered_frame_count": 96,
+      "mirroring_used": false,
+      "weapon_agnostic": true
     }
+  },
+  "death_runtime": {
+    "selection_policy": "weighted_without_immediate_repeat",
+    "fallback_variant_id": "death_01_base",
+    "duration_seconds": 0.8,
+    "corpse_hold_frame": 8,
+    "final_pose_persistent": true,
+    "weapon_agnostic": true,
+    "confirmed_dead_only": true,
+    "variants": [
+      {
+        "death_variant_id": "death_01_base",
+        "set_id": "death_01_base",
+        "weight": 1.0
+      },
+      {
+        "death_variant_id": "death_02_base",
+        "set_id": "death_02_base",
+        "weight": 1.0
+      },
+      {
+        "death_variant_id": "death_03_base",
+        "set_id": "death_03_base",
+        "weight": 1.0
+      }
+    ]
   },
   "sets": {
     "idle": {
@@ -232,6 +274,72 @@
         "left": false,
         "right": false,
         "up": false
+      }
+    },
+    "death_01_base": {
+      "sheet_path": "res://assets/characters/human/warrior_m01/gameplay/approved/atlases/human_warrior_m01_death_01_base_v01.png",
+      "animation_prefix": "death_01_base",
+      "frame_count": 8,
+      "fps": 10.0,
+      "loop": false,
+      "corpse_hold_frame": 8,
+      "edge_alpha_required": true,
+      "edge_alpha_exceptions": {},
+      "runtime_anchor_offset_by_direction": {
+        "down": [0.0, 0.0],
+        "left": [11.194215, 0.0],
+        "right": [-11.838843, 0.0],
+        "up": [0.0, 0.0]
+      },
+      "final_hold_identical_by_direction": {
+        "down": true,
+        "left": true,
+        "right": true,
+        "up": true
+      }
+    },
+    "death_02_base": {
+      "sheet_path": "res://assets/characters/human/warrior_m01/gameplay/approved/atlases/human_warrior_m01_death_02_base_v01.png",
+      "animation_prefix": "death_02_base",
+      "frame_count": 8,
+      "fps": 10.0,
+      "loop": false,
+      "corpse_hold_frame": 8,
+      "edge_alpha_required": true,
+      "edge_alpha_exceptions": {},
+      "runtime_anchor_offset_by_direction": {
+        "down": [0.0, 0.0],
+        "left": [0.0, 0.0],
+        "right": [0.0, 0.0],
+        "up": [0.0, 0.0]
+      },
+      "final_hold_identical_by_direction": {
+        "down": true,
+        "left": true,
+        "right": true,
+        "up": true
+      }
+    },
+    "death_03_base": {
+      "sheet_path": "res://assets/characters/human/warrior_m01/gameplay/approved/atlases/human_warrior_m01_death_03_base_v01.png",
+      "animation_prefix": "death_03_base",
+      "frame_count": 8,
+      "fps": 10.0,
+      "loop": false,
+      "corpse_hold_frame": 8,
+      "edge_alpha_required": true,
+      "edge_alpha_exceptions": {},
+      "runtime_anchor_offset_by_direction": {
+        "down": [0.0, 0.0],
+        "left": [0.0, 0.0],
+        "right": [0.0, 0.0],
+        "up": [-6.03719, 0.0]
+      },
+      "final_hold_identical_by_direction": {
+        "down": true,
+        "left": true,
+        "right": true,
+        "up": true
       }
     }
   }

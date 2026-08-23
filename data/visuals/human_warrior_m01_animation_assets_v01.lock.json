@@ -885,5 +885,34 @@
         "up": false
       }
     }
+  },
+  "death_atlases": {
+    "death_01_base": {
+      "path": "assets/characters/human/warrior_m01/gameplay/approved/atlases/human_warrior_m01_death_01_base_v01.png",
+      "sha256": "0a06e4c6f72ad7ed4ea0b2c0702c02b9abc67c7c0cf8ae92b8bd8954c5bb177d",
+      "size": [
+        768,
+        384
+      ],
+      "source_run_manifest_sha256": "857f0dc53619611edf40a481768a5fbfec51ae98149fca6768c336e29a0688f3"
+    },
+    "death_02_base": {
+      "path": "assets/characters/human/warrior_m01/gameplay/approved/atlases/human_warrior_m01_death_02_base_v01.png",
+      "sha256": "9b2f61dd3a9156a0ad93a23705e02a15e243dc13552ce1999efa3cc15db13b85",
+      "size": [
+        768,
+        384
+      ],
+      "source_run_manifest_sha256": "857f0dc53619611edf40a481768a5fbfec51ae98149fca6768c336e29a0688f3"
+    },
+    "death_03_base": {
+      "path": "assets/characters/human/warrior_m01/gameplay/approved/atlases/human_warrior_m01_death_03_base_v01.png",
+      "sha256": "bcb332702b08d5656b78a606b1e104ef0c1c3fe290b6cfcce478fc4ebc5534ff",
+      "size": [
+        768,
+        384
+      ],
+      "source_run_manifest_sha256": "857f0dc53619611edf40a481768a5fbfec51ae98149fca6768c336e29a0688f3"
+    }
   }
 }
