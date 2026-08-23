@@ -185,7 +185,8 @@ func _make_hero() -> PlayerCharacter:
 	hero.race_name = "Человек"
 	hero.maximum_health = 24
 	hero.current_health = 24
-	hero.dexterity = 16
+	hero.base_abilities["dexterity"] = 16
+	hero.abilities["dexterity"] = 16
 	hero.starter_loadout_granted = true
 	return hero
 
