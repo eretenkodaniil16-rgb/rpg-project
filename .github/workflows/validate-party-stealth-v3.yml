@@ -5,6 +5,7 @@ on:
     paths:
       - 'scripts/systems/party_stealth_state_system.gd'
       - 'scripts/game/game_party_stealth_v3_runtime.gd'
+      - 'scripts/game/game_party_stealth_v3_combat_bridge_runtime.gd'
       - 'scripts/game/game_ai_stealth_v2_ui_runtime.gd'
       - 'tests/test_party_stealth_state_system.gd'
       - 'tests/smoke_party_stealth_v3.gd'
@@ -41,7 +42,9 @@ jobs:
 
       - name: Smoke test Party Stealth v3 runtime
         shell: bash
-        run: timeout 150s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_party_stealth_v3.gd
+        run: |
+          set -o pipefail
+          timeout 150s ./Godot_v4.7.1-stable_linux.x86_64 --headless --path "$GITHUB_WORKSPACE" --script res://tests/smoke_party_stealth_v3.gd 2>&1 | tee party-stealth-v3-smoke.log
 
       - name: Regression test AI and Stealth v2
         shell: bash
@@ -72,6 +75,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: party-stealth-v3-diagnostics
-          path: party-stealth-v3-import.log
+          path: |
+            party-stealth-v3-import.log
+            party-stealth-v3-smoke.log
           if-no-files-found: ignore
           retention-days: 7
