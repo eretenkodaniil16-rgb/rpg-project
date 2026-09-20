@@ -1,0 +1,139 @@
+name: Validate Blender environment factory v01
+
+on:
+  pull_request:
+    paths:
+      - "tools/blender_environment_factory/**"
+      - "docs/BLENDER_ENVIRONMENT_FACTORY_V01.md"
+      - "RUN_BLENDER_ENVIRONMENT_FACTORY_V01.cmd"
+      - ".github/workflows/validate-blender-environment-v01.yml"
+      - ".gitignore"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: blender-environment-v01-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Pillow
+        run: python -m pip install --disable-pip-version-check "Pillow>=11.1.0,<13.0.0"
+
+      - name: Compile environment factory
+        run: python -m compileall -q tools/blender_environment_factory
+
+      - name: Run focused unit tests
+        env:
+          PYTHONPATH: tools/blender_environment_factory
+        run: >-
+          python -m unittest discover
+          -s tools/blender_environment_factory/tests
+          -p "test_*.py"
+          -v
+
+      - name: Validate project and render contracts
+        env:
+          PYTHONPATH: tools/blender_environment_factory
+        run: python tools/blender_environment_factory/validate_environment_factory_v01.py
+
+  render-review-candidate:
+    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'tools/blender-environment-tiles-v01'
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Pillow and headless render dependencies
+        run: |
+          python -m pip install --disable-pip-version-check "Pillow>=11.1.0,<13.0.0"
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            xvfb libegl1 libgl1 libxi6 libxrender1 libxkbcommon-x11-0
+
+      - name: Download and verify Blender 5.2.0 LTS
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/blender-5.2.0-linux-x64.tar.xz"
+          extract="$RUNNER_TEMP/blender-5.2.0"
+          curl \
+            --location \
+            --fail \
+            --retry 4 \
+            --retry-all-errors \
+            --connect-timeout 20 \
+            --max-time 300 \
+            --output "$archive" \
+            "https://download.blender.org/release/Blender5.2/blender-5.2.0-linux-x64.tar.xz"
+          actual="$(sha256sum "$archive" | cut -d' ' -f1)"
+          expected="96f6c181a30f4950607839dc84d42a354b250d8a0231b098b59b7bc69c351c48"
+          test "$actual" = "$expected"
+          mkdir -p "$extract"
+          tar -xJf "$archive" -C "$extract"
+          blender="$(find "$extract" -type f -name blender -perm -111 | head -n 1)"
+          test -n "$blender"
+          echo "BLENDER_EXE=$blender" >> "$GITHUB_ENV"
+
+      - name: Render and normalize cold ancient stone v01
+        id: environment-render
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          run_id="${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}"
+          run_dir="$GITHUB_WORKSPACE/art/blender_environment_runs/cold_ancient_stone_v01/$run_id"
+          xvfb-run -a "$BLENDER_EXE" \
+            --background \
+            --factory-startup \
+            --python-exit-code 1 \
+            --python tools/blender_environment_factory/blender_environment_factory_v01.py \
+            -- \
+            --repo-root "$GITHUB_WORKSPACE" \
+            --config tools/blender_environment_factory/configs/cold_ancient_stone_v01.json \
+            --run-id "$run_id" \
+            --mode all 2>&1 | tee blender_environment_v01.log
+          PYTHONPATH=tools/blender_environment_factory \
+            python tools/blender_environment_factory/postprocess_environment_run_v01.py \
+              --repo-root "$GITHUB_WORKSPACE" \
+              --config tools/blender_environment_factory/configs/cold_ancient_stone_v01.json \
+              --run-dir "$run_dir" 2>&1 | tee environment_postprocess_v01.log
+
+      - name: Upload Blender review candidate
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cold_ancient_stone_v01_${{ github.run_id }}_${{ github.run_attempt }}
+          path: |
+            art/blender_environment_runs/cold_ancient_stone_v01/**
+            blender_environment_v01.log
+            environment_postprocess_v01.log
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Require successful Blender review render
+        if: steps.environment-render.outcome != 'success'
+        run: |
+          echo "Blender environment render failed; inspect the uploaded logs and review artifact."
+          exit 1

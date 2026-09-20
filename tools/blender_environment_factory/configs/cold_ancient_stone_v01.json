@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "profile_id": "cold_ancient_stone_v01",
+  "stage": "review_candidate",
+  "target_blender": {
+    "recommended_lts": "5.2.0",
+    "minimum_supported": "4.5.0"
+  },
+  "game_contract": {
+    "combat_cell_size": 64,
+    "character_sprite_canvas": 96,
+    "runtime_filter": "NEAREST",
+    "walls_and_doors_use_cell_edges": true,
+    "local_light_baked_into_floor": false
+  },
+  "paths": {
+    "run_root": "art/blender_environment_runs/cold_ancient_stone_v01",
+    "character_idle_atlas": "assets/characters/human/warrior_m01/gameplay/approved/atlases/human_warrior_m01_idle_v01.png"
+  },
+  "camera": {
+    "projection": "ORTHOGRAPHIC",
+    "elevation_degrees": 47.0,
+    "horizontal_distance_units": 12.0,
+    "raw_render_scale": 3,
+    "floor_view_height_units": 4.0,
+    "object_view_height_units": 6.0,
+    "transparent_background": true
+  },
+  "lighting": {
+    "neutral_only": true,
+    "world_strength": 0.32,
+    "key_energy": 620.0,
+    "fill_energy": 220.0,
+    "rim_energy": 160.0
+  },
+  "palette": [
+    "#090E15",
+    "#0E151E",
+    "#131C27",
+    "#192532",
+    "#20303F",
+    "#293B49",
+    "#344857",
+    "#405666",
+    "#4D6372",
+    "#5B7180",
+    "#6B808D",
+    "#81939D",
+    "#98A7AE",
+    "#152D3B",
+    "#1B3F50",
+    "#24566B",
+    "#2A1B18",
+    "#452B25",
+    "#644238",
+    "#51606B",
+    "#748693",
+    "#2A93B7",
+    "#55D7EC",
+    "#A3F5FF"
+  ],
+  "seam_contract": {
+    "mode": "per_variant_opposite_edge_harmonization",
+    "sample_inset_px": 1,
+    "arbitrary_adjacency_requires_opaque_edges": true
+  },
+  "assets": [
+    {"asset_id": "cold_stone_floor_01", "kind": "floor", "seed": 1101, "canvas": [64, 64]},
+    {"asset_id": "cold_stone_floor_02", "kind": "floor", "seed": 1102, "canvas": [64, 64]},
+    {"asset_id": "cold_stone_floor_03", "kind": "floor", "seed": 1103, "canvas": [64, 64]},
+    {"asset_id": "cold_stone_floor_04", "kind": "floor", "seed": 1104, "canvas": [64, 64]},
+    {"asset_id": "cold_stone_floor_05", "kind": "floor", "seed": 1105, "canvas": [64, 64]},
+    {"asset_id": "cold_stone_floor_06", "kind": "floor", "seed": 1106, "canvas": [64, 64]},
+    {"asset_id": "cold_stone_floor_07", "kind": "floor", "seed": 1107, "canvas": [64, 64]},
+    {"asset_id": "cold_stone_floor_08", "kind": "floor", "seed": 1108, "canvas": [64, 64]},
+
+    {"asset_id": "stone_crack_01", "kind": "decal", "shape": "crack", "seed": 2101, "canvas": [64, 64]},
+    {"asset_id": "stone_crack_02", "kind": "decal", "shape": "crack", "seed": 2102, "canvas": [64, 64]},
+    {"asset_id": "stone_dust_01", "kind": "decal", "shape": "dust", "seed": 2201, "canvas": [64, 64]},
+    {"asset_id": "stone_dust_02", "kind": "decal", "shape": "dust", "seed": 2202, "canvas": [64, 64]},
+    {"asset_id": "stone_damp_01", "kind": "decal", "shape": "damp", "seed": 2301, "canvas": [64, 64]},
+    {"asset_id": "stone_damp_02", "kind": "decal", "shape": "damp", "seed": 2302, "canvas": [64, 64]},
+
+    {"asset_id": "dry_to_damp_north", "kind": "transition", "orientation": "north", "seed": 3101, "canvas": [64, 64]},
+    {"asset_id": "dry_to_damp_east", "kind": "transition", "orientation": "east", "seed": 3102, "canvas": [64, 64]},
+    {"asset_id": "dry_to_damp_south", "kind": "transition", "orientation": "south", "seed": 3103, "canvas": [64, 64]},
+    {"asset_id": "dry_to_damp_west", "kind": "transition", "orientation": "west", "seed": 3104, "canvas": [64, 64]},
+
+    {"asset_id": "stone_wall_north", "kind": "wall_edge", "orientation": "north", "seed": 4101, "canvas": [64, 96]},
+    {"asset_id": "stone_wall_east", "kind": "wall_edge", "orientation": "east", "seed": 4102, "canvas": [64, 96]},
+    {"asset_id": "stone_wall_south", "kind": "wall_edge", "orientation": "south", "seed": 4103, "canvas": [64, 96]},
+    {"asset_id": "stone_wall_west", "kind": "wall_edge", "orientation": "west", "seed": 4104, "canvas": [64, 96]},
+    {"asset_id": "stone_wall_corner_ne", "kind": "wall_corner", "orientation": "north_east", "seed": 4201, "canvas": [96, 96]},
+    {"asset_id": "stone_wall_corner_se", "kind": "wall_corner", "orientation": "south_east", "seed": 4202, "canvas": [96, 96]},
+    {"asset_id": "stone_wall_corner_sw", "kind": "wall_corner", "orientation": "south_west", "seed": 4203, "canvas": [96, 96]},
+    {"asset_id": "stone_wall_corner_nw", "kind": "wall_corner", "orientation": "north_west", "seed": 4204, "canvas": [96, 96]},
+
+    {"asset_id": "stone_door_x_closed", "kind": "door", "orientation": "x", "state": "closed", "seed": 5101, "canvas": [64, 96]},
+    {"asset_id": "stone_door_x_open", "kind": "door", "orientation": "x", "state": "open", "seed": 5102, "canvas": [64, 96]},
+    {"asset_id": "stone_door_y_closed", "kind": "door", "orientation": "y", "state": "closed", "seed": 5103, "canvas": [64, 96]},
+    {"asset_id": "stone_door_y_open", "kind": "door", "orientation": "y", "state": "open", "seed": 5104, "canvas": [64, 96]},
+
+    {"asset_id": "stone_stairs_down_01", "kind": "stairs", "orientation": "south", "seed": 6101, "canvas": [64, 96]},
+    {"asset_id": "arcane_inlay_01", "kind": "arcane", "seed": 7101, "canvas": [64, 64]},
+    {"asset_id": "arcane_inlay_02", "kind": "arcane", "seed": 7102, "canvas": [64, 64]}
+  ],
+  "preview": {
+    "room_size_cells": [6, 6],
+    "floor_rows": [
+      [1, 2, 3, 4, 5, 6],
+      [7, 8, 2, 5, 1, 4],
+      [3, 6, 7, 1, 8, 2],
+      [5, 4, 1, 7, 3, 8],
+      [2, 7, 6, 3, 4, 1],
+      [8, 1, 5, 2, 6, 7]
+    ],
+    "decals": [
+      {"asset_id": "stone_crack_01", "cell": [1, 1]},
+      {"asset_id": "stone_dust_02", "cell": [4, 1]},
+      {"asset_id": "stone_damp_01", "cell": [0, 4]},
+      {"asset_id": "dry_to_damp_east", "cell": [1, 4]},
+      {"asset_id": "arcane_inlay_01", "cell": [4, 3]},
+      {"asset_id": "stone_crack_02", "cell": [3, 5]}
+    ],
+    "stairs_cell": [0, 1],
+    "character_cell": [2, 3]
+  }
+}

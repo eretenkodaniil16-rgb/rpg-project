@@ -15,6 +15,11 @@ exports/
 .secrets/
 local-build-environment.json
 
+# Blender environment review candidates and source renders
+art/blender_environment_runs/
+__pycache__/
+*.py[cod]
+
 # Android build cache and signing material
 android/build/
 *.keystore
