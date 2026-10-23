@@ -1,0 +1,83 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/menus/loading_screen_texture_preview.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://scenes/ui/loading_progress_bar_v03.tscn" id="2_bar"]
+
+[sub_resource type="Shader" id="Shader_preview_background"]
+code = "shader_type canvas_item;\n\nvoid fragment() {\n\tvec2 uv = UV;\n\tfloat vignette = smoothstep(0.95, 0.18, distance(uv, vec2(0.5)));\n\tfloat shaft = smoothstep(0.30, 0.0, abs(uv.x - 0.5)) * smoothstep(0.95, 0.28, uv.y);\n\tvec3 dark_stone = vec3(0.004, 0.011, 0.021);\n\tvec3 cold_blue = vec3(0.008, 0.075, 0.14) * shaft;\n\tCOLOR = vec4((dark_stone + cold_blue) * (0.52 + vignette * 0.48), 1.0);\n}\n"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_preview_background"]
+shader = SubResource("Shader_preview_background")
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_caption"]
+bg_color = Color(0.003, 0.012, 0.024, 0.62)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.055, 0.47, 0.76, 0.46)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[node name="LoadingScreenTexturePreview" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+
+[node name="FallbackBackground" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.002, 0.007, 0.014, 1)
+
+[node name="PreviewBackground" type="ColorRect" parent="."]
+material = SubResource("ShaderMaterial_preview_background")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="CaptionPanel" type="PanelContainer" parent="."]
+layout_mode = 1
+anchor_left = 0.35
+anchor_top = 0.70
+anchor_right = 0.65
+anchor_bottom = 0.79
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBox_caption")
+
+[node name="LoadingLabel" type="Label" parent="CaptionPanel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.46, 0.86, 1, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.85)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 26
+text = "Загрузка..."
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="LoadingProgressBar" parent="." instance=ExtResource("2_bar")]
+layout_mode = 1
+anchor_left = 0.13
+anchor_top = 0.825
+anchor_right = 0.87
+anchor_bottom = 0.95
+grow_horizontal = 2
+grow_vertical = 2
+value = 72.0

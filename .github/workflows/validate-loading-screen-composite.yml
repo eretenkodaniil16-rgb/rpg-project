@@ -1,0 +1,78 @@
+name: Validate loading screen composite
+
+on:
+  pull_request:
+    paths:
+      - "assets/branding/loading_screen/approved/loading_screen_composite_v01/**"
+      - "assets/branding/loading_screen/loading_screen_composite_v01.json"
+      - "scenes/menus/loading_screen_composite_preview_v01.tscn"
+      - "scripts/menus/loading_screen_composite_preview_v01.gd"
+      - "tests/test_loading_screen_composite.py"
+      - "tests/smoke_loading_screen_composite.gd"
+      - "docs/LOADING_SCREEN_COMPOSITE_V01.md"
+      - ".github/workflows/validate-loading-screen-composite.yml"
+  push:
+    branches:
+      - art/loading-screen-textures-v01
+
+concurrency:
+  group: loading-screen-composite-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install validation dependency
+        run: python -m pip install --disable-pip-version-check pillow pytest
+
+      - name: Validate composite contracts
+        run: python -m pytest tests/test_loading_screen_composite.py
+
+      - name: Download Godot 4.7.1 Standard
+        shell: bash
+        run: |
+          curl --location --fail --retry 3 \
+            --output godot.zip \
+            "https://github.com/godotengine/godot/releases/download/4.7.1-stable/Godot_v4.7.1-stable_linux.x86_64.zip"
+          unzip -q godot.zip
+          chmod +x Godot_v4.7.1-stable_linux.x86_64
+
+      - name: Import project and reject parser errors
+        shell: bash
+        run: |
+          rm -rf .godot
+          set -o pipefail
+          timeout 180s ./Godot_v4.7.1-stable_linux.x86_64 \
+            --headless --editor --path "$GITHUB_WORKSPACE" --quit \
+            2>&1 | tee composite-import.log
+          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script" composite-import.log; then
+            exit 1
+          fi
+
+      - name: Smoke test composite loading screen
+        shell: bash
+        run: |
+          timeout 120s ./Godot_v4.7.1-stable_linux.x86_64 \
+            --headless --path "$GITHUB_WORKSPACE" \
+            --script res://tests/smoke_loading_screen_composite.gd \
+            2>&1 | tee composite-smoke.log
+          grep -F "Loading screen composite smoke test passed" composite-smoke.log
+
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: loading-screen-composite-diagnostics
+          path: |
+            composite-import.log
+            composite-smoke.log
+          if-no-files-found: ignore
+          retention-days: 7
