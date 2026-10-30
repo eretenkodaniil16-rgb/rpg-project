@@ -1,93 +1,104 @@
-name: Living Scroll V3 — Blender smoke render
+name: Living Scroll V3 — Blender CI
 
 on:
   push:
     branches:
       - art/living-scroll-v3-blender
     paths:
-      - the_living_scroll_v3_blender_project.zip
+      - 'living_scroll_v3/**'
+      - '.github/workflows/living-scroll-v3-ci.yml'
   workflow_dispatch:
+    inputs:
+      render_mode:
+        description: 'Preview smoke render (6 frames) or full 12s MP4'
+        required: true
+        default: smoke
+        type: choice
+        options:
+          - smoke
+          - full
 
 permissions:
   contents: read
 
 concurrency:
   group: living-scroll-v3-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
-  smoke:
-    name: Validate artwork and render 6 preview frames
+  render:
+    name: Build layered artwork and run Blender 5.2
     runs-on: ubuntu-24.04
-    timeout-minutes: 50
+    timeout-minutes: 180
     steps:
-      - name: Checkout selected branch
+      - name: Checkout isolated source branch
         uses: actions/checkout@v4
 
-      - name: Setup Python for layered assets
+      - name: Install Python 3.12
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.12'
 
-      - name: Verify and unpack the project uploaded from the phone
+      - name: Install rendering dependencies
         run: |
-          python - <<'PY'
-          from pathlib import Path
-          from zipfile import ZipFile
-          root = Path.cwd()
-          src = root / 'the_living_scroll_v3_blender_project.zip'
-          if not src.exists():
-              raise SystemExit('Upload the_living_scroll_v3_blender_project.zip to the root of this branch first.')
-          out = root / 'living_scroll_v3'
-          out.mkdir(exist_ok=True)
-          with ZipFile(src) as z:
-              if z.testzip() is not None:
-                  raise SystemExit('Archive integrity check failed')
-              members = [i for i in z.infolist() if not i.is_dir()]
-              if sum(i.file_size for i in members) > 120_000_000:
-                  raise SystemExit('Archive too large')
-              for i in members:
-                  p = Path(i.filename)
-                  if p.is_absolute() or '..' in p.parts:
-                      raise SystemExit('Unsafe archive path')
-              z.extractall(out)
-          required = ['blender_scene.py', 'build_layers.py', 'assets/lotus_master.png', 'assets/landscape_master.png']
-          for name in required:
-              if not (out / name).is_file():
-                  raise SystemExit('Archive missing ' + name)
-          print('ZIP checked, project ready in', out)
-          PY
-
-      - name: Install Pillow and NumPy
-        run: python -m pip install --disable-pip-version-check pillow numpy
-
-      - name: Download pinned Blender 5.2.0 LTS and verify SHA256
-        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check Pillow==11.3.0 numpy==2.2.6
           sudo apt-get update -qq
-          sudo apt-get install -y -qq libgl1 libxrender1 libxi6 libxkbcommon0 libsm6 libegl1 libopengl0 libxfixes3
-          curl -fL --retry 4 --retry-delay 8 -o blender-5.2.0-linux-x64.tar.xz https://download.blender.org/release/Blender5.2/blender-5.2.0-linux-x64.tar.xz
-          curl -fL --retry 4 -o blender-5.2.0.sha256 https://download.blender.org/release/Blender5.2/blender-5.2.0.sha256
-          grep 'blender-5.2.0-linux-x64.tar.xz' blender-5.2.0.sha256 | sha256sum --check --status
-          mkdir -p blender-runtime
-          tar -xJf blender-5.2.0-linux-x64.tar.xz -C blender-runtime --strip-components=1
-          ./blender-runtime/blender --background --factory-startup --python-expr 'import bpy; print("VERIFIED BLENDER:", bpy.app.version_string)'
+          sudo apt-get install -y --no-install-recommends xvfb libgl1 libxi6 libxrender1 libxkbcommon-x11-0 libsm6 ffmpeg
 
-      - name: Prepare masked artwork layers
-        run: python living_scroll_v3/build_layers.py
-
-      - name: Render preview frames and save editable Blender project
+      - name: Verify source syntax and generate 2.5D artwork
         run: |
-          ./blender-runtime/blender --background --factory-startup --python living_scroll_v3/blender_scene.py -- --smoke
-          test -s living_scroll_v3/living_scroll_v3.blend
-          test -s living_scroll_v3/renders/smoke_001.png
+          set -euo pipefail
+          python -m py_compile living_scroll_v3/generate_assets.py living_scroll_v3/blender_scene.py
+          python living_scroll_v3/generate_assets.py
+          test -s living_scroll_v3/assets/paper.png
+          test -s living_scroll_v3/assets/lotus_focus.png
+          test -s living_scroll_v3/assets/far_mountains.png
+          test -s living_scroll_v3/assets/mid_mountains.png
+          test -s living_scroll_v3/assets/near_mountains.png
 
-      - name: Upload .blend and rendered frames
+      - name: Install verified official Blender 5.2.0 LTS binary
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/blender-5.2.0-linux-x64.tar.xz"
+          curl --fail --location --retry 3 --output "$archive" "https://download.blender.org/release/Blender5.2/blender-5.2.0-linux-x64.tar.xz"
+          echo "96f6c181a30f4950607839dc84d42a354b250d8a0231b098b59b7bc69c351c48  $archive" | sha256sum --check
+          mkdir -p "$RUNNER_TEMP/blender-5.2.0"
+          tar -xJf "$archive" -C "$RUNNER_TEMP/blender-5.2.0"
+          blender="$(find "$RUNNER_TEMP/blender-5.2.0" -type f -name blender -perm -111 | head -n 1)"
+          test -n "$blender"
+          echo "BLENDER_EXE=$blender" >> "$GITHUB_ENV"
+          xvfb-run -a "$blender" --background --factory-startup --python-exit-code 1 --python-expr "import bpy; print('Blender render backend',bpy.app.version_string)"
+
+      - name: Render V3 Blender scene
+        shell: bash
+        env:
+          RENDER_MODE: ${{ inputs.render_mode || 'smoke' }}
+        run: |
+          set -euo pipefail
+          test "$RENDER_MODE" = "smoke" -o "$RENDER_MODE" = "full"
+          xvfb-run -a "$BLENDER_EXE" --background --factory-startup --python-exit-code 1 --python living_scroll_v3/blender_scene.py -- --$RENDER_MODE 2>&1 | tee blender_render.log
+          test -s living_scroll_v3/living_scroll_v3.blend
+          if [ "$RENDER_MODE" = "smoke" ]; then
+            test -s living_scroll_v3/renders/smoke_001.png
+            test "$(find living_scroll_v3/renders -name 'smoke_*.png' | wc -l)" -eq 6
+          else
+            test -s living_scroll_v3/renders/frame_0001.png
+            test -s living_scroll_v3/renders/frame_0288.png
+            ffmpeg -hide_banner -loglevel error -y -framerate 24 -start_number 1 -i living_scroll_v3/renders/frame_%04d.png -c:v libx264 -pix_fmt yuv420p -crf 19 -movflags +faststart living_scroll_v3/the_living_scroll_v3.mp4
+            ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1 living_scroll_v3/the_living_scroll_v3.mp4
+          fi
+
+      - name: Save editable Blender scene, previews and diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: living-scroll-v3-blender-previews
+          name: living-scroll-v3-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
+            blender_render.log
             living_scroll_v3/living_scroll_v3.blend
             living_scroll_v3/renders/smoke_*.png
+            living_scroll_v3/the_living_scroll_v3.mp4
           if-no-files-found: warn
-          retention-days: 7
+          retention-days: 14
