@@ -1,33 +1,44 @@
-# The Living Scroll V3 — мобильная загрузка и Blender CI
+# The Living Scroll V3 — no download needed
 
-Этот проект изолирован в ветке `art/living-scroll-v3-blender`; основная ветка `main` не изменяется.
+This is an **isolated development branch**. Nothing here changes RPG runtime or the `main` branch.
 
-## Загрузить проект с телефона
+## What is already in GitHub
 
-1. Скачайте архив **the_living_scroll_v3_blender_project.zip** из чата.
-2. Откройте ветку: https://github.com/eretenkodaniil16-rgb/rpg-project/tree/art/living-scroll-v3-blender
-3. В GitHub нажмите **Add file → Upload files**. При необходимости включите в браузере «Версия для ПК».
-4. Выберите ZIP **целиком**, без распаковки и переименования, и загрузите в **корень репозитория на этой ветке**.
-5. Нажмите **Commit changes** и убедитесь, что целевая ветка — `art/living-scroll-v3-blender`, а не `main`.
+- `generate_assets.py`: reproducible artistic fallback layers, using Pillow and NumPy.
+- `blender_scene.py`: animated 2.5D scene, Blender camera, procedurally animated birds, scroll geometry and material keyframes.
+- `.github/workflows/living-scroll-v3-ci.yml`: automatically installs a verified Blender **5.2.0 LTS** binary, Python 3.12 + pinned Pillow/NumPy, headless rendering dependencies and FFmpeg.
+- Workflow automatically renders **six preview PNGs** on a push to this development branch, and saves an editable `.blend` file.
+- Optional **workflow_dispatch → render_mode=full** renders 288 frames and encodes a 12-second 720x1280 MP4.
 
-## Что произойдёт
+**No ZIP download, phone upload, premium Blender addons or Gemini/vidIQ credits are required.**
 
-GitHub Actions автоматически запустит workflow `.github/workflows/living-scroll-v3-ci.yml` после загрузки именно файла `the_living_scroll_v3_blender_project.zip`. Он:
+## Crucial artistic quality caveat
 
-- Проверит целостность ZIP и защитится от распаковки вне рабочей директории.
-- Распакует художественные ассеты и исходники в `living_scroll_v3/`.
-- Установит Blender **5.2.0 LTS** с официального сайта, проверив SHA256.
-- Создаст маскированные слои и выполнит шесть тестовых кадров.
-- Сохранит `living_scroll_v3.blend` и PNG-превью в **Actions → Artifacts**.
+The original 17 MB V3 artwork ZIP could not be transferred into GitHub automatically from the ChatGPT file workspace. Rather than block the entire project, the CI pipeline now generates replacement procedural artistic textures itself. This is a functional fallback, **not a pixel-perfect copy of the more elaborate original reference art**. Once a reliable binary-artifact transfer route is available, the authored source art can replace these fallback images without changing the Blender scene API.
 
-Workflow производит **только smoke render** (шесть кадров), не полный MP4. Переход к полному 12-секундному рендеру — отдельный шаг после визуальной проверки превью.
+## Dependencies
 
-## Ограничения
+| Component | Purpose | Provisioning |
+|---|---|---|
+| Blender 5.2.0 LTS | 3D scene, EEVEE, camera, materials, animation | Pinned Linux download and verified SHA256 |
+| Python 3.12 | PNG assets pipeline | actions/setup-python |
+| Pillow 11.3.0 | Drawing and image operations | pip |
+| NumPy 2.2.6 | Paper texture and noise | pip |
+| Xvfb, OpenGL libraries | Headless Blender UI/EEVEE context | apt |
+| FFmpeg | Optional MP4 encoding of 288-frame render | apt |
 
-- Не добавляйте архив в `main`. Он относительно большой (~17 MB), а проект пока экспериментальный.
-- Репозиторий `rpg-project` публичный: загруженный архив и его изображения будут доступны всем.
-- Архив должен иметь в корне `blender_scene.py`, `build_layers.py`, `assets/lotus_master.png` и `assets/landscape_master.png`.
-- На мобильном приложении GitHub опции Upload files может не быть. Откройте github.com в браузере и включите desktop site.
-- Отчёт о **фактической успешности рендера** можно делать только по результату запуска Actions, а не по наличию workflow.
+Grease Pencil, Geometry Nodes, Blender compositor and shader nodes are bundled in Blender itself; no extension marketplace install is necessary for the current scene. Avoid installing unrelated plugins (BlenderKit, external Render Farms, unknown MCP extensions) without a concrete need and dependency review.
 
-Посмотреть запускаемые задачи: https://github.com/eretenkodaniil16-rgb/rpg-project/actions/workflows/living-scroll-v3-ci.yml
+## View the result from a phone
+
+1. Open the GitHub [Actions workflow](https://github.com/eretenkodaniil16-rgb/rpg-project/actions/workflows/living-scroll-v3-ci.yml).
+2. Open the newest run from branch `art/living-scroll-v3-blender`.
+3. Check the job status and download `living-scroll-v3-<run-id>-<attempt>` under **Artifacts** (contains `.blend`, six previews, logs).
+4. To render the full MP4, open **Run workflow**, select branch `art/living-scroll-v3-blender`, set `render_mode=full`, and confirm. Full renders consume GitHub Actions minutes.
+
+## Remaining work
+
+1. Verify a successful real Blender run in GitHub Actions; syntax validation alone is insufficient.
+2. Inspect the six frames for layout/alpha problems, then improve continuity and shading.
+3. Replace fallback paintings with higher-quality master art in the asset pipeline (without modifying scene IDs).
+4. Only then execute a full MP4 render.
