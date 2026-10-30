@@ -332,7 +332,7 @@ def mist():
         o.data.materials.append(mat)
         lockeys(o,[(1,(-.17,y,z)),(135,(.22,y,z+.06)),(288,(-.13,y,z))])
 
-def configure():
+def configure(smoke=False):
     scene=bpy.context.scene
     # Dramatic push-in and a slower reveal, keyframed independent of sprite layers.
     cam=scene.camera
@@ -349,8 +349,8 @@ def configure():
     bpy.ops.object.light_add(type="AREA",location=(3,-4,0))
     fill=bpy.context.object;move(fill,"V4_00_MASTER")
     fill.data.energy=360;fill.data.size=7
-    scene.render.resolution_x=360
-    scene.render.resolution_y=640
+    scene.render.resolution_x=360 if smoke else 720
+    scene.render.resolution_y=640 if smoke else 1280
     scene.render.resolution_percentage=100
     scene.view_settings.view_transform="Standard"
     scene.render.film_transparent=False
@@ -378,7 +378,7 @@ def build(smoke=False,full=False):
     birds()
     scroll()
     mist()
-    configure()
+    configure(smoke)
     validate()
     scene=bpy.context.scene
     scene.frame_set(1)
