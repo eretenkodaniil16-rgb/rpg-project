@@ -65,11 +65,11 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq libgl1 libxrender1 libxi6 libxkbcommon0 libsm6 libegl1 libopengl0 libxfixes3
-          curl -fL --retry 4 --retry-delay 8 -o blender.tar.xz https://download.blender.org/release/Blender5.2/blender-5.2.0-linux-x64.tar.xz
+          curl -fL --retry 4 --retry-delay 8 -o blender-5.2.0-linux-x64.tar.xz https://download.blender.org/release/Blender5.2/blender-5.2.0-linux-x64.tar.xz
           curl -fL --retry 4 -o blender-5.2.0.sha256 https://download.blender.org/release/Blender5.2/blender-5.2.0.sha256
           grep 'blender-5.2.0-linux-x64.tar.xz' blender-5.2.0.sha256 | sha256sum --check --status
           mkdir -p blender-runtime
-          tar -xJf blender.tar.xz -C blender-runtime --strip-components=1
+          tar -xJf blender-5.2.0-linux-x64.tar.xz -C blender-runtime --strip-components=1
           ./blender-runtime/blender --background --factory-startup --python-expr 'import bpy; print("VERIFIED BLENDER:", bpy.app.version_string)'
 
       - name: Prepare masked artwork layers
