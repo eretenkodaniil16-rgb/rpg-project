@@ -8,10 +8,11 @@ import argparse
 from pathlib import Path
 import sys
 import bpy
+ROOT=Path(__file__).resolve().parent
+sys.path.insert(0,str(ROOT))
 import v44
 import v45_birds as birds
 
-ROOT=Path(__file__).resolve().parent
 OUT=ROOT/"renders_v45"
 OUT.mkdir(exist_ok=True,parents=True)
 
