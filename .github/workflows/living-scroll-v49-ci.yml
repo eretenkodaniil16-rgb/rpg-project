@@ -1,0 +1,111 @@
+name: Living Scroll V4.9 — Watercolor Ink and Seamless Petal Handoff
+
+on:
+  push:
+    branches: [art/living-scroll-v4-8-petal-bird-morph]
+    paths:
+      - 'living_scroll_v4/**'
+      - '.github/workflows/living-scroll-v49-ci.yml'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'probe, smoke or full'
+        type: choice
+        options: [probe, smoke, full]
+        default: smoke
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: living-scroll-v49-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  hero-lotus:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 165
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install deterministic image generation and Blender libraries
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check Pillow==11.3.0 numpy==2.2.6
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends xvfb libgl1 libxi6 libxrender1 libxkbcommon-x11-0 libsm6 ffmpeg
+      - name: Validate source and generate painted texture layers
+        run: |
+          set -euo pipefail
+          python -m py_compile living_scroll_v3/generate_assets.py living_scroll_v3/blender_scene.py living_scroll_v4/scene.py living_scroll_v4/v42.py living_scroll_v4/v42_art.py living_scroll_v4/v43.py living_scroll_v4/v44_lotus.py living_scroll_v4/v44.py living_scroll_v4/v45_birds.py living_scroll_v4/v45.py living_scroll_v4/v46_birds.py living_scroll_v4/v46.py living_scroll_v4/v47_morph.py living_scroll_v4/v47.py living_scroll_v4/v48_morph.py living_scroll_v4/v48.py living_scroll_v4/v49_ink.py living_scroll_v4/v49.py
+          python living_scroll_v3/generate_assets.py
+          python living_scroll_v4/v42_art.py
+          test -s living_scroll_v3/assets/landscape_master.png
+      - name: Download and checksum Blender 5.2.0 LTS
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/blender-5.2.0-linux-x64.tar.xz"
+          curl -fL --retry 3 -o "$archive" https://download.blender.org/release/Blender5.2/blender-5.2.0-linux-x64.tar.xz
+          echo "96f6c181a30f4950607839dc84d42a354b250d8a0231b098b59b7bc69c351c48  $archive" | sha256sum --check
+          mkdir -p "$RUNNER_TEMP/blender-runtime"
+          tar -xJf "$archive" -C "$RUNNER_TEMP/blender-runtime"
+          blender="$(find "$RUNNER_TEMP/blender-runtime" -type f -name blender -perm -111 | head -n 1)"
+          test -n "$blender"
+          echo "BLENDER_EXE=$blender" >> "$GITHUB_ENV"
+          xvfb-run -a "$blender" --background --factory-startup --python-exit-code 1 --python-expr 'import bpy; print("Blender",bpy.app.version_string)'
+      - name: Build matte pigment, 8 stills and 48 genuine contiguous frames
+        shell: bash
+        env:
+          RENDER_MODE: ${{ inputs.mode || 'smoke' }}
+        run: |
+          set -euo pipefail
+          case "$RENDER_MODE" in probe|smoke|full) ;; *) exit 3;; esac
+          xvfb-run -a "$BLENDER_EXE" --background --factory-startup --python-exit-code 1 --python living_scroll_v4/v49.py -- --"$RENDER_MODE" 2>&1 | tee blender_v49.log
+          test -s living_scroll_v4/living_scroll_v49.blend
+          if [ "$RENDER_MODE" = smoke ]; then
+            test "$(find living_scroll_v4/renders_v49/stills -name 'smoke_*.png' | wc -l)" -eq 8
+            test "$(find living_scroll_v4/renders_v49/clip -name 'clip_*.png' | wc -l)" -eq 48
+            ffmpeg -hide_banner -loglevel error -y -framerate 24 -start_number 132 -i living_scroll_v4/renders_v49/clip/clip_%04d.png -frames:v 48 -c:v libx264 -crf 19 -pix_fmt yuv420p -movflags +faststart living_scroll_v4/v49_morph_preview.mp4
+            test -s living_scroll_v4/v49_morph_preview.mp4
+            ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1 living_scroll_v4/v49_morph_preview.mp4
+          elif [ "$RENDER_MODE" = full ]; then
+            test -s living_scroll_v4/renders_v49/frame_0288.png
+            ffmpeg -y -hide_banner -loglevel error -framerate 24 -start_number 1 -i living_scroll_v4/renders_v49/frame_%04d.png -c:v libx264 -crf 19 -pix_fmt yuv420p -movflags +faststart living_scroll_v4/living_scroll_v49.mp4
+            ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1 living_scroll_v4/living_scroll_v49.mp4
+          fi
+      - name: Contact sheet for eight film-transition checkpoints
+        if: success() && (github.event_name != 'workflow_dispatch' || inputs.mode == 'smoke')
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from PIL import Image,ImageDraw
+          folder=Path('living_scroll_v4/renders_v49/stills')
+          paths=sorted(folder.glob('smoke_*.png'))
+          if len(paths)!=8:raise SystemExit('Expected 8 smoke images')
+          w,h=360,640
+          sheet=Image.new('RGB',(4*(w+22),2*(h+50)),(240,233,219))
+          draw=ImageDraw.Draw(sheet)
+          for i,path in enumerate(paths):
+              im=Image.open(path).convert('RGB')
+              x=(i%4)*(w+22)+11
+              y=(i//4)*(h+50)+8
+              sheet.paste(im,(x,y))
+              draw.text((x,y+h+8),path.stem,fill=(40,30,24))
+          sheet.save('living_scroll_v4/v49_contact_sheet.png',optimize=True)
+          PY
+      - name: Export editable V4.9 scene, 48-frame MP4, images and QA logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: living-scroll-v49-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            blender_v49.log
+            living_scroll_v4/living_scroll_v49.blend
+            living_scroll_v4/v49_contact_sheet.png
+            living_scroll_v4/renders_v49/stills/smoke_*.png
+            living_scroll_v4/living_scroll_v49.mp4
+            living_scroll_v4/v49_morph_preview.mp4
+            living_scroll_v4/renders_v49/clip/clip_*.png
+          if-no-files-found: warn
+          retention-days: 14
