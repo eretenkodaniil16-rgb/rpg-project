@@ -12,8 +12,8 @@
 
 2. **V4.2 morph controller — `v42.py`**
    - Preserves the full editable V4 3D lotus, birds, architecture, camera and scroll.
-   - Adds **172 moving ink dabs**, initially distributed around the blooming lotus; their paths redistribute toward the seven bird trajectories, then fade.
-   - Adds **15 controlled sweeping ink-curve strokes** with Blender's bevel-factor animation and **35 atmospheric brush fibers**.
+   - Adds **96 moving ink dabs**, initially distributed around the blooming lotus; their paths redistribute toward the seven bird trajectories, then fade.
+   - Adds **8 controlled sweeping ink-curve strokes** with Blender's bevel-factor animation and **24 atmospheric brush fibers**.
    - The particle system is keyframed, reproducible and not a generic crossfade. It is, however, a stylized redistribution of pigment **rather than a mathematically continuous topology-preserving petal-to-bird mesh morph**.
 
 ## Time checkpoints / QA
@@ -32,7 +32,7 @@
 
 ## Quality gates
 
-- GitHub CI passes `python -m py_compile`, deterministic artwork generation, Blender 5.2 SHA verification, object-contract validation and nine actual EEVEE smoke renders.
+- GitHub CI passes `python -m py_compile`, deterministic artwork generation, Blender 5.2 SHA verification, object-contract validation and nine actual EEVEE smoke renders (verified in run 41212702314, CI packaging path then corrected).
 - Inspect the downloaded PNG contact sheet; high contrast alone is **not** acceptance. Specific attention to pigment density, organic ridges, contrast, feathered mist, birds and frame crop.
 - Do not trigger a full 288-frame render until smoke frames pass. Next iteration should pursue illustrated master assets and improved continuous shape morph if still visibly schematic.
 
