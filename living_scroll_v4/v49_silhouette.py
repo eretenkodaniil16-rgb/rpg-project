@@ -40,6 +40,36 @@ def destination(index,ordinal):
     return (x*math.cos(angle)-z*math.sin(angle), y,
             x*math.sin(angle)+z*math.cos(angle))
 
+def retime_flock():
+    """Delay separate visible birds until their petal carriers are nearly ink.
+
+    Keep all animated 3D flight paths and individual scale factors from V4.6;
+    re-key only the scale channel. Each bird becomes prominent near the end
+    of its own physical petal trajectory, rather than flying early in parallel.
+    """
+    from v46_birds import SCALE_FACTORS
+    scene=bpy.context.scene
+    for i in range(BIRDS):
+        rig=bpy.data.objects.get("BIRD_%02d_RIG"%i)
+        if rig is None:
+            raise RuntimeError("Missing original flight rig "+str(i))
+        factor=SCALE_FACTORS[i]
+        for f,normalized in (
+                (1,.001),(112+3*i,.001),(148+3*i,.001),
+                (159+i,.001),(168+i,.24),(178+i//2,.47),
+                (210,.65),(288,.55)):
+            scale=max(.0001,normalized*factor)
+            rig.scale=(scale,scale,scale)
+            rig.keyframe_insert(data_path="scale",frame=f)
+    scene.frame_set(155)
+    if any(max(bpy.data.objects["BIRD_%02d_RIG"%i].scale)>.025 for i in range(BIRDS)):
+        raise RuntimeError("Independent birds appear too early")
+    scene.frame_set(185)
+    if any(max(bpy.data.objects["BIRD_%02d_RIG"%i].scale)<.10 for i in range(BIRDS)):
+        raise RuntimeError("Retimed flock did not emerge")
+    scene.frame_set(1)
+    return {'flight_paths_preserved':BIRDS,'retimed_bird_scale_tracks':BIRDS}
+
 def build():
     collection=[]
     for i in range(BIRDS):
@@ -60,6 +90,7 @@ def build():
         if not all(math.isfinite(v) for point in points for v in point):
             raise RuntimeError('Invalid final vertex coordinate')
         collection.append(carrier.name)
+    timing=retime_flock()
     scene=bpy.context.scene
     scene.frame_set(165)
     if any(bpy.data.objects[n].data.shape_keys.key_blocks['Ink_Wing'].value<.99 for n in collection):
@@ -67,4 +98,4 @@ def build():
     scene.frame_set(1)
     print('V49_FORKED_SWALLOW_INBETWEEN_QA_PASS',len(collection),flush=True)
     return {'new_full_span_forked_silhouettes':len(collection),
-            'retained_carrier_vertices_per_bird':650}
+            'retained_carrier_vertices_per_bird':650, **timing}
