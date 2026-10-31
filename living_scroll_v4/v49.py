@@ -13,6 +13,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import v48
 import v49_ink
+import v49_handoff
 
 OUT = HERE / 'renders_v49'
 STILLS = OUT / 'stills'
@@ -28,6 +29,7 @@ def render_frame(scene, frame, path):
 def build(mode):
     v48.build('probe')
     metrics = v49_ink.build()
+    metrics.update(v49_handoff.build())
     scene = bpy.context.scene
     if (scene.frame_end, scene.render.fps) != (288, 24):
         raise RuntimeError('Original 12-second, 24fps timeline changed')
