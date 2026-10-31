@@ -15,6 +15,7 @@ import v48
 import v49_ink
 import v49_handoff
 import v49_silhouette
+import v49_painterly
 
 OUT = HERE / 'renders_v49'
 STILLS = OUT / 'stills'
@@ -30,6 +31,7 @@ def render_frame(scene, frame, path):
 def build(mode):
     v48.build('probe')
     metrics = v49_ink.build()
+    metrics.update(v49_painterly.build())
     metrics.update(v49_silhouette.build())
     metrics.update(v49_handoff.build())
     scene = bpy.context.scene
