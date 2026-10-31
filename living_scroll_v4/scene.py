@@ -237,7 +237,7 @@ def pavilion(tag,origin,scale=1.0):
         roof_faces=[(j,j+1,j+1+len(X),j+len(X)) for j in range(len(X)-1)]
         mesh_object(tag+"_Roof_Slopes_%d"%tier,roof_verts,roof_faces,under,group,root)
         line(tag+"_Roof_Eaves_%d"%tier,
-             [(x,yf-.015,z-.15) for x,z in zip(X)],highlights,.015,group,root)
+             [(x,yf-.015,z-.15) for x,z in zip(X,Z)],highlights,.015,group,root)
         if tier==0:
             cube("Upper_Story",(0,0,1.18),(.61,.39,.51),timber)
             for px in (-.28,.28):
