@@ -103,7 +103,7 @@ def feather(name,root,p0,p1,width,mat,curvature=.04):
     perpendicular=(-dz/norm, dx/norm)
     for j in range(longitudinal):
         s=j/(longitudinal-1)
-        w=width*math.sin(math.pi*(s*.91+.035))**.65
+        w=width*(max(.003,1-s)**.66)*math.sin(math.pi*(s*.93+.035))**.52
         for k in range(transversal):
             u=2*k/(transversal-1)-1
             verts.append((
@@ -143,8 +143,8 @@ def make_bird(idx,mats):
                     .038,dark,.013)
         streamer=feather(name+"_FORK_STREAMER_%+d"%side,root,
                     (side*.047,-.005,-.33),
-                    (side*(.37+R.uniform(-.05,.09)),-.01,-.95-R.uniform(-.02,.15)),
-                    .030,wing,.022)
+                    (side*(.30+R.uniform(-.06,.05)),-.01,-.88-R.uniform(-.03,.14)),
+                    .019,wing,.036)
     for side in (-1,1):
         code="L" if side<0 else "R"
         wingroot=bpy.data.objects.get("BIRD_%02d_WING_%s"%(idx,code))
@@ -160,20 +160,21 @@ def make_bird(idx,mats):
         # Secondary articulation, subtle flaps & sweep. Avoid 100% synchronous wings.
         for f in range(1,289,5):
             phase=idx*.73 + (0.24 if side>0 else 0.0)
-            hand.rotation_euler[1]=side*(.09+.18*math.sin(f*.27+phase))
+            hand.rotation_euler[1]=side*(.07+.15*math.sin(f*.27+phase))
             hand.rotation_euler[0]=.05*math.cos(f*.20+phase)
             hand.keyframe_insert("rotation_euler",frame=f)
         for n in range(12):
             t=n/11
             origin=(side*(.025+t*.41),-.022,.018-.13*t)
-            end=(side*(.17+t*.64),-.035,.23-.18*t + .032*math.sin(n*.58))
-            width=.045*(1-.43*t)
+            end=(side*(.19+t*(.59+.04*math.sin(idx*.7+n*.75))),-.035,
+                 .205-.18*t + .055*math.sin(n*.92+idx*.64))
+            width=.041*(1-.36*t)*(1+.13*math.sin(n*1.8+idx*.35))
             feather(name+"_PRIMARY_%s_%02d"%(code,n),hand,
                     origin,end,width,wing,.028+R.uniform(-.01,.02))
         for n in range(8):
             t=n/7
-            origin=(side*(.07+.33*t),.008,-.015-.045*t)
-            end=(side*(.15+.43*t),.035,-.22-.08*t)
+            origin=(side*(.07+.33*t),.008,-.015-.055*t)
+            end=(side*(.15+.43*t),.035,-.205-.08*t + .015*math.sin(idx*.51+n))
             feather(name+"_SECONDARY_%s_%02d"%(code,n),wingroot,
                     origin,end,.039,secondaries,.016)
         # Narrow ink-sheened leading edge, visible at 360px and bird closeups.
@@ -181,9 +182,10 @@ def make_bird(idx,mats):
              (side*.075,-.041,.075),(side*.57,-.029,.145),.048,dark,.025)
     # Subtle independent bank and pitch across flock.
     for frame in (1,118+idx*2,160+idx*2,198+idx*2,249,288):
-        angle=.08*math.sin(frame*.035+idx*.91)
+        angle=.15*math.sin(frame*.039+idx*.91)+.065*((idx%3)-1)
         root.rotation_euler[1]=angle
-        root.rotation_euler[0]=.035*math.sin(frame*.044+idx*1.14)
+        root.rotation_euler[0]=.13*math.sin(frame*.028+idx*.72)
+        root.rotation_euler[2]=.13*math.sin(frame*.031+idx*.81)
         root.keyframe_insert("rotation_euler",frame=frame)
     return root
 
@@ -199,10 +201,10 @@ def build():
     if hidden<28:raise RuntimeError("Unexpectedly few legacy bird meshes: "+str(hidden))
     mats=(
        material("V45_Iridescent_Indigo_Ink",(.036,.065,.076),.53,.13),
-       material("V45_Buff_Ventral",(.79,.72,.58),.82,.0),
-       material("V45_Flight_Feathers",(.068,.10,.108),.79,.035),
-       material("V45_Secondary_Feathers",(.15,.18,.17),.88,.01),
-       material("V45_Rufous_Throat",(.43,.17,.105),.81,0),
+       material("V45_Buff_Ventral",(.66,.61,.51),.86,.0),
+       material("V45_Flight_Feathers",(.059,.082,.090),.85,.020),
+       material("V45_Secondary_Feathers",(.13,.15,.14),.91,.008),
+       material("V45_Rufous_Throat",(.36,.15,.090),.89,0),
        material("V45_Glassy_Eye",(.013,.016,.021),.13,.0),
        material("V45_Fine_Beak",(.10,.070,.054),.82,0))
     rigs=[make_bird(i,mats) for i in range(7)]
