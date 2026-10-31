@@ -130,9 +130,8 @@ def build():
         factors.append(adapt_animation(idx,rig))
     soften_transition()
     visible=[o for o in coll().objects if o.type=="MESH" and not o.hide_render]
-    if len(visible)!=28: # 7*(torso,head,tail,left-wing,right-wing)=35
-        if len(visible)!=35:
-            raise RuntimeError("Expected 35 visible painterly silhouette meshes; found "+str(len(visible)))
+    if len(visible)!=35:
+        raise RuntimeError("Expected 35 visible painterly silhouette meshes; found "+str(len(visible)))
     print("V46_SMALL_FLOCK_QA",len(visible),"silhouette meshes",old_meshes,
           "hero meshes hidden; relative scales",factors)
     return {"bird_count":7,"silhouette_meshes":len(visible),
