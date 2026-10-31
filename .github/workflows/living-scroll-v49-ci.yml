@@ -2,7 +2,7 @@ name: Living Scroll V4.9 — Watercolor Ink and Seamless Petal Handoff
 
 on:
   push:
-    branches: [art/living-scroll-v4-8-petal-bird-morph]
+    branches: [art/living-scroll-v4-9-watercolor-handoff]
     paths:
       - 'living_scroll_v4/**'
       - '.github/workflows/living-scroll-v49-ci.yml'
