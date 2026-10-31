@@ -29,11 +29,11 @@ def diamond_mesh():
 
 def scatter_to_birds():
     collection=v4.coll("V42_09_INK_MORPH")
-    carbon=v4.em("MORPH_Carbon_Stipples",(.023,.031,.028))
+    carbon=v4.em("MORPH_Carbon_Stipples",(.073,.084,.078))
     mid=v4.em("MORPH_Dry_Brush",(.13,.16,.14))
     cinnabar=v4.em("MORPH_Cinnabar_Dust",(.64,.16,.10))
     mesh=diamond_mesh()
-    N=172
+    N=96
     for i in range(N):
         a=(2*math.pi*i/N)+R.uniform(-.11,.11)
         radial=R.uniform(.22,1.60)*(.76+.24*math.cos(i*.18))
@@ -63,11 +63,11 @@ def scatter_to_birds():
         # Temporal distribution intentionally overlaps lotus collapse (frames 139-175).
         times=[
           (115,(x0,y0,z0),.001),
-          (128+(i%8),(x0,y0,z0),.029+R.random()*.055),
-          (150+(i%9),(x0*.85,y0-.03,z0+.13),.045+R.random()*.065),
-          (176+(i%12),target,.055+R.random()*.07),
-          (209,target2,.022+R.random()*.03),
-          (236,target2,.001)
+          (128+(i%8),(x0,y0,z0),.014+R.random()*.025),
+          (150+(i%9),(x0*.52+target[0]*.48,y0-.06,z0*.56+target[2]*.44),.020+R.random()*.035),
+          (176+(i%12),target,.025+R.random()*.04),
+          (209,target2,.012+R.random()*.02),
+          (225,target2,.001)
         ]
         for frame,pos,scale in times:
             ob.location=pos
@@ -77,7 +77,7 @@ def scatter_to_birds():
         for f,az in [(125,0),(168,R.uniform(-2.7,2.7)),(218,R.uniform(-1.0,1.0))]:
             ob.rotation_euler[1]=az;ob.keyframe_insert("rotation_euler",frame=f)
     # Additional separated broad ink brush arcs—curves remain in 3D.
-    for i in range(15):
+    for i in range(8):
         ang=2*math.pi*(i+.25)/15
         a=math.cos(ang);b=math.sin(ang)
         pts=[]
@@ -100,11 +100,22 @@ def scatter_to_birds():
         ob=bpy.data.objects.new("MORPH_BRUSH_STROKE_%02d"%i,cu)
         collection.objects.link(ob)
         cu.materials.append(carbon)
-        for f,v in [(1,0.0),(120,0.0),(147,1.0),(172,1.0),(202,0.0)]:
+        for f,v in [(1,0.0),(120,0.0),(147,1.0),(167,1.0),(192,0.0),(220,0.0)]:
             cu.bevel_factor_end=v;cu.keyframe_insert("bevel_factor_end",frame=f)
-        for f,v in [(1,0.0),(162,0.0),(198,1.0)]:
-            cu.bevel_factor_start=v;cu.keyframe_insert("bevel_factor_start",frame=f)
+        # The whole curve disappears before the final landscape and scroll shots.
+        for f,sc in [(1,.001),(128,.001),(143,1.0),(168,1.0),(194,.001),(288,.001)]:
+            ob.scale=(sc,sc,sc)
+            ob.keyframe_insert("scale",frame=f)
     return N
+
+def spread_flock():
+    group="V42_09_INK_MORPH"
+    for i in range(7):
+        rig=bpy.data.objects.get("BIRD_%02d_RIG"%i)
+        if rig is None:raise RuntimeError("Missing bird rig %s"%i)
+        offset=v4.new_empty("BIRD_%02d_COMPOSITION_OFFSET"%i,group)
+        offset.location=((i%4-1.5)*.26,0,(i//4-.5)*.31)
+        rig.parent=offset
 
 def add_sky_ink_particles():
     group=v4.coll("V42_10_PAPER_SPARKS")
@@ -114,7 +125,7 @@ def add_sky_ink_particles():
                     [],[(0,1,2)])
     mesh.update()
     mesh.materials.append(carbon)
-    for i in range(35):
+    for i in range(24):
         ob=bpy.data.objects.new("FIBER_%03d"%i,mesh)
         group.objects.link(ob)
         x=R.uniform(-2.4,2.4);z=R.uniform(-3.7,3.8)
@@ -140,6 +151,7 @@ def main(smoke=False,full=False):
     if not (HERE.parent/"living_scroll_v3"/"assets"/"far_mountains.png").exists():
         raise SystemExit("Run V3 generate_assets.py then v42_art.py before Blender.")
     v4.build(False,False)
+    spread_flock()
     n=scatter_to_birds()
     add_sky_ink_particles()
     validate(n)
