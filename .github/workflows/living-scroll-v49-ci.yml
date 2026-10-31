@@ -37,7 +37,7 @@ jobs:
       - name: Validate source and generate painted texture layers
         run: |
           set -euo pipefail
-          python -m py_compile living_scroll_v3/generate_assets.py living_scroll_v3/blender_scene.py living_scroll_v4/scene.py living_scroll_v4/v42.py living_scroll_v4/v42_art.py living_scroll_v4/v43.py living_scroll_v4/v44_lotus.py living_scroll_v4/v44.py living_scroll_v4/v45_birds.py living_scroll_v4/v45.py living_scroll_v4/v46_birds.py living_scroll_v4/v46.py living_scroll_v4/v47_morph.py living_scroll_v4/v47.py living_scroll_v4/v48_morph.py living_scroll_v4/v48.py living_scroll_v4/v49_ink.py living_scroll_v4/v49_handoff.py living_scroll_v4/v49.py
+          python -m py_compile living_scroll_v3/generate_assets.py living_scroll_v3/blender_scene.py living_scroll_v4/scene.py living_scroll_v4/v42.py living_scroll_v4/v42_art.py living_scroll_v4/v43.py living_scroll_v4/v44_lotus.py living_scroll_v4/v44.py living_scroll_v4/v45_birds.py living_scroll_v4/v45.py living_scroll_v4/v46_birds.py living_scroll_v4/v46.py living_scroll_v4/v47_morph.py living_scroll_v4/v47.py living_scroll_v4/v48_morph.py living_scroll_v4/v48.py living_scroll_v4/v49_ink.py living_scroll_v4/v49_handoff.py living_scroll_v4/v49_motion_qa.py living_scroll_v4/v49.py
           python living_scroll_v3/generate_assets.py
           python living_scroll_v4/v42_art.py
           test -s living_scroll_v3/assets/landscape_master.png
@@ -68,6 +68,7 @@ jobs:
             test "$(find living_scroll_v4/renders_v49/clip -name 'clip_*.png' | wc -l)" -eq 48
             ffmpeg -hide_banner -loglevel error -y -framerate 24 -start_number 132 -i living_scroll_v4/renders_v49/clip/clip_%04d.png -frames:v 48 -c:v libx264 -crf 19 -pix_fmt yuv420p -movflags +faststart living_scroll_v4/v49_morph_preview.mp4
             test -s living_scroll_v4/v49_morph_preview.mp4
+            python living_scroll_v4/v49_motion_qa.py
             ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1 living_scroll_v4/v49_morph_preview.mp4
           elif [ "$RENDER_MODE" = full ]; then
             test -s living_scroll_v4/renders_v49/frame_0288.png
@@ -103,6 +104,7 @@ jobs:
             blender_v49.log
             living_scroll_v4/living_scroll_v49.blend
             living_scroll_v4/v49_contact_sheet.png
+            living_scroll_v4/v49_frame_metrics.json
             living_scroll_v4/renders_v49/stills/smoke_*.png
             living_scroll_v4/living_scroll_v49.mp4
             living_scroll_v4/v49_morph_preview.mp4
