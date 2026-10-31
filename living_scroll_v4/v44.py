@@ -44,6 +44,12 @@ def build(probe=False,smoke=False,full=False):
     details=lotus.build(parent)
     if details["petals"]!=28 or details["stamens"]!=84:
         raise RuntimeError("V4.4 lotus topology contract broken")
+    # Keep the blossom's physical disassembly coordinated with the V4.3 ink flock.
+    hero=bpy.data.objects[details["root"]]
+    for fr,sz in ((1,1.0),(120,1.0),(138,.99),(149,.85),
+                  (155,.69),(164,.43),(174,.12),(183,.001),(288,.001)):
+        hero.scale=(sz,sz,sz)
+        hero.keyframe_insert(data_path="scale",frame=fr)
     new_petals=[o for o in bpy.data.objects if o.name.startswith("V44_LOTUS_R") and o.type=="MESH"]
     if len(new_petals)!=28:
         raise RuntimeError("Expected 28 distinct editable V4.4 petals")
@@ -72,14 +78,25 @@ def build(probe=False,smoke=False,full=False):
         scene.render.filepath=str(OUT/(("smoke_%03d"%f) if smoke else ("frame_%04d"%f)))
         bpy.ops.render.render(write_still=True)
     if smoke:
+        # A separate camera datablock avoids animated ortho_scale overriding the
+        # artistic QA zoom during scene evaluation.
+        original_camera=scene.camera
+        detail_camera=original_camera.copy()
+        detail_camera.data=original_camera.data.copy()
+        scene.collection.objects.link(detail_camera)
+        detail_camera.name="QA_Closeup_IndependentCamera"
+        detail_camera.animation_data_clear()
+        detail_camera.data.animation_data_clear()
+        detail_camera.data.ortho_scale=4.15
+        detail_camera.location=(0,-13,0)
+        scene.camera=detail_camera
         for f in (88,115):
             scene.frame_set(f)
-            camera=scene.camera
-            original=camera.data.ortho_scale
-            camera.data.ortho_scale=4.15
+            detail_camera.data.ortho_scale=4.15
             scene.render.filepath=str(OUT/("detail_%03d"%f))
             bpy.ops.render.render(write_still=True)
-            scene.frame_set(f+1)  # restore evaluated animated ortho scale
+        scene.camera=original_camera
+        bpy.data.objects.remove(detail_camera,do_unlink=True)
     print("V44_RENDER_COMPLETE",file)
 
 if __name__=="__main__":
