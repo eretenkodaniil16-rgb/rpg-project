@@ -157,6 +157,17 @@ def make_bird(idx,mats):
             [(0,1,4),(1,2,3,4)],dark,wingroot)
         hand=add_object(name+"_CARPOMETACARPAL_%s"%code,None,wingroot)
         hand.location=(side*.49,-.002,.075)
+        # Anatomically inspired overlapping covert sheet joins the articulated
+        # feather roots into a continuous, smooth wing. It is curved in depth
+        # and deliberately stops before the outer primaries.
+        cover_coords=[
+            (0,-.052,.070),(.14,-.055,.132),(.32,-.048,.160),
+            (.53,-.046,.118),(.66,-.035,.067),(.64,-.010,-.019),
+            (.45,-.001,-.095),(.22,-.004,-.076),(.06,-.035,-.007)]
+        cover=[(side*x,y,z) for x,y,z in cover_coords]
+        mesh(name+"_ALULA_COVERT_%s"%code,cover,
+             [(0,1,8),(1,2,7,8),(2,3,6,7),(3,4,5,6)],
+             dark,hand)
         # Secondary articulation, subtle flaps & sweep. Avoid 100% synchronous wings.
         for f in range(1,289,5):
             phase=idx*.73 + (0.24 if side>0 else 0.0)
@@ -166,9 +177,9 @@ def make_bird(idx,mats):
         for n in range(12):
             t=n/11
             origin=(side*(.025+t*.41),-.022,.018-.13*t)
-            end=(side*(.19+t*(.59+.04*math.sin(idx*.7+n*.75))),-.035,
-                 .205-.18*t + .055*math.sin(n*.92+idx*.64))
-            width=.041*(1-.36*t)*(1+.13*math.sin(n*1.8+idx*.35))
+            end=(side*(.19+t*.61+.018*math.sin(idx*.7+n*.75)),-.035,
+                 .205-.18*t + .026*math.sin(n*.92+idx*.64))
+            width=.077*(1-.24*t)*(1+.065*math.sin(n*1.8+idx*.35))
             feather(name+"_PRIMARY_%s_%02d"%(code,n),hand,
                     origin,end,width,wing,.028+R.uniform(-.01,.02))
         for n in range(8):
@@ -176,7 +187,7 @@ def make_bird(idx,mats):
             origin=(side*(.07+.33*t),.008,-.015-.055*t)
             end=(side*(.15+.43*t),.035,-.205-.08*t + .015*math.sin(idx*.51+n))
             feather(name+"_SECONDARY_%s_%02d"%(code,n),wingroot,
-                    origin,end,.039,secondaries,.016)
+                    origin,end,.055,secondaries,.016)
         # Narrow ink-sheened leading edge, visible at 360px and bird closeups.
         feather(name+"_LEADING_EDGE_%s"%code,wingroot,
              (side*.075,-.041,.075),(side*.57,-.029,.145),.048,dark,.025)
