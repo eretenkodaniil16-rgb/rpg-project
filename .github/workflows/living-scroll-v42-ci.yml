@@ -90,7 +90,7 @@ jobs:
           python - <<'PY'
           from PIL import Image, ImageDraw
           from pathlib import Path
-          paths=sorted(Path("living_scroll_v4/renders").glob("smoke_*.png"))
+          paths=sorted(Path("living_scroll_v4/renders_v42").glob("smoke_*.png"))
           if not paths:raise SystemExit("Full render: skip preview sheet")
           width,height=360,640
           sheet=Image.new("RGB",(3*(width+20),3*(height+54)),(238,230,215))
