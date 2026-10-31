@@ -76,7 +76,7 @@ jobs:
           xvfb-run -a "$BLENDER_EXE" -b --factory-startup --python-exit-code 1 --python living_scroll_v4/v42.py -- --$RENDER_MODE 2>&1 | tee blender_v4.log
           test -s living_scroll_v4/living_scroll_v42.blend
           if [ "$RENDER_MODE" = smoke ]; then
-            test "$(find living_scroll_v4/renders -name 'smoke_*.png' | wc -l)" -eq 9
+            test "$(find living_scroll_v4/renders_v42 -name 'smoke_*.png' | wc -l)" -eq 9
           else
             test -s living_scroll_v4/renders_v42/frame_0288.png
             ffmpeg -hide_banner -loglevel error -y -framerate 24 -start_number 1 -i living_scroll_v4/renders_v42/frame_%04d.png -c:v libx264 -pix_fmt yuv420p -crf 19 -movflags +faststart living_scroll_v4/the_living_scroll_v42.mp4
