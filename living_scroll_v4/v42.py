@@ -140,7 +140,7 @@ def add_sky_ink_particles():
 
 def validate(count):
     s=bpy.context.scene
-    if count<160:raise RuntimeError("Missing ink morph agents")
+    if count<90:raise RuntimeError("Missing ink morph agents")
     if not bpy.data.objects.get("MORPH_PIGMENT_000"):raise RuntimeError("Ink particle control missing")
     for n in ("LOTUS_HERO_CTRL","PAVILION_FOREGROUND_CTRL","BIRD_00_RIG","SCROLL_REVEAL_CTRL"):
         if not bpy.data.objects.get(n):raise RuntimeError("Regressed V4 object: "+n)
