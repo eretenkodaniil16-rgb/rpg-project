@@ -44,6 +44,15 @@ def render(scene,frame):
     scene.render.filepath=str(OUT/("handoff_%03d"%frame))
     bpy.ops.render.render(write_still=True)
 
+def render_detail(scene,frame):
+    """Film-composition checkpoint in native smoke preview resolution."""
+    scene.frame_set(frame)
+    scene.render.resolution_percentage=100
+    scene.render.resolution_x=360
+    scene.render.resolution_y=640
+    scene.render.filepath=str(OUT/("detail_%03d"%frame))
+    bpy.ops.render.render(write_still=True)
+
 def main():
     v49.build("probe")
     scene=bpy.context.scene
@@ -112,6 +121,9 @@ def main():
         print("V49_REAL_STORYBOARD_FRAME",f,flush=True)
     (OUT/"storyboard_report.json").write_text(
         json.dumps(storyboard,indent=2)+"\n",encoding="utf-8")
+    for f in (153,165,175):
+        render_detail(scene,f)
+        print("V495_CINEMATIC_DETAIL_FRAME",f,flush=True)
     print("V49_FAST_QA_DONE",flush=True)
 
 if __name__=="__main__":
