@@ -1,0 +1,112 @@
+name: Living Scroll V4.9.7 — Genuine 24fps Motion Smoke
+on:
+  push:
+    branches: [art/living-scroll-v497-petal-dissolve]
+    paths:
+      - 'living_scroll_v4/**'
+      - '.github/workflows/living-scroll-v497-motion.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: living-scroll-v497-motion-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  morph-motion:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 110
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install reproducible image and render dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check Pillow==11.3.0 numpy==2.2.6
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends xvfb libgl1 libxi6 libxrender1 libxkbcommon-x11-0 libsm6 ffmpeg
+      - name: Validate modules and generate watercolor landscape
+        run: |
+          set -euo pipefail
+          python -m py_compile living_scroll_v4/v497_motion_preview.py living_scroll_v4/v493_slender_morph.py living_scroll_v4/v494_dissolve.py living_scroll_v4/v495_staggered_swallows.py living_scroll_v4/v496_folded_ribbon.py living_scroll_v4/v497_ink_release.py living_scroll_v4/v49.py living_scroll_v4/v49_painterly.py living_scroll_v4/v49_handoff.py
+          python living_scroll_v3/generate_assets.py
+          python living_scroll_v4/v42_art.py
+          test -s living_scroll_v3/assets/landscape_master.png
+      - name: Install pinned Blender 5.2.0 from official release
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/blender-5.2.0-linux-x64.tar.xz"
+          curl -fL --retry 3 -o "$archive" https://download.blender.org/release/Blender5.2/blender-5.2.0-linux-x64.tar.xz
+          echo "96f6c181a30f4950607839dc84d42a354b250d8a0231b098b59b7bc69c351c48  $archive" | sha256sum --check
+          mkdir -p "$RUNNER_TEMP/blender-runtime"
+          tar -xJf "$archive" -C "$RUNNER_TEMP/blender-runtime"
+          blender="$(find "$RUNNER_TEMP/blender-runtime" -type f -name blender -perm -111 | head -n 1)"
+          test -n "$blender"
+          echo "BLENDER_EXE=$blender" >> "$GITHUB_ENV"
+          xvfb-run -a "$blender" --background --factory-startup --python-exit-code 1 --python-expr 'import bpy; print("Blender",bpy.app.version_string)'
+      - name: Render 24 REAL consecutive frames from the V4.9.7 Blender scene
+        shell: bash
+        run: |
+          set -euo pipefail
+          xvfb-run -a "$BLENDER_EXE" --background --factory-startup --python-exit-code 1 --python living_scroll_v4/v497_motion_preview.py 2>&1 | tee blender_v497_motion.log
+          test "$(find living_scroll_v4/temporal_v497 -maxdepth 1 -name 'clip_*.png' | wc -l)" -eq 24
+          test -s living_scroll_v4/temporal_v497/temporal_scene_report.json
+      - name: Encode actual 24fps video and verify temporal continuity
+        run: |
+          set -euo pipefail
+          ffmpeg -hide_banner -loglevel error -y -framerate 24 -start_number 150 -i living_scroll_v4/temporal_v497/clip_%04d.png -frames:v 24 -c:v libx264 -preset medium -crf 16 -pix_fmt yuv420p -movflags +faststart living_scroll_v4/temporal_v497/v497_morph_24fps.mp4
+          test -s living_scroll_v4/temporal_v497/v497_morph_24fps.mp4
+          python - <<'PY'
+          import hashlib,json,statistics
+          from pathlib import Path
+          from PIL import Image,ImageChops,ImageStat,ImageDraw
+          root=Path("living_scroll_v4/temporal_v497")
+          frames=list(range(150,174))
+          loaded=[]
+          hashes=[]
+          for f in frames:
+              path=root/("clip_%04d.png"%f)
+              if path.stat().st_size<2000:raise RuntimeError("Empty Blender frame "+str(f))
+              hashes.append(hashlib.sha256(path.read_bytes()).hexdigest())
+              with Image.open(path) as im:
+                  im.load()
+                  if im.size != (144,256):raise RuntimeError("Wrong image dimensions")
+                  loaded.append(im.convert("RGB"))
+          duplicates=sum(x==y for x,y in zip(hashes,hashes[1:]))
+          if duplicates:raise RuntimeError("Identical consecutive Blender frames "+str(duplicates))
+          differences=[sum(ImageStat.Stat(ImageChops.difference(a,b)).mean)/3
+                       for a,b in zip(loaded,loaded[1:])]
+          med=statistics.median(differences)
+          if max(differences)>max(25.0,6*med+5):
+              raise RuntimeError("Possible one-frame cut or flash")
+          metrics={"frames":24,"fps":24,"first":150,"last":173,
+                   "duplicate_neighbors":0,"median_rgb_change":round(med,3),
+                   "max_rgb_change":round(max(differences),3),
+                   "per_frame_change":{str(f):round(d,3) for f,d in zip(frames[1:],differences)},
+                   "note":"Automated metric, visual motion approval required."}
+          (root/"temporal_pixel_report.json").write_text(json.dumps(metrics,indent=2)+"\n")
+          selected=[150,153,158,162,165,169,173]
+          contact=Image.new("RGB",(7*144,284),(243,235,224))
+          d=ImageDraw.Draw(contact)
+          for i,f in enumerate(selected):
+              contact.paste(loaded[f-150],(144*i,0))
+              d.text((144*i+6,261),str(f),fill=(32,32,30))
+          contact.save(root/"temporal_contact.png",optimize=True)
+          print("V497_TEMPORAL_FRAME_QA_PASS",metrics)
+          PY
+          ffprobe -v error -select_streams v:0 -show_entries stream=nb_frames,r_frame_rate,width,height,duration -of json living_scroll_v4/temporal_v497/v497_morph_24fps.mp4
+      - name: Publish Blender scene, playable MP4, 24 authentic PNGs and QA
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: living-scroll-v497-motion-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            blender_v497_motion.log
+            living_scroll_v4/living_scroll_v49.blend
+            living_scroll_v4/temporal_v497/*.png
+            living_scroll_v4/temporal_v497/*.mp4
+            living_scroll_v4/temporal_v497/*.json
+          if-no-files-found: warn
+          retention-days: 14
