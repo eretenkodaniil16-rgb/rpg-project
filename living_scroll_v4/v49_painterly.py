@@ -121,7 +121,23 @@ def watercolor(mat):
                        ("Subsurface Weight",0.0),("Specular IOR Level",.08)):
         input_=shader.inputs.get(name)
         if input_ is not None:input_.default_value=value
-    return 3
+    # Remove excessive CGI shading but preserve enough 3D relief to read the
+    # flower's sculpted volume. This is an ink-wash render experiment, not a
+    # geometry change; the source and carrier share the same material graph.
+    out=next((n for n in nodes if n.type=="OUTPUT_MATERIAL" and n.is_active_output),None)
+    if out is None:
+        raise RuntimeError("Active petal material output missing")
+    paper_light=nodes.new("ShaderNodeEmission")
+    paper_light.name="V492_Paper_Diffuse_Pigment"
+    paper_light.inputs["Strength"].default_value=.88
+    links.new(colored,paper_light.inputs["Color"])
+    shadow_wash=nodes.new("ShaderNodeMixShader")
+    shadow_wash.name="V492_Hand_Painted_Shading_Balance"
+    shadow_wash.inputs[0].default_value=.60
+    links.new(shader.outputs["BSDF"],shadow_wash.inputs[1])
+    links.new(paper_light.outputs["Emission"],shadow_wash.inputs[2])
+    links.new(shadow_wash.outputs[0],out.inputs["Surface"])
+    return 4
 
 def build():
     materials=[]
@@ -130,11 +146,11 @@ def build():
         if mat is None:
             raise RuntimeError("Missing V4.9 source material "+name)
         stages=watercolor(mat)
-        if stages!=3:
+        if stages!=4:
             raise RuntimeError("Incomplete painterly shader")
         materials.append(mat.name)
     result={"painterly_source_materials":materials,
-            "pigment_layers_per_material":3,
+            "pigment_layers_per_material":4,
             "ink_wash_preserves_original_3d_meshes":True}
     print("V49_ARTISTIC_WATERCOLOR_QA_PASS",result,flush=True)
     return result
