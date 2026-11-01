@@ -48,6 +48,12 @@ def make_flight_material(source_mat,index):
     links.new(original,blend.inputs[1])
     links.new(ink.outputs["Color"],blend.inputs[2])
     links.new(blend.outputs[0],shader.inputs["Base Color"])
+    # V4.9.2 adds a paper-lit emission layer to the source petal. Its
+    # material copy must receive the SAME ink transition as Principled BSDF,
+    # otherwise the carrier stays watercolor-colored at full morph.
+    paper=nodes.get("V492_Paper_Diffuse_Pigment")
+    if paper is not None:
+        links.new(blend.outputs[0],paper.inputs["Color"])
     # A material per carrier allows future independent offsets, and guarantees
     # an *identical* source pigment at the exact handoff (mix factor = 0).
     for frame,val in ((1,0.),(132,0.),(133,0.),(141,.06),
