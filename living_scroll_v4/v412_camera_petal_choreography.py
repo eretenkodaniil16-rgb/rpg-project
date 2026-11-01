@@ -21,7 +21,7 @@ N=7
 FRAMES=(132,133,141,145,153,159,165,170,175,182)
 # A fractional outward motion, softened on both sides of the legible frame.
 ENVELOPE={132:0.,133:0.,141:0.,145:.38,153:1.,159:.52,
-          165:.10,170:0.,175:0.,182:0.}
+          165:.018,170:0.,175:0.,182:0.}
 ROSE_KEYS=((1,0.),(132,0.),(133,0.),(141,0.),
            (145,.24),(153,.46),(159,.25),(165,0.),(288,0.))
 PX_W,PX_H=360.,640.
@@ -148,6 +148,7 @@ def build():
         raise RuntimeError("Not enough petals visibly separate from the lotus")
     scene.frame_set(165)
     lingering=max(x["projected_offset_165_px"] for x in report)
+    print("V412_PROJECTED_DETACH_REPORT",report,flush=True)
     if lingering>16.:
         raise RuntimeError("Too much screen-space detachment remains at bird emergence")
     scene.frame_set(1)
