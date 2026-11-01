@@ -70,13 +70,13 @@ def watercolor(mat):
     u=split.outputs["X"]
 
     # Larger-scale pigments: more conspicuous than V4.9's previous faint grain.
-    pooling=texture(nodes,links,uv,6.5,4.1,.78,"Dense watercolor pigment pools")
+    pooling=texture(nodes,links,uv,4.3,3.7,.76,"Dense watercolor pigment pools")
     wash=tonal_ramp(nodes,[
-        (0.0,(.56,.51,.50)),(.30,(.76,.73,.71)),
-        (.53,(.94,.93,.90)),(.78,(1.0,.99,.97)),(1.0,(1.0,1.0,1.0))
+        (0.0,(.35,.33,.34)),(.31,(.58,.55,.57)),
+        (.50,(.82,.79,.80)),(.69,(1.0,.98,.97)),(1.0,(1.0,1.0,1.0))
     ],"Pigment granulation distribution")
     links.new(pooling,wash.inputs["Fac"])
-    colored=multiply(nodes,links,base,wash.outputs["Color"],.76,"Transparent washy pigments")
+    colored=multiply(nodes,links,base,wash.outputs["Color"],.86,"Transparent washy pigments")
 
     # Darken the very outer petal edges with natural, noise-disturbed bleeding.
     center=mathnode(nodes,"SUBTRACT","UV U relative to petal midrib")
@@ -98,10 +98,10 @@ def watercolor(mat):
     links.new(perturb.outputs[0],edge.inputs[1])
     stain=tonal_ramp(nodes,[
         (0.0,(1.,1.,1.)),(.58,(1.,1.,1.)),
-        (.83,(.89,.83,.82)),(1.0,(.67,.60,.62))
+        (.83,(.85,.79,.78)),(1.0,(.57,.50,.53))
     ],"Petal rim pigment accumulation")
     links.new(edge.outputs[0],stain.inputs["Fac"])
-    colored=multiply(nodes,links,colored,stain.outputs["Color"],.69,"Ragged brush perimeter")
+    colored=multiply(nodes,links,colored,stain.outputs["Color"],.74,"Ragged brush perimeter")
 
     # Long brush fibers running in the direction of the petal veins.
     stretch=nodes.new("ShaderNodeVectorMath")
@@ -110,10 +110,10 @@ def watercolor(mat):
     links.new(uv,stretch.inputs[0])
     streak=texture(nodes,links,stretch.outputs["Vector"],1.0,2.1,.65,"Long fibrous wash")
     fibers=tonal_ramp(nodes,[
-        (0.0,(.77,.77,.76)),(.5,(.97,.98,.97)),(1.0,(1.,1.,1.))
+        (0.0,(.67,.67,.65)),(.5,(.89,.90,.88)),(1.0,(1.,1.,1.))
     ],"Drybrush fine veining")
     links.new(streak,fibers.inputs["Fac"])
-    colored=multiply(nodes,links,colored,fibers.outputs["Color"],.33,"Longitudinal drybrush")
+    colored=multiply(nodes,links,colored,fibers.outputs["Color"],.46,"Longitudinal drybrush")
 
     links.new(colored,shader.inputs["Base Color"])
     shader.inputs["Roughness"].default_value=1.0
