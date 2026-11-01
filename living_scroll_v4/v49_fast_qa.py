@@ -88,9 +88,30 @@ def main():
             "verified_timeline_frames":288,"verified_fps":24}
     (OUT/"geometry_report.json").write_text(json.dumps(report,indent=2)+"\n",encoding="utf-8")
     print("V49_GEOMETRIC_CONTINUITY_QA_PASS",report,flush=True)
-    for f in (132,133):
+    # Sample the actual transformation, not only the first handoff cut:
+    # each genuine Blender still is independently evaluated at its timeline
+    # frame; intermediate morph poses remain editable in the saved .blend.
+    storyboard=[]
+    for f in (132,133,141,153,165,175,185):
+        scene.frame_set(f)
+        carrier_ink=0
+        birds_active=0
+        wing_keys=[]
+        for i in range(7):
+            carrier=bpy.data.objects["V48_PETAL_TO_BIRD_%02d"%i]
+            bird=bpy.data.objects["BIRD_%02d_RIG"%i]
+            if not carrier.hide_render and max(carrier.scale)>.02:
+                carrier_ink+=1
+            if max(bird.scale)>.04:
+                birds_active+=1
+            wing_keys.append(float(carrier.data.shape_keys.key_blocks["Ink_Wing"].value))
+        storyboard.append({"frame":f,"visible_carrier_count":carrier_ink,
+                           "scaled_bird_rigs":birds_active,
+                           "mean_bird_shape_key":round(sum(wing_keys)/7,4)})
         render(scene,f)
-        print("V49_ADJACENT_FRAME_RENDER_OK",f,flush=True)
+        print("V49_REAL_STORYBOARD_FRAME",f,flush=True)
+    (OUT/"storyboard_report.json").write_text(
+        json.dumps(storyboard,indent=2)+"\\n",encoding="utf-8")
     print("V49_FAST_QA_DONE",flush=True)
 
 if __name__=="__main__":
