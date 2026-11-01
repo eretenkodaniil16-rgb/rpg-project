@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Living Scroll V4.9.9: independent physical trajectories for seven detached petals.
+"""Living Scroll V4.11.0: artistically varied 3D lotus-petal departures.
 
 Problem confirmed on authentic 360x640 Blender frames of V4.9.8: the entire
 flower contracts while the 7 copied exterior laminae remain visually close to
@@ -22,9 +22,9 @@ START=133
 STOP=175
 # Staggered pulse per bird, with 7 divergent directions dictated by the
 # world-space originally sampled petal centroid; do NOT invent new tracks.
-PULSE=[(133,0.0),(138,.025),(145,.16),(153,.29),(159,.22),
-       (165,.075),(170,.014),(175,0.0)]
-AMPLITUDES=(1.00,.90,1.12,1.02,.88,1.07,.94)
+PULSE=[(133,0.0),(138,.025),(145,.17),(153,.30),(159,.18),
+       (165,.026),(170,.006),(175,0.0)]
+AMPLITUDES=(2.15,1.05,1.85,.95,2.25,1.10,1.55)
 
 def horizontal_direction(point,origin,ordinal):
     vec=Vector((point.x-origin.x,0.,point.z-origin.z))
@@ -68,7 +68,7 @@ def build():
             radial=.85*AMPLITUDES[i]*amplitude
             # Slight forward separation while the petal keeps the paper-wash;
             # later the existing V4.9.7 dither releases the shadowy geometry.
-            forward=-.065*amplitude*(1+.10*(i%3))
+            forward=-.35*amplitude*(1+.10*(i%3))
             new=baseline+axis*radial+Vector((0.,forward,0.))
             obj.location=new
             obj.keyframe_insert(data_path="location",frame=frame)
@@ -76,7 +76,7 @@ def build():
             obj.location=originals[frame][i]
             obj.keyframe_insert(data_path="location",frame=frame)
         report.append({"ordinal":i,"radial_direction":[round(axis.x,4),round(axis.z,4)],
-                       "max_added_radial_offset":round(.85*AMPLITUDES[i]*.29,4)})
+                       "max_added_radial_offset":round(.85*AMPLITUDES[i]*.30,4)})
 
     for frame in (132,133,175,182):
         scene.frame_set(frame)
@@ -87,7 +87,7 @@ def build():
     scene.frame_set(153)
     spreads=[(bpy.data.objects["V48_PETAL_TO_BIRD_%02d"%i].location-
               originals[153][i]).length for i in range(BIRDS)]
-    if min(spreads)<.19 or max(spreads)>.34:
+    if min(spreads)<.22 or max(spreads)>.65:
         raise RuntimeError("V499 detach amplitude outside safe range "+str(spreads))
     scene.frame_set(165)
     remain=[(bpy.data.objects["V48_PETAL_TO_BIRD_%02d"%i].location-
