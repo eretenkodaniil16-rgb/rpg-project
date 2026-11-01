@@ -62,6 +62,7 @@ jobs:
           test -s living_scroll_v4/fast_qa_v49/handoff_132.png
           test -s living_scroll_v4/fast_qa_v49/handoff_133.png
           test "$(find living_scroll_v4/fast_qa_v49 -maxdepth 1 -name 'handoff_*.png' | wc -l)" -eq 7
+          test "$(find living_scroll_v4/fast_qa_v49 -maxdepth 1 -name 'detail_*.png' | wc -l)" -eq 3
           test -s living_scroll_v4/fast_qa_v49/geometry_report.json
       - name: Measure real rendered frame handoff
         shell: bash
@@ -111,6 +112,7 @@ jobs:
             living_scroll_v4/living_scroll_v49.blend
             living_scroll_v4/fast_qa_v49/*.json
             living_scroll_v4/fast_qa_v49/handoff_*.png
+            living_scroll_v4/fast_qa_v49/detail_*.png
             living_scroll_v4/fast_qa_v49/storyboard_contact_sheet.png
           if-no-files-found: warn
           retention-days: 14
