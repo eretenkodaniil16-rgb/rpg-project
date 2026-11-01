@@ -111,7 +111,7 @@ def main():
         render(scene,f)
         print("V49_REAL_STORYBOARD_FRAME",f,flush=True)
     (OUT/"storyboard_report.json").write_text(
-        json.dumps(storyboard,indent=2)+"\\n",encoding="utf-8")
+        json.dumps(storyboard,indent=2)+"\n",encoding="utf-8")
     print("V49_FAST_QA_DONE",flush=True)
 
 if __name__=="__main__":
