@@ -16,6 +16,7 @@ import v49_ink
 import v49_handoff
 import v49_silhouette
 import v49_painterly
+import v493_slender_morph
 
 OUT = HERE / 'renders_v49'
 STILLS = OUT / 'stills'
@@ -33,6 +34,7 @@ def build(mode):
     metrics = v49_ink.build()
     metrics.update(v49_painterly.build())
     metrics.update(v49_silhouette.build())
+    metrics.update(v493_slender_morph.build())
     metrics.update(v49_handoff.build())
     scene = bpy.context.scene
     if (scene.frame_end, scene.render.fps) != (288, 24):
