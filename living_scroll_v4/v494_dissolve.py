@@ -77,14 +77,28 @@ def build():
     root=bpy.data.objects.get("V44_HERO_LOTUS_ROOT")
     if root is None:
         raise RuntimeError("V4.4 hero root missing")
-    for f,s in ((1,1.),(120,1.),(132,1.),(138,.99),
-                (149,.94),(155,.82),(164,.57),
-                (174,.18),(183,.001),(288,.001)):
-        root.scale=(s,s,s)
+    # The carrier was sampled from the PRE-EDIT evaluated scene at frame 132.
+    # The V4.4 root had an interpolated scale at 132 (not exactly 1.0).
+    # Inserting an arbitrary 1.0 key there caused a measurable 3D jump
+    # (RMS 0.003825) despite preserving mesh topology. Capture the ORIGINAL
+    # timeline before changing any keyframes; keep 132 AND 133 identical to
+    # those values, so the material swap cannot move its source geometry.
+    original_root={}
+    for frame in (132,133,138):
+        scene.frame_set(frame)
+        original_root[frame]=tuple(float(v) for v in root.scale)
+    for f,value in ((1,1.),(120,1.),
+                    (132,original_root[132]),
+                    (133,original_root[133]),
+                    (138,original_root[138]),
+                    (149,.94),(155,.82),(164,.57),
+                    (174,.18),(183,.001),(288,.001)):
+        root.scale=(value,value,value) if isinstance(value,float) else value
         root.keyframe_insert(data_path="scale",frame=f)
-    scene.frame_set(132)
-    if abs(root.scale.x-1.)>1e-6:
-        raise RuntimeError("Root scale changed at source-carrier swap")
+    for frame in (132,133):
+        scene.frame_set(frame)
+        if max(abs(root.scale[i]-original_root[frame][i]) for i in range(3))>1e-7:
+            raise RuntimeError("Original source/carrier reference pose changed at "+str(frame))
     for i in range(7):
         carrier=bpy.data.objects.get("V48_PETAL_TO_BIRD_%02d"%i)
         if carrier is None or len(carrier.data.vertices)!=650:
@@ -101,7 +115,9 @@ def build():
             "scene_frames":scene.frame_end,"fps":scene.render.fps,
             "retained_true_bird_rigs":7,
             "first_dissolve_frame":min(a[2] for a in animated),
-            "last_dissolve_frame":max(a[3] for a in animated)}
+            "last_dissolve_frame":max(a[3] for a in animated),
+            "frozen_original_root_scale_132":list(original_root[132]),
+            "frozen_original_root_scale_133":list(original_root[133])}
     if (scene.frame_end,scene.render.fps)!=(288,24):
         raise RuntimeError("Master 12-second film timing changed")
     print("V494_21_PETAL_DISSOLVE_QA_PASS",result,flush=True)
