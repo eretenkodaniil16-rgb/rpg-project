@@ -1,0 +1,118 @@
+name: Living Scroll V4.11.0 — Expressive Staggered Petal Flight QA
+
+on:
+  push:
+    branches: [art/living-scroll-v411-expressive-detach]
+    paths:
+      - 'living_scroll_v4/**'
+      - '.github/workflows/living-scroll-v411-expressive.yml'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'probe, smoke or full'
+        type: choice
+        options: [probe, smoke, full]
+        default: smoke
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: living-scroll-v411-expressive-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  hero-lotus:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 165
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install deterministic image generation and Blender libraries
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check Pillow==11.3.0 numpy==2.2.6
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends xvfb libgl1 libxi6 libxrender1 libxkbcommon-x11-0 libsm6 ffmpeg
+      - name: Validate source and generate painted texture layers
+        run: |
+          set -euo pipefail
+          python -m py_compile living_scroll_v4/v49_fast_qa.py living_scroll_v4/v49_painterly.py living_scroll_v4/v493_slender_morph.py living_scroll_v4/v494_dissolve.py living_scroll_v4/v495_staggered_swallows.py living_scroll_v4/v496_folded_ribbon.py living_scroll_v4/v497_ink_release.py living_scroll_v4/v498_swallow_reveal.py living_scroll_v4/v499_petal_separation.py living_scroll_v4/v410_petal_pigment.py living_scroll_v3/generate_assets.py living_scroll_v3/blender_scene.py living_scroll_v4/scene.py living_scroll_v4/v42.py living_scroll_v4/v42_art.py living_scroll_v4/v43.py living_scroll_v4/v44_lotus.py living_scroll_v4/v44.py living_scroll_v4/v45_birds.py living_scroll_v4/v45.py living_scroll_v4/v46_birds.py living_scroll_v4/v46.py living_scroll_v4/v47_morph.py living_scroll_v4/v47.py living_scroll_v4/v48_morph.py living_scroll_v4/v48.py living_scroll_v4/v49_ink.py living_scroll_v4/v49_handoff.py living_scroll_v4/v49_motion_qa.py living_scroll_v4/v49_silhouette.py living_scroll_v4/v49.py
+          python living_scroll_v3/generate_assets.py
+          python living_scroll_v4/v42_art.py
+          test -s living_scroll_v3/assets/landscape_master.png
+      - name: Download and checksum Blender 5.2.0 LTS
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/blender-5.2.0-linux-x64.tar.xz"
+          curl -fL --retry 3 -o "$archive" https://download.blender.org/release/Blender5.2/blender-5.2.0-linux-x64.tar.xz
+          echo "96f6c181a30f4950607839dc84d42a354b250d8a0231b098b59b7bc69c351c48  $archive" | sha256sum --check
+          mkdir -p "$RUNNER_TEMP/blender-runtime"
+          tar -xJf "$archive" -C "$RUNNER_TEMP/blender-runtime"
+          blender="$(find "$RUNNER_TEMP/blender-runtime" -type f -name blender -perm -111 | head -n 1)"
+          test -n "$blender"
+          echo "BLENDER_EXE=$blender" >> "$GITHUB_ENV"
+          xvfb-run -a "$blender" --background --factory-startup --python-exit-code 1 --python-expr 'import bpy; print("Blender",bpy.app.version_string)'
+      - name: Validate exact world-space overlap and render 132-133 only
+        shell: bash
+        run: |
+          set -euo pipefail
+          xvfb-run -a "$BLENDER_EXE" --background --factory-startup --python-exit-code 1 --python living_scroll_v4/v49_fast_qa.py 2>&1 | tee blender_v49_fast_qa.log
+          test -s living_scroll_v4/fast_qa_v49/handoff_132.png
+          test -s living_scroll_v4/fast_qa_v49/handoff_133.png
+          test "$(find living_scroll_v4/fast_qa_v49 -maxdepth 1 -name 'handoff_*.png' | wc -l)" -eq 7
+          test "$(find living_scroll_v4/fast_qa_v49 -maxdepth 1 -name 'detail_*.png' | wc -l)" -eq 3
+          test -s living_scroll_v4/fast_qa_v49/geometry_report.json
+      - name: Measure real rendered frame handoff
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from PIL import Image,ImageChops,ImageStat
+          root=Path('living_scroll_v4/fast_qa_v49')
+          with Image.open(root/'handoff_132.png') as a, Image.open(root/'handoff_133.png') as b:
+              if a.size != (144,256) or b.size != (144,256):
+                  raise RuntimeError('Incorrect preview image size')
+              a=a.convert('RGB')
+              b=b.convert('RGB')
+              full=ImageChops.difference(a,b)
+              m=sum(ImageStat.Stat(full).mean)/3.
+              crop=full.crop((28,35,122,186))
+              local=sum(ImageStat.Stat(crop).mean)/3.
+              report={'full_mean_rgb_difference_132_133':round(m,3),
+                      'flower_roi_mean_rgb_difference_132_133':round(local,3)}
+              (root/'pixel_handoff_report.json').write_text(json.dumps(report,indent=2)+'\n')
+              print('V49_TWO_REAL_FRAMES_COMPARISON',report)
+              # Seven real timeline checkpoints rather than inferred or
+              # interpolated frames: one compositional review contact sheet.
+              frames=[132,133,141,153,165,175,185]
+              from PIL import ImageDraw
+              contact=Image.new('RGB',(7*144,256+29),(242,235,220))
+              for i,frame in enumerate(frames):
+                  path=root/('handoff_%03d.png'%frame)
+                  with Image.open(path) as image:
+                      image.load()
+                      contact.paste(image.convert('RGB'),(i*144,0))
+                  ImageDraw.Draw(contact).text((i*144+6,263),str(frame),fill=(37,34,29))
+              contact.save(root/'storyboard_contact_sheet.png')
+              print('V49_SEVEN_REAL_FRAME_STORYBOARD_PASS',frames)
+              if m>45.0:
+                  raise RuntimeError('One-frame gross scene-level appearance jump')
+          PY
+      - name: Export V4.11.0 expressive petal detachment test, images and Blender geometry report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: living-scroll-v494-dissolve-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            blender_v49_fast_qa.log
+            living_scroll_v4/living_scroll_v49.blend
+            living_scroll_v4/fast_qa_v49/*.json
+            living_scroll_v4/fast_qa_v49/handoff_*.png
+            living_scroll_v4/fast_qa_v49/detail_*.png
+            living_scroll_v4/fast_qa_v49/storyboard_contact_sheet.png
+          if-no-files-found: warn
+          retention-days: 14
