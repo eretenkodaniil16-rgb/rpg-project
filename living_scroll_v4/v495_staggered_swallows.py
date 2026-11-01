@@ -37,6 +37,12 @@ def retime_shape(key,delta):
         key.value=value
         if not key.keyframe_insert(data_path="value",frame=frame+delta):
             raise RuntimeError("Failed wing shape keyframe retiming "+str(frame+delta))
+    # Anchor the source-to-carrier material swap to the unmodified lamina.
+    # The closest shifted morph key can now be at frame 139; Blender's
+    # Bezier interpolation would otherwise show a nonzero wing already at 133.
+    key.value=0.0
+    if not key.keyframe_insert(data_path="value",frame=133):
+        raise RuntimeError("Unable to pin the exact frame-133 source lamina")
 
 def build():
     scene=bpy.context.scene
