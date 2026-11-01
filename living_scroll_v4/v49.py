@@ -23,6 +23,7 @@ import v496_folded_ribbon
 import v497_ink_release
 import v498_swallow_reveal
 import v499_petal_separation
+import v410_petal_pigment
 
 OUT = HERE / 'renders_v49'
 STILLS = OUT / 'stills'
@@ -48,6 +49,7 @@ def build(mode):
     metrics.update(v497_ink_release.build())
     metrics.update(v498_swallow_reveal.build())
     metrics.update(v499_petal_separation.build())
+    metrics.update(v410_petal_pigment.build())
     scene = bpy.context.scene
     if (scene.frame_end, scene.render.fps) != (288, 24):
         raise RuntimeError('Original 12-second, 24fps timeline changed')
