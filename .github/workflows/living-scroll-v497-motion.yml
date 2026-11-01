@@ -1,7 +1,7 @@
 name: Living Scroll V4.9.7 — Genuine 24fps Motion Smoke
 on:
   push:
-    branches: [art/living-scroll-v497-petal-dissolve]
+    branches: [art/living-scroll-v497-motion-preview]
     paths:
       - 'living_scroll_v4/**'
       - '.github/workflows/living-scroll-v497-motion.yml'
