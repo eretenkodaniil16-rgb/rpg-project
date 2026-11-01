@@ -19,6 +19,7 @@ import v49_painterly
 import v493_slender_morph
 import v494_dissolve
 import v495_staggered_swallows
+import v496_folded_ribbon
 
 OUT = HERE / 'renders_v49'
 STILLS = OUT / 'stills'
@@ -40,6 +41,7 @@ def build(mode):
     metrics.update(v49_handoff.build())
     metrics.update(v494_dissolve.build())
     metrics.update(v495_staggered_swallows.build())
+    metrics.update(v496_folded_ribbon.build())
     scene = bpy.context.scene
     if (scene.frame_end, scene.render.fps) != (288, 24):
         raise RuntimeError('Original 12-second, 24fps timeline changed')
