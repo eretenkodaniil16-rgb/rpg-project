@@ -37,7 +37,7 @@ jobs:
       - name: Validate source and generate painted texture layers
         run: |
           set -euo pipefail
-          python -m py_compile living_scroll_v4/v49_fast_qa.py living_scroll_v4/v49_painterly.py living_scroll_v3/generate_assets.py living_scroll_v3/blender_scene.py living_scroll_v4/scene.py living_scroll_v4/v42.py living_scroll_v4/v42_art.py living_scroll_v4/v43.py living_scroll_v4/v44_lotus.py living_scroll_v4/v44.py living_scroll_v4/v45_birds.py living_scroll_v4/v45.py living_scroll_v4/v46_birds.py living_scroll_v4/v46.py living_scroll_v4/v47_morph.py living_scroll_v4/v47.py living_scroll_v4/v48_morph.py living_scroll_v4/v48.py living_scroll_v4/v49_ink.py living_scroll_v4/v49_handoff.py living_scroll_v4/v49_motion_qa.py living_scroll_v4/v49_silhouette.py living_scroll_v4/v49.py
+          python -m py_compile living_scroll_v4/v49_fast_qa.py living_scroll_v4/v49_painterly.py living_scroll_v4/v493_slender_morph.py living_scroll_v3/generate_assets.py living_scroll_v3/blender_scene.py living_scroll_v4/scene.py living_scroll_v4/v42.py living_scroll_v4/v42_art.py living_scroll_v4/v43.py living_scroll_v4/v44_lotus.py living_scroll_v4/v44.py living_scroll_v4/v45_birds.py living_scroll_v4/v45.py living_scroll_v4/v46_birds.py living_scroll_v4/v46.py living_scroll_v4/v47_morph.py living_scroll_v4/v47.py living_scroll_v4/v48_morph.py living_scroll_v4/v48.py living_scroll_v4/v49_ink.py living_scroll_v4/v49_handoff.py living_scroll_v4/v49_motion_qa.py living_scroll_v4/v49_silhouette.py living_scroll_v4/v49.py
           python living_scroll_v3/generate_assets.py
           python living_scroll_v4/v42_art.py
           test -s living_scroll_v3/assets/landscape_master.png
